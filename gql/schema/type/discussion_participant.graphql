@@ -1,0 +1,10 @@
+# NOTE: In order to force anonymity we cannot expose a link to DiscussionViewer here
+# as it references user. Potentitally we could remove that reference but it will make
+# other decisions more difficult. Instead make an extra query for viewer information
+# that can be handled outside of the sudo request.
+type DiscussionParticipant {
+    # Fetching a participant is okay because we have no link back to who the user is.
+    id: ID!
+    # Link to the discussion. May be null if the discussion is deleted or unavailable.
+    discussion: Discussion
+}

@@ -1,0 +1,5 @@
+type DiscussionParticipantConnection {
+    totalCount: Int!
+    edges: [DiscussionParticipant]
+    pageInfo: PageInfo!
+}

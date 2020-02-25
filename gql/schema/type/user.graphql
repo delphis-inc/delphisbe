@@ -1,0 +1,7 @@
+# Users prove relatively useless in our schema because we want to expose
+# no information about them publicly. Once we determine some form of status
+# this will be available. Until then this effectively is a leaf node.
+type User {
+    id: ID!
+    sudoUser: SudoUser
+}
