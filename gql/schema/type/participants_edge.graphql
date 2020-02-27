@@ -1,0 +1,4 @@
+type ParticipantsEdge {
+    cursor: ID!
+    node: Participant
+}

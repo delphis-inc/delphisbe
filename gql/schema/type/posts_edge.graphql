@@ -1,0 +1,4 @@
+type PostsEdge {
+    cursor: ID!
+    node: Post
+}

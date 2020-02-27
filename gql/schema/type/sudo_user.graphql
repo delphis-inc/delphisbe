@@ -1,9 +1,9 @@
 # A SudoUser describes the unlocked version of a user. Due to implementation
 # the server cannot access the sudo properties for a user without first 
 # unlocking the secure information with the user's master password
-type SudoUser {
-    isUnlocked: Boolean!
-    participantDiscussions: DiscussionParticipantConnection!
-    moderatorDiscussions: DiscussionModeratorConnection!
-    notificationTokens: NotificationTokenConnection!
-}
+# type SudoUser {
+#     isUnlocked: Boolean!
+#     participantDiscussions: DiscussionParticipantConnection!
+#     moderatorDiscussions: DiscussionModeratorConnection!
+#     notificationTokens: NotificationTokenConnection!
+# }

@@ -1,0 +1,8 @@
+schema {
+  query: Query
+}
+
+# The Query type represents all of the entry points into the API.
+type Query {
+  discussion(id: ID!): Discussion
+}

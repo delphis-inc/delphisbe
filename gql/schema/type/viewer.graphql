@@ -1,0 +1,14 @@
+type Viewer {
+    # Fetchable as it does not reference a user.
+    id: ID!
+    # Exposes notification preferences for this user.
+    notificationPreferences: DiscussionNotificationPreferences!
+    # May be nil if the discussion is no longer available.
+    discussion: Discussion
+    # The last time the viewer viewed this discussion.
+    lastViewed: Time
+    # The last post this viewer saw (saw may be undefined, but assume it is what you think it is).
+    lastPostViewed: Post
+    # Bookmarked posts from this discussion.
+    bookmarks: PostsConnection!
+}

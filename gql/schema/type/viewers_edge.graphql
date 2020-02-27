@@ -1,0 +1,4 @@
+type ViewersEdge {
+    cursor: ID!
+    node: Viewer
+}
