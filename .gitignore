@@ -13,6 +13,7 @@
 
 # Generated files
 gql/schema/bindata.go
+./backend
 
 # Dependency directories (remove the comment below to include it)
 # vendor/
