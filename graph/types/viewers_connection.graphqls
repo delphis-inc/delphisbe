@@ -1,0 +1,5 @@
+type ViewersConnection {
+    totalCount: Int!
+    edges: [ViewersEdge!]
+    pageInfo: PageInfo!
+}

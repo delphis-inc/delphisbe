@@ -1,0 +1,27 @@
+{
+    "env": "well-formed",
+    "db": {
+        "host": "localhost",
+        "port": 1337,
+        "tables_config": {
+            "discussions": {
+                "table_name": "well-formed.Discussions"
+            },
+            "participants": {
+                "table_name": "well-formed.Participants"
+            },
+            "post_bookmarks": {
+                "table_name": "well-formed.PostBookmarks"
+            },
+            "posts": {
+                "table_name": "well-formed.Posts"
+            },
+            "users": {
+                "table_name": "well-formed.Users"
+            },
+            "viewers": {
+                "table_name": "well-formed.Viewers"
+            }
+        }
+    }
+}

@@ -1,0 +1,5 @@
+type PostBookmarksConnection {
+    totalCount: Int!
+    edges: [PostBookmarksEdge!]
+    pageInfo: PageInfo!
+}

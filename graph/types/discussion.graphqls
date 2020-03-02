@@ -1,0 +1,23 @@
+type Discussion {
+    # Unique id for this discussion
+    id: ID!
+    # We do not link to the user themselves, only the moderator view of a user.
+    # This is for anonymity.
+    ######moderator: ModeratingUser!
+    # Anonymity type is currently not implemented beyond publicly viewable content.
+    anonymityType: AnonymityType!
+    
+    # A link to all posts in the discussion, ordered chronologically.
+    posts(first: Int, after: ID): PostsConnection!
+}
+
+type DiscussionsConnection {
+    totalCount: Int!
+    edges: [DiscussionsEdge]
+    pageInfo: PageInfo!
+}
+
+type DiscussionsEdge {
+    cursor: ID!
+    node: Discussion
+}
