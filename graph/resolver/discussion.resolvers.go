@@ -1,6 +1,6 @@
 // This file will be automatically regenerated based on the schema, any resolver implementations
 // will be copied through when generating and any unknown code will be moved to the end.
-package graph
+package resolver
 
 import (
 	"context"
@@ -23,7 +23,5 @@ func (r *Resolver) DiscussionsConnection() generated.DiscussionsConnectionResolv
 	return &discussionsConnectionResolver{r}
 }
 
-type discussionResolver struct {
-	*Resolver
-}
+type discussionResolver struct{ *Resolver }
 type discussionsConnectionResolver struct{ *Resolver }

@@ -1,38 +1,36 @@
 package config
 
 import (
-	"fmt"
 	"os"
 
 	"github.com/spf13/viper"
 )
 
 type Config struct {
-	Environment string   `json:"env"`
-	DBConfig    DBConfig `json:"db"`
+	Environment string   `json:"env" mapstructure:"env"`
+	DBConfig    DBConfig `json:"db" mapstructure:"db"`
 }
 
 type DBConfig struct {
-	Host         string       `json:"host"`
-	Port         int          `json:"port"`
-	TablesConfig TablesConfig `json:"tables_config"`
+	Host         string       `json:"host" mapstructure:"host"`
+	Port         int          `json:"port" mapstructure:"port"`
+	TablesConfig TablesConfig `json:"tables_config" mapstructure:"tables_config"`
 }
 
 type TablesConfig struct {
-	Discussions   TableConfig `json:"discussions"`
-	Participants  TableConfig `json:"participants"`
-	PostBookmarks TableConfig `json:"post_bookmarks"`
-	Posts         TableConfig `json:"posts"`
-	Users         TableConfig `json:"users"`
-	Viewers       TableConfig `json:"viewers"`
+	Discussions   TableConfig `json:"discussions" mapstructure:"discussions"`
+	Participants  TableConfig `json:"participants" mapstructure:"participants"`
+	PostBookmarks TableConfig `json:"post_bookmarks" mapstructure:"post_bookmarks"`
+	Posts         TableConfig `json:"posts" mapstructure:"posts"`
+	Users         TableConfig `json:"users" mapstructure:"users"`
+	Viewers       TableConfig `json:"viewers" mapstructure:"viewers"`
 }
 
 type TableConfig struct {
-	TableName string `json:"table_name"`
+	TableName string `json:"table_name" mapstructure:"table_name"`
 }
 
-// addConfigDirectory used for testing to add the test config files directories.
-func addConfigDirectory(dir string) {
+func AddConfigDirectory(dir string) {
 	viper.AddConfigPath(dir)
 }
 
@@ -45,17 +43,17 @@ func ReadConfig() (*Config, error) {
 	if env == "" {
 		env = "local"
 	}
-	viper.SetConfigName(fmt.Sprintf("%s.json", env))
-	viper.AddConfigPath("./config")
+	viper.SetConfigType("json")
+	viper.SetConfigName(env)
 	err := viper.ReadInConfig()
 	if err != nil {
 		return nil, err
 	}
-	config := &Config{}
-	err = viper.Unmarshal(config)
+	config := Config{}
+	err = viper.Unmarshal(&config)
 	if err != nil {
 		return nil, err
 	}
 
-	return config, nil
+	return &config, nil
 }

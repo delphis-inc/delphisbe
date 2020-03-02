@@ -3,13 +3,14 @@ package config
 import (
 	"encoding/json"
 	"io/ioutil"
+	"os"
 	"path"
 	"runtime"
 	"testing"
 )
 
 func Test_ReadConfig(t *testing.T) {
-	_, filename, _, ok := runtime.Caller(1)
+	_, filename, _, ok := runtime.Caller(0)
 	if !ok {
 		t.Fatal("Failed to get the current running file location")
 	}
@@ -46,7 +47,8 @@ func Test_ReadConfig(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			clearConfig()
-			addConfigDirectory(path.Join(dirName, "test_config"))
+			AddConfigDirectory(path.Join(dirName, "test_config"))
+			os.Setenv("DELPHIS_ENV", "well_formed")
 
 			got, err := ReadConfig()
 			if err != nil {
