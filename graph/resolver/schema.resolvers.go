@@ -4,14 +4,19 @@ package resolver
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/nedrocks/delphisbe/graph/generated"
 	"github.com/nedrocks/delphisbe/graph/model"
 )
 
 func (r *queryResolver) Discussion(ctx context.Context, id string) (*model.Discussion, error) {
-	panic(fmt.Errorf("not implemented"))
+	discussionObj, err := r.DAOManager.GetDiscussionByID(ctx, id)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return discussionObj, nil
 }
 
 func (r *Resolver) Query() generated.QueryResolver { return &queryResolver{r} }

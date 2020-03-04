@@ -1,7 +1,13 @@
 package model
 
+import "time"
+
 type Post struct {
-	ID string `json:"id"`
+	ID           string     `json:"id"`
+	CreatedAt    time.Time  `json:"createdAt"`
+	UpdatedAt    time.Time  `json:"updatedAt"`
+	DeletedAt    *time.Time `json:"deletedAt"`
+	DiscussionID string     `json:"discussionID"`
 }
 
 type PostsEdge struct {
@@ -10,21 +16,21 @@ type PostsEdge struct {
 }
 
 type PostsConnection struct {
-	ids  []string
-	from int
-	to   int
+	from string
+	to   string
 }
 
 func (p *PostsConnection) TotalCount() int {
-	return len(p.ids)
+	return 0 //len(p.ids)
 }
 
 func (p *PostsConnection) PageInfo() PageInfo {
-	from := EncodeCursor(p.from)
-	to := EncodeCursor(p.to)
-	return PageInfo{
-		StartCursor: &from,
-		EndCursor:   &to,
-		HasNextPage: p.to < len(p.ids),
-	}
+	// 	from := EncodeCursor(p.from)
+	// 	to := EncodeCursor(p.to)
+	// 	return PageInfo{
+	// 		StartCursor: &from,
+	// 		EndCursor:   &to,
+	// 		HasNextPage: p.to < len(p.ids),
+	// 	}
+	return PageInfo{}
 }

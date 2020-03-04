@@ -1,7 +1,12 @@
 package model
 
+import "time"
+
 type User struct {
 	ID           string                  `json:"id"`
-	Participants *ParticipantsConnection `json:"participants"`
-	Viewers      *ViewersConnection      `json:"viewers"`
+	CreatedAt    time.Time               `json:"createdAt"`
+	UpdatedAt    time.Time               `json:"updatedAt"`
+	DeletedAt    *time.Time              `json:"deletedAt"`
+	Participants *ParticipantsConnection `json:"participants" dynamodbav:"-"`
+	Viewers      *ViewersConnection      `json:"viewers" dynamodbav:"-"`
 }

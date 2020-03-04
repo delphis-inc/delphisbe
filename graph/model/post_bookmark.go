@@ -3,10 +3,14 @@ package model
 import "time"
 
 type PostBookmark struct {
-	ID         string      `json:"id"`
-	Discussion *Discussion `json:"discussion"`
-	Post       *Post       `json:"post"`
-	CreatedAt  time.Time   `json:"createdAt"`
+	ID           string      `json:"id"`
+	CreatedAt    time.Time   `json:"createdAt"`
+	UpdatedAt    time.Time   `json:"updatedAt"`
+	DeletedAt    *time.Time  `json:"deletedAt"`
+	DiscussionID string      `json:"discussionID"`
+	Discussion   *Discussion `json:"discussion" dynamodbav:"-"`
+	PostID       string      `json:"postID"`
+	Post         *Post       `json:"post" dynamodbav:"-"`
 }
 
 type PostBookmarksEdge struct {

@@ -1,9 +1,14 @@
 package model
 
+import "time"
+
 type Discussion struct {
 	ID            string           `json:"id"`
+	CreatedAt     time.Time        `json:"createdAt"`
+	UpdatedAt     time.Time        `json:"updatedAt"`
+	DeletedAt     *time.Time       `json:"deletedAt"`
 	AnonymityType AnonymityType    `json:"anonymityType"`
-	Posts         *PostsConnection `json:"posts"`
+	Posts         *PostsConnection `json:"posts" dynamodbav:"-"`
 }
 
 type DiscussionsEdge struct {

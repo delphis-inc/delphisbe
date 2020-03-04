@@ -14,6 +14,7 @@ type Config struct {
 type DBConfig struct {
 	Host         string       `json:"host" mapstructure:"host"`
 	Port         int          `json:"port" mapstructure:"port"`
+	Region       string       `json:"region" mapstructure:"region"`
 	TablesConfig TablesConfig `json:"tables_config" mapstructure:"tables_config"`
 }
 

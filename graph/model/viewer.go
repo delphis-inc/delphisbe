@@ -4,11 +4,16 @@ import "time"
 
 type Viewer struct {
 	ID                      string                            `json:"id"`
+	CreatedAt               time.Time                         `json:"createdAt"`
+	UpdatedAt               time.Time                         `json:"updatedAt"`
+	DeletedAt               *time.Time                        `json:"deletedAt"`
 	NotificationPreferences DiscussionNotificationPreferences `json:"notificationPreferences"`
+	DiscussionID            string                            `json:"discussionID"`
 	Discussion              *Discussion                       `json:"discussion"`
 	LastViewed              *time.Time                        `json:"lastViewed"`
-	LastPostViewed          *Post                             `json:"lastPostViewed"`
-	Bookmarks               *PostsConnection                  `json:"bookmarks"`
+	LastViewedPostID        *string                           `json:"lastViewedPostID"`
+	LastViewedPost          *Post                             `json:"lastViewedPost" dynamodbav:"-"`
+	Bookmarks               *PostsConnection                  `json:"bookmarks" dynamodbav:"-"`
 }
 
 type ViewersEdge struct {

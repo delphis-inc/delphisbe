@@ -1,0 +1,28 @@
+{
+    "env": "local",
+    "db": {
+        "host": "localhost",
+        "port": 7998,
+        "region": "us-west-2",
+        "tables_config": {
+            "discussions": {
+                "table_name": "local.Discussions.v1"
+            },
+            "participants": {
+                "table_name": "local.Participants.v1"
+            },
+            "post_bookmarks": {
+                "table_name": "local.PostBookmarks.v1"
+            },
+            "posts": {
+                "table_name": "local.Posts.v1"
+            },
+            "users": {
+                "table_name": "local.Users.v1"
+            },
+            "viewers": {
+                "table_name": "local.Viewers.v1"
+            }
+        }
+    }
+}

@@ -1,11 +1,18 @@
 package model
 
+import "time"
+
 type Participant struct {
 	ID                                string                            `json:"id"`
-	Discussion                        *Discussion                       `json:"discussion"`
-	Viewer                            *Viewer                           `json:"viewer"`
+	CreatedAt                         time.Time                         `json:"createdAt"`
+	UpdatedAt                         time.Time                         `json:"updatedAt"`
+	DeletedAt                         *time.Time                        `json:"deletedAt"`
+	DiscussionID                      string                            `json:"discussionID"`
+	Discussion                        *Discussion                       `json:"discussion" dynamodbav:"-"`
+	ViewerID                          string                            `json:"viewerID"`
+	Viewer                            *Viewer                           `json:"viewer" dynamodbav:"-"`
 	DiscussionNotificationPreferences DiscussionNotificationPreferences `json:"discussionNotificationPreferences"`
-	Posts                             *PostsConnection                  `json:"posts"`
+	Posts                             *PostsConnection                  `json:"posts" dynamodbav:"-"`
 }
 
 type ParticipantsEdge struct {

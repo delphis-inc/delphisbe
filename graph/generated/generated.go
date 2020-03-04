@@ -147,8 +147,8 @@ type ComplexityRoot struct {
 		Bookmarks               func(childComplexity int, first *int, after *string) int
 		Discussion              func(childComplexity int) int
 		ID                      func(childComplexity int) int
-		LastPostViewed          func(childComplexity int) int
 		LastViewed              func(childComplexity int) int
+		LastViewedPost          func(childComplexity int) int
 		NotificationPreferences func(childComplexity int) int
 	}
 
@@ -204,7 +204,6 @@ type ViewerResolver interface {
 	NotificationPreferences(ctx context.Context, obj *model.Viewer) (model.DiscussionNotificationPreferences, error)
 	Discussion(ctx context.Context, obj *model.Viewer) (*model.Discussion, error)
 
-	LastPostViewed(ctx context.Context, obj *model.Viewer) (*model.Post, error)
 	Bookmarks(ctx context.Context, obj *model.Viewer, first *int, after *string) (*model.PostsConnection, error)
 }
 type ViewersConnectionResolver interface {
@@ -564,19 +563,19 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Viewer.ID(childComplexity), true
 
-	case "Viewer.lastPostViewed":
-		if e.complexity.Viewer.LastPostViewed == nil {
-			break
-		}
-
-		return e.complexity.Viewer.LastPostViewed(childComplexity), true
-
 	case "Viewer.lastViewed":
 		if e.complexity.Viewer.LastViewed == nil {
 			break
 		}
 
 		return e.complexity.Viewer.LastViewed(childComplexity), true
+
+	case "Viewer.lastViewedPost":
+		if e.complexity.Viewer.LastViewedPost == nil {
+			break
+		}
+
+		return e.complexity.Viewer.LastViewedPost(childComplexity), true
 
 	case "Viewer.notificationPreferences":
 		if e.complexity.Viewer.NotificationPreferences == nil {
@@ -847,7 +846,7 @@ type User {
     # The last time the viewer viewed this discussion.
     lastViewed: Time
     # The last post this viewer saw (saw may be undefined, but assume it is what you think it is).
-    lastPostViewed: Post
+    lastViewedPost: Post
     # Bookmarked posts from this discussion.
     bookmarks(first: Int, after: ID): PostsConnection!
 }`, BuiltIn: false},
@@ -2630,7 +2629,7 @@ func (ec *executionContext) _Viewer_lastViewed(ctx context.Context, field graphq
 	return ec.marshalOTime2ᚖtimeᚐTime(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Viewer_lastPostViewed(ctx context.Context, field graphql.CollectedField, obj *model.Viewer) (ret graphql.Marshaler) {
+func (ec *executionContext) _Viewer_lastViewedPost(ctx context.Context, field graphql.CollectedField, obj *model.Viewer) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -2641,13 +2640,13 @@ func (ec *executionContext) _Viewer_lastPostViewed(ctx context.Context, field gr
 		Object:   "Viewer",
 		Field:    field,
 		Args:     nil,
-		IsMethod: true,
+		IsMethod: false,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Viewer().LastPostViewed(rctx, obj)
+		return obj.LastViewedPost, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -4678,17 +4677,8 @@ func (ec *executionContext) _Viewer(ctx context.Context, sel ast.SelectionSet, o
 			})
 		case "lastViewed":
 			out.Values[i] = ec._Viewer_lastViewed(ctx, field, obj)
-		case "lastPostViewed":
-			field := field
-			out.Concurrently(i, func() (res graphql.Marshaler) {
-				defer func() {
-					if r := recover(); r != nil {
-						ec.Error(ctx, ec.Recover(ctx, r))
-					}
-				}()
-				res = ec._Viewer_lastPostViewed(ctx, field, obj)
-				return res
-			})
+		case "lastViewedPost":
+			out.Values[i] = ec._Viewer_lastViewedPost(ctx, field, obj)
 		case "bookmarks":
 			field := field
 			out.Concurrently(i, func() (res graphql.Marshaler) {

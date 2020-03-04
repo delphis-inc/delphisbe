@@ -3,4 +3,8 @@
 // It serves as dependency injection for your app, add any dependencies you require here.
 package resolver
 
-type Resolver struct{}
+import "github.com/nedrocks/delphisbe/internal/backend"
+
+type Resolver struct {
+	DAOManager backend.DAOManager
+}
