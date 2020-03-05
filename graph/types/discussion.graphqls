@@ -8,16 +8,19 @@ type Discussion {
     anonymityType: AnonymityType!
     
     # A link to all posts in the discussion, ordered chronologically.
-    posts(first: Int, after: ID): PostsConnection!
+    posts: [Post!]
+
+    # Participants
+    participants: [Participant!]
 }
 
-type DiscussionsConnection {
-    totalCount: Int!
-    edges: [DiscussionsEdge]
-    pageInfo: PageInfo!
-}
+# type DiscussionsConnection {
+#     totalCount: Int!
+#     edges: [DiscussionsEdge]
+#     pageInfo: PageInfo!
+# }
 
-type DiscussionsEdge {
-    cursor: ID!
-    node: Discussion
-}
+# type DiscussionsEdge {
+#     cursor: ID!
+#     node: Discussion
+# }

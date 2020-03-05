@@ -1,44 +1,14 @@
-# GraphQL schema example
-#
-# https://gqlgen.com/getting-started/
-
-# type Todo {
-#   id: ID!
-#   text: String!
-#   done: Boolean!
-#   user: User!
-# }
-
-# type User {
-#   id: ID!
-#   name: String!
-# }
-
-# type Query {
-#   todos: [Todo!]!
-# }
-
-# input NewTodo {
-#   text: String!
-#   userId: String!
-# }
-
-# type Mutation {
-#   createTodo(input: NewTodo!): Todo!
-# }
-
-# enum AnonymityType {
-#   WEAK
-#   STRONG
-# }
-
-# union DiscussionNotificationPreferences = ViewerNotificationPreferences | ParticipantNotificationPreferences
-
 schema {
   query: Query
+  mutation: Mutation
 }
 
 # The Query type represents all of the entry points into the API.
 type Query {
   discussion(id: ID!): Discussion
+  listDiscussions: [Discussion!]
+}
+
+type Mutation {
+  createDiscussion(anonymityType: AnonymityType!): Discussion!
 }

@@ -10,18 +10,14 @@ import (
 	"github.com/nedrocks/delphisbe/graph/model"
 )
 
-func (r *discussionResolver) Posts(ctx context.Context, obj *model.Discussion, first *int, after *string) (*model.PostsConnection, error) {
+func (r *discussionResolver) Posts(ctx context.Context, obj *model.Discussion) ([]*model.Post, error) {
 	panic(fmt.Errorf("not implemented"))
 }
 
-func (r *discussionsConnectionResolver) Edges(ctx context.Context, obj *model.DiscussionsConnection) ([]*model.DiscussionsEdge, error) {
+func (r *discussionResolver) Participants(ctx context.Context, obj *model.Discussion) ([]*model.Participant, error) {
 	panic(fmt.Errorf("not implemented"))
 }
 
 func (r *Resolver) Discussion() generated.DiscussionResolver { return &discussionResolver{r} }
-func (r *Resolver) DiscussionsConnection() generated.DiscussionsConnectionResolver {
-	return &discussionsConnectionResolver{r}
-}
 
 type discussionResolver struct{ *Resolver }
-type discussionsConnectionResolver struct{ *Resolver }

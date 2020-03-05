@@ -10,11 +10,15 @@ import (
 	"github.com/nedrocks/delphisbe/graph/model"
 )
 
-func (r *userResolver) Participants(ctx context.Context, obj *model.User, first *int, after *string) (*model.ParticipantsConnection, error) {
+func (r *userResolver) Participants(ctx context.Context, obj *model.User) ([]*model.Participant, error) {
 	panic(fmt.Errorf("not implemented"))
 }
 
-func (r *userResolver) Viewers(ctx context.Context, obj *model.User, first *int, after *string) (*model.ViewersConnection, error) {
+func (r *userResolver) Viewers(ctx context.Context, obj *model.User) ([]*model.Viewer, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
+func (r *userResolver) Bookmarks(ctx context.Context, obj *model.User) ([]*model.PostBookmark, error) {
 	panic(fmt.Errorf("not implemented"))
 }
 

@@ -18,7 +18,7 @@ func (r *viewerResolver) Discussion(ctx context.Context, obj *model.Viewer) (*mo
 	panic(fmt.Errorf("not implemented"))
 }
 
-func (r *viewerResolver) Bookmarks(ctx context.Context, obj *model.Viewer, first *int, after *string) (*model.PostsConnection, error) {
+func (r *viewerResolver) Bookmarks(ctx context.Context, obj *model.Viewer) ([]*model.PostBookmark, error) {
 	panic(fmt.Errorf("not implemented"))
 }
 

@@ -3,7 +3,7 @@ package model
 import "time"
 
 type User struct {
-	ID           string                  `json:"id"`
+	ID           string                  `json:"id" dynamodbav:"ID"`
 	CreatedAt    time.Time               `json:"createdAt"`
 	UpdatedAt    time.Time               `json:"updatedAt"`
 	DeletedAt    *time.Time              `json:"deletedAt"`

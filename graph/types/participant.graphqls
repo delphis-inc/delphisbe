@@ -8,5 +8,5 @@ type Participant {
     # Preferences for notifications for this discussion
     discussionNotificationPreferences: DiscussionNotificationPreferences!
     # Gets a list of all posts created by this participant in the given discussion.
-    posts(first: Int, after: ID): PostsConnection!
+    posts: [Post!]
 }

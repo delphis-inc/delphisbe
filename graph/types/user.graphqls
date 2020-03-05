@@ -8,9 +8,11 @@ type User {
     ###sudoUser: SudoUser
     # List participant objects this user has. A participant object describes
     # when a user is a participant in a discussion.
-    participants(first: Int, after: ID): ParticipantsConnection!
+    participants: [Participant!]
     # List of viewer objects this user has. A viewer object describes when
     # a user is a viewer in a discussion. Note that if a user is a
     # participant, they are also a viewer.
-    viewers(first: Int, after: ID): ViewersConnection!
+    viewers: [Viewer!]
+
+    bookmarks: [PostBookmark!]
 }

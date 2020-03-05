@@ -10,6 +10,8 @@ import (
 	"github.com/nedrocks/delphisbe/graph/generated"
 	"github.com/nedrocks/delphisbe/graph/resolver"
 	"github.com/nedrocks/delphisbe/internal/backend"
+	"github.com/nedrocks/delphisbe/internal/config"
+	"github.com/sirupsen/logrus"
 )
 
 const defaultPort = "8080"
@@ -20,9 +22,16 @@ func main() {
 		port = defaultPort
 	}
 
+	config.AddConfigDirectory("./config")
+	conf, err := config.ReadConfig()
+	if err != nil {
+		logrus.WithError(err).Errorf("Error loading config file")
+		return
+	}
+
 	srv := handler.NewDefaultServer(generated.NewExecutableSchema(generated.Config{
 		Resolvers: &resolver.Resolver{
-			DAOManager: backend.NewDaoManager(),
+			DAOManager: backend.NewDaoManager(*conf),
 		}}))
 
 	http.Handle("/", playground.Handler("GraphQL playground", "/query"))

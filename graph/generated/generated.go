@@ -38,9 +38,10 @@ type Config struct {
 
 type ResolverRoot interface {
 	Discussion() DiscussionResolver
-	DiscussionsConnection() DiscussionsConnectionResolver
+	Mutation() MutationResolver
 	Participant() ParticipantResolver
 	ParticipantsConnection() ParticipantsConnectionResolver
+	Post() PostResolver
 	PostBookmark() PostBookmarkResolver
 	PostBookmarksConnection() PostBookmarksConnectionResolver
 	PostsConnection() PostsConnectionResolver
@@ -57,18 +58,12 @@ type ComplexityRoot struct {
 	Discussion struct {
 		AnonymityType func(childComplexity int) int
 		ID            func(childComplexity int) int
-		Posts         func(childComplexity int, first *int, after *string) int
+		Participants  func(childComplexity int) int
+		Posts         func(childComplexity int) int
 	}
 
-	DiscussionsConnection struct {
-		Edges      func(childComplexity int) int
-		PageInfo   func(childComplexity int) int
-		TotalCount func(childComplexity int) int
-	}
-
-	DiscussionsEdge struct {
-		Cursor func(childComplexity int) int
-		Node   func(childComplexity int) int
+	Mutation struct {
+		CreateDiscussion func(childComplexity int, anonymityType model.AnonymityType) int
 	}
 
 	PageInfo struct {
@@ -81,7 +76,7 @@ type ComplexityRoot struct {
 		Discussion                        func(childComplexity int) int
 		DiscussionNotificationPreferences func(childComplexity int) int
 		ID                                func(childComplexity int) int
-		Posts                             func(childComplexity int, first *int, after *string) int
+		Posts                             func(childComplexity int) int
 		Viewer                            func(childComplexity int) int
 	}
 
@@ -101,7 +96,8 @@ type ComplexityRoot struct {
 	}
 
 	Post struct {
-		ID func(childComplexity int) int
+		Content func(childComplexity int) int
+		ID      func(childComplexity int) int
 	}
 
 	PostBookmark struct {
@@ -134,17 +130,19 @@ type ComplexityRoot struct {
 	}
 
 	Query struct {
-		Discussion func(childComplexity int, id string) int
+		Discussion      func(childComplexity int, id string) int
+		ListDiscussions func(childComplexity int) int
 	}
 
 	User struct {
+		Bookmarks    func(childComplexity int) int
 		ID           func(childComplexity int) int
-		Participants func(childComplexity int, first *int, after *string) int
-		Viewers      func(childComplexity int, first *int, after *string) int
+		Participants func(childComplexity int) int
+		Viewers      func(childComplexity int) int
 	}
 
 	Viewer struct {
-		Bookmarks               func(childComplexity int, first *int, after *string) int
+		Bookmarks               func(childComplexity int) int
 		Discussion              func(childComplexity int) int
 		ID                      func(childComplexity int) int
 		LastViewed              func(childComplexity int) int
@@ -169,19 +167,23 @@ type ComplexityRoot struct {
 }
 
 type DiscussionResolver interface {
-	Posts(ctx context.Context, obj *model.Discussion, first *int, after *string) (*model.PostsConnection, error)
+	Posts(ctx context.Context, obj *model.Discussion) ([]*model.Post, error)
+	Participants(ctx context.Context, obj *model.Discussion) ([]*model.Participant, error)
 }
-type DiscussionsConnectionResolver interface {
-	Edges(ctx context.Context, obj *model.DiscussionsConnection) ([]*model.DiscussionsEdge, error)
+type MutationResolver interface {
+	CreateDiscussion(ctx context.Context, anonymityType model.AnonymityType) (*model.Discussion, error)
 }
 type ParticipantResolver interface {
 	Discussion(ctx context.Context, obj *model.Participant) (*model.Discussion, error)
 	Viewer(ctx context.Context, obj *model.Participant) (*model.Viewer, error)
 	DiscussionNotificationPreferences(ctx context.Context, obj *model.Participant) (model.DiscussionNotificationPreferences, error)
-	Posts(ctx context.Context, obj *model.Participant, first *int, after *string) (*model.PostsConnection, error)
+	Posts(ctx context.Context, obj *model.Participant) ([]*model.Post, error)
 }
 type ParticipantsConnectionResolver interface {
 	Edges(ctx context.Context, obj *model.ParticipantsConnection) ([]*model.ParticipantsEdge, error)
+}
+type PostResolver interface {
+	Content(ctx context.Context, obj *model.Post) (*string, error)
 }
 type PostBookmarkResolver interface {
 	Discussion(ctx context.Context, obj *model.PostBookmark) (*model.Discussion, error)
@@ -195,16 +197,18 @@ type PostsConnectionResolver interface {
 }
 type QueryResolver interface {
 	Discussion(ctx context.Context, id string) (*model.Discussion, error)
+	ListDiscussions(ctx context.Context) ([]*model.Discussion, error)
 }
 type UserResolver interface {
-	Participants(ctx context.Context, obj *model.User, first *int, after *string) (*model.ParticipantsConnection, error)
-	Viewers(ctx context.Context, obj *model.User, first *int, after *string) (*model.ViewersConnection, error)
+	Participants(ctx context.Context, obj *model.User) ([]*model.Participant, error)
+	Viewers(ctx context.Context, obj *model.User) ([]*model.Viewer, error)
+	Bookmarks(ctx context.Context, obj *model.User) ([]*model.PostBookmark, error)
 }
 type ViewerResolver interface {
 	NotificationPreferences(ctx context.Context, obj *model.Viewer) (model.DiscussionNotificationPreferences, error)
 	Discussion(ctx context.Context, obj *model.Viewer) (*model.Discussion, error)
 
-	Bookmarks(ctx context.Context, obj *model.Viewer, first *int, after *string) (*model.PostsConnection, error)
+	Bookmarks(ctx context.Context, obj *model.Viewer) ([]*model.PostBookmark, error)
 }
 type ViewersConnectionResolver interface {
 	Edges(ctx context.Context, obj *model.ViewersConnection) ([]*model.ViewersEdge, error)
@@ -239,52 +243,31 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Discussion.ID(childComplexity), true
 
+	case "Discussion.participants":
+		if e.complexity.Discussion.Participants == nil {
+			break
+		}
+
+		return e.complexity.Discussion.Participants(childComplexity), true
+
 	case "Discussion.posts":
 		if e.complexity.Discussion.Posts == nil {
 			break
 		}
 
-		args, err := ec.field_Discussion_posts_args(context.TODO(), rawArgs)
+		return e.complexity.Discussion.Posts(childComplexity), true
+
+	case "Mutation.createDiscussion":
+		if e.complexity.Mutation.CreateDiscussion == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_createDiscussion_args(context.TODO(), rawArgs)
 		if err != nil {
 			return 0, false
 		}
 
-		return e.complexity.Discussion.Posts(childComplexity, args["first"].(*int), args["after"].(*string)), true
-
-	case "DiscussionsConnection.edges":
-		if e.complexity.DiscussionsConnection.Edges == nil {
-			break
-		}
-
-		return e.complexity.DiscussionsConnection.Edges(childComplexity), true
-
-	case "DiscussionsConnection.pageInfo":
-		if e.complexity.DiscussionsConnection.PageInfo == nil {
-			break
-		}
-
-		return e.complexity.DiscussionsConnection.PageInfo(childComplexity), true
-
-	case "DiscussionsConnection.totalCount":
-		if e.complexity.DiscussionsConnection.TotalCount == nil {
-			break
-		}
-
-		return e.complexity.DiscussionsConnection.TotalCount(childComplexity), true
-
-	case "DiscussionsEdge.cursor":
-		if e.complexity.DiscussionsEdge.Cursor == nil {
-			break
-		}
-
-		return e.complexity.DiscussionsEdge.Cursor(childComplexity), true
-
-	case "DiscussionsEdge.node":
-		if e.complexity.DiscussionsEdge.Node == nil {
-			break
-		}
-
-		return e.complexity.DiscussionsEdge.Node(childComplexity), true
+		return e.complexity.Mutation.CreateDiscussion(childComplexity, args["anonymityType"].(model.AnonymityType)), true
 
 	case "PageInfo.endCursor":
 		if e.complexity.PageInfo.EndCursor == nil {
@@ -333,12 +316,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			break
 		}
 
-		args, err := ec.field_Participant_posts_args(context.TODO(), rawArgs)
-		if err != nil {
-			return 0, false
-		}
-
-		return e.complexity.Participant.Posts(childComplexity, args["first"].(*int), args["after"].(*string)), true
+		return e.complexity.Participant.Posts(childComplexity), true
 
 	case "Participant.viewer":
 		if e.complexity.Participant.Viewer == nil {
@@ -388,6 +366,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.ParticipantsEdge.Node(childComplexity), true
+
+	case "Post.content":
+		if e.complexity.Post.Content == nil {
+			break
+		}
+
+		return e.complexity.Post.Content(childComplexity), true
 
 	case "Post.id":
 		if e.complexity.Post.ID == nil {
@@ -506,6 +491,20 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Query.Discussion(childComplexity, args["id"].(string)), true
 
+	case "Query.listDiscussions":
+		if e.complexity.Query.ListDiscussions == nil {
+			break
+		}
+
+		return e.complexity.Query.ListDiscussions(childComplexity), true
+
+	case "User.bookmarks":
+		if e.complexity.User.Bookmarks == nil {
+			break
+		}
+
+		return e.complexity.User.Bookmarks(childComplexity), true
+
 	case "User.id":
 		if e.complexity.User.ID == nil {
 			break
@@ -518,36 +517,21 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			break
 		}
 
-		args, err := ec.field_User_participants_args(context.TODO(), rawArgs)
-		if err != nil {
-			return 0, false
-		}
-
-		return e.complexity.User.Participants(childComplexity, args["first"].(*int), args["after"].(*string)), true
+		return e.complexity.User.Participants(childComplexity), true
 
 	case "User.viewers":
 		if e.complexity.User.Viewers == nil {
 			break
 		}
 
-		args, err := ec.field_User_viewers_args(context.TODO(), rawArgs)
-		if err != nil {
-			return 0, false
-		}
-
-		return e.complexity.User.Viewers(childComplexity, args["first"].(*int), args["after"].(*string)), true
+		return e.complexity.User.Viewers(childComplexity), true
 
 	case "Viewer.bookmarks":
 		if e.complexity.Viewer.Bookmarks == nil {
 			break
 		}
 
-		args, err := ec.field_Viewer_bookmarks_args(context.TODO(), rawArgs)
-		if err != nil {
-			return 0, false
-		}
-
-		return e.complexity.Viewer.Bookmarks(childComplexity, args["first"].(*int), args["after"].(*string)), true
+		return e.complexity.Viewer.Bookmarks(childComplexity), true
 
 	case "Viewer.discussion":
 		if e.complexity.Viewer.Discussion == nil {
@@ -650,6 +634,20 @@ func (e *executableSchema) Exec(ctx context.Context) graphql.ResponseHandler {
 				Data: buf.Bytes(),
 			}
 		}
+	case ast.Mutation:
+		return func(ctx context.Context) *graphql.Response {
+			if !first {
+				return nil
+			}
+			first = false
+			data := ec._Mutation(ctx, rc.Operation.SelectionSet)
+			var buf bytes.Buffer
+			data.MarshalGQL(&buf)
+
+			return &graphql.Response{
+				Data: buf.Bytes(),
+			}
+		}
 
 	default:
 		return graphql.OneShot(graphql.ErrorResponse(ctx, "unsupported GraphQL operation"))
@@ -690,19 +688,22 @@ var sources = []*ast.Source{
     anonymityType: AnonymityType!
     
     # A link to all posts in the discussion, ordered chronologically.
-    posts(first: Int, after: ID): PostsConnection!
+    posts: [Post!]
+
+    # Participants
+    participants: [Participant!]
 }
 
-type DiscussionsConnection {
-    totalCount: Int!
-    edges: [DiscussionsEdge]
-    pageInfo: PageInfo!
-}
+# type DiscussionsConnection {
+#     totalCount: Int!
+#     edges: [DiscussionsEdge]
+#     pageInfo: PageInfo!
+# }
 
-type DiscussionsEdge {
-    cursor: ID!
-    node: Discussion
-}
+# type DiscussionsEdge {
+#     cursor: ID!
+#     node: Discussion
+# }
 `, BuiltIn: false},
 	&ast.Source{Name: "graph/types/discussion_notification_preferences.graphqls", Input: `union DiscussionNotificationPreferences = ViewerNotificationPreferences | ParticipantNotificationPreferences`, BuiltIn: false},
 	&ast.Source{Name: "graph/types/page_info.graphqls", Input: `type PageInfo {
@@ -720,7 +721,7 @@ type DiscussionsEdge {
     # Preferences for notifications for this discussion
     discussionNotificationPreferences: DiscussionNotificationPreferences!
     # Gets a list of all posts created by this participant in the given discussion.
-    posts(first: Int, after: ID): PostsConnection!
+    posts: [Post!]
 }`, BuiltIn: false},
 	&ast.Source{Name: "graph/types/participant_notification_preferences.graphqls", Input: `type ParticipantNotificationPreferences {
     id: ID!
@@ -736,6 +737,7 @@ type DiscussionsEdge {
 }`, BuiltIn: false},
 	&ast.Source{Name: "graph/types/post.graphqls", Input: `type Post {
     id: ID!    
+    content: String
 }`, BuiltIn: false},
 	&ast.Source{Name: "graph/types/post_bookmark.graphqls", Input: `# Defines a bookmark for a post. Built this way because I
 # assume we will have other types of bookmarks down the road
@@ -764,51 +766,20 @@ type PostBookmark {
     cursor: ID!
     node: Post
 }`, BuiltIn: false},
-	&ast.Source{Name: "graph/types/schema.graphqls", Input: `# GraphQL schema example
-#
-# https://gqlgen.com/getting-started/
-
-# type Todo {
-#   id: ID!
-#   text: String!
-#   done: Boolean!
-#   user: User!
-# }
-
-# type User {
-#   id: ID!
-#   name: String!
-# }
-
-# type Query {
-#   todos: [Todo!]!
-# }
-
-# input NewTodo {
-#   text: String!
-#   userId: String!
-# }
-
-# type Mutation {
-#   createTodo(input: NewTodo!): Todo!
-# }
-
-# enum AnonymityType {
-#   WEAK
-#   STRONG
-# }
-
-# union DiscussionNotificationPreferences = ViewerNotificationPreferences | ParticipantNotificationPreferences
-
-schema {
+	&ast.Source{Name: "graph/types/schema.graphqls", Input: `schema {
   query: Query
+  mutation: Mutation
 }
 
 # The Query type represents all of the entry points into the API.
 type Query {
   discussion(id: ID!): Discussion
+  listDiscussions: [Discussion!]
 }
-`, BuiltIn: false},
+
+type Mutation {
+  createDiscussion(anonymityType: AnonymityType!): Discussion!
+}`, BuiltIn: false},
 	&ast.Source{Name: "graph/types/sudo_user.graphqls", Input: `# A SudoUser describes the unlocked version of a user. Due to implementation
 # the server cannot access the sudo properties for a user without first 
 # unlocking the secure information with the user's master password
@@ -830,11 +801,13 @@ type User {
     ###sudoUser: SudoUser
     # List participant objects this user has. A participant object describes
     # when a user is a participant in a discussion.
-    participants(first: Int, after: ID): ParticipantsConnection!
+    participants: [Participant!]
     # List of viewer objects this user has. A viewer object describes when
     # a user is a viewer in a discussion. Note that if a user is a
     # participant, they are also a viewer.
-    viewers(first: Int, after: ID): ViewersConnection!
+    viewers: [Viewer!]
+
+    bookmarks: [PostBookmark!]
 }`, BuiltIn: false},
 	&ast.Source{Name: "graph/types/viewer.graphqls", Input: `type Viewer {
     # Fetchable as it does not reference a user.
@@ -848,7 +821,7 @@ type User {
     # The last post this viewer saw (saw may be undefined, but assume it is what you think it is).
     lastViewedPost: Post
     # Bookmarked posts from this discussion.
-    bookmarks(first: Int, after: ID): PostsConnection!
+    bookmarks: [PostBookmark!]
 }`, BuiltIn: false},
 	&ast.Source{Name: "graph/types/viewer_discussion_notification_preferences.graphqls", Input: `type ViewerNotificationPreferences {
     id: ID!    
@@ -869,47 +842,17 @@ var parsedSchema = gqlparser.MustLoadSchema(sources...)
 
 // region    ***************************** args.gotpl *****************************
 
-func (ec *executionContext) field_Discussion_posts_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+func (ec *executionContext) field_Mutation_createDiscussion_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
-	var arg0 *int
-	if tmp, ok := rawArgs["first"]; ok {
-		arg0, err = ec.unmarshalOInt2ᚖint(ctx, tmp)
+	var arg0 model.AnonymityType
+	if tmp, ok := rawArgs["anonymityType"]; ok {
+		arg0, err = ec.unmarshalNAnonymityType2githubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐAnonymityType(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
 	}
-	args["first"] = arg0
-	var arg1 *string
-	if tmp, ok := rawArgs["after"]; ok {
-		arg1, err = ec.unmarshalOID2ᚖstring(ctx, tmp)
-		if err != nil {
-			return nil, err
-		}
-	}
-	args["after"] = arg1
-	return args, nil
-}
-
-func (ec *executionContext) field_Participant_posts_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
-	var err error
-	args := map[string]interface{}{}
-	var arg0 *int
-	if tmp, ok := rawArgs["first"]; ok {
-		arg0, err = ec.unmarshalOInt2ᚖint(ctx, tmp)
-		if err != nil {
-			return nil, err
-		}
-	}
-	args["first"] = arg0
-	var arg1 *string
-	if tmp, ok := rawArgs["after"]; ok {
-		arg1, err = ec.unmarshalOID2ᚖstring(ctx, tmp)
-		if err != nil {
-			return nil, err
-		}
-	}
-	args["after"] = arg1
+	args["anonymityType"] = arg0
 	return args, nil
 }
 
@@ -938,72 +881,6 @@ func (ec *executionContext) field_Query_discussion_args(ctx context.Context, raw
 		}
 	}
 	args["id"] = arg0
-	return args, nil
-}
-
-func (ec *executionContext) field_User_participants_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
-	var err error
-	args := map[string]interface{}{}
-	var arg0 *int
-	if tmp, ok := rawArgs["first"]; ok {
-		arg0, err = ec.unmarshalOInt2ᚖint(ctx, tmp)
-		if err != nil {
-			return nil, err
-		}
-	}
-	args["first"] = arg0
-	var arg1 *string
-	if tmp, ok := rawArgs["after"]; ok {
-		arg1, err = ec.unmarshalOID2ᚖstring(ctx, tmp)
-		if err != nil {
-			return nil, err
-		}
-	}
-	args["after"] = arg1
-	return args, nil
-}
-
-func (ec *executionContext) field_User_viewers_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
-	var err error
-	args := map[string]interface{}{}
-	var arg0 *int
-	if tmp, ok := rawArgs["first"]; ok {
-		arg0, err = ec.unmarshalOInt2ᚖint(ctx, tmp)
-		if err != nil {
-			return nil, err
-		}
-	}
-	args["first"] = arg0
-	var arg1 *string
-	if tmp, ok := rawArgs["after"]; ok {
-		arg1, err = ec.unmarshalOID2ᚖstring(ctx, tmp)
-		if err != nil {
-			return nil, err
-		}
-	}
-	args["after"] = arg1
-	return args, nil
-}
-
-func (ec *executionContext) field_Viewer_bookmarks_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
-	var err error
-	args := map[string]interface{}{}
-	var arg0 *int
-	if tmp, ok := rawArgs["first"]; ok {
-		arg0, err = ec.unmarshalOInt2ᚖint(ctx, tmp)
-		if err != nil {
-			return nil, err
-		}
-	}
-	args["first"] = arg0
-	var arg1 *string
-	if tmp, ok := rawArgs["after"]; ok {
-		arg1, err = ec.unmarshalOID2ᚖstring(ctx, tmp)
-		if err != nil {
-			return nil, err
-		}
-	}
-	args["after"] = arg1
 	return args, nil
 }
 
@@ -1126,8 +1003,70 @@ func (ec *executionContext) _Discussion_posts(ctx context.Context, field graphql
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Discussion().Posts(rctx, obj)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.([]*model.Post)
+	fc.Result = res
+	return ec.marshalOPost2ᚕᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐPostᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Discussion_participants(ctx context.Context, field graphql.CollectedField, obj *model.Discussion) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "Discussion",
+		Field:    field,
+		Args:     nil,
+		IsMethod: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Discussion().Participants(rctx, obj)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.([]*model.Participant)
+	fc.Result = res
+	return ec.marshalOParticipant2ᚕᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐParticipantᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Mutation_createDiscussion(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "Mutation",
+		Field:    field,
+		Args:     nil,
+		IsMethod: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
 	rawArgs := field.ArgumentMap(ec.Variables)
-	args, err := ec.field_Discussion_posts_args(ctx, rawArgs)
+	args, err := ec.field_Mutation_createDiscussion_args(ctx, rawArgs)
 	if err != nil {
 		ec.Error(ctx, err)
 		return graphql.Null
@@ -1135,7 +1074,7 @@ func (ec *executionContext) _Discussion_posts(ctx context.Context, field graphql
 	fc.Args = args
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Discussion().Posts(rctx, obj, args["first"].(*int), args["after"].(*string))
+		return ec.resolvers.Mutation().CreateDiscussion(rctx, args["anonymityType"].(model.AnonymityType))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -1145,175 +1084,11 @@ func (ec *executionContext) _Discussion_posts(ctx context.Context, field graphql
 		if !graphql.HasFieldError(ctx, fc) {
 			ec.Errorf(ctx, "must not be null")
 		}
-		return graphql.Null
-	}
-	res := resTmp.(*model.PostsConnection)
-	fc.Result = res
-	return ec.marshalNPostsConnection2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐPostsConnection(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) _DiscussionsConnection_totalCount(ctx context.Context, field graphql.CollectedField, obj *model.DiscussionsConnection) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:   "DiscussionsConnection",
-		Field:    field,
-		Args:     nil,
-		IsMethod: true,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.TotalCount(), nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(int)
-	fc.Result = res
-	return ec.marshalNInt2int(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) _DiscussionsConnection_edges(ctx context.Context, field graphql.CollectedField, obj *model.DiscussionsConnection) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:   "DiscussionsConnection",
-		Field:    field,
-		Args:     nil,
-		IsMethod: true,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.DiscussionsConnection().Edges(rctx, obj)
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		return graphql.Null
-	}
-	res := resTmp.([]*model.DiscussionsEdge)
-	fc.Result = res
-	return ec.marshalODiscussionsEdge2ᚕᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐDiscussionsEdge(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) _DiscussionsConnection_pageInfo(ctx context.Context, field graphql.CollectedField, obj *model.DiscussionsConnection) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:   "DiscussionsConnection",
-		Field:    field,
-		Args:     nil,
-		IsMethod: true,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.PageInfo(), nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(model.PageInfo)
-	fc.Result = res
-	return ec.marshalNPageInfo2githubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐPageInfo(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) _DiscussionsEdge_cursor(ctx context.Context, field graphql.CollectedField, obj *model.DiscussionsEdge) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:   "DiscussionsEdge",
-		Field:    field,
-		Args:     nil,
-		IsMethod: false,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.Cursor, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(string)
-	fc.Result = res
-	return ec.marshalNID2string(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) _DiscussionsEdge_node(ctx context.Context, field graphql.CollectedField, obj *model.DiscussionsEdge) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:   "DiscussionsEdge",
-		Field:    field,
-		Args:     nil,
-		IsMethod: false,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.Node, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
 		return graphql.Null
 	}
 	res := resTmp.(*model.Discussion)
 	fc.Result = res
-	return ec.marshalODiscussion2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐDiscussion(ctx, field.Selections, res)
+	return ec.marshalNDiscussion2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐDiscussion(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _PageInfo_startCursor(ctx context.Context, field graphql.CollectedField, obj *model.PageInfo) (ret graphql.Marshaler) {
@@ -1560,30 +1335,20 @@ func (ec *executionContext) _Participant_posts(ctx context.Context, field graphq
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
-	rawArgs := field.ArgumentMap(ec.Variables)
-	args, err := ec.field_Participant_posts_args(ctx, rawArgs)
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	fc.Args = args
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Participant().Posts(rctx, obj, args["first"].(*int), args["after"].(*string))
+		return ec.resolvers.Participant().Posts(rctx, obj)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
 		return graphql.Null
 	}
 	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
 		return graphql.Null
 	}
-	res := resTmp.(*model.PostsConnection)
+	res := resTmp.([]*model.Post)
 	fc.Result = res
-	return ec.marshalNPostsConnection2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐPostsConnection(ctx, field.Selections, res)
+	return ec.marshalOPost2ᚕᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐPostᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _ParticipantNotificationPreferences_id(ctx context.Context, field graphql.CollectedField, obj *model.ParticipantNotificationPreferences) (ret graphql.Marshaler) {
@@ -1816,6 +1581,37 @@ func (ec *executionContext) _Post_id(ctx context.Context, field graphql.Collecte
 	res := resTmp.(string)
 	fc.Result = res
 	return ec.marshalNID2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Post_content(ctx context.Context, field graphql.CollectedField, obj *model.Post) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "Post",
+		Field:    field,
+		Args:     nil,
+		IsMethod: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Post().Content(rctx, obj)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*string)
+	fc.Result = res
+	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _PostBookmark_id(ctx context.Context, field graphql.CollectedField, obj *model.PostBookmark) (ret graphql.Marshaler) {
@@ -2314,6 +2110,37 @@ func (ec *executionContext) _Query_discussion(ctx context.Context, field graphql
 	return ec.marshalODiscussion2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐDiscussion(ctx, field.Selections, res)
 }
 
+func (ec *executionContext) _Query_listDiscussions(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "Query",
+		Field:    field,
+		Args:     nil,
+		IsMethod: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().ListDiscussions(rctx)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.([]*model.Discussion)
+	fc.Result = res
+	return ec.marshalODiscussion2ᚕᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐDiscussionᚄ(ctx, field.Selections, res)
+}
+
 func (ec *executionContext) _Query___type(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -2432,30 +2259,20 @@ func (ec *executionContext) _User_participants(ctx context.Context, field graphq
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
-	rawArgs := field.ArgumentMap(ec.Variables)
-	args, err := ec.field_User_participants_args(ctx, rawArgs)
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	fc.Args = args
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.User().Participants(rctx, obj, args["first"].(*int), args["after"].(*string))
+		return ec.resolvers.User().Participants(rctx, obj)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
 		return graphql.Null
 	}
 	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
 		return graphql.Null
 	}
-	res := resTmp.(*model.ParticipantsConnection)
+	res := resTmp.([]*model.Participant)
 	fc.Result = res
-	return ec.marshalNParticipantsConnection2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐParticipantsConnection(ctx, field.Selections, res)
+	return ec.marshalOParticipant2ᚕᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐParticipantᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _User_viewers(ctx context.Context, field graphql.CollectedField, obj *model.User) (ret graphql.Marshaler) {
@@ -2473,30 +2290,51 @@ func (ec *executionContext) _User_viewers(ctx context.Context, field graphql.Col
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
-	rawArgs := field.ArgumentMap(ec.Variables)
-	args, err := ec.field_User_viewers_args(ctx, rawArgs)
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	fc.Args = args
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.User().Viewers(rctx, obj, args["first"].(*int), args["after"].(*string))
+		return ec.resolvers.User().Viewers(rctx, obj)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
 		return graphql.Null
 	}
 	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
 		return graphql.Null
 	}
-	res := resTmp.(*model.ViewersConnection)
+	res := resTmp.([]*model.Viewer)
 	fc.Result = res
-	return ec.marshalNViewersConnection2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐViewersConnection(ctx, field.Selections, res)
+	return ec.marshalOViewer2ᚕᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐViewerᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _User_bookmarks(ctx context.Context, field graphql.CollectedField, obj *model.User) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "User",
+		Field:    field,
+		Args:     nil,
+		IsMethod: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.User().Bookmarks(rctx, obj)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.([]*model.PostBookmark)
+	fc.Result = res
+	return ec.marshalOPostBookmark2ᚕᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐPostBookmarkᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Viewer_id(ctx context.Context, field graphql.CollectedField, obj *model.Viewer) (ret graphql.Marshaler) {
@@ -2675,30 +2513,20 @@ func (ec *executionContext) _Viewer_bookmarks(ctx context.Context, field graphql
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
-	rawArgs := field.ArgumentMap(ec.Variables)
-	args, err := ec.field_Viewer_bookmarks_args(ctx, rawArgs)
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	fc.Args = args
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Viewer().Bookmarks(rctx, obj, args["first"].(*int), args["after"].(*string))
+		return ec.resolvers.Viewer().Bookmarks(rctx, obj)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
 		return graphql.Null
 	}
 	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
 		return graphql.Null
 	}
-	res := resTmp.(*model.PostsConnection)
+	res := resTmp.([]*model.PostBookmark)
 	fc.Result = res
-	return ec.marshalNPostsConnection2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐPostsConnection(ctx, field.Selections, res)
+	return ec.marshalOPostBookmark2ᚕᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐPostBookmarkᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _ViewerNotificationPreferences_id(ctx context.Context, field graphql.CollectedField, obj *model.ViewerNotificationPreferences) (ret graphql.Marshaler) {
@@ -4015,39 +3843,9 @@ func (ec *executionContext) _Discussion(ctx context.Context, sel ast.SelectionSe
 					}
 				}()
 				res = ec._Discussion_posts(ctx, field, obj)
-				if res == graphql.Null {
-					atomic.AddUint32(&invalids, 1)
-				}
 				return res
 			})
-		default:
-			panic("unknown field " + strconv.Quote(field.Name))
-		}
-	}
-	out.Dispatch()
-	if invalids > 0 {
-		return graphql.Null
-	}
-	return out
-}
-
-var discussionsConnectionImplementors = []string{"DiscussionsConnection"}
-
-func (ec *executionContext) _DiscussionsConnection(ctx context.Context, sel ast.SelectionSet, obj *model.DiscussionsConnection) graphql.Marshaler {
-	fields := graphql.CollectFields(ec.OperationContext, sel, discussionsConnectionImplementors)
-
-	out := graphql.NewFieldSet(fields)
-	var invalids uint32
-	for i, field := range fields {
-		switch field.Name {
-		case "__typename":
-			out.Values[i] = graphql.MarshalString("DiscussionsConnection")
-		case "totalCount":
-			out.Values[i] = ec._DiscussionsConnection_totalCount(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				atomic.AddUint32(&invalids, 1)
-			}
-		case "edges":
+		case "participants":
 			field := field
 			out.Concurrently(i, func() (res graphql.Marshaler) {
 				defer func() {
@@ -4055,14 +3853,9 @@ func (ec *executionContext) _DiscussionsConnection(ctx context.Context, sel ast.
 						ec.Error(ctx, ec.Recover(ctx, r))
 					}
 				}()
-				res = ec._DiscussionsConnection_edges(ctx, field, obj)
+				res = ec._Discussion_participants(ctx, field, obj)
 				return res
 			})
-		case "pageInfo":
-			out.Values[i] = ec._DiscussionsConnection_pageInfo(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				atomic.AddUint32(&invalids, 1)
-			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -4074,24 +3867,26 @@ func (ec *executionContext) _DiscussionsConnection(ctx context.Context, sel ast.
 	return out
 }
 
-var discussionsEdgeImplementors = []string{"DiscussionsEdge"}
+var mutationImplementors = []string{"Mutation"}
 
-func (ec *executionContext) _DiscussionsEdge(ctx context.Context, sel ast.SelectionSet, obj *model.DiscussionsEdge) graphql.Marshaler {
-	fields := graphql.CollectFields(ec.OperationContext, sel, discussionsEdgeImplementors)
+func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, mutationImplementors)
+
+	ctx = graphql.WithFieldContext(ctx, &graphql.FieldContext{
+		Object: "Mutation",
+	})
 
 	out := graphql.NewFieldSet(fields)
 	var invalids uint32
 	for i, field := range fields {
 		switch field.Name {
 		case "__typename":
-			out.Values[i] = graphql.MarshalString("DiscussionsEdge")
-		case "cursor":
-			out.Values[i] = ec._DiscussionsEdge_cursor(ctx, field, obj)
+			out.Values[i] = graphql.MarshalString("Mutation")
+		case "createDiscussion":
+			out.Values[i] = ec._Mutation_createDiscussion(ctx, field)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
-		case "node":
-			out.Values[i] = ec._DiscussionsEdge_node(ctx, field, obj)
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -4198,9 +3993,6 @@ func (ec *executionContext) _Participant(ctx context.Context, sel ast.SelectionS
 					}
 				}()
 				res = ec._Participant_posts(ctx, field, obj)
-				if res == graphql.Null {
-					atomic.AddUint32(&invalids, 1)
-				}
 				return res
 			})
 		default:
@@ -4327,8 +4119,19 @@ func (ec *executionContext) _Post(ctx context.Context, sel ast.SelectionSet, obj
 		case "id":
 			out.Values[i] = ec._Post_id(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				invalids++
+				atomic.AddUint32(&invalids, 1)
 			}
+		case "content":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Post_content(ctx, field, obj)
+				return res
+			})
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -4564,6 +4367,17 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 				res = ec._Query_discussion(ctx, field)
 				return res
 			})
+		case "listDiscussions":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_listDiscussions(ctx, field)
+				return res
+			})
 		case "__type":
 			out.Values[i] = ec._Query___type(ctx, field)
 		case "__schema":
@@ -4604,9 +4418,6 @@ func (ec *executionContext) _User(ctx context.Context, sel ast.SelectionSet, obj
 					}
 				}()
 				res = ec._User_participants(ctx, field, obj)
-				if res == graphql.Null {
-					atomic.AddUint32(&invalids, 1)
-				}
 				return res
 			})
 		case "viewers":
@@ -4618,9 +4429,17 @@ func (ec *executionContext) _User(ctx context.Context, sel ast.SelectionSet, obj
 					}
 				}()
 				res = ec._User_viewers(ctx, field, obj)
-				if res == graphql.Null {
-					atomic.AddUint32(&invalids, 1)
-				}
+				return res
+			})
+		case "bookmarks":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._User_bookmarks(ctx, field, obj)
 				return res
 			})
 		default:
@@ -4688,9 +4507,6 @@ func (ec *executionContext) _Viewer(ctx context.Context, sel ast.SelectionSet, o
 					}
 				}()
 				res = ec._Viewer_bookmarks(ctx, field, obj)
-				if res == graphql.Null {
-					atomic.AddUint32(&invalids, 1)
-				}
 				return res
 			})
 		default:
@@ -5071,6 +4887,20 @@ func (ec *executionContext) marshalNBoolean2bool(ctx context.Context, sel ast.Se
 	return res
 }
 
+func (ec *executionContext) marshalNDiscussion2githubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐDiscussion(ctx context.Context, sel ast.SelectionSet, v model.Discussion) graphql.Marshaler {
+	return ec._Discussion(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNDiscussion2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐDiscussion(ctx context.Context, sel ast.SelectionSet, v *model.Discussion) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	return ec._Discussion(ctx, sel, v)
+}
+
 func (ec *executionContext) marshalNDiscussionNotificationPreferences2githubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐDiscussionNotificationPreferences(ctx context.Context, sel ast.SelectionSet, v model.DiscussionNotificationPreferences) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
@@ -5113,18 +4943,18 @@ func (ec *executionContext) marshalNPageInfo2githubᚗcomᚋnedrocksᚋdelphisbe
 	return ec._PageInfo(ctx, sel, &v)
 }
 
-func (ec *executionContext) marshalNParticipantsConnection2githubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐParticipantsConnection(ctx context.Context, sel ast.SelectionSet, v model.ParticipantsConnection) graphql.Marshaler {
-	return ec._ParticipantsConnection(ctx, sel, &v)
+func (ec *executionContext) marshalNParticipant2githubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐParticipant(ctx context.Context, sel ast.SelectionSet, v model.Participant) graphql.Marshaler {
+	return ec._Participant(ctx, sel, &v)
 }
 
-func (ec *executionContext) marshalNParticipantsConnection2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐParticipantsConnection(ctx context.Context, sel ast.SelectionSet, v *model.ParticipantsConnection) graphql.Marshaler {
+func (ec *executionContext) marshalNParticipant2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐParticipant(ctx context.Context, sel ast.SelectionSet, v *model.Participant) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			ec.Errorf(ctx, "must not be null")
 		}
 		return graphql.Null
 	}
-	return ec._ParticipantsConnection(ctx, sel, v)
+	return ec._Participant(ctx, sel, v)
 }
 
 func (ec *executionContext) marshalNParticipantsEdge2githubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐParticipantsEdge(ctx context.Context, sel ast.SelectionSet, v model.ParticipantsEdge) graphql.Marshaler {
@@ -5141,6 +4971,34 @@ func (ec *executionContext) marshalNParticipantsEdge2ᚖgithubᚗcomᚋnedrocks�
 	return ec._ParticipantsEdge(ctx, sel, v)
 }
 
+func (ec *executionContext) marshalNPost2githubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐPost(ctx context.Context, sel ast.SelectionSet, v model.Post) graphql.Marshaler {
+	return ec._Post(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNPost2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐPost(ctx context.Context, sel ast.SelectionSet, v *model.Post) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	return ec._Post(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalNPostBookmark2githubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐPostBookmark(ctx context.Context, sel ast.SelectionSet, v model.PostBookmark) graphql.Marshaler {
+	return ec._PostBookmark(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNPostBookmark2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐPostBookmark(ctx context.Context, sel ast.SelectionSet, v *model.PostBookmark) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	return ec._PostBookmark(ctx, sel, v)
+}
+
 func (ec *executionContext) marshalNPostBookmarksEdge2githubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐPostBookmarksEdge(ctx context.Context, sel ast.SelectionSet, v model.PostBookmarksEdge) graphql.Marshaler {
 	return ec._PostBookmarksEdge(ctx, sel, &v)
 }
@@ -5153,20 +5011,6 @@ func (ec *executionContext) marshalNPostBookmarksEdge2ᚖgithubᚗcomᚋnedrocks
 		return graphql.Null
 	}
 	return ec._PostBookmarksEdge(ctx, sel, v)
-}
-
-func (ec *executionContext) marshalNPostsConnection2githubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐPostsConnection(ctx context.Context, sel ast.SelectionSet, v model.PostsConnection) graphql.Marshaler {
-	return ec._PostsConnection(ctx, sel, &v)
-}
-
-func (ec *executionContext) marshalNPostsConnection2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐPostsConnection(ctx context.Context, sel ast.SelectionSet, v *model.PostsConnection) graphql.Marshaler {
-	if v == nil {
-		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	return ec._PostsConnection(ctx, sel, v)
 }
 
 func (ec *executionContext) marshalNPostsEdge2githubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐPostsEdge(ctx context.Context, sel ast.SelectionSet, v model.PostsEdge) graphql.Marshaler {
@@ -5223,20 +5067,6 @@ func (ec *executionContext) marshalNViewer2ᚖgithubᚗcomᚋnedrocksᚋdelphisb
 		return graphql.Null
 	}
 	return ec._Viewer(ctx, sel, v)
-}
-
-func (ec *executionContext) marshalNViewersConnection2githubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐViewersConnection(ctx context.Context, sel ast.SelectionSet, v model.ViewersConnection) graphql.Marshaler {
-	return ec._ViewersConnection(ctx, sel, &v)
-}
-
-func (ec *executionContext) marshalNViewersConnection2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐViewersConnection(ctx context.Context, sel ast.SelectionSet, v *model.ViewersConnection) graphql.Marshaler {
-	if v == nil {
-		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	return ec._ViewersConnection(ctx, sel, v)
 }
 
 func (ec *executionContext) marshalNViewersEdge2githubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐViewersEdge(ctx context.Context, sel ast.SelectionSet, v model.ViewersEdge) graphql.Marshaler {
@@ -5506,18 +5336,7 @@ func (ec *executionContext) marshalODiscussion2githubᚗcomᚋnedrocksᚋdelphis
 	return ec._Discussion(ctx, sel, &v)
 }
 
-func (ec *executionContext) marshalODiscussion2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐDiscussion(ctx context.Context, sel ast.SelectionSet, v *model.Discussion) graphql.Marshaler {
-	if v == nil {
-		return graphql.Null
-	}
-	return ec._Discussion(ctx, sel, v)
-}
-
-func (ec *executionContext) marshalODiscussionsEdge2githubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐDiscussionsEdge(ctx context.Context, sel ast.SelectionSet, v model.DiscussionsEdge) graphql.Marshaler {
-	return ec._DiscussionsEdge(ctx, sel, &v)
-}
-
-func (ec *executionContext) marshalODiscussionsEdge2ᚕᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐDiscussionsEdge(ctx context.Context, sel ast.SelectionSet, v []*model.DiscussionsEdge) graphql.Marshaler {
+func (ec *executionContext) marshalODiscussion2ᚕᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐDiscussionᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.Discussion) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
 	}
@@ -5544,7 +5363,7 @@ func (ec *executionContext) marshalODiscussionsEdge2ᚕᚖgithubᚗcomᚋnedrock
 			if !isLen1 {
 				defer wg.Done()
 			}
-			ret[i] = ec.marshalODiscussionsEdge2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐDiscussionsEdge(ctx, sel, v[i])
+			ret[i] = ec.marshalNDiscussion2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐDiscussion(ctx, sel, v[i])
 		}
 		if isLen1 {
 			f(i)
@@ -5557,11 +5376,11 @@ func (ec *executionContext) marshalODiscussionsEdge2ᚕᚖgithubᚗcomᚋnedrock
 	return ret
 }
 
-func (ec *executionContext) marshalODiscussionsEdge2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐDiscussionsEdge(ctx context.Context, sel ast.SelectionSet, v *model.DiscussionsEdge) graphql.Marshaler {
+func (ec *executionContext) marshalODiscussion2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐDiscussion(ctx context.Context, sel ast.SelectionSet, v *model.Discussion) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
 	}
-	return ec._DiscussionsEdge(ctx, sel, v)
+	return ec._Discussion(ctx, sel, v)
 }
 
 func (ec *executionContext) unmarshalOID2string(ctx context.Context, v interface{}) (string, error) {
@@ -5587,31 +5406,48 @@ func (ec *executionContext) marshalOID2ᚖstring(ctx context.Context, sel ast.Se
 	return ec.marshalOID2string(ctx, sel, *v)
 }
 
-func (ec *executionContext) unmarshalOInt2int(ctx context.Context, v interface{}) (int, error) {
-	return graphql.UnmarshalInt(v)
+func (ec *executionContext) marshalOParticipant2githubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐParticipant(ctx context.Context, sel ast.SelectionSet, v model.Participant) graphql.Marshaler {
+	return ec._Participant(ctx, sel, &v)
 }
 
-func (ec *executionContext) marshalOInt2int(ctx context.Context, sel ast.SelectionSet, v int) graphql.Marshaler {
-	return graphql.MarshalInt(v)
-}
-
-func (ec *executionContext) unmarshalOInt2ᚖint(ctx context.Context, v interface{}) (*int, error) {
-	if v == nil {
-		return nil, nil
-	}
-	res, err := ec.unmarshalOInt2int(ctx, v)
-	return &res, err
-}
-
-func (ec *executionContext) marshalOInt2ᚖint(ctx context.Context, sel ast.SelectionSet, v *int) graphql.Marshaler {
+func (ec *executionContext) marshalOParticipant2ᚕᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐParticipantᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.Participant) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
 	}
-	return ec.marshalOInt2int(ctx, sel, *v)
-}
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNParticipant2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐParticipant(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
 
-func (ec *executionContext) marshalOParticipant2githubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐParticipant(ctx context.Context, sel ast.SelectionSet, v model.Participant) graphql.Marshaler {
-	return ec._Participant(ctx, sel, &v)
+	}
+	wg.Wait()
+	return ret
 }
 
 func (ec *executionContext) marshalOParticipant2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐParticipant(ctx context.Context, sel ast.SelectionSet, v *model.Participant) graphql.Marshaler {
@@ -5665,6 +5501,46 @@ func (ec *executionContext) marshalOPost2githubᚗcomᚋnedrocksᚋdelphisbeᚋg
 	return ec._Post(ctx, sel, &v)
 }
 
+func (ec *executionContext) marshalOPost2ᚕᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐPostᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.Post) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNPost2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐPost(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+	return ret
+}
+
 func (ec *executionContext) marshalOPost2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐPost(ctx context.Context, sel ast.SelectionSet, v *model.Post) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
@@ -5674,6 +5550,46 @@ func (ec *executionContext) marshalOPost2ᚖgithubᚗcomᚋnedrocksᚋdelphisbe�
 
 func (ec *executionContext) marshalOPostBookmark2githubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐPostBookmark(ctx context.Context, sel ast.SelectionSet, v model.PostBookmark) graphql.Marshaler {
 	return ec._PostBookmark(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalOPostBookmark2ᚕᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐPostBookmarkᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.PostBookmark) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNPostBookmark2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐPostBookmark(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+	return ret
 }
 
 func (ec *executionContext) marshalOPostBookmark2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐPostBookmark(ctx context.Context, sel ast.SelectionSet, v *model.PostBookmark) graphql.Marshaler {
@@ -5811,6 +5727,46 @@ func (ec *executionContext) marshalOTime2ᚖtimeᚐTime(ctx context.Context, sel
 
 func (ec *executionContext) marshalOViewer2githubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐViewer(ctx context.Context, sel ast.SelectionSet, v model.Viewer) graphql.Marshaler {
 	return ec._Viewer(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalOViewer2ᚕᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐViewerᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.Viewer) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNViewer2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐViewer(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+	return ret
 }
 
 func (ec *executionContext) marshalOViewer2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐViewer(ctx context.Context, sel ast.SelectionSet, v *model.Viewer) graphql.Marshaler {

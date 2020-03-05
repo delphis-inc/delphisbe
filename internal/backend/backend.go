@@ -9,15 +9,17 @@ import (
 )
 
 type DAOManager interface {
+	CreateNewDiscussion(ctx context.Context, anonymityType model.AnonymityType) (*model.Discussion, error)
 	GetDiscussionByID(ctx context.Context, id string) (*model.Discussion, error)
+	ListDiscussions(ctx context.Context) (*model.DiscussionsConnection, error)
 }
 
 type daoManager struct {
 	db datastore.Datastore
 }
 
-func NewDaoManager() DAOManager {
+func NewDaoManager(conf config.Config) DAOManager {
 	return &daoManager{
-		datastore.NewDatastore(config.TablesConfig{}),
+		datastore.NewDatastore(conf.DBConfig),
 	}
 }

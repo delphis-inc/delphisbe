@@ -11,7 +11,15 @@ import (
 )
 
 func (r *participantResolver) Discussion(ctx context.Context, obj *model.Participant) (*model.Discussion, error) {
-	panic(fmt.Errorf("not implemented"))
+	if obj.Discussion == nil {
+		disc, err := r.resolveDiscussionByID(ctx, obj.DiscussionID)
+		if err != nil {
+			return nil, err
+		}
+		obj.Discussion = disc
+	}
+
+	return obj.Discussion, nil
 }
 
 func (r *participantResolver) Viewer(ctx context.Context, obj *model.Participant) (*model.Viewer, error) {
@@ -22,7 +30,7 @@ func (r *participantResolver) DiscussionNotificationPreferences(ctx context.Cont
 	panic(fmt.Errorf("not implemented"))
 }
 
-func (r *participantResolver) Posts(ctx context.Context, obj *model.Participant, first *int, after *string) (*model.PostsConnection, error) {
+func (r *participantResolver) Posts(ctx context.Context, obj *model.Participant) ([]*model.Post, error) {
 	panic(fmt.Errorf("not implemented"))
 }
 
