@@ -58,6 +58,8 @@ models:
     fields:
       posts:
         resolver: true
+      participants:
+        resolver: true
   Participant:
     fields:
       discussion:

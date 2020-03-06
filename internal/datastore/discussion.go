@@ -11,6 +11,7 @@ import (
 )
 
 func (d *db) GetDiscussionByID(ctx context.Context, id string) (*model.Discussion, error) {
+	logrus.Debug("GetDiscussionByID::Dynamo GetItem")
 	res, err := d.dynamo.GetItem(&dynamodb.GetItemInput{
 		TableName: aws.String(d.dbConfig.Discussions.TableName),
 		Key: map[string]*dynamodb.AttributeValue{
@@ -21,7 +22,7 @@ func (d *db) GetDiscussionByID(ctx context.Context, id string) (*model.Discussio
 	})
 
 	if err != nil {
-		logrus.WithError(err).Errorf("ListDiscussions: Failed getting discussion by ID (%s)", id)
+		logrus.WithError(err).Errorf("GetDiscussionByID: Failed getting discussion by ID (%s)", id)
 		return nil, err
 	}
 
@@ -33,7 +34,7 @@ func (d *db) GetDiscussionByID(ctx context.Context, id string) (*model.Discussio
 	err = dynamodbattribute.UnmarshalMap(res.Item, &discussionObj)
 
 	if err != nil {
-		logrus.WithError(err).Errorf("ListDiscussions: Failed unmarshaling discussion by ID (%s)", id)
+		logrus.WithError(err).Errorf("GetDiscussionsByID: Failed unmarshaling discussion by ID (%s)", id)
 		return nil, err
 	}
 
@@ -41,6 +42,7 @@ func (d *db) GetDiscussionByID(ctx context.Context, id string) (*model.Discussio
 }
 
 func (d *db) ListDiscussions(ctx context.Context) (*model.DiscussionsConnection, error) {
+	logrus.Debug("ListDiscussions::Dynamo Scan")
 	res, err := d.dynamo.Scan(&dynamodb.ScanInput{
 		TableName: aws.String(d.dbConfig.Discussions.TableName),
 	})
@@ -60,7 +62,7 @@ func (d *db) ListDiscussions(ctx context.Context) (*model.DiscussionsConnection,
 		discussionObj := model.Discussion{}
 		err := dynamodbattribute.UnmarshalMap(elem, &discussionObj)
 		if err != nil {
-			logrus.WithError(err).Warnf("List Discussion: Failed unmarshaling discussion: %+v", elem)
+			logrus.WithError(err).Warnf("ListDiscussion: Failed unmarshaling discussion: %+v", elem)
 			continue
 		}
 		edges = append(edges, &model.DiscussionsEdge{
@@ -76,19 +78,19 @@ func (d *db) ListDiscussions(ctx context.Context) (*model.DiscussionsConnection,
 }
 
 func (d *db) PutDiscussion(ctx context.Context, discussion model.Discussion) (*model.Discussion, error) {
+	logrus.Debug("PutDiscussion::Dynamo PutItem")
 	av, err := dynamodbattribute.MarshalMap(discussion)
 	if err != nil {
-		logrus.WithError(err).Errorf("Failed to marshal discussion object: %+v", discussion)
+		logrus.WithError(err).Errorf("PutDiscussion: Failed to marshal discussion object: %+v", discussion)
 		return nil, err
 	}
-	logrus.Infof("About to write the values: %+v", av)
 	_, err = d.dynamo.PutItem(&dynamodb.PutItemInput{
 		TableName: aws.String(d.dbConfig.Discussions.TableName),
 		Item:      av,
 	})
 
 	if err != nil {
-		logrus.WithError(err).Errorf("Failed to put discussion object: %+v", discussion)
+		logrus.WithError(err).Errorf("PutDiscussion: Failed to put discussion object: %+v", av)
 		return nil, err
 	}
 	return &discussion, nil

@@ -15,7 +15,22 @@ func (r *discussionResolver) Posts(ctx context.Context, obj *model.Discussion) (
 }
 
 func (r *discussionResolver) Participants(ctx context.Context, obj *model.Discussion) ([]*model.Participant, error) {
-	panic(fmt.Errorf("not implemented"))
+	if obj.Participants == nil {
+		participants, err := r.DAOManager.GetParticipantsByDiscussionID(ctx, obj.ID)
+
+		if err != nil {
+			return nil, err
+		}
+
+		particPointers := make([]*model.Participant, 0)
+		for _, elem := range participants {
+			elem.Discussion = obj
+			particPointers = append(particPointers, &elem)
+		}
+
+		obj.Participants = particPointers
+	}
+	return obj.Participants, nil
 }
 
 func (r *Resolver) Discussion() generated.DiscussionResolver { return &discussionResolver{r} }

@@ -14,6 +14,11 @@ type Viewer struct {
 	LastViewedPostID        *string                           `json:"lastViewedPostID"`
 	LastViewedPost          *Post                             `json:"lastViewedPost" dynamodbav:"-"`
 	Bookmarks               *PostsConnection                  `json:"bookmarks" dynamodbav:"-"`
+
+	// NOTE: This is not exposed currently but keeping it here for
+	// testing purposes. We will try out exposing user information one of the tests.
+	UserID string `json:"userID"`
+	User   *User  `json:"user" dynamodbav:"-"`
 }
 
 type ViewersEdge struct {

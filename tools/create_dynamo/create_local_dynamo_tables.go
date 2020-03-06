@@ -129,14 +129,22 @@ func createParticipants(dbSvc *dynamodb.DynamoDB, conf *config.Config) error {
 	input := &dynamodb.CreateTableInput{
 		AttributeDefinitions: []*dynamodb.AttributeDefinition{
 			{
-				AttributeName: aws.String("ID"),
+				AttributeName: aws.String("DiscussionID"),
 				AttributeType: aws.String("S"),
+			},
+			{
+				AttributeName: aws.String("ParticipantID"),
+				AttributeType: aws.String("N"),
 			},
 		},
 		KeySchema: []*dynamodb.KeySchemaElement{
 			{
-				AttributeName: aws.String("ID"),
+				AttributeName: aws.String("DiscussionID"),
 				KeyType:       aws.String("HASH"),
+			},
+			{
+				AttributeName: aws.String("ParticipantID"),
+				KeyType:       aws.String("RANGE"),
 			},
 		},
 		ProvisionedThroughput: &dynamodb.ProvisionedThroughput{

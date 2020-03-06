@@ -17,6 +17,8 @@ import (
 const defaultPort = "8080"
 
 func main() {
+	logrus.SetLevel(logrus.DebugLevel)
+
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = defaultPort

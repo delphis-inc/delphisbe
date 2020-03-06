@@ -19,6 +19,27 @@ func (r *mutationResolver) CreateDiscussion(ctx context.Context, anonymityType m
 	return discussionObj, nil
 }
 
+func (r *mutationResolver) AddDiscussionParticipant(ctx context.Context, discussionID string, userID string) (*model.Participant, error) {
+	participantObj, err := r.DAOManager.CreateParticipantForDiscussion(ctx, discussionID, userID)
+
+	// TODO: Only the current user can join the conversation
+	if err != nil {
+		return nil, err
+	}
+
+	return participantObj, nil
+}
+
+func (r *mutationResolver) CreateUser(ctx context.Context) (*model.User, error) {
+	userObj, err := r.DAOManager.CreateUser(ctx)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return userObj, nil
+}
+
 func (r *queryResolver) Discussion(ctx context.Context, id string) (*model.Discussion, error) {
 	return r.resolveDiscussionByID(ctx, id)
 }

@@ -3,16 +3,21 @@ package model
 import "time"
 
 type Participant struct {
-	ID                                string                            `json:"id" dynamodbav:"ID"`
+	ParticipantID                     int                               `json:"participantID" dynamodbav:"ParticipantID"`
 	CreatedAt                         time.Time                         `json:"createdAt"`
 	UpdatedAt                         time.Time                         `json:"updatedAt"`
 	DeletedAt                         *time.Time                        `json:"deletedAt"`
-	DiscussionID                      string                            `json:"discussionID"`
+	DiscussionID                      string                            `json:"discussionID" dynamodbav:"DiscussionID"`
 	Discussion                        *Discussion                       `json:"discussion" dynamodbav:"-"`
 	ViewerID                          string                            `json:"viewerID"`
 	Viewer                            *Viewer                           `json:"viewer" dynamodbav:"-"`
 	DiscussionNotificationPreferences DiscussionNotificationPreferences `json:"discussionNotificationPreferences"`
 	Posts                             *PostsConnection                  `json:"posts" dynamodbav:"-"`
+
+	// NOTE: This is not exposed currently but keeping it here for
+	// testing purposes. We will try out exposing user information one of the tests.
+	UserID string `json:"userID"`
+	User   *User  `json:"user" dynamodbav:"-"`
 }
 
 type ParticipantsEdge struct {
