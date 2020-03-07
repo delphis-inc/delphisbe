@@ -25,3 +25,7 @@ func (d *daoManager) CreateViewerForDiscussion(ctx context.Context, discussionID
 
 	return &viewerObj, err
 }
+
+func (d *daoManager) GetViewersByIDs(ctx context.Context, discussionViewerKeys []model.DiscussionViewerKey) (map[model.DiscussionViewerKey]*model.Viewer, error) {
+	return d.db.GetViewersByIDs(ctx, discussionViewerKeys)
+}

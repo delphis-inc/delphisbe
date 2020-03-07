@@ -5,21 +5,56 @@ package resolver
 import (
 	"context"
 	"fmt"
+	"sort"
 
 	"github.com/nedrocks/delphisbe/graph/generated"
 	"github.com/nedrocks/delphisbe/graph/model"
 )
 
 func (r *userResolver) Participants(ctx context.Context, obj *model.User) ([]*model.Participant, error) {
-	panic(fmt.Errorf("not implemented"))
+	if obj.Participants == nil || len(obj.Participants) == 0 {
+		participantMap, err := r.DAOManager.GetParticipantsByIDs(ctx, obj.DiscussionParticipants.Keys)
+
+		if err != nil {
+			return nil, err
+		}
+
+		participants := make([]*model.Participant, 0)
+		for _, p := range participantMap {
+			if p != nil {
+				participants = append(participants, p)
+			}
+		}
+
+		sort.Slice(participants, func(i, j int) bool {
+			return participants[i].CreatedAt.Before(participants[j].CreatedAt)
+		})
+		obj.Participants = participants
+	}
+	return obj.Participants, nil
 }
 
 func (r *userResolver) Viewers(ctx context.Context, obj *model.User) ([]*model.Viewer, error) {
-	viewers := make([]*model.Viewer, 0)
-	viewerIDs := make([]string, 0)
-	for _, discViewer := range obj.DiscussionViewers {
-		
+	if obj.Viewers == nil || len(obj.Viewers) == 0 {
+		viewerMap, err := r.DAOManager.GetViewersByIDs(ctx, obj.DiscussionViewers.Keys)
+
+		if err != nil {
+			return nil, err
+		}
+
+		viewers := make([]*model.Viewer, 0)
+		for _, v := range viewerMap {
+			if v != nil {
+				viewers = append(viewers, v)
+			}
+		}
+
+		sort.Slice(viewers, func(i, j int) bool {
+			return viewers[i].CreatedAt.Before(viewers[j].CreatedAt)
+		})
+		obj.Viewers = viewers
 	}
+	return obj.Viewers, nil
 }
 
 func (r *userResolver) Bookmarks(ctx context.Context, obj *model.User) ([]*model.PostBookmark, error) {

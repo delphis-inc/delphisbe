@@ -10,14 +10,14 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func (d *db) AddParticipantToUser(ctx context.Context, userID string, discussionParticipant model.DiscussionParticipant) error {
+func (d *db) AddParticipantToUser(ctx context.Context, userID string, discussionParticipantKey model.DiscussionParticipantKey) (*model.User, error) {
 	logrus.Debug("AddParticipantToUser: Dynamo Update")
-	av, err := dynamodbattribute.Marshal(discussionParticipant)
+	av, err := dynamodbattribute.Marshal(discussionParticipantKey)
 	if err != nil {
-		logrus.WithError(err).Errorf("AddParticipantToUser: Failed to marshal value: %+v", discussionParticipant)
-		return err
+		logrus.WithError(err).Errorf("AddParticipantToUser: Failed to marshal value: %+v", discussionParticipantKey)
+		return nil, err
 	}
-	_, err = d.dynamo.UpdateItem(&dynamodb.UpdateItemInput{
+	res, err := d.dynamo.UpdateItem(&dynamodb.UpdateItemInput{
 		TableName:        aws.String(d.dbConfig.Users.TableName),
 		UpdateExpression: aws.String("ADD DiscussionParticipants :pids"),
 		Key: map[string]*dynamodb.AttributeValue{
@@ -30,18 +30,34 @@ func (d *db) AddParticipantToUser(ctx context.Context, userID string, discussion
 				SS: []*string{av.S},
 			},
 		},
+		ReturnValues: aws.String("UPDATED_VALUES"),
 	})
 
-	return err
+	if err != nil {
+		logrus.WithError(err).Errorf("Failed updating user object")
+		return nil, err
+	}
+
+	userObj := model.User{}
+
+	err = dynamodbattribute.UnmarshalMap(res.Attributes, &userObj)
+
+	if err != nil {
+		logrus.WithError(err).Errorf("Failed unmarshaling returned value: %+v", res.Attributes)
+		return nil, err
+	}
+
+	return &userObj, err
 }
 
-func (d *db) AddViewerToUser(ctx context.Context, userID string, discussionViewer model.DiscussionViewer) error {
+func (d *db) AddViewerToUser(ctx context.Context, userID string, discussionViewerKey model.DiscussionViewerKey) (*model.User, error) {
 	logrus.Debug("AddViewerToUser: Dynamo Update")
-	av, err := dynamodbattribute.Marshal(discussionViewer)
+	av, err := dynamodbattribute.Marshal(discussionViewerKey)
 	if err != nil {
-		logrus.WithError(err).Errorf("AddViewerToUser: Failed to marshal value: %+v", discussionViewer)
+		logrus.WithError(err).Errorf("AddViewerToUser: Failed to marshal value: %+v", discussionViewerKey)
+		return nil, err
 	}
-	_, err = d.dynamo.UpdateItem(&dynamodb.UpdateItemInput{
+	res, err := d.dynamo.UpdateItem(&dynamodb.UpdateItemInput{
 		TableName:        aws.String(d.dbConfig.Users.TableName),
 		UpdateExpression: aws.String("ADD DiscussionViewers :vids"),
 		Key: map[string]*dynamodb.AttributeValue{
@@ -54,9 +70,23 @@ func (d *db) AddViewerToUser(ctx context.Context, userID string, discussionViewe
 				SS: []*string{av.S},
 			},
 		},
+		ReturnValues: aws.String("UPDATED_VALUES"),
 	})
 
-	return err
+	if err != nil {
+		logrus.WithError(err).Errorf("Failed updating user object")
+		return nil, err
+	}
+
+	userObj := model.User{}
+	err = dynamodbattribute.UnmarshalMap(res.Attributes, &userObj)
+
+	if err != nil {
+		logrus.WithError(err).Errorf("Failed to unmarshal response value: %+v", res.Attributes)
+		return nil, err
+	}
+
+	return &userObj, err
 }
 
 func (d *db) PutUser(ctx context.Context, user model.User) (*model.User, error) {

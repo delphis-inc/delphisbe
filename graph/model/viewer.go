@@ -8,7 +8,7 @@ type Viewer struct {
 	UpdatedAt               time.Time                         `json:"updatedAt"`
 	DeletedAt               *time.Time                        `json:"deletedAt"`
 	NotificationPreferences DiscussionNotificationPreferences `json:"notificationPreferences"`
-	DiscussionID            string                            `json:"discussionID"`
+	DiscussionID            string                            `json:"discussionID" dynamodbav:"DiscussionID"`
 	Discussion              *Discussion                       `json:"discussion"`
 	LastViewed              *time.Time                        `json:"lastViewed"`
 	LastViewedPostID        *string                           `json:"lastViewedPostID"`
@@ -21,8 +21,8 @@ type Viewer struct {
 	User   *User  `json:"user" dynamodbav:"-"`
 }
 
-func (v Viewer) DiscussionViewerKey() DiscussionViewer {
-	return DiscussionViewer{
+func (v Viewer) DiscussionViewerKey() DiscussionViewerKey {
+	return DiscussionViewerKey{
 		DiscussionID: v.DiscussionID,
 		ViewerID:     v.ID,
 	}

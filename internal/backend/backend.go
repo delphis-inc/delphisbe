@@ -15,12 +15,14 @@ type DAOManager interface {
 	ListDiscussions(ctx context.Context) (*model.DiscussionsConnection, error)
 	CreateParticipantForDiscussion(ctx context.Context, discussionID string, userID string) (*model.Participant, error)
 	GetParticipantsByDiscussionID(ctx context.Context, id string) ([]model.Participant, error)
-	AddParticipantAndViewerToUser(ctx context.Context, userID string, participantID int, discussionID string, viewerID string) error
-	AddViewerToUser(ctx context.Context, userID, discussionID, viewerID string) error
+	GetParticipantsByIDs(ctx context.Context, discussionParticipantKeys []model.DiscussionParticipantKey) (map[model.DiscussionParticipantKey]*model.Participant, error)
+	AddParticipantAndViewerToUser(ctx context.Context, userID string, participantID int, discussionID string, viewerID string) (*model.User, error)
+	AddViewerToUser(ctx context.Context, userID, discussionID, viewerID string) (*model.User, error)
 	GetUserProfileByID(ctx context.Context, id string) (*model.UserProfile, error)
 	CreateUser(ctx context.Context) (*model.User, error)
-	CreateViewerForDiscussion(ctx context.Context, discussionID string, userID string) (*model.Viewer, error)
 	GetUserByID(ctx context.Context, userID string) (*model.User, error)
+	GetViewersByIDs(ctx context.Context, discussionViewerKeys []model.DiscussionViewerKey) (map[model.DiscussionViewerKey]*model.Viewer, error)
+	CreateViewerForDiscussion(ctx context.Context, discussionID string, userID string) (*model.Viewer, error)
 }
 
 type daoManager struct {

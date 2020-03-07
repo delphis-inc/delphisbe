@@ -36,7 +36,7 @@ func (d *daoManager) CreateParticipantForDiscussion(ctx context.Context, discuss
 		return nil, err
 	}
 
-	err = d.AddParticipantAndViewerToUser(ctx, userID, res.ParticipantID, discussionID, viewerObj.ID)
+	_, err = d.AddParticipantAndViewerToUser(ctx, userID, res.ParticipantID, discussionID, viewerObj.ID)
 
 	if err != nil {
 		return nil, err
@@ -47,4 +47,8 @@ func (d *daoManager) CreateParticipantForDiscussion(ctx context.Context, discuss
 
 func (d *daoManager) GetParticipantsByDiscussionID(ctx context.Context, id string) ([]model.Participant, error) {
 	return d.db.GetParticipantsByDiscussionID(ctx, id)
+}
+
+func (d *daoManager) GetParticipantsByIDs(ctx context.Context, discussionParticipantKeys []model.DiscussionParticipantKey) (map[model.DiscussionParticipantKey]*model.Participant, error) {
+	return d.db.GetParticipantsByIDs(ctx, discussionParticipantKeys)
 }

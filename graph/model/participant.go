@@ -20,6 +20,13 @@ type Participant struct {
 	User   *User  `json:"user" dynamodbav:"-"`
 }
 
+func (p Participant) DiscussionParticipantKey() DiscussionParticipantKey {
+	return DiscussionParticipantKey{
+		DiscussionID:  p.DiscussionID,
+		ParticipantID: p.ParticipantID,
+	}
+}
+
 type ParticipantsEdge struct {
 	Cursor string       `json:"cursor"`
 	Node   *Participant `json:"node"`

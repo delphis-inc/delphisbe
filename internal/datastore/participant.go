@@ -2,6 +2,7 @@ package datastore
 
 import (
 	"context"
+	"strconv"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
@@ -40,6 +41,54 @@ func (d *db) GetParticipantsByDiscussionID(ctx context.Context, id string) ([]mo
 		}
 	}
 	return participants, nil
+}
+
+func (d *db) GetParticipantsByIDs(ctx context.Context, discussionParticipantKeys []model.DiscussionParticipantKey) (map[model.DiscussionParticipantKey]*model.Participant, error) {
+	if len(discussionParticipantKeys) == 0 {
+		return map[model.DiscussionParticipantKey]*model.Participant{}, nil
+	}
+	logrus.Debug("GetParticipantsByIDs::Dynamo BatchGetItem")
+	keys := make([]map[string]*dynamodb.AttributeValue, 0)
+	for _, dp := range discussionParticipantKeys {
+		keys = append(keys, map[string]*dynamodb.AttributeValue{
+			"DiscussionID": {
+				S: aws.String(dp.DiscussionID),
+			},
+			"ParticipantID": {
+				N: aws.String(strconv.Itoa(dp.ParticipantID)),
+			},
+		})
+	}
+	res, err := d.dynamo.BatchGetItem(&dynamodb.BatchGetItemInput{
+		RequestItems: map[string]*dynamodb.KeysAndAttributes{
+			d.dbConfig.Participants.TableName: {
+				Keys: keys,
+			},
+		},
+	})
+
+	if err != nil {
+		logrus.WithError(err).Errorf("GetParticipantsByIDs: Failed to query participants for keys: %+v", keys)
+		return nil, err
+	}
+
+	participantMap := map[model.DiscussionParticipantKey]*model.Participant{}
+	for _, dp := range discussionParticipantKeys {
+		participantMap[dp] = nil
+	}
+	elems := res.Responses[d.dbConfig.Participants.TableName]
+	for _, elem := range elems {
+		participantObj := model.Participant{}
+		err := dynamodbattribute.UnmarshalMap(elem, &participantObj)
+		if err != nil {
+			logrus.WithError(err).Warnf("Failed to unmarshal participant object: %+v", elem)
+			continue
+		}
+
+		participantMap[participantObj.DiscussionParticipantKey()] = &participantObj
+	}
+
+	return participantMap, nil
 }
 
 func (d *db) PutParticipant(ctx context.Context, participant model.Participant) (*model.Participant, error) {

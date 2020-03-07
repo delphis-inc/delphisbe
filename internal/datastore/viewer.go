@@ -31,10 +31,13 @@ func (d *db) PutViewer(ctx context.Context, viewer model.Viewer) (*model.Viewer,
 	return &viewer, nil
 }
 
-func (d *db) GetViewersByIDs(ctx context.Context, discussionViewers []model.DiscussionViewer) (map[model.DiscussionViewer]*model.Viewer, error) {
+func (d *db) GetViewersByIDs(ctx context.Context, discussionViewerKeys []model.DiscussionViewerKey) (map[model.DiscussionViewerKey]*model.Viewer, error) {
+	if len(discussionViewerKeys) == 0 {
+		return map[model.DiscussionViewerKey]*model.Viewer{}, nil
+	}
 	logrus.Debug("GetViewersByIDs: DynamoBatchGetItem")
 	keys := make([]map[string]*dynamodb.AttributeValue, 0)
-	for _, dv := range discussionViewers {
+	for _, dv := range discussionViewerKeys {
 		keys = append(keys, map[string]*dynamodb.AttributeValue{
 			"DiscussionID": {
 				S: aws.String(dv.DiscussionID),
@@ -44,6 +47,7 @@ func (d *db) GetViewersByIDs(ctx context.Context, discussionViewers []model.Disc
 			},
 		})
 	}
+	logrus.Debugf("Keys: %+v", keys)
 	res, err := d.dynamo.BatchGetItem(&dynamodb.BatchGetItemInput{
 		RequestItems: map[string]*dynamodb.KeysAndAttributes{
 			d.dbConfig.Viewers.TableName: {
@@ -57,8 +61,8 @@ func (d *db) GetViewersByIDs(ctx context.Context, discussionViewers []model.Disc
 		return nil, err
 	}
 
-	viewerMap := map[model.DiscussionViewer]*model.Viewer{}
-	for _, dv := range discussionViewers {
+	viewerMap := map[model.DiscussionViewerKey]*model.Viewer{}
+	for _, dv := range discussionViewerKeys {
 		viewerMap[dv] = nil
 	}
 	elems := res.Responses[d.dbConfig.Viewers.TableName]
@@ -76,12 +80,12 @@ func (d *db) GetViewersByIDs(ctx context.Context, discussionViewers []model.Disc
 	return viewerMap, nil
 }
 
-func (d *db) GetViewerByID(ctx context.Context, discussionViewer model.DiscussionViewer) (*model.Viewer, error) {
-	viewers, err := d.GetViewersByIDs(ctx, []model.DiscussionViewer{discussionViewer})
+func (d *db) GetViewerByID(ctx context.Context, discussionViewerKey model.DiscussionViewerKey) (*model.Viewer, error) {
+	viewers, err := d.GetViewersByIDs(ctx, []model.DiscussionViewerKey{discussionViewerKey})
 
 	if err != nil {
 		return nil, err
 	}
 
-	return viewers[discussionViewer], nil
+	return viewers[discussionViewerKey], nil
 }

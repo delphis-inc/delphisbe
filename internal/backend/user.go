@@ -14,27 +14,27 @@ func (d *daoManager) GetUserByID(ctx context.Context, userID string) (*model.Use
 
 // AddParticipantToUser updates a user object to refer to the participant
 // and viewer.
-func (d *daoManager) AddParticipantAndViewerToUser(ctx context.Context, userID string, participantID int, discussionID string, viewerID string) error {
-	err := d.db.AddParticipantToUser(ctx, userID, model.DiscussionParticipant{
+func (d *daoManager) AddParticipantAndViewerToUser(ctx context.Context, userID string, participantID int, discussionID string, viewerID string) (*model.User, error) {
+	_, err := d.db.AddParticipantToUser(ctx, userID, model.DiscussionParticipantKey{
 		DiscussionID:  discussionID,
 		ParticipantID: participantID,
 	})
 
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	err = d.AddViewerToUser(ctx, userID, discussionID, viewerID)
+	user, err := d.AddViewerToUser(ctx, userID, discussionID, viewerID)
 
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	return nil
+	return user, nil
 }
 
-func (d *daoManager) AddViewerToUser(ctx context.Context, userID, discussionID, viewerID string) error {
-	return d.db.AddViewerToUser(ctx, userID, model.DiscussionViewer{
+func (d *daoManager) AddViewerToUser(ctx context.Context, userID, discussionID, viewerID string) (*model.User, error) {
+	return d.db.AddViewerToUser(ctx, userID, model.DiscussionViewerKey{
 		DiscussionID: discussionID,
 		ViewerID:     viewerID,
 	})
