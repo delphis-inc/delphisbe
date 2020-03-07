@@ -81,6 +81,16 @@ func main() {
 		}
 	}
 
+	err = createUserProfiles(dbSvc, conf)
+	if err != nil {
+		if errors.As(err, &perr) {
+			// Silently pass on this
+			logrus.Debugf("Table UserProfiles already exists")
+		} else {
+			logrus.WithError(err).Error("Error when creating UserProfiles table")
+		}
+	}
+
 	err = createViewers(dbSvc, conf)
 	if err != nil {
 		if errors.As(err, &perr) {
@@ -236,8 +246,8 @@ func createUsers(dbSvc *dynamodb.DynamoDB, conf *config.Config) error {
 	return err
 }
 
-func createViewers(dbSvc *dynamodb.DynamoDB, conf *config.Config) error {
-	tableName := conf.DBConfig.TablesConfig.Viewers.TableName
+func createUserProfiles(dbSvc *dynamodb.DynamoDB, conf *config.Config) error {
+	tableName := conf.DBConfig.TablesConfig.UserProfiles.TableName
 	input := &dynamodb.CreateTableInput{
 		AttributeDefinitions: []*dynamodb.AttributeDefinition{
 			{
@@ -249,6 +259,40 @@ func createViewers(dbSvc *dynamodb.DynamoDB, conf *config.Config) error {
 			{
 				AttributeName: aws.String("ID"),
 				KeyType:       aws.String("HASH"),
+			},
+		},
+		ProvisionedThroughput: &dynamodb.ProvisionedThroughput{
+			ReadCapacityUnits:  aws.Int64(10),
+			WriteCapacityUnits: aws.Int64(10),
+		},
+		TableName: aws.String(tableName),
+	}
+
+	_, err := dbSvc.CreateTable(input)
+	return err
+}
+
+func createViewers(dbSvc *dynamodb.DynamoDB, conf *config.Config) error {
+	tableName := conf.DBConfig.TablesConfig.Viewers.TableName
+	input := &dynamodb.CreateTableInput{
+		AttributeDefinitions: []*dynamodb.AttributeDefinition{
+			{
+				AttributeName: aws.String("DiscussionID"),
+				AttributeType: aws.String("S"),
+			},
+			{
+				AttributeName: aws.String("ViewerID"),
+				AttributeType: aws.String("S"),
+			},
+		},
+		KeySchema: []*dynamodb.KeySchemaElement{
+			{
+				AttributeName: aws.String("DiscussionID"),
+				KeyType:       aws.String("HASH"),
+			},
+			{
+				AttributeName: aws.String("ViewerID"),
+				KeyType:       aws.String("SORT"),
 			},
 		},
 		ProvisionedThroughput: &dynamodb.ProvisionedThroughput{

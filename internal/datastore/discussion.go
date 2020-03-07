@@ -11,34 +11,54 @@ import (
 )
 
 func (d *db) GetDiscussionByID(ctx context.Context, id string) (*model.Discussion, error) {
-	logrus.Debug("GetDiscussionByID::Dynamo GetItem")
-	res, err := d.dynamo.GetItem(&dynamodb.GetItemInput{
-		TableName: aws.String(d.dbConfig.Discussions.TableName),
-		Key: map[string]*dynamodb.AttributeValue{
+	discussions, err := d.GetDiscussionsByIDs(ctx, []string{id})
+	if err != nil {
+		return nil, err
+	}
+
+	return discussions[id], nil
+}
+
+func (d *db) GetDiscussionsByIDs(ctx context.Context, ids []string) (map[string]*model.Discussion, error) {
+	logrus.Debug("GetDiscussionsByIDs: Dynamo BatchGetItem")
+	keys := make([]map[string]*dynamodb.AttributeValue, 0)
+	for _, id := range ids {
+		keys = append(keys, map[string]*dynamodb.AttributeValue{
 			"ID": {
 				S: aws.String(id),
+			},
+		})
+	}
+	res, err := d.dynamo.BatchGetItem(&dynamodb.BatchGetItemInput{
+		RequestItems: map[string]*dynamodb.KeysAndAttributes{
+			d.dbConfig.Discussions.TableName: {
+				Keys: keys,
 			},
 		},
 	})
 
 	if err != nil {
-		logrus.WithError(err).Errorf("GetDiscussionByID: Failed getting discussion by ID (%s)", id)
+		logrus.WithError(err).Errorf("GetDiscussionsByIDs: Failed to retrive discussions with ids: %+v", ids)
 		return nil, err
 	}
 
-	if res.Item == nil {
-		return nil, nil
+	discussionMap := map[string]*model.Discussion{}
+	for _, id := range ids {
+		discussionMap[id] = nil
+	}
+	elems := res.Responses[d.dbConfig.Discussions.TableName]
+	for _, elem := range elems {
+		discussionObj := model.Discussion{}
+		err = dynamodbattribute.UnmarshalMap(elem, &discussionObj)
+		if err != nil {
+			logrus.WithError(err).Warnf("GetDiscussionsByIDs: Failed to unmarshal discussion object: %+v", elem)
+			continue
+		}
+
+		discussionMap[discussionObj.ID] = &discussionObj
 	}
 
-	discussionObj := model.Discussion{}
-	err = dynamodbattribute.UnmarshalMap(res.Item, &discussionObj)
-
-	if err != nil {
-		logrus.WithError(err).Errorf("GetDiscussionsByID: Failed unmarshaling discussion by ID (%s)", id)
-		return nil, err
-	}
-
-	return &discussionObj, nil
+	return discussionMap, nil
 }
 
 func (d *db) ListDiscussions(ctx context.Context) (*model.DiscussionsConnection, error) {

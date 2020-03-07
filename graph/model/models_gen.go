@@ -18,6 +18,11 @@ type ParticipantNotificationPreferences struct {
 
 func (ParticipantNotificationPreferences) IsDiscussionNotificationPreferences() {}
 
+type URL struct {
+	DisplayText string `json:"displayText"`
+	URL         string `json:"url"`
+}
+
 type ViewerNotificationPreferences struct {
 	ID string `json:"id"`
 }

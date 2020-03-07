@@ -10,11 +10,16 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func (d *db) AddParticipantToUser(ctx context.Context, userID, participantID string) error {
+func (d *db) AddParticipantToUser(ctx context.Context, userID string, discussionParticipant model.DiscussionParticipant) error {
 	logrus.Debug("AddParticipantToUser: Dynamo Update")
-	_, err := d.dynamo.UpdateItem(&dynamodb.UpdateItemInput{
+	av, err := dynamodbattribute.Marshal(discussionParticipant)
+	if err != nil {
+		logrus.WithError(err).Errorf("AddParticipantToUser: Failed to marshal value: %+v", discussionParticipant)
+		return err
+	}
+	_, err = d.dynamo.UpdateItem(&dynamodb.UpdateItemInput{
 		TableName:        aws.String(d.dbConfig.Users.TableName),
-		UpdateExpression: aws.String("ADD ParticipantIDs :pids"),
+		UpdateExpression: aws.String("ADD DiscussionParticipants :pids"),
 		Key: map[string]*dynamodb.AttributeValue{
 			"ID": {
 				S: aws.String(userID),
@@ -22,7 +27,7 @@ func (d *db) AddParticipantToUser(ctx context.Context, userID, participantID str
 		},
 		ExpressionAttributeValues: map[string]*dynamodb.AttributeValue{
 			":pids": {
-				SS: []*string{aws.String(participantID)},
+				SS: []*string{av.S},
 			},
 		},
 	})
@@ -30,11 +35,15 @@ func (d *db) AddParticipantToUser(ctx context.Context, userID, participantID str
 	return err
 }
 
-func (d *db) AddViewerToUser(ctx context.Context, userID, viewerID string) error {
-	logrus.Debug("AddParticipantToUser: Dynamo Update")
-	_, err := d.dynamo.UpdateItem(&dynamodb.UpdateItemInput{
+func (d *db) AddViewerToUser(ctx context.Context, userID string, discussionViewer model.DiscussionViewer) error {
+	logrus.Debug("AddViewerToUser: Dynamo Update")
+	av, err := dynamodbattribute.Marshal(discussionViewer)
+	if err != nil {
+		logrus.WithError(err).Errorf("AddViewerToUser: Failed to marshal value: %+v", discussionViewer)
+	}
+	_, err = d.dynamo.UpdateItem(&dynamodb.UpdateItemInput{
 		TableName:        aws.String(d.dbConfig.Users.TableName),
-		UpdateExpression: aws.String("ADD ViewerIDs :vids"),
+		UpdateExpression: aws.String("ADD DiscussionViewers :vids"),
 		Key: map[string]*dynamodb.AttributeValue{
 			"ID": {
 				S: aws.String(userID),
@@ -42,7 +51,7 @@ func (d *db) AddViewerToUser(ctx context.Context, userID, viewerID string) error
 		},
 		ExpressionAttributeValues: map[string]*dynamodb.AttributeValue{
 			":vids": {
-				SS: []*string{aws.String(viewerID)},
+				SS: []*string{av.S},
 			},
 		},
 	})
@@ -65,6 +74,33 @@ func (d *db) PutUser(ctx context.Context, user model.User) (*model.User, error) 
 
 	if err != nil {
 		logrus.WithError(err).Errorf("PutUser: Failed to put user object: %+v", av)
+		return nil, err
+	}
+
+	return &user, nil
+}
+
+func (d *db) GetUserByID(ctx context.Context, userID string) (*model.User, error) {
+	logrus.Debug("GetUserByID: Dynamo GetItem")
+	res, err := d.dynamo.GetItem(&dynamodb.GetItemInput{
+		TableName: aws.String(d.dbConfig.Users.TableName),
+		Key: map[string]*dynamodb.AttributeValue{
+			"ID": {
+				S: aws.String(userID),
+			},
+		},
+	})
+
+	if err != nil {
+		logrus.WithError(err).Errorf("GetUserByID: Failed to get user with ID: %s", userID)
+		return nil, err
+	}
+
+	user := model.User{}
+	err = dynamodbattribute.UnmarshalMap(res.Item, &user)
+
+	if err != nil {
+		logrus.WithError(err).Errorf("GetUserByID: Failed to unmarshal user object: %+v", res.Item)
 		return nil, err
 	}
 

@@ -19,6 +19,9 @@
             "users": {
                 "table_name": "well-formed.Users"
             },
+            "user_profiles": {
+                "table_name": "well-formed.UserProfiles"
+            },
             "viewers": {
                 "table_name": "well-formed.Viewers"
             }

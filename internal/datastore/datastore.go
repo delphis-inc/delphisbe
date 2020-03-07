@@ -15,13 +15,16 @@ import (
 
 type Datastore interface {
 	GetDiscussionByID(ctx context.Context, id string) (*model.Discussion, error)
+	GetDiscussionsByIDs(ctx context.Context, ids []string) (map[string]*model.Discussion, error)
 	ListDiscussions(ctx context.Context) (*model.DiscussionsConnection, error)
 	PutDiscussion(ctx context.Context, discussion model.Discussion) (*model.Discussion, error)
 	GetParticipantsByDiscussionID(ctx context.Context, id string) ([]model.Participant, error)
 	PutParticipant(ctx context.Context, participant model.Participant) (*model.Participant, error)
-	AddParticipantToUser(ctx context.Context, userID, participantID string) error
-	AddViewerToUser(ctx context.Context, userID, viewerID string) error
+	AddParticipantToUser(ctx context.Context, userID string, discussionParticipant model.DiscussionParticipant) error
+	AddViewerToUser(ctx context.Context, userID string, discussionViewer model.DiscussionViewer) error
+	GetUserProfileByID(ctx context.Context, id string) (*model.UserProfile, error)
 	PutUser(ctx context.Context, user model.User) (*model.User, error)
+	GetUserByID(ctx context.Context, userID string) (*model.User, error)
 	PutViewer(ctx context.Context, viewer model.Viewer) (*model.Viewer, error)
 }
 

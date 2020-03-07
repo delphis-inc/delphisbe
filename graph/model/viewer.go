@@ -3,7 +3,7 @@ package model
 import "time"
 
 type Viewer struct {
-	ID                      string                            `json:"id" dynamodbav:"ID"`
+	ID                      string                            `json:"id" dynamodbav:"ViewerID"`
 	CreatedAt               time.Time                         `json:"createdAt"`
 	UpdatedAt               time.Time                         `json:"updatedAt"`
 	DeletedAt               *time.Time                        `json:"deletedAt"`
@@ -19,6 +19,13 @@ type Viewer struct {
 	// testing purposes. We will try out exposing user information one of the tests.
 	UserID string `json:"userID"`
 	User   *User  `json:"user" dynamodbav:"-"`
+}
+
+func (v Viewer) DiscussionViewerKey() DiscussionViewer {
+	return DiscussionViewer{
+		DiscussionID: v.DiscussionID,
+		ViewerID:     v.ID,
+	}
 }
 
 type ViewersEdge struct {

@@ -60,6 +60,16 @@ func (r *queryResolver) ListDiscussions(ctx context.Context) ([]*model.Discussio
 	return discussions, nil
 }
 
+func (r *queryResolver) User(ctx context.Context, id string) (*model.User, error) {
+	userObj, err := r.DAOManager.GetUserByID(ctx, id)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return userObj, err
+}
+
 func (r *Resolver) Mutation() generated.MutationResolver { return &mutationResolver{r} }
 func (r *Resolver) Query() generated.QueryResolver       { return &queryResolver{r} }
 

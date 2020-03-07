@@ -24,6 +24,7 @@ type TablesConfig struct {
 	PostBookmarks TableConfig `json:"post_bookmarks" mapstructure:"post_bookmarks"`
 	Posts         TableConfig `json:"posts" mapstructure:"posts"`
 	Users         TableConfig `json:"users" mapstructure:"users"`
+	UserProfiles  TableConfig `json:"user_profiles" mapstructure:"user_profiles"`
 	Viewers       TableConfig `json:"viewers" mapstructure:"viewers"`
 }
 

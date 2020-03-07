@@ -60,6 +60,12 @@ models:
         resolver: true
       participants:
         resolver: true
+  Moderator:
+    fields:
+      discussion:
+        resolver: true
+      userProfile:
+        resolver: true
   Participant:
     fields:
       discussion:
@@ -81,6 +87,10 @@ models:
       participants:
         resolver: true
       viewers:
+        resolver: true
+  UserProfile:
+    fields:
+      moderatedDiscussions:
         resolver: true
   Viewer:
     fields:

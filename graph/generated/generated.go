@@ -38,6 +38,7 @@ type Config struct {
 
 type ResolverRoot interface {
 	Discussion() DiscussionResolver
+	Moderator() ModeratorResolver
 	Mutation() MutationResolver
 	Participant() ParticipantResolver
 	ParticipantsConnection() ParticipantsConnectionResolver
@@ -47,6 +48,7 @@ type ResolverRoot interface {
 	PostsConnection() PostsConnectionResolver
 	Query() QueryResolver
 	User() UserResolver
+	UserProfile() UserProfileResolver
 	Viewer() ViewerResolver
 	ViewersConnection() ViewersConnectionResolver
 }
@@ -60,6 +62,12 @@ type ComplexityRoot struct {
 		ID            func(childComplexity int) int
 		Participants  func(childComplexity int) int
 		Posts         func(childComplexity int) int
+	}
+
+	Moderator struct {
+		Discussion  func(childComplexity int) int
+		ID          func(childComplexity int) int
+		UserProfile func(childComplexity int) int
 	}
 
 	Mutation struct {
@@ -134,6 +142,12 @@ type ComplexityRoot struct {
 	Query struct {
 		Discussion      func(childComplexity int, id string) int
 		ListDiscussions func(childComplexity int) int
+		User            func(childComplexity int, id string) int
+	}
+
+	URL struct {
+		DisplayText func(childComplexity int) int
+		URL         func(childComplexity int) int
 	}
 
 	User struct {
@@ -141,6 +155,13 @@ type ComplexityRoot struct {
 		ID           func(childComplexity int) int
 		Participants func(childComplexity int) int
 		Viewers      func(childComplexity int) int
+	}
+
+	UserProfile struct {
+		DisplayName          func(childComplexity int) int
+		ID                   func(childComplexity int) int
+		ModeratedDiscussions func(childComplexity int) int
+		TwitterURL           func(childComplexity int) int
 	}
 
 	Viewer struct {
@@ -172,6 +193,10 @@ type DiscussionResolver interface {
 	Posts(ctx context.Context, obj *model.Discussion) ([]*model.Post, error)
 	Participants(ctx context.Context, obj *model.Discussion) ([]*model.Participant, error)
 }
+type ModeratorResolver interface {
+	Discussion(ctx context.Context, obj *model.Moderator) (*model.Discussion, error)
+	UserProfile(ctx context.Context, obj *model.Moderator) (*model.UserProfile, error)
+}
 type MutationResolver interface {
 	CreateDiscussion(ctx context.Context, anonymityType model.AnonymityType) (*model.Discussion, error)
 	AddDiscussionParticipant(ctx context.Context, discussionID string, userID string) (*model.Participant, error)
@@ -202,11 +227,15 @@ type PostsConnectionResolver interface {
 type QueryResolver interface {
 	Discussion(ctx context.Context, id string) (*model.Discussion, error)
 	ListDiscussions(ctx context.Context) ([]*model.Discussion, error)
+	User(ctx context.Context, id string) (*model.User, error)
 }
 type UserResolver interface {
 	Participants(ctx context.Context, obj *model.User) ([]*model.Participant, error)
 	Viewers(ctx context.Context, obj *model.User) ([]*model.Viewer, error)
 	Bookmarks(ctx context.Context, obj *model.User) ([]*model.PostBookmark, error)
+}
+type UserProfileResolver interface {
+	ModeratedDiscussions(ctx context.Context, obj *model.UserProfile) ([]*model.Discussion, error)
 }
 type ViewerResolver interface {
 	NotificationPreferences(ctx context.Context, obj *model.Viewer) (model.DiscussionNotificationPreferences, error)
@@ -260,6 +289,27 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Discussion.Posts(childComplexity), true
+
+	case "Moderator.discussion":
+		if e.complexity.Moderator.Discussion == nil {
+			break
+		}
+
+		return e.complexity.Moderator.Discussion(childComplexity), true
+
+	case "Moderator.id":
+		if e.complexity.Moderator.ID == nil {
+			break
+		}
+
+		return e.complexity.Moderator.ID(childComplexity), true
+
+	case "Moderator.userProfile":
+		if e.complexity.Moderator.UserProfile == nil {
+			break
+		}
+
+		return e.complexity.Moderator.UserProfile(childComplexity), true
 
 	case "Mutation.addDiscussionParticipant":
 		if e.complexity.Mutation.AddDiscussionParticipant == nil {
@@ -521,6 +571,32 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Query.ListDiscussions(childComplexity), true
 
+	case "Query.user":
+		if e.complexity.Query.User == nil {
+			break
+		}
+
+		args, err := ec.field_Query_user_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.User(childComplexity, args["id"].(string)), true
+
+	case "URL.displayText":
+		if e.complexity.URL.DisplayText == nil {
+			break
+		}
+
+		return e.complexity.URL.DisplayText(childComplexity), true
+
+	case "URL.url":
+		if e.complexity.URL.URL == nil {
+			break
+		}
+
+		return e.complexity.URL.URL(childComplexity), true
+
 	case "User.bookmarks":
 		if e.complexity.User.Bookmarks == nil {
 			break
@@ -548,6 +624,34 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.User.Viewers(childComplexity), true
+
+	case "UserProfile.displayName":
+		if e.complexity.UserProfile.DisplayName == nil {
+			break
+		}
+
+		return e.complexity.UserProfile.DisplayName(childComplexity), true
+
+	case "UserProfile.id":
+		if e.complexity.UserProfile.ID == nil {
+			break
+		}
+
+		return e.complexity.UserProfile.ID(childComplexity), true
+
+	case "UserProfile.moderatedDiscussions":
+		if e.complexity.UserProfile.ModeratedDiscussions == nil {
+			break
+		}
+
+		return e.complexity.UserProfile.ModeratedDiscussions(childComplexity), true
+
+	case "UserProfile.twitterURL":
+		if e.complexity.UserProfile.TwitterURL == nil {
+			break
+		}
+
+		return e.complexity.UserProfile.TwitterURL(childComplexity), true
 
 	case "Viewer.bookmarks":
 		if e.complexity.Viewer.Bookmarks == nil {
@@ -729,6 +833,13 @@ var sources = []*ast.Source{
 # }
 `, BuiltIn: false},
 	&ast.Source{Name: "graph/types/discussion_notification_preferences.graphqls", Input: `union DiscussionNotificationPreferences = ViewerNotificationPreferences | ParticipantNotificationPreferences`, BuiltIn: false},
+	&ast.Source{Name: "graph/types/moderator.graphqls", Input: `type Moderator {
+    id: ID!
+
+    discussion: Discussion
+    
+    userProfile: UserProfile!
+}`, BuiltIn: false},
 	&ast.Source{Name: "graph/types/page_info.graphqls", Input: `type PageInfo {
     startCursor: ID
     endCursor: ID
@@ -798,6 +909,8 @@ type PostBookmark {
 type Query {
   discussion(id: ID!): Discussion
   listDiscussions: [Discussion!]
+  # Need to add verification that the caller is the user.
+  user(id:ID!): User!
 }
 
 type Mutation {
@@ -816,6 +929,10 @@ type Mutation {
 # }`, BuiltIn: false},
 	&ast.Source{Name: "graph/types/time.graphqls", Input: `# Time is an RFC3339 timestamp.
 scalar Time`, BuiltIn: false},
+	&ast.Source{Name: "graph/types/url.graphqls", Input: `type URL {
+    displayText: String!
+    url: String!
+}`, BuiltIn: false},
 	&ast.Source{Name: "graph/types/user.graphqls", Input: `# Users prove relatively useless in our schema because we want to expose
 # no information about them publicly. Once we determine some form of status
 # this will be available. Until then this effectively is a leaf node.
@@ -833,6 +950,15 @@ type User {
     viewers: [Viewer!]
 
     bookmarks: [PostBookmark!]
+}`, BuiltIn: false},
+	&ast.Source{Name: "graph/types/user_profile.graphqls", Input: `type UserProfile {
+    id: ID!
+
+    displayName: String!
+
+    moderatedDiscussions: [Discussion!]
+
+    twitterURL: URL!
 }`, BuiltIn: false},
 	&ast.Source{Name: "graph/types/viewer.graphqls", Input: `type Viewer {
     # Fetchable as it does not reference a user.
@@ -918,6 +1044,20 @@ func (ec *executionContext) field_Query___type_args(ctx context.Context, rawArgs
 }
 
 func (ec *executionContext) field_Query_discussion_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 string
+	if tmp, ok := rawArgs["id"]; ok {
+		arg0, err = ec.unmarshalNID2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["id"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_user_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
 	var arg0 string
@@ -1095,6 +1235,105 @@ func (ec *executionContext) _Discussion_participants(ctx context.Context, field 
 	res := resTmp.([]*model.Participant)
 	fc.Result = res
 	return ec.marshalOParticipant2ᚕᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐParticipantᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Moderator_id(ctx context.Context, field graphql.CollectedField, obj *model.Moderator) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "Moderator",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.ID, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNID2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Moderator_discussion(ctx context.Context, field graphql.CollectedField, obj *model.Moderator) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "Moderator",
+		Field:    field,
+		Args:     nil,
+		IsMethod: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Moderator().Discussion(rctx, obj)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*model.Discussion)
+	fc.Result = res
+	return ec.marshalODiscussion2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐDiscussion(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Moderator_userProfile(ctx context.Context, field graphql.CollectedField, obj *model.Moderator) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "Moderator",
+		Field:    field,
+		Args:     nil,
+		IsMethod: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Moderator().UserProfile(rctx, obj)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.UserProfile)
+	fc.Result = res
+	return ec.marshalNUserProfile2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐUserProfile(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Mutation_createDiscussion(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -2260,6 +2499,47 @@ func (ec *executionContext) _Query_listDiscussions(ctx context.Context, field gr
 	return ec.marshalODiscussion2ᚕᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐDiscussionᚄ(ctx, field.Selections, res)
 }
 
+func (ec *executionContext) _Query_user(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "Query",
+		Field:    field,
+		Args:     nil,
+		IsMethod: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Query_user_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().User(rctx, args["id"].(string))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.User)
+	fc.Result = res
+	return ec.marshalNUser2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐUser(ctx, field.Selections, res)
+}
+
 func (ec *executionContext) _Query___type(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -2327,6 +2607,74 @@ func (ec *executionContext) _Query___schema(ctx context.Context, field graphql.C
 	res := resTmp.(*introspection.Schema)
 	fc.Result = res
 	return ec.marshalO__Schema2ᚖgithubᚗcomᚋ99designsᚋgqlgenᚋgraphqlᚋintrospectionᚐSchema(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _URL_displayText(ctx context.Context, field graphql.CollectedField, obj *model.URL) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "URL",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.DisplayText, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _URL_url(ctx context.Context, field graphql.CollectedField, obj *model.URL) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "URL",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.URL, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _User_id(ctx context.Context, field graphql.CollectedField, obj *model.User) (ret graphql.Marshaler) {
@@ -2454,6 +2802,139 @@ func (ec *executionContext) _User_bookmarks(ctx context.Context, field graphql.C
 	res := resTmp.([]*model.PostBookmark)
 	fc.Result = res
 	return ec.marshalOPostBookmark2ᚕᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐPostBookmarkᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _UserProfile_id(ctx context.Context, field graphql.CollectedField, obj *model.UserProfile) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "UserProfile",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.ID, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNID2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _UserProfile_displayName(ctx context.Context, field graphql.CollectedField, obj *model.UserProfile) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "UserProfile",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.DisplayName, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _UserProfile_moderatedDiscussions(ctx context.Context, field graphql.CollectedField, obj *model.UserProfile) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "UserProfile",
+		Field:    field,
+		Args:     nil,
+		IsMethod: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.UserProfile().ModeratedDiscussions(rctx, obj)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.([]*model.Discussion)
+	fc.Result = res
+	return ec.marshalODiscussion2ᚕᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐDiscussionᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _UserProfile_twitterURL(ctx context.Context, field graphql.CollectedField, obj *model.UserProfile) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "UserProfile",
+		Field:    field,
+		Args:     nil,
+		IsMethod: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.TwitterURL(), nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(model.URL)
+	fc.Result = res
+	return ec.marshalNURL2githubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐURL(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Viewer_id(ctx context.Context, field graphql.CollectedField, obj *model.Viewer) (ret graphql.Marshaler) {
@@ -3986,6 +4467,58 @@ func (ec *executionContext) _Discussion(ctx context.Context, sel ast.SelectionSe
 	return out
 }
 
+var moderatorImplementors = []string{"Moderator"}
+
+func (ec *executionContext) _Moderator(ctx context.Context, sel ast.SelectionSet, obj *model.Moderator) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, moderatorImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("Moderator")
+		case "id":
+			out.Values[i] = ec._Moderator_id(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&invalids, 1)
+			}
+		case "discussion":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Moderator_discussion(ctx, field, obj)
+				return res
+			})
+		case "userProfile":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Moderator_userProfile(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
 var mutationImplementors = []string{"Mutation"}
 
 func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet) graphql.Marshaler {
@@ -4504,10 +5037,56 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 				res = ec._Query_listDiscussions(ctx, field)
 				return res
 			})
+		case "user":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_user(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
 		case "__type":
 			out.Values[i] = ec._Query___type(ctx, field)
 		case "__schema":
 			out.Values[i] = ec._Query___schema(ctx, field)
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
+var uRLImplementors = []string{"URL"}
+
+func (ec *executionContext) _URL(ctx context.Context, sel ast.SelectionSet, obj *model.URL) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, uRLImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("URL")
+		case "displayText":
+			out.Values[i] = ec._URL_displayText(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "url":
+			out.Values[i] = ec._URL_url(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -4568,6 +5147,54 @@ func (ec *executionContext) _User(ctx context.Context, sel ast.SelectionSet, obj
 				res = ec._User_bookmarks(ctx, field, obj)
 				return res
 			})
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
+var userProfileImplementors = []string{"UserProfile"}
+
+func (ec *executionContext) _UserProfile(ctx context.Context, sel ast.SelectionSet, obj *model.UserProfile) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, userProfileImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("UserProfile")
+		case "id":
+			out.Values[i] = ec._UserProfile_id(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&invalids, 1)
+			}
+		case "displayName":
+			out.Values[i] = ec._UserProfile_displayName(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&invalids, 1)
+			}
+		case "moderatedDiscussions":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._UserProfile_moderatedDiscussions(ctx, field, obj)
+				return res
+			})
+		case "twitterURL":
+			out.Values[i] = ec._UserProfile_twitterURL(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&invalids, 1)
+			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -5181,6 +5808,10 @@ func (ec *executionContext) marshalNTime2timeᚐTime(ctx context.Context, sel as
 	return res
 }
 
+func (ec *executionContext) marshalNURL2githubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐURL(ctx context.Context, sel ast.SelectionSet, v model.URL) graphql.Marshaler {
+	return ec._URL(ctx, sel, &v)
+}
+
 func (ec *executionContext) marshalNUser2githubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐUser(ctx context.Context, sel ast.SelectionSet, v model.User) graphql.Marshaler {
 	return ec._User(ctx, sel, &v)
 }
@@ -5193,6 +5824,20 @@ func (ec *executionContext) marshalNUser2ᚖgithubᚗcomᚋnedrocksᚋdelphisbe�
 		return graphql.Null
 	}
 	return ec._User(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalNUserProfile2githubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐUserProfile(ctx context.Context, sel ast.SelectionSet, v model.UserProfile) graphql.Marshaler {
+	return ec._UserProfile(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNUserProfile2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐUserProfile(ctx context.Context, sel ast.SelectionSet, v *model.UserProfile) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	return ec._UserProfile(ctx, sel, v)
 }
 
 func (ec *executionContext) marshalNViewer2githubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐViewer(ctx context.Context, sel ast.SelectionSet, v model.Viewer) graphql.Marshaler {

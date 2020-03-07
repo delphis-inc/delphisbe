@@ -10,8 +10,8 @@ type User struct {
 
 	// NOTE: There is probably a better way to do this, but sticking
 	// to this for now.
-	ParticipantIDs []string `json:"participantIDs"`
-	ViewerIDs      []string `json:"viewerIDs"`
+	DiscussionParticipants []DiscussionParticipant `json:"participantIDs"`
+	DiscussionViewers      []DiscussionViewer      `json:"viewerIDs"`
 
 	Participants []Participant `json:"participants" dynamodbav:"-"`
 	Viewers      []Viewer      `json:"viewers" dynamodbav:"-"`

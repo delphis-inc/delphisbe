@@ -15,7 +15,11 @@ func (r *userResolver) Participants(ctx context.Context, obj *model.User) ([]*mo
 }
 
 func (r *userResolver) Viewers(ctx context.Context, obj *model.User) ([]*model.Viewer, error) {
-	panic(fmt.Errorf("not implemented"))
+	viewers := make([]*model.Viewer, 0)
+	viewerIDs := make([]string, 0)
+	for _, discViewer := range obj.DiscussionViewers {
+		
+	}
 }
 
 func (r *userResolver) Bookmarks(ctx context.Context, obj *model.User) ([]*model.PostBookmark, error) {

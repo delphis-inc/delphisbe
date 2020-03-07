@@ -1,0 +1,4 @@
+type URL {
+    displayText: String!
+    url: String!
+}

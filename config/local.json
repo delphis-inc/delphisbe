@@ -20,6 +20,9 @@
             "users": {
                 "table_name": "local.Users.v1"
             },
+            "user_profiles": {
+                "table_name": "local.UserProfiles.v1"
+            },
             "viewers": {
                 "table_name": "local.Viewers.v1"
             }

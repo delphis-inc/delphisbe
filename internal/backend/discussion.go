@@ -29,6 +29,10 @@ func (d *daoManager) GetDiscussionByID(ctx context.Context, id string) (*model.D
 	return d.db.GetDiscussionByID(ctx, id)
 }
 
+func (d *daoManager) GetDiscussionsByIDs(ctx context.Context, ids []string) (map[string]*model.Discussion, error) {
+	return d.db.GetDiscussionsByIDs(ctx, ids)
+}
+
 func (d *daoManager) ListDiscussions(ctx context.Context) (*model.DiscussionsConnection, error) {
 	return d.db.ListDiscussions(ctx)
 }

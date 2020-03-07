@@ -1,0 +1,7 @@
+type Moderator {
+    id: ID!
+
+    discussion: Discussion
+    
+    userProfile: UserProfile!
+}
