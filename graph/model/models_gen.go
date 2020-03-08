@@ -69,3 +69,46 @@ func (e *AnonymityType) UnmarshalGQL(v interface{}) error {
 func (e AnonymityType) MarshalGQL(w io.Writer) {
 	fmt.Fprint(w, strconv.Quote(e.String()))
 }
+
+type PostDeletedReason string
+
+const (
+	PostDeletedReasonUnknown            PostDeletedReason = "UNKNOWN"
+	PostDeletedReasonModeratorRemoved   PostDeletedReason = "MODERATOR_REMOVED"
+	PostDeletedReasonParticipantRemoved PostDeletedReason = "PARTICIPANT_REMOVED"
+)
+
+var AllPostDeletedReason = []PostDeletedReason{
+	PostDeletedReasonUnknown,
+	PostDeletedReasonModeratorRemoved,
+	PostDeletedReasonParticipantRemoved,
+}
+
+func (e PostDeletedReason) IsValid() bool {
+	switch e {
+	case PostDeletedReasonUnknown, PostDeletedReasonModeratorRemoved, PostDeletedReasonParticipantRemoved:
+		return true
+	}
+	return false
+}
+
+func (e PostDeletedReason) String() string {
+	return string(e)
+}
+
+func (e *PostDeletedReason) UnmarshalGQL(v interface{}) error {
+	str, ok := v.(string)
+	if !ok {
+		return fmt.Errorf("enums must be strings")
+	}
+
+	*e = PostDeletedReason(str)
+	if !e.IsValid() {
+		return fmt.Errorf("%s is not a valid PostDeletedReason", str)
+	}
+	return nil
+}
+
+func (e PostDeletedReason) MarshalGQL(w io.Writer) {
+	fmt.Fprint(w, strconv.Quote(e.String()))
+}

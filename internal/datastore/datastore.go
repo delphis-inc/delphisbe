@@ -22,6 +22,8 @@ type Datastore interface {
 	GetParticipantsByIDs(ctx context.Context, discussionParticipantKeys []model.DiscussionParticipantKey) (map[model.DiscussionParticipantKey]*model.Participant, error)
 	PutParticipant(ctx context.Context, participant model.Participant) (*model.Participant, error)
 	AddParticipantToUser(ctx context.Context, userID string, discussionParticipant model.DiscussionParticipantKey) (*model.User, error)
+	GetPostsByDiscussionID(ctx context.Context, discussionID string) ([]*model.Post, error)
+	PutPost(ctx context.Context, post model.Post) (*model.Post, error)
 	AddViewerToUser(ctx context.Context, userID string, discussionViewerKey model.DiscussionViewerKey) (*model.User, error)
 	GetUserProfileByID(ctx context.Context, id string) (*model.UserProfile, error)
 	PutUser(ctx context.Context, user model.User) (*model.User, error)

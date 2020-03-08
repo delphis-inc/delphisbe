@@ -14,6 +14,11 @@ type DiscussionParticipantKey struct {
 	ParticipantID int    `json:"participantID"`
 }
 
+func (d DiscussionParticipantKey) MarshalDynamoDBAttributeValue(av *dynamodb.AttributeValue) error {
+	av.S = aws.String(fmt.Sprintf("%s.%d", d.DiscussionID, d.ParticipantID))
+	return nil
+}
+
 type DiscussionParticipantKeys struct {
 	Keys []DiscussionParticipantKey `json:"keys"`
 }

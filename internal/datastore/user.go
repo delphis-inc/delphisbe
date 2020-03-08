@@ -30,7 +30,7 @@ func (d *db) AddParticipantToUser(ctx context.Context, userID string, discussion
 				SS: []*string{av.S},
 			},
 		},
-		ReturnValues: aws.String("UPDATED_VALUES"),
+		ReturnValues: aws.String("UPDATED_NEW"),
 	})
 
 	if err != nil {
@@ -70,7 +70,7 @@ func (d *db) AddViewerToUser(ctx context.Context, userID string, discussionViewe
 				SS: []*string{av.S},
 			},
 		},
-		ReturnValues: aws.String("UPDATED_VALUES"),
+		ReturnValues: aws.String("UPDATED_NEW"),
 	})
 
 	if err != nil {

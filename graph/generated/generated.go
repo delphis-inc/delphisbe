@@ -106,8 +106,11 @@ type ComplexityRoot struct {
 	}
 
 	Post struct {
-		Content func(childComplexity int) int
-		ID      func(childComplexity int) int
+		Content     func(childComplexity int) int
+		Discussion  func(childComplexity int) int
+		ID          func(childComplexity int) int
+		IsDeleted   func(childComplexity int) int
+		Participant func(childComplexity int) int
 	}
 
 	PostBookmark struct {
@@ -212,7 +215,10 @@ type ParticipantsConnectionResolver interface {
 	Edges(ctx context.Context, obj *model.ParticipantsConnection) ([]*model.ParticipantsEdge, error)
 }
 type PostResolver interface {
-	Content(ctx context.Context, obj *model.Post) (*string, error)
+	IsDeleted(ctx context.Context, obj *model.Post) (bool, error)
+	Content(ctx context.Context, obj *model.Post) (string, error)
+	Discussion(ctx context.Context, obj *model.Post) (*model.Discussion, error)
+	Participant(ctx context.Context, obj *model.Post) (*model.Participant, error)
 }
 type PostBookmarkResolver interface {
 	Discussion(ctx context.Context, obj *model.PostBookmark) (*model.Discussion, error)
@@ -447,12 +453,33 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Post.Content(childComplexity), true
 
+	case "Post.discussion":
+		if e.complexity.Post.Discussion == nil {
+			break
+		}
+
+		return e.complexity.Post.Discussion(childComplexity), true
+
 	case "Post.id":
 		if e.complexity.Post.ID == nil {
 			break
 		}
 
 		return e.complexity.Post.ID(childComplexity), true
+
+	case "Post.isDeleted":
+		if e.complexity.Post.IsDeleted == nil {
+			break
+		}
+
+		return e.complexity.Post.IsDeleted(childComplexity), true
+
+	case "Post.participant":
+		if e.complexity.Post.Participant == nil {
+			break
+		}
+
+		return e.complexity.Post.Participant(childComplexity), true
 
 	case "PostBookmark.createdAt":
 		if e.complexity.PostBookmark.CreatedAt == nil {
@@ -805,6 +832,11 @@ var sources = []*ast.Source{
     WEAK
     STRONG
 }`, BuiltIn: false},
+	&ast.Source{Name: "graph/types/deleted_reason.graphqls", Input: `enum PostDeletedReason {
+    UNKNOWN
+    MODERATOR_REMOVED
+    PARTICIPANT_REMOVED
+}`, BuiltIn: false},
 	&ast.Source{Name: "graph/types/discussion.graphqls", Input: `type Discussion {
     # Unique id for this discussion
     id: ID!
@@ -871,7 +903,10 @@ var sources = []*ast.Source{
 }`, BuiltIn: false},
 	&ast.Source{Name: "graph/types/post.graphqls", Input: `type Post {
     id: ID!    
-    content: String
+    isDeleted: Boolean!
+    content: String!
+    discussion: Discussion!
+    participant: Participant!
 }`, BuiltIn: false},
 	&ast.Source{Name: "graph/types/post_bookmark.graphqls", Input: `# Defines a bookmark for a post. Built this way because I
 # assume we will have other types of bookmarks down the road
@@ -1941,6 +1976,40 @@ func (ec *executionContext) _Post_id(ctx context.Context, field graphql.Collecte
 	return ec.marshalNID2string(ctx, field.Selections, res)
 }
 
+func (ec *executionContext) _Post_isDeleted(ctx context.Context, field graphql.CollectedField, obj *model.Post) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "Post",
+		Field:    field,
+		Args:     nil,
+		IsMethod: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Post().IsDeleted(rctx, obj)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(bool)
+	fc.Result = res
+	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
+}
+
 func (ec *executionContext) _Post_content(ctx context.Context, field graphql.CollectedField, obj *model.Post) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -1965,11 +2034,82 @@ func (ec *executionContext) _Post_content(ctx context.Context, field graphql.Col
 		return graphql.Null
 	}
 	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
 		return graphql.Null
 	}
-	res := resTmp.(*string)
+	res := resTmp.(string)
 	fc.Result = res
-	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Post_discussion(ctx context.Context, field graphql.CollectedField, obj *model.Post) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "Post",
+		Field:    field,
+		Args:     nil,
+		IsMethod: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Post().Discussion(rctx, obj)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.Discussion)
+	fc.Result = res
+	return ec.marshalNDiscussion2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐDiscussion(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Post_participant(ctx context.Context, field graphql.CollectedField, obj *model.Post) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "Post",
+		Field:    field,
+		Args:     nil,
+		IsMethod: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Post().Participant(rctx, obj)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.Participant)
+	fc.Result = res
+	return ec.marshalNParticipant2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐParticipant(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _PostBookmark_id(ctx context.Context, field graphql.CollectedField, obj *model.PostBookmark) (ret graphql.Marshaler) {
@@ -4780,6 +4920,20 @@ func (ec *executionContext) _Post(ctx context.Context, sel ast.SelectionSet, obj
 			if out.Values[i] == graphql.Null {
 				atomic.AddUint32(&invalids, 1)
 			}
+		case "isDeleted":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Post_isDeleted(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
 		case "content":
 			field := field
 			out.Concurrently(i, func() (res graphql.Marshaler) {
@@ -4789,6 +4943,37 @@ func (ec *executionContext) _Post(ctx context.Context, sel ast.SelectionSet, obj
 					}
 				}()
 				res = ec._Post_content(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
+		case "discussion":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Post_discussion(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
+		case "participant":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Post_participant(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
 				return res
 			})
 		default:

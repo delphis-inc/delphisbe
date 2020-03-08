@@ -199,14 +199,22 @@ func createPosts(dbSvc *dynamodb.DynamoDB, conf *config.Config) error {
 	input := &dynamodb.CreateTableInput{
 		AttributeDefinitions: []*dynamodb.AttributeDefinition{
 			{
-				AttributeName: aws.String("ID"),
+				AttributeName: aws.String("DiscussionID"),
+				AttributeType: aws.String("S"),
+			},
+			{
+				AttributeName: aws.String("CreatedAt"),
 				AttributeType: aws.String("S"),
 			},
 		},
 		KeySchema: []*dynamodb.KeySchemaElement{
 			{
-				AttributeName: aws.String("ID"),
+				AttributeName: aws.String("DiscussionID"),
 				KeyType:       aws.String("HASH"),
+			},
+			{
+				AttributeName: aws.String("CreatedAt"),
+				KeyType:       aws.String("SORT"),
 			},
 		},
 		ProvisionedThroughput: &dynamodb.ProvisionedThroughput{

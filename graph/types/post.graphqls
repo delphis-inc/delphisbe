@@ -1,4 +1,8 @@
 type Post {
     id: ID!    
-    content: String
+    isDeleted: Boolean!
+    deletedReasonCode: PostDeletedReason
+    content: String!
+    discussion: Discussion!
+    participant: Participant!
 }

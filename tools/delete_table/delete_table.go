@@ -29,7 +29,7 @@ func main() {
 	dbSvc := dynamodb.New(sess)
 
 	_, err = dbSvc.DeleteTable(&dynamodb.DeleteTableInput{
-		TableName: aws.String(conf.DBConfig.TablesConfig.Participants.TableName),
+		TableName: aws.String(conf.DBConfig.TablesConfig.Posts.TableName),
 	})
 
 	if err != nil {

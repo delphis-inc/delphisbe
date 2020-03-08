@@ -23,7 +23,19 @@ func (r *participantResolver) Discussion(ctx context.Context, obj *model.Partici
 }
 
 func (r *participantResolver) Viewer(ctx context.Context, obj *model.Participant) (*model.Viewer, error) {
-	panic(fmt.Errorf("not implemented"))
+	if obj.Viewer == nil {
+		viewerObj, err := r.DAOManager.GetViewerByID(ctx, model.DiscussionViewerKey{
+			DiscussionID: obj.DiscussionID,
+			ViewerID:     obj.ViewerID,
+		})
+
+		if err != nil {
+			return nil, err
+		}
+
+		obj.Viewer = viewerObj
+	}
+	return obj.Viewer, nil
 }
 
 func (r *participantResolver) DiscussionNotificationPreferences(ctx context.Context, obj *model.Participant) (model.DiscussionNotificationPreferences, error) {
@@ -31,7 +43,20 @@ func (r *participantResolver) DiscussionNotificationPreferences(ctx context.Cont
 }
 
 func (r *participantResolver) Posts(ctx context.Context, obj *model.Participant) ([]*model.Post, error) {
-	panic(fmt.Errorf("not implemented"))
+	posts, err := r.DAOManager.GetPostsByDiscussionID(ctx, obj.DiscussionID)
+	if err != nil {
+		return nil, err
+	}
+
+	n := 0
+	for _, post := range posts {
+		if post.ParticipantID == obj.ParticipantID {
+			posts[n] = post
+			n++
+		}
+	}
+	posts = posts[:n]
+	return posts, nil
 }
 
 func (r *Resolver) Participant() generated.ParticipantResolver { return &participantResolver{r} }

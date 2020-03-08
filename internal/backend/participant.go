@@ -49,6 +49,16 @@ func (d *daoManager) GetParticipantsByDiscussionID(ctx context.Context, id strin
 	return d.db.GetParticipantsByDiscussionID(ctx, id)
 }
 
+func (d *daoManager) GetParticipantByID(ctx context.Context, discussionParticipantKey model.DiscussionParticipantKey) (*model.Participant, error) {
+	respMap, err := d.GetParticipantsByIDs(ctx, []model.DiscussionParticipantKey{discussionParticipantKey})
+
+	if err != nil {
+		return nil, err
+	}
+
+	return respMap[discussionParticipantKey], nil
+}
+
 func (d *daoManager) GetParticipantsByIDs(ctx context.Context, discussionParticipantKeys []model.DiscussionParticipantKey) (map[model.DiscussionParticipantKey]*model.Participant, error) {
 	return d.db.GetParticipantsByIDs(ctx, discussionParticipantKeys)
 }

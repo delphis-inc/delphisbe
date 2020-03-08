@@ -4,14 +4,19 @@ package resolver
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/nedrocks/delphisbe/graph/generated"
 	"github.com/nedrocks/delphisbe/graph/model"
 )
 
 func (r *discussionResolver) Posts(ctx context.Context, obj *model.Discussion) ([]*model.Post, error) {
-	panic(fmt.Errorf("not implemented"))
+	posts, err := r.DAOManager.GetPostsByDiscussionID(ctx, obj.ID)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return posts, nil
 }
 
 func (r *discussionResolver) Participants(ctx context.Context, obj *model.Discussion) ([]*model.Participant, error) {

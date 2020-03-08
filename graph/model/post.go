@@ -3,11 +3,19 @@ package model
 import "time"
 
 type Post struct {
-	ID           string     `json:"id" dynamodbav:"ID"`
-	CreatedAt    time.Time  `json:"createdAt"`
-	UpdatedAt    time.Time  `json:"updatedAt"`
-	DeletedAt    *time.Time `json:"deletedAt"`
-	DiscussionID string     `json:"discussionID"`
+	ID string `json:"id" dynamodbav:"ID"`
+	// Sort Key
+	CreatedAt         time.Time         `json:"createdAt" dynamodbav:"CreatedAt"`
+	UpdatedAt         time.Time         `json:"updatedAt"`
+	DeletedAt         *time.Time        `json:"deletedAt"`
+	DeletedReasonCode PostDeletedReason `json:"deletedReason"`
+	Discussion        *Discussion       `json:"discussion" dynamodbav:"-"`
+	// Primary key
+	DiscussionID  string       `json:"discussionID" dynamodbav:"DiscussionID"`
+	Participant   *Participant `json:"participant" dynamodbav:"-"`
+	ParticipantID int          `json:"participantID"`
+	PostContentID string       `json:"postContentID"`
+	PostContent   PostContent  `json:"postContent"`
 }
 
 type PostsEdge struct {
