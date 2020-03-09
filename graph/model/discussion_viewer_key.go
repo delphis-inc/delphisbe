@@ -13,8 +13,12 @@ type DiscussionViewerKey struct {
 	ViewerID     string `json:"participantID"`
 }
 
+func (d DiscussionViewerKey) String() string {
+	return fmt.Sprintf("%s.%s", d.DiscussionID, d.ViewerID)
+}
+
 func (d DiscussionViewerKey) MarshalDynamoDBAttributeValue(av *dynamodb.AttributeValue) error {
-	av.S = aws.String(fmt.Sprintf("%s.%s", d.DiscussionID, d.ViewerID))
+	av.S = aws.String(d.String())
 	return nil
 }
 

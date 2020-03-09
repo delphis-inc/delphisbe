@@ -11,12 +11,12 @@ type UserProfile struct {
 	DisplayName string `json:"displayName"`
 	UserID      string `json:"userID" dynamodbav:",omitempty"`
 	// Handle without the `@` sign.
-	TwitterHandle           string       `json:"twitterHandle"`
-	ModeratedDiscussionsIDs []string     `json:"moderatedDiscussionIDs" dynamodbav:",stringset,omitempty"`
-	ModeratedDiscussions    []Discussion `json:"moderatedDiscussions" dynamodbav:"-"`
+	TwitterHandle          string       `json:"twitterHandle"`
+	ModeratedDiscussionIDs []string     `json:"moderatedDiscussionIDs" dynamodbav:",stringset,omitempty"`
+	ModeratedDiscussions   []Discussion `json:"moderatedDiscussions" dynamodbav:"-"`
 
 	// Twitter related fields
-	TwitterInfo SocialInfo `json:"twitterToken" dynamodbav:"TwitterToken"`
+	TwitterInfo SocialInfo `json:"twitterToken"`
 }
 
 type SocialInfo struct {
