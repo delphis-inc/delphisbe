@@ -99,7 +99,7 @@ func (d *db) ListDiscussions(ctx context.Context) (*model.DiscussionsConnection,
 
 func (d *db) PutDiscussion(ctx context.Context, discussion model.Discussion) (*model.Discussion, error) {
 	logrus.Debug("PutDiscussion::Dynamo PutItem")
-	av, err := dynamodbattribute.MarshalMap(discussion)
+	av, err := d.marshalMap(discussion)
 	if err != nil {
 		logrus.WithError(err).Errorf("PutDiscussion: Failed to marshal discussion object: %+v", discussion)
 		return nil, err

@@ -8,7 +8,7 @@ import (
 	"github.com/nedrocks/delphisbe/internal/util"
 )
 
-func (d *daoManager) CreatePost(ctx context.Context, discussionKey model.DiscussionParticipantKey, content string) (*model.Post, error) {
+func (d *delphisBackend) CreatePost(ctx context.Context, discussionKey model.DiscussionParticipantKey, content string) (*model.Post, error) {
 	postContent := model.PostContent{
 		ID:      util.UUIDv4(),
 		Content: content,
@@ -33,6 +33,6 @@ func (d *daoManager) CreatePost(ctx context.Context, discussionKey model.Discuss
 	return postObj, nil
 }
 
-func (d *daoManager) GetPostsByDiscussionID(ctx context.Context, discussionID string) ([]*model.Post, error) {
+func (d *delphisBackend) GetPostsByDiscussionID(ctx context.Context, discussionID string) ([]*model.Post, error) {
 	return d.db.GetPostsByDiscussionID(ctx, discussionID)
 }

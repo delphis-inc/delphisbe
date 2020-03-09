@@ -8,7 +8,7 @@ import (
 	"github.com/nedrocks/delphisbe/internal/util"
 )
 
-func (d *daoManager) CreateViewerForDiscussion(ctx context.Context, discussionID string, userID string) (*model.Viewer, error) {
+func (d *delphisBackend) CreateViewerForDiscussion(ctx context.Context, discussionID string, userID string) (*model.Viewer, error) {
 	viewerObj := model.Viewer{
 		CreatedAt:    time.Now(),
 		UpdatedAt:    time.Now(),
@@ -26,11 +26,11 @@ func (d *daoManager) CreateViewerForDiscussion(ctx context.Context, discussionID
 	return &viewerObj, err
 }
 
-func (d *daoManager) GetViewersByIDs(ctx context.Context, discussionViewerKeys []model.DiscussionViewerKey) (map[model.DiscussionViewerKey]*model.Viewer, error) {
+func (d *delphisBackend) GetViewersByIDs(ctx context.Context, discussionViewerKeys []model.DiscussionViewerKey) (map[model.DiscussionViewerKey]*model.Viewer, error) {
 	return d.db.GetViewersByIDs(ctx, discussionViewerKeys)
 }
 
-func (d *daoManager) GetViewerByID(ctx context.Context, discussionViewerKey model.DiscussionViewerKey) (*model.Viewer, error) {
+func (d *delphisBackend) GetViewerByID(ctx context.Context, discussionViewerKey model.DiscussionViewerKey) (*model.Viewer, error) {
 	viewers, err := d.GetViewersByIDs(ctx, []model.DiscussionViewerKey{discussionViewerKey})
 
 	if err != nil {

@@ -20,7 +20,7 @@ func (d DiscussionParticipantKey) MarshalDynamoDBAttributeValue(av *dynamodb.Att
 }
 
 type DiscussionParticipantKeys struct {
-	Keys []DiscussionParticipantKey `json:"keys"`
+	Keys []DiscussionParticipantKey `json:"keys" dynamodbav:",omitempty"`
 }
 
 func (d DiscussionParticipantKeys) MarshalDynamoDBAttributeValue(av *dynamodb.AttributeValue) error {

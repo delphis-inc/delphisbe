@@ -93,7 +93,7 @@ func (d *db) GetParticipantsByIDs(ctx context.Context, discussionParticipantKeys
 
 func (d *db) PutParticipant(ctx context.Context, participant model.Participant) (*model.Participant, error) {
 	logrus.Debug("PutParticipant::Dynamo PutItem")
-	av, err := dynamodbattribute.MarshalMap(participant)
+	av, err := d.marshalMap(participant)
 	if err != nil {
 		logrus.WithError(err).Errorf("PutParticipant: Failed to marshal participant object: %+v", participant)
 		return nil, err

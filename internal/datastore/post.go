@@ -12,7 +12,7 @@ import (
 
 func (d *db) PutPost(ctx context.Context, post model.Post) (*model.Post, error) {
 	logrus.Debug("PutPost: DynamoDB PutItem")
-	av, err := dynamodbattribute.MarshalMap(post)
+	av, err := d.marshalMap(post)
 	if err != nil {
 		logrus.WithError(err).Errorf("PutPost: Failed to marshal post object: %+v", post)
 		return nil, err

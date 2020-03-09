@@ -8,6 +8,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
+	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbattribute"
 	"github.com/nedrocks/delphisbe/graph/model"
 	"github.com/nedrocks/delphisbe/internal/config"
 	"github.com/sirupsen/logrus"
@@ -26,15 +27,31 @@ type Datastore interface {
 	PutPost(ctx context.Context, post model.Post) (*model.Post, error)
 	AddViewerToUser(ctx context.Context, userID string, discussionViewerKey model.DiscussionViewerKey) (*model.User, error)
 	GetUserProfileByID(ctx context.Context, id string) (*model.UserProfile, error)
+	CreateOrUpdateUserProfile(ctx context.Context, userProfile model.UserProfile) (*model.UserProfile, bool, error)
+	UpdateUserProfileTwitterInfo(ctx context.Context, userProfile model.UserProfile, twitterInfo model.SocialInfo) (*model.UserProfile, error)
+	UpdateUserProfileUserID(ctx context.Context, userProfileID string, userID string) (*model.UserProfile, error)
 	PutUser(ctx context.Context, user model.User) (*model.User, error)
 	GetUserByID(ctx context.Context, userID string) (*model.User, error)
 	GetViewersByIDs(ctx context.Context, discussionViewerKeys []model.DiscussionViewerKey) (map[model.DiscussionViewerKey]*model.Viewer, error)
 	PutViewer(ctx context.Context, viewer model.Viewer) (*model.Viewer, error)
+
+	marshalMap(in interface{}) (map[string]*dynamodb.AttributeValue, error)
 }
 
 type db struct {
 	dynamo   *dynamodb.DynamoDB
 	dbConfig config.TablesConfig
+	encoder  *dynamodbattribute.Encoder
+}
+
+//MarshalMap wraps the dynamodbattribute.MarshalMap with a defined encoder.
+func (d *db) marshalMap(in interface{}) (map[string]*dynamodb.AttributeValue, error) {
+	av, err := d.encoder.Encode(in)
+	if err != nil || av == nil || av.M == nil {
+		return map[string]*dynamodb.AttributeValue{}, err
+	}
+
+	return av.M, nil
 }
 
 func NewDatastore(dbConfig config.DBConfig) Datastore {
@@ -52,5 +69,11 @@ func NewDatastore(dbConfig config.DBConfig) Datastore {
 	return &db{
 		dbConfig: dbConfig.TablesConfig,
 		dynamo:   dbSvc,
+		encoder: &dynamodbattribute.Encoder{
+			MarshalOptions: dynamodbattribute.MarshalOptions{
+				SupportJSONTags: false,
+			},
+			NullEmptyString: true,
+		},
 	}
 }

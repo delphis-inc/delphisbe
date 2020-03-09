@@ -91,7 +91,7 @@ func (d *db) AddViewerToUser(ctx context.Context, userID string, discussionViewe
 
 func (d *db) PutUser(ctx context.Context, user model.User) (*model.User, error) {
 	logrus.Debug("PutUser::Dynamo PutItem")
-	av, err := dynamodbattribute.MarshalMap(user)
+	av, err := d.marshalMap(user)
 	if err != nil {
 		logrus.WithError(err).Errorf("PutUser: Failed to marshal user object: %+v", user)
 		return nil, err

@@ -12,7 +12,7 @@ import (
 
 func (d *db) PutViewer(ctx context.Context, viewer model.Viewer) (*model.Viewer, error) {
 	logrus.Debug("PutViewer::Dynamo PutItem")
-	av, err := dynamodbattribute.MarshalMap(viewer)
+	av, err := d.marshalMap(viewer)
 	if err != nil {
 		logrus.WithError(err).Errorf("PutViewer: Failed to marshal viewer object: %+v", viewer)
 		return nil, err

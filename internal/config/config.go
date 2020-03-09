@@ -7,8 +7,14 @@ import (
 )
 
 type Config struct {
-	Environment string   `json:"env" mapstructure:"env"`
-	DBConfig    DBConfig `json:"db" mapstructure:"db"`
+	Environment string        `json:"env" mapstructure:"env"`
+	DBConfig    DBConfig      `json:"db" mapstructure:"db"`
+	Twitter     TwitterConfig `json:"twitter"`
+}
+
+type TwitterConfig struct {
+	ConsumerKey    string
+	ConsumerSecret string
 }
 
 type DBConfig struct {
@@ -56,6 +62,11 @@ func ReadConfig() (*Config, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	viper.SetEnvPrefix("delphis")
+	_ = viper.BindEnv("twitter_consumer_key", "twitter_consumer_secret")
+	viper.AutomaticEnv()
+	config.Twitter.ConsumerKey, config.Twitter.ConsumerSecret = viper.GetString("twitter_consumer_key"), viper.GetString("twitter_consumer_secret")
 
 	return &config, nil
 }

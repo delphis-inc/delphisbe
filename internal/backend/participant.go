@@ -7,7 +7,7 @@ import (
 	"github.com/nedrocks/delphisbe/graph/model"
 )
 
-func (d *daoManager) CreateParticipantForDiscussion(ctx context.Context, discussionID string, userID string) (*model.Participant, error) {
+func (d *delphisBackend) CreateParticipantForDiscussion(ctx context.Context, discussionID string, userID string) (*model.Participant, error) {
 	allParticipants, err := d.GetParticipantsByDiscussionID(ctx, discussionID)
 
 	if err != nil {
@@ -45,11 +45,11 @@ func (d *daoManager) CreateParticipantForDiscussion(ctx context.Context, discuss
 	return &participantObj, nil
 }
 
-func (d *daoManager) GetParticipantsByDiscussionID(ctx context.Context, id string) ([]model.Participant, error) {
+func (d *delphisBackend) GetParticipantsByDiscussionID(ctx context.Context, id string) ([]model.Participant, error) {
 	return d.db.GetParticipantsByDiscussionID(ctx, id)
 }
 
-func (d *daoManager) GetParticipantByID(ctx context.Context, discussionParticipantKey model.DiscussionParticipantKey) (*model.Participant, error) {
+func (d *delphisBackend) GetParticipantByID(ctx context.Context, discussionParticipantKey model.DiscussionParticipantKey) (*model.Participant, error) {
 	respMap, err := d.GetParticipantsByIDs(ctx, []model.DiscussionParticipantKey{discussionParticipantKey})
 
 	if err != nil {
@@ -59,6 +59,6 @@ func (d *daoManager) GetParticipantByID(ctx context.Context, discussionParticipa
 	return respMap[discussionParticipantKey], nil
 }
 
-func (d *daoManager) GetParticipantsByIDs(ctx context.Context, discussionParticipantKeys []model.DiscussionParticipantKey) (map[model.DiscussionParticipantKey]*model.Participant, error) {
+func (d *delphisBackend) GetParticipantsByIDs(ctx context.Context, discussionParticipantKeys []model.DiscussionParticipantKey) (map[model.DiscussionParticipantKey]*model.Participant, error) {
 	return d.db.GetParticipantsByIDs(ctx, discussionParticipantKeys)
 }

@@ -60,6 +60,7 @@ type ComplexityRoot struct {
 	Discussion struct {
 		AnonymityType func(childComplexity int) int
 		ID            func(childComplexity int) int
+		Moderator     func(childComplexity int) int
 		Participants  func(childComplexity int) int
 		Posts         func(childComplexity int) int
 	}
@@ -106,11 +107,12 @@ type ComplexityRoot struct {
 	}
 
 	Post struct {
-		Content     func(childComplexity int) int
-		Discussion  func(childComplexity int) int
-		ID          func(childComplexity int) int
-		IsDeleted   func(childComplexity int) int
-		Participant func(childComplexity int) int
+		Content           func(childComplexity int) int
+		DeletedReasonCode func(childComplexity int) int
+		Discussion        func(childComplexity int) int
+		ID                func(childComplexity int) int
+		IsDeleted         func(childComplexity int) int
+		Participant       func(childComplexity int) int
 	}
 
 	PostBookmark struct {
@@ -193,6 +195,8 @@ type ComplexityRoot struct {
 }
 
 type DiscussionResolver interface {
+	Moderator(ctx context.Context, obj *model.Discussion) (*model.Moderator, error)
+
 	Posts(ctx context.Context, obj *model.Discussion) ([]*model.Post, error)
 	Participants(ctx context.Context, obj *model.Discussion) ([]*model.Participant, error)
 }
@@ -216,9 +220,8 @@ type ParticipantsConnectionResolver interface {
 }
 type PostResolver interface {
 	IsDeleted(ctx context.Context, obj *model.Post) (bool, error)
+
 	Content(ctx context.Context, obj *model.Post) (string, error)
-	Discussion(ctx context.Context, obj *model.Post) (*model.Discussion, error)
-	Participant(ctx context.Context, obj *model.Post) (*model.Participant, error)
 }
 type PostBookmarkResolver interface {
 	Discussion(ctx context.Context, obj *model.PostBookmark) (*model.Discussion, error)
@@ -281,6 +284,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Discussion.ID(childComplexity), true
+
+	case "Discussion.moderator":
+		if e.complexity.Discussion.Moderator == nil {
+			break
+		}
+
+		return e.complexity.Discussion.Moderator(childComplexity), true
 
 	case "Discussion.participants":
 		if e.complexity.Discussion.Participants == nil {
@@ -452,6 +462,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Post.Content(childComplexity), true
+
+	case "Post.deletedReasonCode":
+		if e.complexity.Post.DeletedReasonCode == nil {
+			break
+		}
+
+		return e.complexity.Post.DeletedReasonCode(childComplexity), true
 
 	case "Post.discussion":
 		if e.complexity.Post.Discussion == nil {
@@ -842,7 +859,7 @@ var sources = []*ast.Source{
     id: ID!
     # We do not link to the user themselves, only the moderator view of a user.
     # This is for anonymity.
-    ######moderator: ModeratingUser!
+    moderator: Moderator!
     # Anonymity type is currently not implemented beyond publicly viewable content.
     anonymityType: AnonymityType!
     
@@ -904,6 +921,7 @@ var sources = []*ast.Source{
 	&ast.Source{Name: "graph/types/post.graphqls", Input: `type Post {
     id: ID!    
     isDeleted: Boolean!
+    deletedReasonCode: PostDeletedReason
     content: String!
     discussion: Discussion!
     participant: Participant!
@@ -1174,6 +1192,40 @@ func (ec *executionContext) _Discussion_id(ctx context.Context, field graphql.Co
 	res := resTmp.(string)
 	fc.Result = res
 	return ec.marshalNID2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Discussion_moderator(ctx context.Context, field graphql.CollectedField, obj *model.Discussion) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "Discussion",
+		Field:    field,
+		Args:     nil,
+		IsMethod: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Discussion().Moderator(rctx, obj)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.Moderator)
+	fc.Result = res
+	return ec.marshalNModerator2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐModerator(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Discussion_anonymityType(ctx context.Context, field graphql.CollectedField, obj *model.Discussion) (ret graphql.Marshaler) {
@@ -2010,6 +2062,37 @@ func (ec *executionContext) _Post_isDeleted(ctx context.Context, field graphql.C
 	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
 }
 
+func (ec *executionContext) _Post_deletedReasonCode(ctx context.Context, field graphql.CollectedField, obj *model.Post) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "Post",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.DeletedReasonCode, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(model.PostDeletedReason)
+	fc.Result = res
+	return ec.marshalOPostDeletedReason2githubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐPostDeletedReason(ctx, field.Selections, res)
+}
+
 func (ec *executionContext) _Post_content(ctx context.Context, field graphql.CollectedField, obj *model.Post) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -2055,13 +2138,13 @@ func (ec *executionContext) _Post_discussion(ctx context.Context, field graphql.
 		Object:   "Post",
 		Field:    field,
 		Args:     nil,
-		IsMethod: true,
+		IsMethod: false,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Post().Discussion(rctx, obj)
+		return obj.Discussion, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -2089,13 +2172,13 @@ func (ec *executionContext) _Post_participant(ctx context.Context, field graphql
 		Object:   "Post",
 		Field:    field,
 		Args:     nil,
-		IsMethod: true,
+		IsMethod: false,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Post().Participant(rctx, obj)
+		return obj.Participant, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -4569,6 +4652,20 @@ func (ec *executionContext) _Discussion(ctx context.Context, sel ast.SelectionSe
 			if out.Values[i] == graphql.Null {
 				atomic.AddUint32(&invalids, 1)
 			}
+		case "moderator":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Discussion_moderator(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
 		case "anonymityType":
 			out.Values[i] = ec._Discussion_anonymityType(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
@@ -4934,6 +5031,8 @@ func (ec *executionContext) _Post(ctx context.Context, sel ast.SelectionSet, obj
 				}
 				return res
 			})
+		case "deletedReasonCode":
+			out.Values[i] = ec._Post_deletedReasonCode(ctx, field, obj)
 		case "content":
 			field := field
 			out.Concurrently(i, func() (res graphql.Marshaler) {
@@ -4949,33 +5048,15 @@ func (ec *executionContext) _Post(ctx context.Context, sel ast.SelectionSet, obj
 				return res
 			})
 		case "discussion":
-			field := field
-			out.Concurrently(i, func() (res graphql.Marshaler) {
-				defer func() {
-					if r := recover(); r != nil {
-						ec.Error(ctx, ec.Recover(ctx, r))
-					}
-				}()
-				res = ec._Post_discussion(ctx, field, obj)
-				if res == graphql.Null {
-					atomic.AddUint32(&invalids, 1)
-				}
-				return res
-			})
+			out.Values[i] = ec._Post_discussion(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&invalids, 1)
+			}
 		case "participant":
-			field := field
-			out.Concurrently(i, func() (res graphql.Marshaler) {
-				defer func() {
-					if r := recover(); r != nil {
-						ec.Error(ctx, ec.Recover(ctx, r))
-					}
-				}()
-				res = ec._Post_participant(ctx, field, obj)
-				if res == graphql.Null {
-					atomic.AddUint32(&invalids, 1)
-				}
-				return res
-			})
+			out.Values[i] = ec._Post_participant(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&invalids, 1)
+			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -5877,6 +5958,20 @@ func (ec *executionContext) marshalNInt2int(ctx context.Context, sel ast.Selecti
 	return res
 }
 
+func (ec *executionContext) marshalNModerator2githubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐModerator(ctx context.Context, sel ast.SelectionSet, v model.Moderator) graphql.Marshaler {
+	return ec._Moderator(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNModerator2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐModerator(ctx context.Context, sel ast.SelectionSet, v *model.Moderator) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	return ec._Moderator(ctx, sel, v)
+}
+
 func (ec *executionContext) marshalNPageInfo2githubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐPageInfo(ctx context.Context, sel ast.SelectionSet, v model.PageInfo) graphql.Marshaler {
 	return ec._PageInfo(ctx, sel, &v)
 }
@@ -6615,6 +6710,15 @@ func (ec *executionContext) marshalOPostBookmarksEdge2ᚕᚖgithubᚗcomᚋnedro
 	}
 	wg.Wait()
 	return ret
+}
+
+func (ec *executionContext) unmarshalOPostDeletedReason2githubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐPostDeletedReason(ctx context.Context, v interface{}) (model.PostDeletedReason, error) {
+	var res model.PostDeletedReason
+	return res, res.UnmarshalGQL(v)
+}
+
+func (ec *executionContext) marshalOPostDeletedReason2githubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐPostDeletedReason(ctx context.Context, sel ast.SelectionSet, v model.PostDeletedReason) graphql.Marshaler {
+	return v
 }
 
 func (ec *executionContext) marshalOPostsEdge2ᚕᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐPostsEdgeᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.PostsEdge) graphql.Marshaler {

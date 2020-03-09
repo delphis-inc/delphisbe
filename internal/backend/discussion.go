@@ -8,7 +8,7 @@ import (
 	"github.com/nedrocks/delphisbe/internal/util"
 )
 
-func (d *daoManager) CreateNewDiscussion(ctx context.Context, anonymityType model.AnonymityType) (*model.Discussion, error) {
+func (d *delphisBackend) CreateNewDiscussion(ctx context.Context, anonymityType model.AnonymityType) (*model.Discussion, error) {
 	discussionObj := model.Discussion{
 		CreatedAt:     time.Now(),
 		UpdatedAt:     time.Now(),
@@ -25,14 +25,14 @@ func (d *daoManager) CreateNewDiscussion(ctx context.Context, anonymityType mode
 	return &discussionObj, nil
 }
 
-func (d *daoManager) GetDiscussionByID(ctx context.Context, id string) (*model.Discussion, error) {
+func (d *delphisBackend) GetDiscussionByID(ctx context.Context, id string) (*model.Discussion, error) {
 	return d.db.GetDiscussionByID(ctx, id)
 }
 
-func (d *daoManager) GetDiscussionsByIDs(ctx context.Context, ids []string) (map[string]*model.Discussion, error) {
+func (d *delphisBackend) GetDiscussionsByIDs(ctx context.Context, ids []string) (map[string]*model.Discussion, error) {
 	return d.db.GetDiscussionsByIDs(ctx, ids)
 }
 
-func (d *daoManager) ListDiscussions(ctx context.Context) (*model.DiscussionsConnection, error) {
+func (d *delphisBackend) ListDiscussions(ctx context.Context) (*model.DiscussionsConnection, error) {
 	return d.db.ListDiscussions(ctx)
 }

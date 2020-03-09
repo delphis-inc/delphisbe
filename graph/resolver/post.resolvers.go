@@ -17,6 +17,16 @@ func (r *postResolver) Content(ctx context.Context, obj *model.Post) (string, er
 	return obj.PostContent.Content, nil
 }
 
+func (r *Resolver) Post() generated.PostResolver { return &postResolver{r} }
+
+type postResolver struct{ *Resolver }
+
+// !!! WARNING !!!
+// The code below was going to be deleted when updating resolvers. It has been copied here so you have
+// one last chance to move it out of harms way if you want. There are two reasons this happens:
+//  - When renaming or deleting a resolver the old code will be put in here. You can safely delete
+//    it when you're done.
+//  - You have helper methods in this file. Move them out to keep these resolver files clean.
 func (r *postResolver) Discussion(ctx context.Context, obj *model.Post) (*model.Discussion, error) {
 	if obj.Discussion == nil {
 		res, err := r.DAOManager.GetDiscussionByID(ctx, obj.DiscussionID)
@@ -28,7 +38,6 @@ func (r *postResolver) Discussion(ctx context.Context, obj *model.Post) (*model.
 	}
 	return obj.Discussion, nil
 }
-
 func (r *postResolver) Participant(ctx context.Context, obj *model.Post) (*model.Participant, error) {
 	if obj.Participant == nil {
 		participant, err := r.DAOManager.GetParticipantByID(ctx, model.DiscussionParticipantKey{
@@ -44,7 +53,3 @@ func (r *postResolver) Participant(ctx context.Context, obj *model.Post) (*model
 	}
 	return obj.Participant, nil
 }
-
-func (r *Resolver) Post() generated.PostResolver { return &postResolver{r} }
-
-type postResolver struct{ *Resolver }

@@ -19,7 +19,7 @@ func (d DiscussionViewerKey) MarshalDynamoDBAttributeValue(av *dynamodb.Attribut
 }
 
 type DiscussionViewerKeys struct {
-	Keys []DiscussionViewerKey `json:"keys"`
+	Keys []DiscussionViewerKey `json:"keys" dynamodbav:",omitempty"`
 }
 
 func (d DiscussionViewerKeys) MarshalDynamoDBAttributeValue(av *dynamodb.AttributeValue) error {
