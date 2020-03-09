@@ -220,6 +220,8 @@ type PostResolver interface {
 	IsDeleted(ctx context.Context, obj *model.Post) (bool, error)
 
 	Content(ctx context.Context, obj *model.Post) (string, error)
+	Discussion(ctx context.Context, obj *model.Post) (*model.Discussion, error)
+	Participant(ctx context.Context, obj *model.Post) (*model.Participant, error)
 }
 type PostBookmarkResolver interface {
 	Discussion(ctx context.Context, obj *model.PostBookmark) (*model.Discussion, error)
@@ -2113,13 +2115,13 @@ func (ec *executionContext) _Post_discussion(ctx context.Context, field graphql.
 		Object:   "Post",
 		Field:    field,
 		Args:     nil,
-		IsMethod: false,
+		IsMethod: true,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.Discussion, nil
+		return ec.resolvers.Post().Discussion(rctx, obj)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -2147,13 +2149,13 @@ func (ec *executionContext) _Post_participant(ctx context.Context, field graphql
 		Object:   "Post",
 		Field:    field,
 		Args:     nil,
-		IsMethod: false,
+		IsMethod: true,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.Participant, nil
+		return ec.resolvers.Post().Participant(rctx, obj)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -5077,15 +5079,33 @@ func (ec *executionContext) _Post(ctx context.Context, sel ast.SelectionSet, obj
 				return res
 			})
 		case "discussion":
-			out.Values[i] = ec._Post_discussion(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				atomic.AddUint32(&invalids, 1)
-			}
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Post_discussion(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
 		case "participant":
-			out.Values[i] = ec._Post_participant(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				atomic.AddUint32(&invalids, 1)
-			}
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Post_participant(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}

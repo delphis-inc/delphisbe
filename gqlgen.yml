@@ -76,6 +76,12 @@ models:
         resolver: true
       posts:
         resolver: true
+  Post:
+    fields:
+      discussion:
+        resolver: true
+      participant:
+        resolver: true
   PostBookmark:
     fields:
       discussion:
