@@ -29,6 +29,7 @@ func (d *db) GetDiscussionsByIDs(ctx context.Context, ids []string) (map[string]
 			},
 		})
 	}
+	// NOTE: This has to be BatchGet because query will not work unless we specify partition key.
 	res, err := d.dynamo.BatchGetItem(&dynamodb.BatchGetItemInput{
 		RequestItems: map[string]*dynamodb.KeysAndAttributes{
 			d.dbConfig.Discussions.TableName: {

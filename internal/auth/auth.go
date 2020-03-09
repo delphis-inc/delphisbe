@@ -55,10 +55,10 @@ func (d *delphisAuth) NewAccessToken(userID string) (*DelphisAccessToken, error)
 		userID,
 		now.Add(authTokenExpiry).Unix(),
 		jwt.StandardClaims{
-			ExpiresAt: now.Add(authTokenExpiry).Unix(),
-			IssuedAt:  now.Unix(),
-			Issuer:    issuer,
-			Subject:   "at",
+			//ExpiresAt: now.Add(authTokenExpiry).Unix(),
+			IssuedAt: now.Unix(),
+			Issuer:   issuer,
+			Subject:  "at",
 		},
 	}
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)

@@ -48,6 +48,8 @@ func (d *db) GetParticipantsByIDs(ctx context.Context, discussionParticipantKeys
 		return map[model.DiscussionParticipantKey]*model.Participant{}, nil
 	}
 	logrus.Debug("GetParticipantsByIDs::Dynamo BatchGetItem")
+	// NOTE: Unless we are fetching from the same discussion we need to use BatchGetItem instead
+	// of Query here.
 	keys := make([]map[string]*dynamodb.AttributeValue, 0)
 	for _, dp := range discussionParticipantKeys {
 		keys = append(keys, map[string]*dynamodb.AttributeValue{

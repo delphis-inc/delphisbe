@@ -47,7 +47,8 @@ func (d *db) GetViewersByIDs(ctx context.Context, discussionViewerKeys []model.D
 			},
 		})
 	}
-	logrus.Debugf("Keys: %+v", keys)
+	// NOTE: Unless we are fetching from the same discussion we need to use BatchGetItem instead
+	// of Query here.
 	res, err := d.dynamo.BatchGetItem(&dynamodb.BatchGetItemInput{
 		RequestItems: map[string]*dynamodb.KeysAndAttributes{
 			d.dbConfig.Viewers.TableName: {
