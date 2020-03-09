@@ -3,17 +3,17 @@ package model
 import "time"
 
 type Viewer struct {
-	ID                      string                            `json:"id" dynamodbav:"ViewerID"`
-	CreatedAt               time.Time                         `json:"createdAt"`
-	UpdatedAt               time.Time                         `json:"updatedAt"`
-	DeletedAt               *time.Time                        `json:"deletedAt"`
-	NotificationPreferences DiscussionNotificationPreferences `json:"notificationPreferences"`
-	DiscussionID            string                            `json:"discussionID" dynamodbav:"DiscussionID"`
-	Discussion              *Discussion                       `json:"discussion"`
-	LastViewed              *time.Time                        `json:"lastViewed"`
-	LastViewedPostID        *string                           `json:"lastViewedPostID"`
-	LastViewedPost          *Post                             `json:"lastViewedPost" dynamodbav:"-"`
-	Bookmarks               *PostsConnection                  `json:"bookmarks" dynamodbav:"-"`
+	ID                      string                        `json:"id" dynamodbav:"ViewerID"`
+	CreatedAt               time.Time                     `json:"createdAt"`
+	UpdatedAt               time.Time                     `json:"updatedAt"`
+	DeletedAt               *time.Time                    `json:"deletedAt"`
+	NotificationPreferences ViewerNotificationPreferences `json:"notificationPreferences"`
+	DiscussionID            string                        `json:"discussionID" dynamodbav:"DiscussionID"`
+	Discussion              *Discussion                   `json:"discussion" dynamodbav:"-"`
+	LastViewed              *time.Time                    `json:"lastViewed"`
+	LastViewedPostID        *string                       `json:"lastViewedPostID"`
+	LastViewedPost          *Post                         `json:"lastViewedPost" dynamodbav:"-"`
+	Bookmarks               *PostsConnection              `json:"bookmarks" dynamodbav:"-"`
 
 	// NOTE: This is not exposed currently but keeping it here for
 	// testing purposes. We will try out exposing user information one of the tests.
