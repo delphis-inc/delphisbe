@@ -61,6 +61,17 @@ func (r *userResolver) Bookmarks(ctx context.Context, obj *model.User) ([]*model
 	panic(fmt.Errorf("not implemented"))
 }
 
+func (r *userResolver) Profile(ctx context.Context, obj *model.User) (*model.UserProfile, error) {
+	if obj.UserProfile == nil {
+		userProfile, err := r.DAOManager.GetUserProfileByID(ctx, obj.UserProfileID)
+		if err != nil {
+			return nil, err
+		}
+		obj.UserProfile = userProfile
+	}
+	return obj.UserProfile, nil
+}
+
 func (r *Resolver) User() generated.UserResolver { return &userResolver{r} }
 
 type userResolver struct{ *Resolver }

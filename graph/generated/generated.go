@@ -74,7 +74,6 @@ type ComplexityRoot struct {
 	Mutation struct {
 		AddDiscussionParticipant func(childComplexity int, discussionID string, userID string) int
 		CreateDiscussion         func(childComplexity int, anonymityType model.AnonymityType) int
-		CreateUser               func(childComplexity int) int
 	}
 
 	PageInfo struct {
@@ -147,6 +146,7 @@ type ComplexityRoot struct {
 	Query struct {
 		Discussion      func(childComplexity int, id string) int
 		ListDiscussions func(childComplexity int) int
+		Me              func(childComplexity int) int
 		User            func(childComplexity int, id string) int
 	}
 
@@ -159,6 +159,7 @@ type ComplexityRoot struct {
 		Bookmarks    func(childComplexity int) int
 		ID           func(childComplexity int) int
 		Participants func(childComplexity int) int
+		Profile      func(childComplexity int) int
 		Viewers      func(childComplexity int) int
 	}
 
@@ -195,8 +196,6 @@ type ComplexityRoot struct {
 }
 
 type DiscussionResolver interface {
-	Moderator(ctx context.Context, obj *model.Discussion) (*model.Moderator, error)
-
 	Posts(ctx context.Context, obj *model.Discussion) ([]*model.Post, error)
 	Participants(ctx context.Context, obj *model.Discussion) ([]*model.Participant, error)
 }
@@ -207,7 +206,6 @@ type ModeratorResolver interface {
 type MutationResolver interface {
 	CreateDiscussion(ctx context.Context, anonymityType model.AnonymityType) (*model.Discussion, error)
 	AddDiscussionParticipant(ctx context.Context, discussionID string, userID string) (*model.Participant, error)
-	CreateUser(ctx context.Context) (*model.User, error)
 }
 type ParticipantResolver interface {
 	Discussion(ctx context.Context, obj *model.Participant) (*model.Discussion, error)
@@ -237,11 +235,13 @@ type QueryResolver interface {
 	Discussion(ctx context.Context, id string) (*model.Discussion, error)
 	ListDiscussions(ctx context.Context) ([]*model.Discussion, error)
 	User(ctx context.Context, id string) (*model.User, error)
+	Me(ctx context.Context) (*model.User, error)
 }
 type UserResolver interface {
 	Participants(ctx context.Context, obj *model.User) ([]*model.Participant, error)
 	Viewers(ctx context.Context, obj *model.User) ([]*model.Viewer, error)
 	Bookmarks(ctx context.Context, obj *model.User) ([]*model.PostBookmark, error)
+	Profile(ctx context.Context, obj *model.User) (*model.UserProfile, error)
 }
 type UserProfileResolver interface {
 	ModeratedDiscussions(ctx context.Context, obj *model.UserProfile) ([]*model.Discussion, error)
@@ -350,13 +350,6 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Mutation.CreateDiscussion(childComplexity, args["anonymityType"].(model.AnonymityType)), true
-
-	case "Mutation.createUser":
-		if e.complexity.Mutation.CreateUser == nil {
-			break
-		}
-
-		return e.complexity.Mutation.CreateUser(childComplexity), true
 
 	case "PageInfo.endCursor":
 		if e.complexity.PageInfo.EndCursor == nil {
@@ -615,6 +608,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Query.ListDiscussions(childComplexity), true
 
+	case "Query.me":
+		if e.complexity.Query.Me == nil {
+			break
+		}
+
+		return e.complexity.Query.Me(childComplexity), true
+
 	case "Query.user":
 		if e.complexity.Query.User == nil {
 			break
@@ -661,6 +661,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.User.Participants(childComplexity), true
+
+	case "User.profile":
+		if e.complexity.User.Profile == nil {
+			break
+		}
+
+		return e.complexity.User.Profile(childComplexity), true
 
 	case "User.viewers":
 		if e.complexity.User.Viewers == nil {
@@ -964,12 +971,12 @@ type Query {
   listDiscussions: [Discussion!]
   # Need to add verification that the caller is the user.
   user(id:ID!): User!
+  me: User!
 }
 
 type Mutation {
   createDiscussion(anonymityType: AnonymityType!): Discussion!
   addDiscussionParticipant(discussionID: String!, userID: String!): Participant!
-  createUser: User!
 }`, BuiltIn: false},
 	&ast.Source{Name: "graph/types/sudo_user.graphqls", Input: `# A SudoUser describes the unlocked version of a user. Due to implementation
 # the server cannot access the sudo properties for a user without first 
@@ -1003,6 +1010,8 @@ type User {
     viewers: [Viewer!]
 
     bookmarks: [PostBookmark!]
+
+    profile: UserProfile!
 }`, BuiltIn: false},
 	&ast.Source{Name: "graph/types/user_profile.graphqls", Input: `type UserProfile {
     id: ID!
@@ -1205,13 +1214,13 @@ func (ec *executionContext) _Discussion_moderator(ctx context.Context, field gra
 		Object:   "Discussion",
 		Field:    field,
 		Args:     nil,
-		IsMethod: true,
+		IsMethod: false,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Discussion().Moderator(rctx, obj)
+		return obj.Moderator, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -1223,9 +1232,9 @@ func (ec *executionContext) _Discussion_moderator(ctx context.Context, field gra
 		}
 		return graphql.Null
 	}
-	res := resTmp.(*model.Moderator)
+	res := resTmp.(model.Moderator)
 	fc.Result = res
-	return ec.marshalNModerator2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐModerator(ctx, field.Selections, res)
+	return ec.marshalNModerator2githubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐModerator(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Discussion_anonymityType(ctx context.Context, field graphql.CollectedField, obj *model.Discussion) (ret graphql.Marshaler) {
@@ -1503,40 +1512,6 @@ func (ec *executionContext) _Mutation_addDiscussionParticipant(ctx context.Conte
 	res := resTmp.(*model.Participant)
 	fc.Result = res
 	return ec.marshalNParticipant2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐParticipant(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) _Mutation_createUser(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:   "Mutation",
-		Field:    field,
-		Args:     nil,
-		IsMethod: true,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().CreateUser(rctx)
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(*model.User)
-	fc.Result = res
-	return ec.marshalNUser2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐUser(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _PageInfo_startCursor(ctx context.Context, field graphql.CollectedField, obj *model.PageInfo) (ret graphql.Marshaler) {
@@ -2088,9 +2063,9 @@ func (ec *executionContext) _Post_deletedReasonCode(ctx context.Context, field g
 	if resTmp == nil {
 		return graphql.Null
 	}
-	res := resTmp.(model.PostDeletedReason)
+	res := resTmp.(*model.PostDeletedReason)
 	fc.Result = res
-	return ec.marshalOPostDeletedReason2githubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐPostDeletedReason(ctx, field.Selections, res)
+	return ec.marshalOPostDeletedReason2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐPostDeletedReason(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Post_content(ctx context.Context, field graphql.CollectedField, obj *model.Post) (ret graphql.Marshaler) {
@@ -2763,6 +2738,40 @@ func (ec *executionContext) _Query_user(ctx context.Context, field graphql.Colle
 	return ec.marshalNUser2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐUser(ctx, field.Selections, res)
 }
 
+func (ec *executionContext) _Query_me(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "Query",
+		Field:    field,
+		Args:     nil,
+		IsMethod: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().Me(rctx)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.User)
+	fc.Result = res
+	return ec.marshalNUser2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐUser(ctx, field.Selections, res)
+}
+
 func (ec *executionContext) _Query___type(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -3025,6 +3034,40 @@ func (ec *executionContext) _User_bookmarks(ctx context.Context, field graphql.C
 	res := resTmp.([]*model.PostBookmark)
 	fc.Result = res
 	return ec.marshalOPostBookmark2ᚕᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐPostBookmarkᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _User_profile(ctx context.Context, field graphql.CollectedField, obj *model.User) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "User",
+		Field:    field,
+		Args:     nil,
+		IsMethod: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.User().Profile(rctx, obj)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.UserProfile)
+	fc.Result = res
+	return ec.marshalNUserProfile2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐUserProfile(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _UserProfile_id(ctx context.Context, field graphql.CollectedField, obj *model.UserProfile) (ret graphql.Marshaler) {
@@ -4653,19 +4696,10 @@ func (ec *executionContext) _Discussion(ctx context.Context, sel ast.SelectionSe
 				atomic.AddUint32(&invalids, 1)
 			}
 		case "moderator":
-			field := field
-			out.Concurrently(i, func() (res graphql.Marshaler) {
-				defer func() {
-					if r := recover(); r != nil {
-						ec.Error(ctx, ec.Recover(ctx, r))
-					}
-				}()
-				res = ec._Discussion_moderator(ctx, field, obj)
-				if res == graphql.Null {
-					atomic.AddUint32(&invalids, 1)
-				}
-				return res
-			})
+			out.Values[i] = ec._Discussion_moderator(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&invalids, 1)
+			}
 		case "anonymityType":
 			out.Values[i] = ec._Discussion_anonymityType(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
@@ -4778,11 +4812,6 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			}
 		case "addDiscussionParticipant":
 			out.Values[i] = ec._Mutation_addDiscussionParticipant(ctx, field)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
-		case "createUser":
-			out.Values[i] = ec._Mutation_createUser(ctx, field)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
@@ -5317,6 +5346,20 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 				}
 				return res
 			})
+		case "me":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_me(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
 		case "__type":
 			out.Values[i] = ec._Query___type(ctx, field)
 		case "__schema":
@@ -5411,6 +5454,20 @@ func (ec *executionContext) _User(ctx context.Context, sel ast.SelectionSet, obj
 					}
 				}()
 				res = ec._User_bookmarks(ctx, field, obj)
+				return res
+			})
+		case "profile":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._User_profile(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
 				return res
 			})
 		default:
@@ -5960,16 +6017,6 @@ func (ec *executionContext) marshalNInt2int(ctx context.Context, sel ast.Selecti
 
 func (ec *executionContext) marshalNModerator2githubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐModerator(ctx context.Context, sel ast.SelectionSet, v model.Moderator) graphql.Marshaler {
 	return ec._Moderator(ctx, sel, &v)
-}
-
-func (ec *executionContext) marshalNModerator2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐModerator(ctx context.Context, sel ast.SelectionSet, v *model.Moderator) graphql.Marshaler {
-	if v == nil {
-		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	return ec._Moderator(ctx, sel, v)
 }
 
 func (ec *executionContext) marshalNPageInfo2githubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐPageInfo(ctx context.Context, sel ast.SelectionSet, v model.PageInfo) graphql.Marshaler {
@@ -6718,6 +6765,21 @@ func (ec *executionContext) unmarshalOPostDeletedReason2githubᚗcomᚋnedrocks�
 }
 
 func (ec *executionContext) marshalOPostDeletedReason2githubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐPostDeletedReason(ctx context.Context, sel ast.SelectionSet, v model.PostDeletedReason) graphql.Marshaler {
+	return v
+}
+
+func (ec *executionContext) unmarshalOPostDeletedReason2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐPostDeletedReason(ctx context.Context, v interface{}) (*model.PostDeletedReason, error) {
+	if v == nil {
+		return nil, nil
+	}
+	res, err := ec.unmarshalOPostDeletedReason2githubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐPostDeletedReason(ctx, v)
+	return &res, err
+}
+
+func (ec *executionContext) marshalOPostDeletedReason2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐPostDeletedReason(ctx context.Context, sel ast.SelectionSet, v *model.PostDeletedReason) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
 	return v
 }
 

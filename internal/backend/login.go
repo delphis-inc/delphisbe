@@ -61,6 +61,13 @@ func (b *delphisBackend) GetOrCreateUser(ctx context.Context, input LoginWithTwi
 		if err != nil {
 			return nil, err
 		}
+	} else {
+		userObj, err = b.GetUserByID(ctx, userProfileObj.UserID)
+		if err != nil {
+			logrus.WithError(err).Errorf("Failed to find user")
+			return nil, err
+		}
 	}
+
 	return userObj, nil
 }

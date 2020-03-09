@@ -29,6 +29,7 @@ type Datastore interface {
 	PutPost(ctx context.Context, post model.Post) (*model.Post, error)
 	AddViewerToUser(ctx context.Context, userID string, discussionViewerKey model.DiscussionViewerKey) (*model.User, error)
 	GetUserProfileByID(ctx context.Context, id string) (*model.UserProfile, error)
+	AddModeratedDiscussionToUserProfile(ctx context.Context, userProfileID string, discussionID string) (*model.UserProfile, error)
 	CreateOrUpdateUserProfile(ctx context.Context, userProfile model.UserProfile) (*model.UserProfile, bool, error)
 	UpdateUserProfileTwitterInfo(ctx context.Context, userProfile model.UserProfile, twitterInfo model.SocialInfo) (*model.UserProfile, error)
 	UpdateUserProfileUserID(ctx context.Context, userProfileID string, userID string) (*model.UserProfile, error)

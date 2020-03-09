@@ -11,7 +11,7 @@ import (
 )
 
 func (r *userProfileResolver) ModeratedDiscussions(ctx context.Context, obj *model.UserProfile) ([]*model.Discussion, error) {
-	moderatedDiscussionMap, err := r.DAOManager.GetDiscussionsByIDs(ctx, obj.ModeratedDiscussionsIDs)
+	moderatedDiscussionMap, err := r.DAOManager.GetDiscussionsByIDs(ctx, obj.ModeratedDiscussionIDs)
 
 	if err != nil {
 		return nil, err

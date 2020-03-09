@@ -9,10 +9,10 @@ type Query {
   listDiscussions: [Discussion!]
   # Need to add verification that the caller is the user.
   user(id:ID!): User!
+  me: User!
 }
 
 type Mutation {
   createDiscussion(anonymityType: AnonymityType!): Discussion!
   addDiscussionParticipant(discussionID: String!, userID: String!): Participant!
-  createUser: User!
 }

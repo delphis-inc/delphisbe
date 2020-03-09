@@ -4,13 +4,33 @@ package resolver
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/nedrocks/delphisbe/graph/generated"
 	"github.com/nedrocks/delphisbe/graph/model"
+	"github.com/nedrocks/delphisbe/internal/auth"
 )
 
 func (r *mutationResolver) CreateDiscussion(ctx context.Context, anonymityType model.AnonymityType) (*model.Discussion, error) {
-	discussionObj, err := r.DAOManager.CreateNewDiscussion(ctx, anonymityType)
+	creatingUser := auth.GetAuthedUser(ctx)
+	if creatingUser == nil {
+		// Need to add auth logic here
+		return nil, fmt.Errorf("Need auth")
+	}
+	if creatingUser.User == nil {
+		var err error
+		creatingUser.User, err = r.DAOManager.GetUserByID(ctx, creatingUser.UserID)
+		if err != nil {
+			return nil, fmt.Errorf("Error fetching user with ID (%s)", creatingUser.UserID)
+		}
+	}
+	discussionObj, err := r.DAOManager.CreateNewDiscussion(ctx, creatingUser.User, anonymityType)
+
+	if err != nil {
+		return nil, err
+	}
+
+	_, err = r.DAOManager.AddModeratedDiscussionToUserProfile(ctx, creatingUser.User.UserProfileID, discussionObj.ID)
 
 	if err != nil {
 		return nil, err
@@ -28,16 +48,6 @@ func (r *mutationResolver) AddDiscussionParticipant(ctx context.Context, discuss
 	}
 
 	return participantObj, nil
-}
-
-func (r *mutationResolver) CreateUser(ctx context.Context) (*model.User, error) {
-	userObj, err := r.DAOManager.CreateUser(ctx)
-
-	if err != nil {
-		return nil, err
-	}
-
-	return userObj, nil
 }
 
 func (r *queryResolver) Discussion(ctx context.Context, id string) (*model.Discussion, error) {
@@ -68,6 +78,23 @@ func (r *queryResolver) User(ctx context.Context, id string) (*model.User, error
 	}
 
 	return userObj, err
+}
+
+func (r *queryResolver) Me(ctx context.Context) (*model.User, error) {
+	creatingUser := auth.GetAuthedUser(ctx)
+	if creatingUser == nil {
+		// Need to add auth logic here
+		return nil, fmt.Errorf("Need auth")
+	}
+	if creatingUser.User == nil {
+		var err error
+		creatingUser.User, err = r.DAOManager.GetUserByID(ctx, creatingUser.UserID)
+		if err != nil {
+			return nil, fmt.Errorf("Error fetching user with ID (%s)", creatingUser.UserID)
+		}
+	}
+
+	return creatingUser.User, nil
 }
 
 func (r *Resolver) Mutation() generated.MutationResolver { return &mutationResolver{r} }

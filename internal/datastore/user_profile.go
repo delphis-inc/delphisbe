@@ -148,3 +148,41 @@ func (d *db) CreateOrUpdateUserProfile(ctx context.Context, userProfile model.Us
 
 	return &userProfile, true, nil
 }
+
+func (d *db) AddModeratedDiscussionToUserProfile(ctx context.Context, userProfileID string, discussionID string) (*model.UserProfile, error) {
+	logrus.Debug("AddModeratedDiscussionToUserProfile: Dynamo UpdateItem")
+	res, err := d.dynamo.UpdateItem(&dynamodb.UpdateItemInput{
+		ExpressionAttributeNames: map[string]*string{
+			"#MD": aws.String("ModeratedDiscussionIDs"),
+		},
+		ExpressionAttributeValues: map[string]*dynamodb.AttributeValue{
+			":dids": {
+				SS: []*string{aws.String(discussionID)},
+			},
+		},
+		Key: map[string]*dynamodb.AttributeValue{
+			"ID": {
+				S: aws.String(userProfileID),
+			},
+		},
+		ReturnValues:     aws.String("ALL_NEW"),
+		TableName:        aws.String(d.dbConfig.UserProfiles.TableName),
+		UpdateExpression: aws.String("SET #MD = :dids"),
+	})
+
+	if err != nil {
+		logrus.WithError(err).Errorf("Failed updating user profile object")
+		return nil, err
+	}
+
+	userProfileObj := model.UserProfile{}
+
+	err = dynamodbattribute.UnmarshalMap(res.Attributes, &userProfileObj)
+
+	if err != nil {
+		logrus.WithError(err).Errorf("Failed unmarshaling returned value: %+v", res.Attributes)
+		return nil, err
+	}
+
+	return &userProfileObj, nil
+}

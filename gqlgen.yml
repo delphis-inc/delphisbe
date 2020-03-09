@@ -88,6 +88,8 @@ models:
         resolver: true
       viewers:
         resolver: true
+      profile:
+        resolver: true
   UserProfile:
     fields:
       moderatedDiscussions:

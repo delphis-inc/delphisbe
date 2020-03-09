@@ -10,6 +10,11 @@ type Config struct {
 	Environment string        `json:"env" mapstructure:"env"`
 	DBConfig    DBConfig      `json:"db" mapstructure:"db"`
 	Twitter     TwitterConfig `json:"twitter"`
+	Auth        AuthConfig    `json:"authConfig"`
+}
+
+type AuthConfig struct {
+	HMACSecret string `json:"hmacSecret"`
 }
 
 type TwitterConfig struct {
@@ -64,9 +69,9 @@ func ReadConfig() (*Config, error) {
 	}
 
 	viper.SetEnvPrefix("delphis")
-	_ = viper.BindEnv("twitter_consumer_key", "twitter_consumer_secret")
+	_ = viper.BindEnv("twitter_consumer_key", "twitter_consumer_secret", "auth_hmac_secret")
 	viper.AutomaticEnv()
-	config.Twitter.ConsumerKey, config.Twitter.ConsumerSecret = viper.GetString("twitter_consumer_key"), viper.GetString("twitter_consumer_secret")
+	config.Twitter.ConsumerKey, config.Twitter.ConsumerSecret, config.Auth.HMACSecret = viper.GetString("twitter_consumer_key"), viper.GetString("twitter_consumer_secret"), viper.GetString("auth_hmac_secret")
 
 	return &config, nil
 }

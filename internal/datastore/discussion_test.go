@@ -12,6 +12,10 @@ import (
 	"github.com/nedrocks/delphisbe/internal/config"
 )
 
+func Test_GetDiscussionsByIDs(t *testing.T) {
+
+}
+
 func Test_MarshalDiscussion(t *testing.T) {
 	type args struct {
 		discussion model.Discussion

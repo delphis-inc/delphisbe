@@ -15,4 +15,6 @@ type User {
     viewers: [Viewer!]
 
     bookmarks: [PostBookmark!]
+
+    profile: UserProfile!
 }
