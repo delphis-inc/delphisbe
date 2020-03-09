@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbiface"
+
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
@@ -39,7 +41,7 @@ type Datastore interface {
 }
 
 type db struct {
-	dynamo   *dynamodb.DynamoDB
+	dynamo   dynamodbiface.DynamoDBAPI
 	dbConfig config.TablesConfig
 	encoder  *dynamodbattribute.Encoder
 }
