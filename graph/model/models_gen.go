@@ -32,18 +32,20 @@ func (ViewerNotificationPreferences) IsDiscussionNotificationPreferences() {}
 type AnonymityType string
 
 const (
-	AnonymityTypeWeak   AnonymityType = "WEAK"
-	AnonymityTypeStrong AnonymityType = "STRONG"
+	AnonymityTypeUnknown AnonymityType = "UNKNOWN"
+	AnonymityTypeWeak    AnonymityType = "WEAK"
+	AnonymityTypeStrong  AnonymityType = "STRONG"
 )
 
 var AllAnonymityType = []AnonymityType{
+	AnonymityTypeUnknown,
 	AnonymityTypeWeak,
 	AnonymityTypeStrong,
 }
 
 func (e AnonymityType) IsValid() bool {
 	switch e {
-	case AnonymityTypeWeak, AnonymityTypeStrong:
+	case AnonymityTypeUnknown, AnonymityTypeWeak, AnonymityTypeStrong:
 		return true
 	}
 	return false

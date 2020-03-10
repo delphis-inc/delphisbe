@@ -855,6 +855,7 @@ func (ec *executionContext) introspectType(name string) (*introspection.Type, er
 
 var sources = []*ast.Source{
 	&ast.Source{Name: "graph/types/anonymity_type.graphqls", Input: `enum AnonymityType {
+    UNKNOWN
     WEAK
     STRONG
 }`, BuiltIn: false},

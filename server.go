@@ -47,8 +47,8 @@ func main() {
 			DAOManager: delphisBackend,
 		}}))
 
-	http.Handle("/", playground.Handler("GraphQL playground", "/query"))
-	http.Handle("/query", authMiddleware(delphisBackend, srv))
+	http.Handle("/graphiql", allowCors(playground.Handler("GraphQL playground", "/query")))
+	http.Handle("/query", allowCors(authMiddleware(delphisBackend, srv)))
 	config := &oauth1.Config{
 		ConsumerKey:    conf.Twitter.ConsumerKey,
 		ConsumerSecret: conf.Twitter.ConsumerSecret,
@@ -98,6 +98,15 @@ func authMiddleware(delphisBackend backend.DelphisBackend, next http.Handler) ht
 		}
 		next.ServeHTTP(w, req)
 	})
+}
+
+func allowCors(next http.Handler) http.Handler {
+	fn := func(w http.ResponseWriter, req *http.Request) {
+		w.Header().Add("Access-Control-Allow-Origin", "http://local.delphishq.com:3000")
+		w.Header().Add("Access-Control-Allow-Headers", "*")
+		next.ServeHTTP(w, req)
+	}
+	return http.HandlerFunc(fn)
 }
 
 func successfulLogin(delphisBackend backend.DelphisBackend) http.Handler {
