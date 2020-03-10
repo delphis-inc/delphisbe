@@ -13,6 +13,7 @@ require (
 	github.com/satori/go.uuid v1.2.0
 	github.com/sirupsen/logrus v1.4.2
 	github.com/spf13/viper v1.6.2
+	github.com/vektah/gqlparser v1.3.1
 	github.com/vektah/gqlparser/v2 v2.0.1
 	github.com/vektra/mockery v0.0.0-20181123154057-e78b021dcbb5 // indirect
 )

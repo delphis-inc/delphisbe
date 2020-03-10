@@ -1,10 +1,14 @@
 package main
 
 import (
+	"bytes"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
 	"time"
+
+	"github.com/vektah/gqlparser/v2/formatter"
 
 	"github.com/nedrocks/delphisbe/internal/auth"
 
@@ -42,10 +46,19 @@ func main() {
 
 	delphisBackend := backend.NewDelphisBackend(*conf)
 
-	srv := handler.NewDefaultServer(generated.NewExecutableSchema(generated.Config{
+	generatedSchema := generated.NewExecutableSchema(generated.Config{
 		Resolvers: &resolver.Resolver{
 			DAOManager: delphisBackend,
-		}}))
+		},
+	})
+
+	//wrappedSchema := introspection.WrapSchema(generatedSchema.Schema())
+	b := bytes.Buffer{}
+	f := formatter.NewFormatter(&b)
+	f.FormatSchema(generatedSchema.Schema())
+	fmt.Printf("%s", b.String())
+
+	srv := handler.NewDefaultServer(generatedSchema)
 
 	http.Handle("/graphiql", allowCors(playground.Handler("GraphQL playground", "/query")))
 	http.Handle("/query", allowCors(authMiddleware(delphisBackend, srv)))

@@ -10,17 +10,11 @@ const client = new ApolloClient({
   uri: 'http://local.delphishq.com:8000/query',
 });
 
-client
-  .query({
-    query: gql`
-      {
-        me {
-          id
-        }
-      }
-    `
-  })
-  .then(result => console.log(result));
+export const GET_ME = gql`
+  query me() {
+    me()
+  }
+`;
 
 ReactDOM.render(<App />, document.getElementById('root'));
 
