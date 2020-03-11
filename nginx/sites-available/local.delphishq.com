@@ -17,6 +17,10 @@ http {
             proxy_pass http://local.delphishq.com:8080;
         }
 
+        location /twitter {
+            proxy_pass http://local.delphishq.com:8080;
+        }
+
         location /sockjs-node {
             proxy_set_header X-Real-IP  $remote_addr;
             proxy_set_header X-Forwarded-For $remote_addr;

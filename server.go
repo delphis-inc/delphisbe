@@ -2,7 +2,6 @@ package main
 
 import (
 	"bytes"
-	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -56,7 +55,6 @@ func main() {
 	b := bytes.Buffer{}
 	f := formatter.NewFormatter(&b)
 	f.FormatSchema(generatedSchema.Schema())
-	fmt.Printf("%s", b.String())
 
 	srv := handler.NewDefaultServer(generatedSchema)
 

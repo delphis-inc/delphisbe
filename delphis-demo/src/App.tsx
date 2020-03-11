@@ -5,6 +5,7 @@ import {
   Route,
   Link
 } from "react-router-dom";
+import DiscussionList from './components/DiscussionList'
 
 // This site has 3 pages, all of which are rendered
 // dynamically in the browser (not server rendered).
@@ -15,7 +16,7 @@ import {
 // making sure things like the back button and bookmarks
 // work properly.
 
-export default function BasicExample() {
+function BasicExample() {
   return (
     <Router>
       <div>
@@ -33,6 +34,8 @@ export default function BasicExample() {
 
         <hr />
 
+
+        {DiscussionList({})}
         {/*
           A <Switch> looks through all its children <Route>
           elements and renders the first one whose path
@@ -82,3 +85,5 @@ function Dashboard() {
     </div>
   );
 }
+
+export default BasicExample

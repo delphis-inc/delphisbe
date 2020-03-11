@@ -63,6 +63,7 @@ type ComplexityRoot struct {
 		Moderator     func(childComplexity int) int
 		Participants  func(childComplexity int) int
 		Posts         func(childComplexity int) int
+		Title         func(childComplexity int) int
 	}
 
 	Moderator struct {
@@ -167,6 +168,7 @@ type ComplexityRoot struct {
 		DisplayName          func(childComplexity int) int
 		ID                   func(childComplexity int) int
 		ModeratedDiscussions func(childComplexity int) int
+		ProfileImageURL      func(childComplexity int) int
 		TwitterURL           func(childComplexity int) int
 	}
 
@@ -247,6 +249,8 @@ type UserResolver interface {
 }
 type UserProfileResolver interface {
 	ModeratedDiscussions(ctx context.Context, obj *model.UserProfile) ([]*model.Discussion, error)
+
+	ProfileImageURL(ctx context.Context, obj *model.UserProfile) (string, error)
 }
 type ViewerResolver interface {
 	NotificationPreferences(ctx context.Context, obj *model.Viewer) (model.DiscussionNotificationPreferences, error)
@@ -307,6 +311,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Discussion.Posts(childComplexity), true
+
+	case "Discussion.title":
+		if e.complexity.Discussion.Title == nil {
+			break
+		}
+
+		return e.complexity.Discussion.Title(childComplexity), true
 
 	case "Moderator.discussion":
 		if e.complexity.Moderator.Discussion == nil {
@@ -699,6 +710,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.UserProfile.ModeratedDiscussions(childComplexity), true
 
+	case "UserProfile.profileImageURL":
+		if e.complexity.UserProfile.ProfileImageURL == nil {
+			break
+		}
+
+		return e.complexity.UserProfile.ProfileImageURL(childComplexity), true
+
 	case "UserProfile.twitterURL":
 		if e.complexity.UserProfile.TwitterURL == nil {
 			break
@@ -878,6 +896,8 @@ var sources = []*ast.Source{
 
     # Participants
     participants: [Participant!]
+
+    title: String!
 }
 
 # type DiscussionsConnection {
@@ -1024,6 +1044,8 @@ type User {
     moderatedDiscussions: [Discussion!]
 
     twitterURL: URL!
+
+    profileImageURL: String!
 }`, BuiltIn: false},
 	&ast.Source{Name: "graph/types/viewer.graphqls", Input: `type Viewer {
     # Fetchable as it does not reference a user.
@@ -1334,6 +1356,40 @@ func (ec *executionContext) _Discussion_participants(ctx context.Context, field 
 	res := resTmp.([]*model.Participant)
 	fc.Result = res
 	return ec.marshalOParticipant2ᚕᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐParticipantᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Discussion_title(ctx context.Context, field graphql.CollectedField, obj *model.Discussion) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "Discussion",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Title, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Moderator_id(ctx context.Context, field graphql.CollectedField, obj *model.Moderator) (ret graphql.Marshaler) {
@@ -3206,6 +3262,40 @@ func (ec *executionContext) _UserProfile_twitterURL(ctx context.Context, field g
 	return ec.marshalNURL2githubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐURL(ctx, field.Selections, res)
 }
 
+func (ec *executionContext) _UserProfile_profileImageURL(ctx context.Context, field graphql.CollectedField, obj *model.UserProfile) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "UserProfile",
+		Field:    field,
+		Args:     nil,
+		IsMethod: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.UserProfile().ProfileImageURL(rctx, obj)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
 func (ec *executionContext) _Viewer_id(ctx context.Context, field graphql.CollectedField, obj *model.Viewer) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -4730,6 +4820,11 @@ func (ec *executionContext) _Discussion(ctx context.Context, sel ast.SelectionSe
 				res = ec._Discussion_participants(ctx, field, obj)
 				return res
 			})
+		case "title":
+			out.Values[i] = ec._Discussion_title(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&invalids, 1)
+			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -5539,6 +5634,20 @@ func (ec *executionContext) _UserProfile(ctx context.Context, sel ast.SelectionS
 			if out.Values[i] == graphql.Null {
 				atomic.AddUint32(&invalids, 1)
 			}
+		case "profileImageURL":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._UserProfile_profileImageURL(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}

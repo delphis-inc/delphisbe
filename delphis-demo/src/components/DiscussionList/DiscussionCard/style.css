@@ -1,0 +1,8 @@
+.discussion-card {
+    border: black 1px solid;
+    border-radius: 30px;
+}
+
+.discussion-card_profile-image {
+    border-radius: 50%;
+}

@@ -12,6 +12,8 @@ type Discussion {
 
     # Participants
     participants: [Participant!]
+
+    title: String!
 }
 
 # type DiscussionsConnection {

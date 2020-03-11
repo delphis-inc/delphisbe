@@ -2,6 +2,7 @@ package datastore
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
@@ -122,6 +123,7 @@ func (d *db) CreateOrUpdateUserProfile(ctx context.Context, userProfile model.Us
 		logrus.WithError(err).Errorf("PutUserProfileIfNotExists: Failed to marshal UserProfile object: %+v", userProfile)
 		return nil, false, err
 	}
+	fmt.Printf("%+v\n", av)
 	_, err = d.dynamo.PutItem(&dynamodb.PutItemInput{
 		TableName:           aws.String(d.dbConfig.UserProfiles.TableName),
 		Item:                av,

@@ -31,6 +31,10 @@ func (r *userProfileResolver) ModeratedDiscussions(ctx context.Context, obj *mod
 	return moderatedDiscussions, nil
 }
 
+func (r *userProfileResolver) ProfileImageURL(ctx context.Context, obj *model.UserProfile) (string, error) {
+	return obj.TwitterInfo.ProfileImageURL, nil
+}
+
 func (r *Resolver) UserProfile() generated.UserProfileResolver { return &userProfileResolver{r} }
 
 type userProfileResolver struct{ *Resolver }
