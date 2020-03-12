@@ -1,7 +1,7 @@
-import React, { useState } from "react";
+import React from "react";
 import { useQuery } from 'react-apollo'
 import { discussionListQuery } from './query';
-import DiscussionCard, { Props as DiscussionCardProps } from './DiscussionCard'
+import DiscussionCard from './DiscussionCard'
 import { ListDiscussions_listDiscussions } from '../../types/api.d'
 
 export interface Props {}
@@ -17,16 +17,14 @@ function DiscussionList(props: Props) {
         return `Error! ${error.message}`;
     }
 
-    console.log(data);
-    //const discussions: ListDiscussions_listDiscussions[] = data.listDiscussions;
     const discussionCardComponents: JSX.Element[] = [];
 
     data.listDiscussions.forEach((d: DiscussionType, idx: number) => {
-        discussionCardComponents.push(DiscussionCard({ discussion: d, key: `${idx}` }))
+        discussionCardComponents.push(DiscussionCard({ discussion: d, key: `${idx}`, isFeatured: false}))
     })
 
     return (
-        <div className="container">
+        <div>
             {discussionCardComponents}
         </div>
     )

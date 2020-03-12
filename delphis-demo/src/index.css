@@ -18,10 +18,6 @@ code {
 
 @font-face {
   font-family: Neue Hans Kendrick;
-  src: url("/fonts/NeueHansKendrick-Regular.otf");
-}
-
-@font-face {
-  font-family: Neue Hans Kendrick;
-  src: url("/fonts/NeueHansKendrick-Regular.ttf");
+  src: url("/fonts/WEB/NeueHansKendrick-Regular.otf"),
+       url("/fonts/WEB/NeueHansKendrick-Regular.ttf");
 }

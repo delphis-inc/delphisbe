@@ -3,6 +3,8 @@
     border-radius: 30px;
 }
 
-.discussion-card_profile-image {
+.discussion-card_moderator-footer_moderator_profile-image {
     border-radius: 50%;
+    width: 30px;
+    height: 30px;
 }

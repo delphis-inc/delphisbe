@@ -35,6 +35,9 @@ export interface GetDiscussionByID_discussion_participants {
 export interface GetDiscussionByID_discussion_posts {
   __typename: "Post";
   id: string;
+  isDeleted: boolean;
+  deletedReasonCode: PostDeletedReason | null;
+  content: string;
 }
 
 export interface GetDiscussionByID_discussion {
@@ -92,6 +95,9 @@ export interface ListDiscussions_listDiscussions_participants {
 export interface ListDiscussions_listDiscussions_posts {
   __typename: "Post";
   id: string;
+  isDeleted: boolean;
+  deletedReasonCode: PostDeletedReason | null;
+  content: string;
 }
 
 export interface ListDiscussions_listDiscussions {
@@ -145,6 +151,9 @@ export interface discussionInfo_participants {
 export interface discussionInfo_posts {
   __typename: "Post";
   id: string;
+  isDeleted: boolean;
+  deletedReasonCode: PostDeletedReason | null;
+  content: string;
 }
 
 export interface discussionInfo {
@@ -192,6 +201,12 @@ export enum AnonymityType {
   STRONG = "STRONG",
   UNKNOWN = "UNKNOWN",
   WEAK = "WEAK",
+}
+
+export enum PostDeletedReason {
+  MODERATOR_REMOVED = "MODERATOR_REMOVED",
+  PARTICIPANT_REMOVED = "PARTICIPANT_REMOVED",
+  UNKNOWN = "UNKNOWN",
 }
 
 //==============================================================

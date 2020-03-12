@@ -22,6 +22,9 @@ const Fragments = {
         }
         posts {
             id
+            isDeleted
+            deletedReasonCode
+            content
         }
         title
     }`
