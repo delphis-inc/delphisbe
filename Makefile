@@ -11,5 +11,11 @@ schema: $(info $(M) Generating GQL schema and resolvers)
 
 .PHONY: local-nginx
 local-nginx: $(info $(M) Starting nginx locally)
-	killall nginx
+	killall nginx || true > /dev/null
 	nginx -c `pwd`/nginx/sites-available/local.delphishq.com
+
+run-local:
+	DELPHIS_ENV=local go run server.go
+
+run-local-use-aws:
+	AWS_PROFILE=delphis DELPHIS_ENV=local_use_aws go run server.go

@@ -11,6 +11,24 @@ type Config struct {
 	DBConfig    DBConfig      `json:"db" mapstructure:"db"`
 	Twitter     TwitterConfig `json:"twitter"`
 	Auth        AuthConfig    `json:"authConfig"`
+	AWS         AWSConfig     `json:"awsConfig" mapstructure:"aws"`
+}
+
+func (c *Config) ReadEnvAndUpdate() {
+	viper.AutomaticEnv()
+	c.Twitter.ConsumerKey, c.Twitter.ConsumerSecret, c.Auth.HMACSecret = viper.GetString("twitter_consumer_key"), viper.GetString("twitter_consumer_secret"), viper.GetString("auth_hmac_secret")
+}
+
+type AWSConfig struct {
+	Region         string         `json:"region" mapstructure:"region"`
+	UseCredentials bool           `json:"useCredentials" mapstructure:"useCredentials"`
+	Credentials    AWSCredentials `json:"credentials" mapstructure:"credentials"`
+}
+
+type AWSCredentials struct {
+	ID     string `json:"id" mapstructure:"id"`
+	Secret string `json:"secret" mapstructure:"secret"`
+	Token  string `json:"token" mapstructure:"token"`
 }
 
 type AuthConfig struct {
@@ -70,8 +88,7 @@ func ReadConfig() (*Config, error) {
 
 	viper.SetEnvPrefix("delphis")
 	_ = viper.BindEnv("twitter_consumer_key", "twitter_consumer_secret", "auth_hmac_secret")
-	viper.AutomaticEnv()
-	config.Twitter.ConsumerKey, config.Twitter.ConsumerSecret, config.Auth.HMACSecret = viper.GetString("twitter_consumer_key"), viper.GetString("twitter_consumer_secret"), viper.GetString("auth_hmac_secret")
+	config.ReadEnvAndUpdate()
 
 	return &config, nil
 }

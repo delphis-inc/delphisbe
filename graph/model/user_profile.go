@@ -16,16 +16,16 @@ type UserProfile struct {
 	ModeratedDiscussions   []Discussion `json:"moderatedDiscussions" dynamodbav:"-"`
 
 	// Twitter related fields
-	TwitterInfo SocialInfo `json:"twitterToken"`
+	TwitterInfo SocialInfo `json:"twitterInfo"`
 }
 
 type SocialInfo struct {
 	AccessToken       string `json:"accessToken"`
 	AccessTokenSecret string `json:"accessTokenSecret"`
-	UserID            string `json:"userID" dynamodbav:"SocialUserID"`
-	ProfileImageURL   string `json:"profileImageURL" dynamodbav:"ProfileImageURL"`
-	ScreenName        string `json:"screenName" dynamodbav:"ScreenName"`
-	IsVerified        bool   `json:"isVerified" dynamodbav:"IsVerified"`
+	UserID            string `json:"userID"`
+	ProfileImageURL   string `json:"profileImageURL"`
+	ScreenName        string `json:"screenName"`
+	IsVerified        bool   `json:"isVerified"`
 }
 
 func (u *UserProfile) TwitterURL() URL {

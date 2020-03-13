@@ -1,0 +1,33 @@
+{
+    "aws": {
+        "region": "us-west-2",
+        "useCredentials": false
+    },
+    "env": "local_use_aws",
+    "db": {
+        "region": "us-west-2",
+        "tables_config": {
+            "discussions": {
+                "table_name": "staging.Discussions.v1"
+            },
+            "participants": {
+                "table_name": "staging.Participants.v1"
+            },
+            "post_bookmarks": {
+                "table_name": "staging.PostBookmarks.v1"
+            },
+            "posts": {
+                "table_name": "staging.Posts.v1"
+            },
+            "users": {
+                "table_name": "staging.Users.v1"
+            },
+            "user_profiles": {
+                "table_name": "staging.UserProfiles.v1"
+            },
+            "viewers": {
+                "table_name": "staging.Viewers.v1"
+            }
+        }
+    }
+}

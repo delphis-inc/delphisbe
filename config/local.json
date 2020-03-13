@@ -1,4 +1,12 @@
 {
+    "aws": {
+        "region": "us-west-2",
+        "useCredentials": true,
+        "credentials": {    
+            "id": "fakeMyKeyId",
+            "secret": "fakeSecretAccessKey"
+        }
+    },
     "env": "local",
     "db": {
         "host": "http://localhost",

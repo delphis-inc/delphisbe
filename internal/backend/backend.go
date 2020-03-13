@@ -3,6 +3,7 @@ package backend
 import (
 	"context"
 
+	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/nedrocks/delphisbe/graph/model"
 	"github.com/nedrocks/delphisbe/internal/auth"
 	"github.com/nedrocks/delphisbe/internal/config"
@@ -41,9 +42,9 @@ type delphisBackend struct {
 	auth auth.DelphisAuth
 }
 
-func NewDelphisBackend(conf config.Config) DelphisBackend {
+func NewDelphisBackend(conf config.Config, awsSession *session.Session) DelphisBackend {
 	return &delphisBackend{
-		db:   datastore.NewDatastore(conf.DBConfig),
+		db:   datastore.NewDatastore(conf.DBConfig, awsSession),
 		auth: auth.NewDelphisAuth(&conf.Auth),
 	}
 }

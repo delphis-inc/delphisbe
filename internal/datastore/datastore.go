@@ -5,15 +5,13 @@ import (
 	"fmt"
 
 	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbiface"
+	"github.com/sirupsen/logrus"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbattribute"
 	"github.com/nedrocks/delphisbe/graph/model"
 	"github.com/nedrocks/delphisbe/internal/config"
-	"github.com/sirupsen/logrus"
 )
 
 type Datastore interface {
@@ -57,18 +55,13 @@ func (d *db) marshalMap(in interface{}) (map[string]*dynamodb.AttributeValue, er
 	return av.M, nil
 }
 
-func NewDatastore(dbConfig config.DBConfig) Datastore {
-	creds := credentials.NewStaticCredentials("fakeMyKeyId", "fakeSecretAccessKey", "")
-	sess, err := session.NewSession(&aws.Config{
-		Credentials: creds,
-		Region:      aws.String(dbConfig.Region),
-		Endpoint:    aws.String(fmt.Sprintf("%s:%d", dbConfig.Host, dbConfig.Port)),
-	})
-
-	if err != nil {
-		logrus.Println(err)
+func NewDatastore(dbConfig config.DBConfig, awsSession *session.Session) Datastore {
+	mySession := awsSession
+	if dbConfig.Host != "" && dbConfig.Port != 0 {
+		mySession = mySession.Copy(awsSession.Config.WithEndpoint(fmt.Sprintf("%s:%d", dbConfig.Host, dbConfig.Port)))
+		logrus.Debugf("endpoint: %s", mySession.Config.Endpoint)
 	}
-	dbSvc := dynamodb.New(sess)
+	dbSvc := dynamodb.New(mySession)
 	return &db{
 		dbConfig: dbConfig.TablesConfig,
 		dynamo:   dbSvc,

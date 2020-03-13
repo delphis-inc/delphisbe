@@ -7,9 +7,13 @@ import (
 	"os"
 	"time"
 
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/credentials"
+	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/vektah/gqlparser/v2/formatter"
 
 	"github.com/nedrocks/delphisbe/internal/auth"
+	"github.com/nedrocks/delphisbe/internal/secrets"
 
 	"github.com/99designs/gqlgen/graphql/handler"
 	"github.com/99designs/gqlgen/graphql/playground"
@@ -43,7 +47,25 @@ func main() {
 		return
 	}
 
-	delphisBackend := backend.NewDelphisBackend(*conf)
+	awsConfig := aws.NewConfig().WithRegion(conf.AWS.Region)
+	if conf.AWS.UseCredentials {
+		awsConfig = awsConfig.WithCredentials(credentials.NewStaticCredentials(
+			conf.AWS.Credentials.ID, conf.AWS.Credentials.Secret, conf.AWS.Credentials.Token))
+	}
+	awsSession := session.New(awsConfig)
+
+	secretManager := secrets.NewSecretsManager(awsConfig, awsSession)
+	secrets, err := secretManager.GetSecrets()
+	logrus.Debugf("secrets: %+v, err: %+v", secrets, err)
+	if err == nil {
+		for k, v := range secrets {
+			os.Setenv(k, v)
+		}
+		conf.ReadEnvAndUpdate()
+		logrus.Debugf("conf: %+v", conf)
+	}
+
+	delphisBackend := backend.NewDelphisBackend(*conf, awsSession)
 
 	generatedSchema := generated.NewExecutableSchema(generated.Config{
 		Resolvers: &resolver.Resolver{
