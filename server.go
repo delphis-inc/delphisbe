@@ -56,13 +56,11 @@ func main() {
 
 	secretManager := secrets.NewSecretsManager(awsConfig, awsSession)
 	secrets, err := secretManager.GetSecrets()
-	logrus.Debugf("secrets: %+v, err: %+v", secrets, err)
 	if err == nil {
 		for k, v := range secrets {
 			os.Setenv(k, v)
 		}
 		conf.ReadEnvAndUpdate()
-		logrus.Debugf("conf: %+v", conf)
 	}
 
 	delphisBackend := backend.NewDelphisBackend(*conf, awsSession)
