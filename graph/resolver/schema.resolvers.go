@@ -24,7 +24,7 @@ func (r *mutationResolver) CreateDiscussion(ctx context.Context, anonymityType m
 			return nil, fmt.Errorf("Error fetching user with ID (%s)", creatingUser.UserID)
 		}
 	}
-	discussionObj, err := r.DAOManager.CreateNewDiscussion(ctx, creatingUser.User, anonymityType)
+	discussionObj, err := r.DAOManager.CreateNewDiscussion(ctx, creatingUser.User, anonymityType, title)
 
 	if err != nil {
 		return nil, err

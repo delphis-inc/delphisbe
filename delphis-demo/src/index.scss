@@ -4,6 +4,13 @@
 
 @import "tailwindcss/utilities";
 
+@import "./styles/colors.scss";
+
+html {
+  height: 100vh;
+  background-color: $delphis-app-background;
+}
+
 body {
   margin: 0;
   font-family: 'Neue Hans Kendrick';

@@ -4,27 +4,24 @@ import {
   Switch,
   Route,
 } from "react-router-dom";
+import './App.scss';
 import Discussions from './components/Discussions';
 import Discussion from './components/Discussion';
+import Layout from './components/Layout';
 
-// This site has 3 pages, all of which are rendered
-// dynamically in the browser (not server rendered).
-//
-// Although the page does not ever refresh, notice how
-// React Router keeps the URL up to date as you navigate
-// through the site. This preserves the browser history,
-// making sure things like the back button and bookmarks
-// work properly.
-
-function BasicExample() {
+function DelphisApp() {
   return (
-    <Router>
-        <Switch>
-          <Route exact path="/" component={Discussions}/>
-          <Route path="/d/:id" component={Discussion}/>
-        </Switch>
-    </Router>
+    <div className="delphis-app">
+      <Layout>
+        <Router>
+            <Switch>
+              <Route exact path="/" component={Discussions}/>
+              <Route path="/d/:id" component={Discussion}/>
+            </Switch>
+        </Router>
+      </Layout>
+    </div>
   );
 }
 
-export default BasicExample
+export default DelphisApp

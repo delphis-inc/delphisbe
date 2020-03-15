@@ -1,34 +1,5 @@
 import { gql, DocumentNode } from "apollo-boost";
-
-const Fragments = {
-    discussionInfo: gql`
-    fragment discussionInfo on Discussion{
-        id
-        anonymityType
-        moderator {
-            id
-            userProfile {
-                id
-                displayName
-                profileImageURL
-                twitterURL {
-                    displayText
-                    url
-                }
-            }
-        }
-        participants {
-            participantID
-        }
-        posts {
-            id
-            isDeleted
-            deletedReasonCode
-            content
-        }
-        title
-    }`
-}
+import DiscussionFragments from '../../fragments/discussion';
 
 const discussionQuery: DocumentNode = gql`
     query GetDiscussionByID($discussionID: ID!) {
@@ -36,7 +7,7 @@ const discussionQuery: DocumentNode = gql`
             ...discussionInfo
         }
     }
-    ${Fragments.discussionInfo}`
+    ${DiscussionFragments.discussionInfo}`
 
 const discussionListQuery: DocumentNode = gql`
     query ListDiscussions {
@@ -44,6 +15,6 @@ const discussionListQuery: DocumentNode = gql`
             ...discussionInfo
         }
     }
-    ${Fragments.discussionInfo}`
+    ${DiscussionFragments.discussionInfo}`
 
 export { discussionQuery, discussionListQuery }
