@@ -50,3 +50,13 @@ This should show your name as the moderator.
 * Now, start the client by navigating to `cd ./delphis-demo` and run `yarn start`. This should start the local app and allow you to navigate to `http://local.delphishq.com:8000/`.
 
 And you're done!
+
+# Build and deploy docker image
+Retrieve credentials, build image, tag image, and push image.
+
+```
+aws ecr get-login-password --region us-west-2 | docker login --username AWS --password-stdin 033236388136.dkr.ecr.us-west-2.amazonaws.com/delphisbe
+docker build -t delphisbe .
+docker tag delphisbe:latest 033236388136.dkr.ecr.us-west-2.amazonaws.com/delphisbe:latest
+docker push 033236388136.dkr.ecr.us-west-2.amazonaws.com/delphisbe:latest
+```

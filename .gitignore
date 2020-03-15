@@ -20,3 +20,14 @@ gql/schema/bindata.go
 
 # vscode
 .vscode/
+
+#terraform
+# Compiled files
+*.tfstate
+*.tfstate.backup
+.terraform.tfstate.lock.info
+# Module directory
+.terraform/
+
+# binaries
+delphis_server

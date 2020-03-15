@@ -1,12 +1,13 @@
 {
     "auth": {
-        "domain": "local.delphishq.com"
+        "domain": "staging.delphishq.com"
     },
     "aws": {
         "region": "us-west-2",
-        "useCredentials": false
+        "useCredentials": false,
+        "isFargate": true
     },
-    "env": "local_use_aws",
+    "env": "staging",
     "db": {
         "region": "us-west-2",
         "tables_config": {
@@ -34,6 +35,6 @@
         }
     },
     "twitter": {
-        "callback": "http://local.delphishq.com:8000/twitter/callback"
+        "callback": "http://staging.delphishq.com/twitter/callback"
     }
 }

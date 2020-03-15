@@ -2,10 +2,13 @@ package main
 
 import (
 	"bytes"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
 	"time"
+
+	"github.com/aws/aws-sdk-go/aws/credentials/endpointcreds"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials"
@@ -41,21 +44,32 @@ func main() {
 	}
 
 	config.AddConfigDirectory("./config")
+	config.AddConfigDirectory("/var/delphis/config")
 	conf, err := config.ReadConfig()
 	if err != nil {
 		logrus.WithError(err).Errorf("Error loading config file")
 		return
 	}
 
-	awsConfig := aws.NewConfig().WithRegion(conf.AWS.Region)
+	awsConfig := aws.NewConfig().WithRegion(conf.AWS.Region).WithCredentialsChainVerboseErrors(true)
+	var awsSession *session.Session
 	if conf.AWS.UseCredentials {
 		awsConfig = awsConfig.WithCredentials(credentials.NewStaticCredentials(
 			conf.AWS.Credentials.ID, conf.AWS.Credentials.Secret, conf.AWS.Credentials.Token))
+	} else if conf.AWS.IsFargate {
+		if ECSCredentialsURI, exists := os.LookupEnv("AWS_CONTAINER_CREDENTIALS_RELATIVE_URI"); exists {
+			endpoint := fmt.Sprintf("http://169.254.170.2%s", ECSCredentialsURI)
+			awsSession = session.New(awsConfig)
+			providerClient := endpointcreds.NewProviderClient(*awsSession.Config, awsSession.Handlers, endpoint)
+			creds := credentials.NewCredentials(providerClient)
+			awsConfig = awsConfig.WithCredentials(creds)
+		}
 	}
-	awsSession := session.New(awsConfig)
+	awsSession = session.Must(session.NewSession(awsConfig))
 
 	secretManager := secrets.NewSecretsManager(awsConfig, awsSession)
 	secrets, err := secretManager.GetSecrets()
+
 	if err == nil {
 		for k, v := range secrets {
 			os.Setenv(k, v)
@@ -79,21 +93,22 @@ func main() {
 	srv := handler.NewDefaultServer(generatedSchema)
 
 	http.Handle("/graphiql", allowCors(playground.Handler("GraphQL playground", "/query")))
-	http.Handle("/query", allowCors(authMiddleware(delphisBackend, srv)))
+	http.Handle("/query", allowCors(authMiddleware(*conf, delphisBackend, srv)))
 	config := &oauth1.Config{
 		ConsumerKey:    conf.Twitter.ConsumerKey,
 		ConsumerSecret: conf.Twitter.ConsumerSecret,
-		CallbackURL:    "http://local.delphishq.com:8080/twitter/callback",
+		CallbackURL:    conf.Twitter.Callback,
 		Endpoint:       twitterOAuth1.AuthorizeEndpoint,
 	}
 	http.Handle("/twitter/login", twitter.LoginHandler(config, nil))
-	http.Handle("/twitter/callback", twitter.CallbackHandler(config, successfulLogin(delphisBackend), nil))
-	log.Printf("connect to http://local.delphishq.com:%s/ for GraphQL playground", port)
+	http.Handle("/twitter/callback", twitter.CallbackHandler(config, successfulLogin(*conf, delphisBackend), nil))
+	http.Handle("/health", healthCheck())
+	log.Printf("connect on port %s for GraphQL playground", port)
 	log.Fatal(http.ListenAndServe(":"+port, nil))
 }
 
 // TODO: This is quite hacky but fulfills our purposes for now.
-func authMiddleware(delphisBackend backend.DelphisBackend, next http.Handler) http.Handler {
+func authMiddleware(conf config.Config, delphisBackend backend.DelphisBackend, next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var accessTokenString string
 		req := r
@@ -115,7 +130,7 @@ func authMiddleware(delphisBackend backend.DelphisBackend, next http.Handler) ht
 					http.SetCookie(w, &http.Cookie{
 						Name:     "delphis_access_token",
 						Value:    "",
-						Domain:   "local.delphishq.com",
+						Domain:   conf.Auth.Domain,
 						Path:     "/",
 						MaxAge:   0,
 						HttpOnly: true,
@@ -140,7 +155,14 @@ func allowCors(next http.Handler) http.Handler {
 	return http.HandlerFunc(fn)
 }
 
-func successfulLogin(delphisBackend backend.DelphisBackend) http.Handler {
+func healthCheck() http.Handler {
+	fn := func(w http.ResponseWriter, req *http.Request) {
+		fmt.Fprint(w, "success")
+	}
+	return http.HandlerFunc(fn)
+}
+
+func successfulLogin(conf config.Config, delphisBackend backend.DelphisBackend) http.Handler {
 	fn := func(w http.ResponseWriter, req *http.Request) {
 		ctx := req.Context()
 		twitterUser, err := twitter.UserFromContext(ctx)
@@ -174,7 +196,7 @@ func successfulLogin(delphisBackend backend.DelphisBackend) http.Handler {
 		http.SetCookie(w, &http.Cookie{
 			Name:     "delphis_access_token",
 			Value:    authToken.TokenString,
-			Domain:   "local.delphishq.com",
+			Domain:   conf.Auth.Domain,
 			Path:     "/",
 			SameSite: http.SameSiteStrictMode,
 			MaxAge:   int(30 * 24 * time.Hour / time.Second),

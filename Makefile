@@ -19,3 +19,14 @@ run-local:
 
 run-local-use-aws:
 	AWS_PROFILE=delphis DELPHIS_ENV=local_use_aws go run server.go
+
+build:
+	go build -o delphis_server
+
+build-and-deploy-docker:
+	docker build -t delphisbe .
+	docker tag delphisbe:latest 033236388136.dkr.ecr.us-west-2.amazonaws.com/delphisbe:latest
+	docker push 033236388136.dkr.ecr.us-west-2.amazonaws.com/delphisbe:latest
+
+get-ecr-creds:
+	aws ecr --profile delphis get-login-password --region us-west-2 | docker login --username AWS --password-stdin 033236388136.dkr.ecr.us-west-2.amazonaws.com/delphisbe

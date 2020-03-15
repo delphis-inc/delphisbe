@@ -1,4 +1,7 @@
 {
+    "auth": {
+        "domain": "local.delphishq.com"
+    },
     "aws": {
         "region": "us-west-2",
         "useCredentials": true,
@@ -35,5 +38,8 @@
                 "table_name": "local.Viewers.v1"
             }
         }
+    },
+    "twitter": {
+        "callback": "http://staging.delphishq.com:8000/twitter/callback"
     }
 }

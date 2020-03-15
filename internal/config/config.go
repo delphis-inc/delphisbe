@@ -9,7 +9,7 @@ import (
 type Config struct {
 	Environment string        `json:"env" mapstructure:"env"`
 	DBConfig    DBConfig      `json:"db" mapstructure:"db"`
-	Twitter     TwitterConfig `json:"twitter"`
+	Twitter     TwitterConfig `json:"twitter" mapstructure:"twitter"`
 	Auth        AuthConfig    `json:"authConfig"`
 	AWS         AWSConfig     `json:"awsConfig" mapstructure:"aws"`
 }
@@ -23,6 +23,7 @@ type AWSConfig struct {
 	Region         string         `json:"region" mapstructure:"region"`
 	UseCredentials bool           `json:"useCredentials" mapstructure:"useCredentials"`
 	Credentials    AWSCredentials `json:"credentials" mapstructure:"credentials"`
+	IsFargate      bool           `json:"isFargate" mapstructure:"isFargate"`
 }
 
 type AWSCredentials struct {
@@ -33,11 +34,13 @@ type AWSCredentials struct {
 
 type AuthConfig struct {
 	HMACSecret string `json:"hmacSecret"`
+	Domain     string `json:"domain" mapstructure:"domain"`
 }
 
 type TwitterConfig struct {
 	ConsumerKey    string
 	ConsumerSecret string
+	Callback       string `json:"callback" mapstructure:"callback"`
 }
 
 type DBConfig struct {
