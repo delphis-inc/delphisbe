@@ -1,6 +1,6 @@
 {
     "auth": {
-        "domain": "staging.delphishq.com"
+        "domain": ".delphishq.com"
     },
     "aws": {
         "region": "us-west-2",

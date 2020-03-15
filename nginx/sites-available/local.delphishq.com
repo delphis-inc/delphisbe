@@ -10,15 +10,18 @@ http {
         server_name local.delphishq.com;
 
         location = /graphiql {
-            proxy_pass http://local.delphishq.com:8080;
+	      #proxy_pass http://local.delphishq.com:8080;
+	      proxy_pass http://staging.delphishq.com;
         }
 
         location = /query {
-            proxy_pass http://local.delphishq.com:8080;
+	      #proxy_pass http://local.delphishq.com:8080;
+	      proxy_pass http://staging.delphishq.com;
         }
 
         location /twitter {
-            proxy_pass http://local.delphishq.com:8080;
+	      #proxy_pass http://local.delphishq.com:8080;
+	      proxy_pass http://staging.delphishq.com;
         }
 
         location /sockjs-node {
