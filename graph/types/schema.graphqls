@@ -13,6 +13,6 @@ type Query {
 }
 
 type Mutation {
-  createDiscussion(anonymityType: AnonymityType!): Discussion!
+  createDiscussion(anonymityType: AnonymityType!, title: String!): Discussion!
   addDiscussionParticipant(discussionID: String!, userID: String!): Participant!
 }

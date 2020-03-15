@@ -11,7 +11,7 @@ import (
 	"github.com/nedrocks/delphisbe/internal/auth"
 )
 
-func (r *mutationResolver) CreateDiscussion(ctx context.Context, anonymityType model.AnonymityType) (*model.Discussion, error) {
+func (r *mutationResolver) CreateDiscussion(ctx context.Context, anonymityType model.AnonymityType, title string) (*model.Discussion, error) {
 	creatingUser := auth.GetAuthedUser(ctx)
 	if creatingUser == nil {
 		// Need to add auth logic here

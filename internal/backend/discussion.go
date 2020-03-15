@@ -8,7 +8,7 @@ import (
 	"github.com/nedrocks/delphisbe/internal/util"
 )
 
-func (d *delphisBackend) CreateNewDiscussion(ctx context.Context, creatingUser *model.User, anonymityType model.AnonymityType) (*model.Discussion, error) {
+func (d *delphisBackend) CreateNewDiscussion(ctx context.Context, creatingUser *model.User, anonymityType model.AnonymityType, title string) (*model.Discussion, error) {
 	discussionID := util.UUIDv4()
 	discussionObj := model.Discussion{
 		CreatedAt:     time.Now(),
@@ -20,6 +20,7 @@ func (d *delphisBackend) CreateNewDiscussion(ctx context.Context, creatingUser *
 			UserProfileID: creatingUser.UserProfileID,
 			DiscussionID:  discussionID,
 		},
+		Title: title,
 	}
 
 	_, err := d.db.PutDiscussion(ctx, discussionObj)

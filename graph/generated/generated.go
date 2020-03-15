@@ -74,7 +74,7 @@ type ComplexityRoot struct {
 
 	Mutation struct {
 		AddDiscussionParticipant func(childComplexity int, discussionID string, userID string) int
-		CreateDiscussion         func(childComplexity int, anonymityType model.AnonymityType) int
+		CreateDiscussion         func(childComplexity int, anonymityType model.AnonymityType, title string) int
 	}
 
 	PageInfo struct {
@@ -206,7 +206,7 @@ type ModeratorResolver interface {
 	UserProfile(ctx context.Context, obj *model.Moderator) (*model.UserProfile, error)
 }
 type MutationResolver interface {
-	CreateDiscussion(ctx context.Context, anonymityType model.AnonymityType) (*model.Discussion, error)
+	CreateDiscussion(ctx context.Context, anonymityType model.AnonymityType, title string) (*model.Discussion, error)
 	AddDiscussionParticipant(ctx context.Context, discussionID string, userID string) (*model.Participant, error)
 }
 type ParticipantResolver interface {
@@ -362,7 +362,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Mutation.CreateDiscussion(childComplexity, args["anonymityType"].(model.AnonymityType)), true
+		return e.complexity.Mutation.CreateDiscussion(childComplexity, args["anonymityType"].(model.AnonymityType), args["title"].(string)), true
 
 	case "PageInfo.endCursor":
 		if e.complexity.PageInfo.EndCursor == nil {
@@ -998,7 +998,7 @@ type Query {
 }
 
 type Mutation {
-  createDiscussion(anonymityType: AnonymityType!): Discussion!
+  createDiscussion(anonymityType: AnonymityType!, title: String!): Discussion!
   addDiscussionParticipant(discussionID: String!, userID: String!): Participant!
 }`, BuiltIn: false},
 	&ast.Source{Name: "graph/types/sudo_user.graphqls", Input: `# A SudoUser describes the unlocked version of a user. Due to implementation
@@ -1113,6 +1113,14 @@ func (ec *executionContext) field_Mutation_createDiscussion_args(ctx context.Con
 		}
 	}
 	args["anonymityType"] = arg0
+	var arg1 string
+	if tmp, ok := rawArgs["title"]; ok {
+		arg1, err = ec.unmarshalNString2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["title"] = arg1
 	return args, nil
 }
 
@@ -1515,7 +1523,7 @@ func (ec *executionContext) _Mutation_createDiscussion(ctx context.Context, fiel
 	fc.Args = args
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().CreateDiscussion(rctx, args["anonymityType"].(model.AnonymityType))
+		return ec.resolvers.Mutation().CreateDiscussion(rctx, args["anonymityType"].(model.AnonymityType), args["title"].(string))
 	})
 	if err != nil {
 		ec.Error(ctx, err)

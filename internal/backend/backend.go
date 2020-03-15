@@ -11,7 +11,7 @@ import (
 )
 
 type DelphisBackend interface {
-	CreateNewDiscussion(ctx context.Context, creatingUser *model.User, anonymityType model.AnonymityType) (*model.Discussion, error)
+	CreateNewDiscussion(ctx context.Context, creatingUser *model.User, anonymityType model.AnonymityType, title string) (*model.Discussion, error)
 	GetDiscussionByID(ctx context.Context, id string) (*model.Discussion, error)
 	GetDiscussionsByIDs(ctx context.Context, ids []string) (map[string]*model.Discussion, error)
 	ListDiscussions(ctx context.Context) (*model.DiscussionsConnection, error)

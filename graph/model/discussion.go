@@ -9,7 +9,7 @@ type Discussion struct {
 	DeletedAt     *time.Time       `json:"deletedAt"`
 	Title         string           `json:"string"`
 	AnonymityType AnonymityType    `json:"anonymityType"`
-	Moderator     Moderator        `json:"moderator" dynamodbav:"Moderator"`
+	Moderator     Moderator        `json:"moderator"`
 	Posts         *PostsConnection `json:"posts" dynamodbav:"-"`
 	Participants  []*Participant   `json:"participants" dynamodbav:"-"`
 }
