@@ -1,0 +1,11 @@
+@import '../../../styles/colors.scss';
+
+.discussion-input {
+    color: $font-color-white;
+
+    textarea {
+        background-color: $delphis-discussion-card-background;
+        border-color: $delphis-discussion-card-border;
+        resize: none;
+    }
+}

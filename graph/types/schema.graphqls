@@ -15,4 +15,5 @@ type Query {
 type Mutation {
   createDiscussion(anonymityType: AnonymityType!, title: String!): Discussion!
   addDiscussionParticipant(discussionID: String!, userID: String!): Participant!
+  addPost(discussionID: ID!, postContent: String!): Discussion!
 }

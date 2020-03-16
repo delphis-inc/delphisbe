@@ -24,7 +24,7 @@ const client = new ApolloClient({
             }
         }),
         new HttpLink({
-            uri: 'http://staging.delphishq.com/query',
+            uri: 'http://local.delphishq.com:8000/query',
             credentials: 'same-origin'
         })
     ]),

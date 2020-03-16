@@ -74,6 +74,7 @@ type ComplexityRoot struct {
 
 	Mutation struct {
 		AddDiscussionParticipant func(childComplexity int, discussionID string, userID string) int
+		AddPost                  func(childComplexity int, discussionID string, postContent string) int
 		CreateDiscussion         func(childComplexity int, anonymityType model.AnonymityType, title string) int
 	}
 
@@ -208,6 +209,7 @@ type ModeratorResolver interface {
 type MutationResolver interface {
 	CreateDiscussion(ctx context.Context, anonymityType model.AnonymityType, title string) (*model.Discussion, error)
 	AddDiscussionParticipant(ctx context.Context, discussionID string, userID string) (*model.Participant, error)
+	AddPost(ctx context.Context, discussionID string, postContent string) (*model.Discussion, error)
 }
 type ParticipantResolver interface {
 	Discussion(ctx context.Context, obj *model.Participant) (*model.Discussion, error)
@@ -351,6 +353,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Mutation.AddDiscussionParticipant(childComplexity, args["discussionID"].(string), args["userID"].(string)), true
+
+	case "Mutation.addPost":
+		if e.complexity.Mutation.AddPost == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_addPost_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.AddPost(childComplexity, args["discussionID"].(string), args["postContent"].(string)), true
 
 	case "Mutation.createDiscussion":
 		if e.complexity.Mutation.CreateDiscussion == nil {
@@ -1000,6 +1014,7 @@ type Query {
 type Mutation {
   createDiscussion(anonymityType: AnonymityType!, title: String!): Discussion!
   addDiscussionParticipant(discussionID: String!, userID: String!): Participant!
+  addPost(discussionID: ID!, postContent: String!): Discussion!
 }`, BuiltIn: false},
 	&ast.Source{Name: "graph/types/sudo_user.graphqls", Input: `# A SudoUser describes the unlocked version of a user. Due to implementation
 # the server cannot access the sudo properties for a user without first 
@@ -1099,6 +1114,28 @@ func (ec *executionContext) field_Mutation_addDiscussionParticipant_args(ctx con
 		}
 	}
 	args["userID"] = arg1
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_addPost_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 string
+	if tmp, ok := rawArgs["discussionID"]; ok {
+		arg0, err = ec.unmarshalNID2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["discussionID"] = arg0
+	var arg1 string
+	if tmp, ok := rawArgs["postContent"]; ok {
+		arg1, err = ec.unmarshalNString2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["postContent"] = arg1
 	return args, nil
 }
 
@@ -1579,6 +1616,47 @@ func (ec *executionContext) _Mutation_addDiscussionParticipant(ctx context.Conte
 	res := resTmp.(*model.Participant)
 	fc.Result = res
 	return ec.marshalNParticipant2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐParticipant(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Mutation_addPost(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "Mutation",
+		Field:    field,
+		Args:     nil,
+		IsMethod: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Mutation_addPost_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().AddPost(rctx, args["discussionID"].(string), args["postContent"].(string))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.Discussion)
+	fc.Result = res
+	return ec.marshalNDiscussion2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐDiscussion(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _PageInfo_startCursor(ctx context.Context, field graphql.CollectedField, obj *model.PageInfo) (ret graphql.Marshaler) {
@@ -4918,6 +4996,11 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			}
 		case "addDiscussionParticipant":
 			out.Values[i] = ec._Mutation_addDiscussionParticipant(ctx, field)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "addPost":
+			out.Values[i] = ec._Mutation_addPost(ctx, field)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}

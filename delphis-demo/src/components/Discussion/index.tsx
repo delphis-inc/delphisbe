@@ -3,6 +3,8 @@ import { useQuery } from 'react-apollo'
 import { useParams } from 'react-router-dom';
 import { discussionQuery } from '../DiscussionList/query';
 import { GetDiscussionByID_discussion_posts } from '../../types/api.d';
+import DiscussionInput from './DiscussionInput';
+import DiscussionPost from './DiscussionPost';
 
 export interface Props {}
 
@@ -20,16 +22,13 @@ function Discussion(props: Props): JSX.Element {
     }
 
     const posts = data.discussion.posts.map((p: GetDiscussionByID_discussion_posts, idx: number) => {
-        return (
-            <div key={`${idx}`}>
-                {p.content}
-            </div>
-        );
+        return <DiscussionPost post={p} />
     });
 
     return (
-        <div>
+        <div className="discussion-view justify-center">
             {posts}
+            <DiscussionInput discussionID={id} />
         </div>
     )
 }

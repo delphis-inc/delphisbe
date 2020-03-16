@@ -18,3 +18,15 @@ type User struct {
 	Participants []*Participant `json:"participants" dynamodbav:"-"`
 	Viewers      []*Viewer      `json:"viewers" dynamodbav:"-"`
 }
+
+func (u *User) GetParticipantKeyForDiscussionID(id string) *DiscussionParticipantKey {
+	if u.DiscussionParticipants == nil {
+		return nil
+	}
+	for _, dpk := range u.DiscussionParticipants.Keys {
+		if dpk.DiscussionID == id {
+			return &dpk
+		}
+	}
+	return nil
+}

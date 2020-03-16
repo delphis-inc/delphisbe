@@ -36,6 +36,12 @@ func (r *mutationResolver) CreateDiscussion(ctx context.Context, anonymityType m
 		return nil, err
 	}
 
+	_, err = r.DAOManager.CreateParticipantForDiscussion(ctx, discussionObj.ID, creatingUser.UserID)
+
+	if err != nil {
+		return nil, err
+	}
+
 	return discussionObj, nil
 }
 
@@ -48,6 +54,39 @@ func (r *mutationResolver) AddDiscussionParticipant(ctx context.Context, discuss
 	}
 
 	return participantObj, nil
+}
+
+func (r *mutationResolver) AddPost(ctx context.Context, discussionID string, postContent string) (*model.Discussion, error) {
+	creatingUser := auth.GetAuthedUser(ctx)
+	if creatingUser == nil {
+		return nil, fmt.Errorf("Need auth")
+	}
+
+	if creatingUser.User == nil {
+		user, err := r.DAOManager.GetUserByID(ctx, creatingUser.UserID)
+		if err != nil {
+			return nil, fmt.Errorf("Error finding user with ID: %s", creatingUser.UserID)
+		}
+		creatingUser.User = user
+	}
+
+	_, err := r.DAOManager.GetDiscussionByID(ctx, discussionID)
+	if err != nil {
+		return nil, fmt.Errorf("Discussion with ID %s not found", discussionID)
+	}
+
+	// Check whether the user can write to the discussion. Probably in the Post backend.
+	discussionParticipantKey := creatingUser.User.GetParticipantKeyForDiscussionID(discussionID)
+	if discussionParticipantKey == nil {
+		return nil, fmt.Errorf("Only participants can write to this discussion")
+	}
+
+	_, err = r.DAOManager.CreatePost(ctx, *discussionParticipantKey, postContent)
+	if err != nil {
+		return nil, fmt.Errorf("Failed to create post")
+	}
+
+	return r.DAOManager.GetDiscussionByID(ctx, discussionID)
 }
 
 func (r *queryResolver) Discussion(ctx context.Context, id string) (*model.Discussion, error) {

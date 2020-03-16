@@ -120,6 +120,67 @@ export interface ListDiscussions {
 // This file was automatically generated and should not be edited.
 
 // ====================================================
+// GraphQL mutation operation: CreatePost
+// ====================================================
+
+export interface CreatePost_addPost_moderator_userProfile_twitterURL {
+  __typename: "URL";
+  displayText: string;
+  url: string;
+}
+
+export interface CreatePost_addPost_moderator_userProfile {
+  __typename: "UserProfile";
+  id: string;
+  displayName: string;
+  profileImageURL: string;
+  twitterURL: CreatePost_addPost_moderator_userProfile_twitterURL;
+}
+
+export interface CreatePost_addPost_moderator {
+  __typename: "Moderator";
+  id: string;
+  userProfile: CreatePost_addPost_moderator_userProfile;
+}
+
+export interface CreatePost_addPost_participants {
+  __typename: "Participant";
+  participantID: number | null;
+}
+
+export interface CreatePost_addPost_posts {
+  __typename: "Post";
+  id: string;
+  isDeleted: boolean;
+  deletedReasonCode: PostDeletedReason | null;
+  content: string;
+}
+
+export interface CreatePost_addPost {
+  __typename: "Discussion";
+  id: string;
+  anonymityType: AnonymityType;
+  moderator: CreatePost_addPost_moderator;
+  participants: CreatePost_addPost_participants[] | null;
+  posts: CreatePost_addPost_posts[] | null;
+  title: string;
+}
+
+export interface CreatePost {
+  addPost: CreatePost_addPost;
+}
+
+export interface CreatePostVariables {
+  discussionID: string;
+  postContent: string;
+}
+
+/* tslint:disable */
+/* eslint-disable */
+// @generated
+// This file was automatically generated and should not be edited.
+
+// ====================================================
 // GraphQL fragment: discussionInfo
 // ====================================================
 
