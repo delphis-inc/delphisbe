@@ -35,6 +35,7 @@
         }
     },
     "twitter": {
-        "callback": "http://staging.delphishq.com/twitter/callback"
+        "callback": "http://staging.delphishq.com/twitter/callback",
+        "redirect": "https://app-staging.delphishq.com/"
     }
 }

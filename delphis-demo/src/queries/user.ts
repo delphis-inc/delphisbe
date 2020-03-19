@@ -1,19 +1,32 @@
 import { gql } from "apollo-boost";
-import { userProfileFragments } from "./userProfile"
+
+export const userProfileFragments = {
+    userProfileInfo: gql`fragment userProfileInfo on UserProfile{
+        id
+        displayName
+        twitterURL {
+            displayText
+            url
+        }
+    }`
+};
 
 export const userFragments = {
     meInfo: gql`fragment meInfo on User{
         id
         profile {
-            ...userProfileFragments.userProfileInfo,
+            ...userProfileInfo
         }
-    }`
+    }
+    ${userProfileFragments.userProfileInfo}`
 }
 
 export default {
     me: gql`query GetMe{
         me {
-            ...fragments.meInfo,
+            ...meInfo
         }
-    }`
+    }
+    ${userFragments.meInfo}
+    ${userProfileFragments.userProfileInfo}`
 };

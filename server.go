@@ -5,7 +5,9 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"net/url"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws/credentials/endpointcreds"
@@ -92,6 +94,7 @@ func main() {
 
 	srv := handler.NewDefaultServer(generatedSchema)
 
+	http.Handle("/", allowCors(healthCheck()))
 	http.Handle("/graphiql", allowCors(playground.Handler("GraphQL playground", "/query")))
 	http.Handle("/query", allowCors(authMiddleware(*conf, delphisBackend, srv)))
 	config := &oauth1.Config{
@@ -148,8 +151,16 @@ func authMiddleware(conf config.Config, delphisBackend backend.DelphisBackend, n
 
 func allowCors(next http.Handler) http.Handler {
 	fn := func(w http.ResponseWriter, req *http.Request) {
-		w.Header().Add("Access-Control-Allow-Origin", "http://local.delphishq.com:3000")
-		w.Header().Add("Access-Control-Allow-Headers", "*")
+		referrer := req.Header.Get("Referer")
+		parsedURL, err := url.Parse(referrer)
+		if err == nil {
+			parts := strings.Split(parsedURL.Host, ":")
+			if len(parts) > 0 && strings.HasSuffix(parts[0], "delphishq.com") {
+				w.Header().Add("Access-Control-Allow-Origin", fmt.Sprintf("%s://%s", parsedURL.Scheme, parsedURL.Host))
+				w.Header().Add("Access-Control-Allow-Headers", "Host, Accept-Encoding, Accept, Referer, Sec-Fetch-Dest, User-Agent, Content-Type, Content-Length")
+				w.Header().Add("Access-Control-Allow-Credentials", "true")
+			}
+		}
 		next.ServeHTTP(w, req)
 	}
 	return http.HandlerFunc(fn)
@@ -202,6 +213,8 @@ func successfulLogin(conf config.Config, delphisBackend backend.DelphisBackend) 
 			MaxAge:   int(30 * 24 * time.Hour / time.Second),
 			HttpOnly: true,
 		})
+
+		http.Redirect(w, req, conf.Twitter.Redirect, 302)
 	}
 	return http.HandlerFunc(fn)
 }

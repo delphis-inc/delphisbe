@@ -4,6 +4,7 @@ import './index.scss';
 import App from './App';
 import * as serviceWorker from './serviceWorker';
 import {ApolloProvider} from 'react-apollo';
+import { createHttpLink } from "apollo-link-http";
 import { ApolloClient } from 'apollo-client';
 import { InMemoryCache } from 'apollo-cache-inmemory';
 import { HttpLink } from 'apollo-link-http';
@@ -23,9 +24,9 @@ const client = new ApolloClient({
                 console.log(`[Network error]: ${networkError}`);
             }
         }),
-        new HttpLink({
-            uri: 'http://local.delphishq.com:8000/query',
-            credentials: 'same-origin'
+        createHttpLink({
+            uri: 'https://staging.delphishq.com/query',
+            credentials: 'include',
         })
     ]),
     cache: new InMemoryCache(),
