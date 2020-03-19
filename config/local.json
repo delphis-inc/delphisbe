@@ -40,6 +40,7 @@
         }
     },
     "twitter": {
-        "callback": "http://staging.delphishq.com:8000/twitter/callback"
+        "callback": "http://local.delphishq.com:8080/twitter/callback",
+        "redirect": "http://local.delphishq.com:8000"
     }
 }

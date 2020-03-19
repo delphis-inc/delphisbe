@@ -103,6 +103,7 @@ func main() {
 		CallbackURL:    conf.Twitter.Callback,
 		Endpoint:       twitterOAuth1.AuthorizeEndpoint,
 	}
+
 	http.Handle("/twitter/login", twitter.LoginHandler(config, nil))
 	http.Handle("/twitter/callback", twitter.CallbackHandler(config, successfulLogin(*conf, delphisBackend), nil))
 	http.Handle("/health", healthCheck())
@@ -214,7 +215,16 @@ func successfulLogin(conf config.Config, delphisBackend backend.DelphisBackend) 
 			HttpOnly: true,
 		})
 
-		http.Redirect(w, req, conf.Twitter.Redirect, 302)
+		redirectURL, err := url.Parse(conf.Twitter.Redirect)
+		if err != nil {
+			logrus.WithError(err).Fatalf("Failed parsing the redirect URI so failing the app")
+		}
+		// TODO: Only want to do this if authing via the app. Given that will
+		// be the majority use case, just doing this for everyone... for now.
+		query := redirectURL.Query()
+		query.Set("dc", authToken.TokenString)
+		redirectURL.RawQuery = query.Encode()
+		http.Redirect(w, req, redirectURL.String(), 302)
 	}
 	return http.HandlerFunc(fn)
 }
