@@ -117,15 +117,21 @@ func authMiddleware(conf config.Config, delphisBackend backend.DelphisBackend, n
 		var accessTokenString string
 		req := r
 		isCookie := false
+		// Check Headers
+		authHeader := r.Header.Get("Authorization")
+		if authHeader != "" && strings.HasPrefix(authHeader, "Bearer ") {
+			accessTokenString = strings.Split(authHeader, " ")[1]
+		}
+		// Check Query String (overrides header)
 		accessTokenStringArr := r.URL.Query()["access_token"]
 		if len(accessTokenStringArr) > 0 {
 			accessTokenString = accessTokenStringArr[0]
-		} else {
-			accessTokenCookie, err := r.Cookie("delphis_access_token")
-			if accessTokenCookie != nil && err == nil {
-				accessTokenString = accessTokenCookie.Value
-				isCookie = true
-			}
+		}
+		// Check cookie (overrides header and query string)
+		accessTokenCookie, err := r.Cookie("delphis_access_token")
+		if accessTokenCookie != nil && err == nil {
+			accessTokenString = accessTokenCookie.Value
+			isCookie = true
 		}
 		if accessTokenString != "" {
 			authedUser, err := delphisBackend.ValidateAccessToken(r.Context(), accessTokenString)

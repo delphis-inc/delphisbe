@@ -5,6 +5,7 @@ package resolver
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/nedrocks/delphisbe/graph/generated"
 	"github.com/nedrocks/delphisbe/graph/model"
@@ -37,6 +38,14 @@ func (r *discussionResolver) Participants(ctx context.Context, obj *model.Discus
 		obj.Participants = particPointers
 	}
 	return obj.Participants, nil
+}
+
+func (r *discussionResolver) CreatedAt(ctx context.Context, obj *model.Discussion) (string, error) {
+	return obj.CreatedAt.Format(time.RFC3339), nil
+}
+
+func (r *discussionResolver) UpdatedAt(ctx context.Context, obj *model.Discussion) (string, error) {
+	return obj.UpdatedAt.Format(time.RFC3339), nil
 }
 
 func (r *Resolver) Discussion() generated.DiscussionResolver { return &discussionResolver{r} }

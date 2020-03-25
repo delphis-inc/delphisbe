@@ -4,6 +4,7 @@ package resolver
 
 import (
 	"context"
+	"time"
 
 	"github.com/nedrocks/delphisbe/graph/generated"
 	"github.com/nedrocks/delphisbe/graph/model"
@@ -43,6 +44,14 @@ func (r *postResolver) Participant(ctx context.Context, obj *model.Post) (*model
 		obj.Participant = participant
 	}
 	return obj.Participant, nil
+}
+
+func (r *postResolver) CreatedAt(ctx context.Context, obj *model.Post) (string, error) {
+	return obj.CreatedAt.Format(time.RFC3339), nil
+}
+
+func (r *postResolver) UpdatedAt(ctx context.Context, obj *model.Post) (string, error) {
+	return obj.UpdatedAt.Format(time.RFC3339), nil
 }
 
 func (r *Resolver) Post() generated.PostResolver { return &postResolver{r} }

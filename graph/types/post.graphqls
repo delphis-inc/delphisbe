@@ -5,4 +5,6 @@ type Post {
     content: String!
     discussion: Discussion!
     participant: Participant!
+    createdAt: String!
+    updatedAt: String!
 }
