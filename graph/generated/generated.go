@@ -216,7 +216,7 @@ type ModeratorResolver interface {
 type MutationResolver interface {
 	CreateDiscussion(ctx context.Context, anonymityType model.AnonymityType, title string) (*model.Discussion, error)
 	AddDiscussionParticipant(ctx context.Context, discussionID string, userID string) (*model.Participant, error)
-	AddPost(ctx context.Context, discussionID string, postContent string) (*model.Discussion, error)
+	AddPost(ctx context.Context, discussionID string, postContent string) (*model.Post, error)
 }
 type ParticipantResolver interface {
 	Discussion(ctx context.Context, obj *model.Participant) (*model.Discussion, error)
@@ -1056,7 +1056,7 @@ type Query {
 type Mutation {
   createDiscussion(anonymityType: AnonymityType!, title: String!): Discussion!
   addDiscussionParticipant(discussionID: String!, userID: String!): Participant!
-  addPost(discussionID: ID!, postContent: String!): Discussion!
+  addPost(discussionID: ID!, postContent: String!): Post!
 }`, BuiltIn: false},
 	&ast.Source{Name: "graph/types/sudo_user.graphqls", Input: `# A SudoUser describes the unlocked version of a user. Due to implementation
 # the server cannot access the sudo properties for a user without first 
@@ -1764,9 +1764,9 @@ func (ec *executionContext) _Mutation_addPost(ctx context.Context, field graphql
 		}
 		return graphql.Null
 	}
-	res := resTmp.(*model.Discussion)
+	res := resTmp.(*model.Post)
 	fc.Result = res
-	return ec.marshalNDiscussion2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐDiscussion(ctx, field.Selections, res)
+	return ec.marshalNPost2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐPost(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _PageInfo_startCursor(ctx context.Context, field graphql.CollectedField, obj *model.PageInfo) (ret graphql.Marshaler) {

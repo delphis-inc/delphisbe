@@ -56,7 +56,7 @@ func (r *mutationResolver) AddDiscussionParticipant(ctx context.Context, discuss
 	return participantObj, nil
 }
 
-func (r *mutationResolver) AddPost(ctx context.Context, discussionID string, postContent string) (*model.Discussion, error) {
+func (r *mutationResolver) AddPost(ctx context.Context, discussionID string, postContent string) (*model.Post, error) {
 	creatingUser := auth.GetAuthedUser(ctx)
 	if creatingUser == nil {
 		return nil, fmt.Errorf("Need auth")
@@ -81,12 +81,12 @@ func (r *mutationResolver) AddPost(ctx context.Context, discussionID string, pos
 		return nil, fmt.Errorf("Only participants can write to this discussion")
 	}
 
-	_, err = r.DAOManager.CreatePost(ctx, *discussionParticipantKey, postContent)
+	createdPost, err := r.DAOManager.CreatePost(ctx, *discussionParticipantKey, postContent)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to create post")
 	}
 
-	return r.DAOManager.GetDiscussionByID(ctx, discussionID)
+	return createdPost, nil
 }
 
 func (r *queryResolver) Discussion(ctx context.Context, id string) (*model.Discussion, error) {
