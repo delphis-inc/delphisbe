@@ -60,3 +60,15 @@ docker build -t delphisbe .
 docker tag delphisbe:latest 033236388136.dkr.ecr.us-west-2.amazonaws.com/delphisbe:latest
 docker push 033236388136.dkr.ecr.us-west-2.amazonaws.com/delphisbe:latest
 ```
+
+# Database setup
+I had to do the following:
+* Create the database cluster within the console in order to not store the password (left a note in the aurora.tf file in terraform.)
+* Create an instance (created via terraform)
+* Create a bastion box ssh through (alternatively could add my IP to the VPC)
+* The bastion box needs to be added to the RDS security group.
+* Once on the db instance:
+> CREATE USER chatham_staging WITH PASSWORD <REDACTED>;
+> CREATE ROLE chatham_app;
+> GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public to chatham_app;
+> GRANT chatham_app TO chatham_staging;

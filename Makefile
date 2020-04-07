@@ -33,3 +33,6 @@ update-service:
 
 get-ecr-creds:
 	aws ecr --profile delphis get-login-password --region us-west-2 | docker login --username AWS --password-stdin 033236388136.dkr.ecr.us-west-2.amazonaws.com/delphisbe
+
+start-db:
+pg_ctl -D '/usr/local/var/postgresql@11/data' start
