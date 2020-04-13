@@ -9,6 +9,7 @@ import (
 type Config struct {
 	Environment string        `json:"env" mapstructure:"env"`
 	DBConfig    DBConfig      `json:"db" mapstructure:"db"`
+	SQLDBConfig SQLDBConfig   `json:"sqldb" mapstructure:"sqldb"`
 	Twitter     TwitterConfig `json:"twitter" mapstructure:"twitter"`
 	Auth        AuthConfig    `json:"authConfig"`
 	AWS         AWSConfig     `json:"awsConfig" mapstructure:"aws"`
@@ -49,6 +50,11 @@ type DBConfig struct {
 	Port         int          `json:"port" mapstructure:"port"`
 	Region       string       `json:"region" mapstructure:"region"`
 	TablesConfig TablesConfig `json:"tables_config" mapstructure:"tables_config"`
+}
+
+type SQLDBConfig struct {
+	Host string `json:"host" mapstructure:"host"`
+	Port int    `json:"port" mapstructure:"port"`
 }
 
 type TablesConfig struct {

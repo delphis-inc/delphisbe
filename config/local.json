@@ -11,6 +11,10 @@
         }
     },
     "env": "local",
+    "sqldb": {
+        "host": "http://localhost",
+        "port": 5432
+    },
     "db": {
         "host": "http://localhost",
         "port": 7998,

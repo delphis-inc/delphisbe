@@ -38,13 +38,15 @@ type DelphisBackend interface {
 }
 
 type delphisBackend struct {
-	db   datastore.Datastore
-	auth auth.DelphisAuth
+	db    datastore.Datastore
+	auth  auth.DelphisAuth
+	sqldb datastore.Datastore
 }
 
 func NewDelphisBackend(conf config.Config, awsSession *session.Session) DelphisBackend {
 	return &delphisBackend{
-		db:   datastore.NewDatastore(conf.DBConfig, awsSession),
-		auth: auth.NewDelphisAuth(&conf.Auth),
+		db:    datastore.NewDatastore(conf.DBConfig, awsSession),
+		sqldb: datastore.NewSQLDatastore(conf.SQLDBConfig, awsSession),
+		auth:  auth.NewDelphisAuth(&conf.Auth),
 	}
 }

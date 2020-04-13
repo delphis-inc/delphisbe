@@ -4,32 +4,10 @@ package resolver
 
 import (
 	"context"
-	"sort"
 
 	"github.com/nedrocks/delphisbe/graph/generated"
 	"github.com/nedrocks/delphisbe/graph/model"
 )
-
-func (r *userProfileResolver) ModeratedDiscussions(ctx context.Context, obj *model.UserProfile) ([]*model.Discussion, error) {
-	moderatedDiscussionMap, err := r.DAOManager.GetDiscussionsByIDs(ctx, obj.ModeratedDiscussionIDs)
-
-	if err != nil {
-		return nil, err
-	}
-
-	moderatedDiscussions := make([]*model.Discussion, 0)
-	for _, v := range moderatedDiscussionMap {
-		if v != nil {
-			moderatedDiscussions = append(moderatedDiscussions, v)
-		}
-	}
-
-	sort.Slice(moderatedDiscussions, func(i, j int) bool {
-		return moderatedDiscussions[i].CreatedAt.Before(moderatedDiscussions[j].CreatedAt)
-	})
-
-	return moderatedDiscussions, nil
-}
 
 func (r *userProfileResolver) ProfileImageURL(ctx context.Context, obj *model.UserProfile) (string, error) {
 	return obj.TwitterInfo.ProfileImageURL, nil

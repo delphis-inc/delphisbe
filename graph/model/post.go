@@ -3,19 +3,17 @@ package model
 import "time"
 
 type Post struct {
-	ID string `json:"id" dynamodbav:"ID"`
-	// Sort Key
-	CreatedAt         time.Time          `json:"createdAt" dynamodbav:"CreatedAt"`
-	UpdatedAt         time.Time          `json:"updatedAt"`
+	ID                string             `json:"id" dynamodbav:"ID" gorm:"type:varchar(32)"`
+	CreatedAt         time.Time          `json:"createdAt" dynamodbav:"CreatedAt" gorm:"not null"`
+	UpdatedAt         time.Time          `json:"updatedAt" gorm:"not null"`
 	DeletedAt         *time.Time         `json:"deletedAt"`
-	DeletedReasonCode *PostDeletedReason `json:"deletedReasonCode"`
-	Discussion        *Discussion        `json:"discussion" dynamodbav:"-"`
-	// Primary key
-	DiscussionID  string       `json:"discussionID" dynamodbav:"DiscussionID"`
-	Participant   *Participant `json:"participant" dynamodbav:"-"`
-	ParticipantID int          `json:"participantID"`
-	PostContentID string       `json:"postContentID"`
-	PostContent   PostContent  `json:"postContent"`
+	DeletedReasonCode *PostDeletedReason `json:"deletedReasonCode" gorm:"type:varchar(32)"`
+	Discussion        *Discussion        `json:"discussion" dynamodbav:"-" gorm:"-"` //gorm:"foreignkey:DiscussionID"`
+	DiscussionID      string             `json:"discussionID" dynamodbav:"DiscussionID" gorm:"type:varchar(32)"`
+	Participant       *Participant       `json:"participant" dynamodbav:"-" gorm:"-"` //gorm:"foreignkey:participant_id;association_foreignkey:id"`
+	ParticipantID     int                `json:"participantID"`
+	PostContentID     string             `json:"postContentID" gorm:"type:varchar(32)"`
+	PostContent       PostContent        `json:"postContent" gorm:"-"` //gorm:"foreinkey:post_content_id;association_foreignkey:id"`
 }
 
 type PostsEdge struct {

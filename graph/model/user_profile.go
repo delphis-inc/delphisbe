@@ -7,16 +7,17 @@ const (
 )
 
 type UserProfile struct {
-	ID          string `json:"id"`
-	DisplayName string `json:"displayName"`
-	UserID      string `json:"userID" dynamodbav:",omitempty"`
+	ID          string `json:"id" gorm:"type:varchar(32)"`
+	DisplayName string `json:"displayName" gorm:"type:varchar(256)"`
+	UserID      string `json:"userID" dynamodbav:",omitempty" gorm:"type:varchar(32)"`
+	User        User   `json:"user" gorm:"-"` //gorm:"foreignkey:user_id;association_foreignkey:id"`
 	// Handle without the `@` sign.
-	TwitterHandle          string       `json:"twitterHandle"`
-	ModeratedDiscussionIDs []string     `json:"moderatedDiscussionIDs" dynamodbav:",stringset,omitempty"`
-	ModeratedDiscussions   []Discussion `json:"moderatedDiscussions" dynamodbav:"-"`
+	TwitterHandle string `json:"twitterHandle"`
+	// ModeratedDiscussionIDs []string     `json:"moderatedDiscussionIDs" dynamodbav:",stringset,omitempty"`
+	// ModeratedDiscussions   []Discussion `json:"moderatedDiscussions" dynamodbav:"-" gorm:"-"`
 
 	// Twitter related fields
-	TwitterInfo SocialInfo `json:"twitterInfo"`
+	TwitterInfo SocialInfo `json:"twitterInfo" gorm:"type:json"`
 }
 
 type SocialInfo struct {

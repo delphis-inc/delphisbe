@@ -3,7 +3,7 @@ type UserProfile {
 
     displayName: String!
 
-    moderatedDiscussions: [Discussion!]
+    #moderatedDiscussions: [Discussion!]
 
     twitterURL: URL!
 

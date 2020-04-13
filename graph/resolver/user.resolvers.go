@@ -12,49 +12,31 @@ import (
 )
 
 func (r *userResolver) Participants(ctx context.Context, obj *model.User) ([]*model.Participant, error) {
-	if obj.Participants == nil || len(obj.Participants) == 0 {
-		participantMap, err := r.DAOManager.GetParticipantsByIDs(ctx, obj.DiscussionParticipants.Keys)
-
-		if err != nil {
-			return nil, err
+	participants := make([]*model.Participant, 0)
+	for _, p := range obj.Participants {
+		if p != nil && p.Discussion != nil && p.Discussion.DeletedAt == nil {
+			participants = append(participants, p)
 		}
-
-		participants := make([]*model.Participant, 0)
-		for _, p := range participantMap {
-			if p != nil {
-				participants = append(participants, p)
-			}
-		}
-
-		sort.Slice(participants, func(i, j int) bool {
-			return participants[i].CreatedAt.Before(participants[j].CreatedAt)
-		})
-		obj.Participants = participants
 	}
-	return obj.Participants, nil
+
+	sort.Slice(participants, func(i, j int) bool {
+		return participants[i].CreatedAt.Before(participants[j].CreatedAt)
+	})
+
+	return participants, nil
 }
 
 func (r *userResolver) Viewers(ctx context.Context, obj *model.User) ([]*model.Viewer, error) {
-	if obj.Viewers == nil || len(obj.Viewers) == 0 {
-		viewerMap, err := r.DAOManager.GetViewersByIDs(ctx, obj.DiscussionViewers.Keys)
-
-		if err != nil {
-			return nil, err
+	viewers := make([]*model.Viewer, 0)
+	for _, v := range obj.Viewers {
+		if v != nil && v.Discussion != nil && v.Discussion.DeletedAt == nil {
+			viewers = append(viewers, v)
 		}
-
-		viewers := make([]*model.Viewer, 0)
-		for _, v := range viewerMap {
-			if v != nil {
-				viewers = append(viewers, v)
-			}
-		}
-
-		sort.Slice(viewers, func(i, j int) bool {
-			return viewers[i].CreatedAt.Before(viewers[j].CreatedAt)
-		})
-		obj.Viewers = viewers
 	}
-	return obj.Viewers, nil
+	sort.Slice(viewers, func(i, j int) bool {
+		return viewers[i].CreatedAt.Before(viewers[j].CreatedAt)
+	})
+	return viewers, nil
 }
 
 func (r *userResolver) Bookmarks(ctx context.Context, obj *model.User) ([]*model.PostBookmark, error) {

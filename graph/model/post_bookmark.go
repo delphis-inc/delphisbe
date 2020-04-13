@@ -8,9 +8,9 @@ type PostBookmark struct {
 	UpdatedAt    time.Time   `json:"updatedAt"`
 	DeletedAt    *time.Time  `json:"deletedAt"`
 	DiscussionID string      `json:"discussionID"`
-	Discussion   *Discussion `json:"discussion" dynamodbav:"-"`
+	Discussion   *Discussion `json:"discussion" dynamodbav:"-" gorm:"foreignkey:DiscussionID"`
 	PostID       string      `json:"postID"`
-	Post         *Post       `json:"post" dynamodbav:"-"`
+	Post         *Post       `json:"post" dynamodbav:"-" gorm:"foreignkey:PostID"`
 }
 
 type PostBookmarksEdge struct {

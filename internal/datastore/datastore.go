@@ -12,6 +12,9 @@ import (
 	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbattribute"
 	"github.com/nedrocks/delphisbe/graph/model"
 	"github.com/nedrocks/delphisbe/internal/config"
+
+	"github.com/jinzhu/gorm"
+	_ "github.com/jinzhu/gorm/dialects/postgres"
 )
 
 type Datastore interface {
@@ -72,4 +75,15 @@ func NewDatastore(dbConfig config.DBConfig, awsSession *session.Session) Datasto
 			NullEmptyString: true,
 		},
 	}
+}
+
+func NewSQLDatastore(sqlDbConfig config.SQLDBConfig, awsSession *session.Session) Datastore {
+	db, err := gorm.Open("postgres", "postgresql://127.0.0.1:5432/chatham_local?sslmode=disable")
+	if err != nil {
+		logrus.WithError(err).Fatalf("Failed to open db")
+	}
+	// need to defer closing the db.
+	db.AutoMigrate(model.DatabaseModels...)
+
+	return nil
 }

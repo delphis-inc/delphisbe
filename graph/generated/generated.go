@@ -170,11 +170,10 @@ type ComplexityRoot struct {
 	}
 
 	UserProfile struct {
-		DisplayName          func(childComplexity int) int
-		ID                   func(childComplexity int) int
-		ModeratedDiscussions func(childComplexity int) int
-		ProfileImageURL      func(childComplexity int) int
-		TwitterURL           func(childComplexity int) int
+		DisplayName     func(childComplexity int) int
+		ID              func(childComplexity int) int
+		ProfileImageURL func(childComplexity int) int
+		TwitterURL      func(childComplexity int) int
 	}
 
 	Viewer struct {
@@ -259,8 +258,6 @@ type UserResolver interface {
 	Profile(ctx context.Context, obj *model.User) (*model.UserProfile, error)
 }
 type UserProfileResolver interface {
-	ModeratedDiscussions(ctx context.Context, obj *model.UserProfile) ([]*model.Discussion, error)
-
 	ProfileImageURL(ctx context.Context, obj *model.UserProfile) (string, error)
 }
 type ViewerResolver interface {
@@ -754,13 +751,6 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.UserProfile.ID(childComplexity), true
 
-	case "UserProfile.moderatedDiscussions":
-		if e.complexity.UserProfile.ModeratedDiscussions == nil {
-			break
-		}
-
-		return e.complexity.UserProfile.ModeratedDiscussions(childComplexity), true
-
 	case "UserProfile.profileImageURL":
 		if e.complexity.UserProfile.ProfileImageURL == nil {
 			break
@@ -1098,7 +1088,7 @@ type User {
 
     displayName: String!
 
-    moderatedDiscussions: [Discussion!]
+    #moderatedDiscussions: [Discussion!]
 
     twitterURL: URL!
 
@@ -3459,37 +3449,6 @@ func (ec *executionContext) _UserProfile_displayName(ctx context.Context, field 
 	res := resTmp.(string)
 	fc.Result = res
 	return ec.marshalNString2string(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) _UserProfile_moderatedDiscussions(ctx context.Context, field graphql.CollectedField, obj *model.UserProfile) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:   "UserProfile",
-		Field:    field,
-		Args:     nil,
-		IsMethod: true,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.UserProfile().ModeratedDiscussions(rctx, obj)
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		return graphql.Null
-	}
-	res := resTmp.([]*model.Discussion)
-	fc.Result = res
-	return ec.marshalODiscussion2ᚕᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐDiscussionᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _UserProfile_twitterURL(ctx context.Context, field graphql.CollectedField, obj *model.UserProfile) (ret graphql.Marshaler) {
@@ -5943,17 +5902,6 @@ func (ec *executionContext) _UserProfile(ctx context.Context, sel ast.SelectionS
 			if out.Values[i] == graphql.Null {
 				atomic.AddUint32(&invalids, 1)
 			}
-		case "moderatedDiscussions":
-			field := field
-			out.Concurrently(i, func() (res graphql.Marshaler) {
-				defer func() {
-					if r := recover(); r != nil {
-						ec.Error(ctx, ec.Recover(ctx, r))
-					}
-				}()
-				res = ec._UserProfile_moderatedDiscussions(ctx, field, obj)
-				return res
-			})
 		case "twitterURL":
 			out.Values[i] = ec._UserProfile_twitterURL(ctx, field, obj)
 			if out.Values[i] == graphql.Null {

@@ -3,22 +3,22 @@ package model
 import "time"
 
 type Viewer struct {
-	ID                      string                        `json:"id" dynamodbav:"ViewerID"`
-	CreatedAt               time.Time                     `json:"createdAt"`
-	UpdatedAt               time.Time                     `json:"updatedAt"`
-	DeletedAt               *time.Time                    `json:"deletedAt"`
-	NotificationPreferences ViewerNotificationPreferences `json:"notificationPreferences"`
-	DiscussionID            string                        `json:"discussionID" dynamodbav:"DiscussionID"`
-	Discussion              *Discussion                   `json:"discussion" dynamodbav:"-"`
-	LastViewed              *time.Time                    `json:"lastViewed"`
-	LastViewedPostID        *string                       `json:"lastViewedPostID"`
-	LastViewedPost          *Post                         `json:"lastViewedPost" dynamodbav:"-"`
-	Bookmarks               *PostsConnection              `json:"bookmarks" dynamodbav:"-"`
+	ID        string     `json:"id" dynamodbav:"ViewerID" gorm:"type:varchar(32)"`
+	CreatedAt time.Time  `json:"createdAt" gorm:"not null"`
+	UpdatedAt time.Time  `json:"updatedAt" gorm:"not null"`
+	DeletedAt *time.Time `json:"deletedAt" gorm:"not null"`
+	//NotificationPreferences ViewerNotificationPreferences `json:"notificationPreferences"`
+	DiscussionID     string      `json:"discussionID" dynamodbav:"DiscussionID" gorm:"type:varchar(32)"`
+	Discussion       *Discussion `json:"discussion" dynamodbav:"-" gorm:"-"` //gorm:"foreignkey:discussion_id;association_foreignkey:id"`
+	LastViewed       *time.Time  `json:"lastViewed"`
+	LastViewedPostID *string     `json:"lastViewedPostID" gorm:"type:varchar(32)"`
+	LastViewedPost   *Post       `json:"lastViewedPost" dynamodbav:"-" gorm:"-"` //gorm:"foreignkey:last_post_viewed_id;association_foreignkey:id"`
+	//Bookmarks               *PostsConnection              `json:"bookmarks" dynamodbav:"-"`
 
 	// NOTE: This is not exposed currently but keeping it here for
 	// testing purposes. We will try out exposing user information one of the tests.
-	UserID string `json:"userID"`
-	User   *User  `json:"user" dynamodbav:"-"`
+	UserID string `json:"userID" gorm:"type:varchar(32)"`
+	User   *User  `json:"user" dynamodbav:"-" gorm:"-"` //gorm:"foreignkey:UserID"`
 }
 
 func (v Viewer) DiscussionViewerKey() DiscussionViewerKey {
