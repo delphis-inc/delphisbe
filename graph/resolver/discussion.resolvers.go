@@ -4,12 +4,22 @@ package resolver
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	"github.com/nedrocks/delphisbe/graph/generated"
 	"github.com/nedrocks/delphisbe/graph/model"
 )
+
+func (r *discussionResolver) Moderator(ctx context.Context, obj *model.Discussion) (*model.Moderator, error) {
+	if obj.Moderator == nil && obj.ModeratorID != nil {
+		moderator, err := r.DAOManager.GetModeratorByID(ctx, *obj.ModeratorID)
+		if err != nil {
+			return nil, err
+		}
+		obj.Moderator = moderator
+	}
+	return obj.Moderator, nil
+}
 
 func (r *discussionResolver) Posts(ctx context.Context, obj *model.Discussion) ([]*model.Post, error) {
 	posts, err := r.DAOManager.GetPostsByDiscussionID(ctx, obj.ID)
@@ -51,13 +61,3 @@ func (r *discussionResolver) UpdatedAt(ctx context.Context, obj *model.Discussio
 func (r *Resolver) Discussion() generated.DiscussionResolver { return &discussionResolver{r} }
 
 type discussionResolver struct{ *Resolver }
-
-// !!! WARNING !!!
-// The code below was going to be deleted when updating resolvers. It has been copied here so you have
-// one last chance to move it out of harms way if you want. There are two reasons this happens:
-//  - When renaming or deleting a resolver the old code will be put in here. You can safely delete
-//    it when you're done.
-//  - You have helper methods in this file. Move them out to keep these resolver files clean.
-func (r *discussionResolver) Moderator(ctx context.Context, obj *model.Discussion) (*model.Moderator, error) {
-	panic(fmt.Errorf("not implemented"))
-}

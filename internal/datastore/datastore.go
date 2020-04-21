@@ -21,6 +21,8 @@ type Datastore interface {
 	GetDiscussionByID(ctx context.Context, id string) (*model.Discussion, error)
 	GetDiscussionsByIDs(ctx context.Context, ids []string) (map[string]*model.Discussion, error)
 	GetDiscussionByModeratorID(ctx context.Context, moderatorID string) (*model.Discussion, error)
+	CreateModerator(ctx context.Context, moderator model.Moderator) (*model.Moderator, error)
+	GetModeratorByID(ctx context.Context, id string) (*model.Moderator, error)
 	ListDiscussions(ctx context.Context) (*model.DiscussionsConnection, error)
 	UpsertDiscussion(ctx context.Context, discussion model.Discussion) (*model.Discussion, error)
 	GetParticipantByID(ctx context.Context, participantID string) (*model.Participant, error)
@@ -30,6 +32,7 @@ type Datastore interface {
 	PutPost(ctx context.Context, post model.Post) (*model.Post, error)
 	GetUserProfileByID(ctx context.Context, id string) (*model.UserProfile, error)
 	GetUserProfileByUserID(ctx context.Context, userID string) (*model.UserProfile, error)
+	GetSocialInfosByUserProfileID(ctx context.Context, userProfileID string) ([]model.SocialInfo, error)
 	UpsertSocialInfo(ctx context.Context, obj model.SocialInfo) (*model.SocialInfo, error)
 	CreateOrUpdateUserProfile(ctx context.Context, userProfile model.UserProfile) (*model.UserProfile, bool, error)
 	UpsertUser(ctx context.Context, user model.User) (*model.User, error)
@@ -87,7 +90,7 @@ func NewSQLDatastore(sqlDbConfig config.SQLDBConfig, awsSession *session.Session
 
 	// Set autoload
 	//db = db.Set("gorm:auto_preload", true)
-	db = db.LogMode(true)
+	//db = db.LogMode(true)
 	// need to defer closing the db.
 	//db.AutoMigrate(model.DatabaseModels...)
 

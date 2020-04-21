@@ -10,6 +10,13 @@ import (
 )
 
 func (r *userProfileResolver) ProfileImageURL(ctx context.Context, obj *model.UserProfile) (string, error) {
+	if len(obj.SocialInfos) == 0 {
+		si, err := r.DAOManager.GetSocialInfosByUserProfileID(ctx, obj.ID)
+		if err != nil {
+			return "", err
+		}
+		obj.SocialInfos = si
+	}
 	return obj.SocialInfos[0].ProfileImageURL, nil
 }
 

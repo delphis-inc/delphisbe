@@ -10,7 +10,7 @@ type Discussion struct {
 	Title           string           `json:"title" gorm:"not null"`
 	AnonymityType   AnonymityType    `json:"anonymityType" gorm:"type:varchar(36);not null"`
 	ModeratorID     *string          `json:"moderatorID" gorm:"type:varchar(36)"`
-	Moderator       *Moderator       `json:"moderator" gorm:"foreignKey:ModeratorID"` // gorm:"foreignkey:moderator_id;association_foreignkey:id"`
+	Moderator       *Moderator       `json:"moderator" gorm:"foreignKey:ModeratorID"`
 	Posts           []*Post          `gorm:"foreignKey:DiscussionID"`
 	PostConnections *PostsConnection `json:"posts" dynamodbav:"-" gorm:"-"`
 	Participants    []*Participant   `json:"participants" dynamodbav:"-" gorm:"foreignKey:DiscussionID"`

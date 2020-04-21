@@ -2,6 +2,7 @@ package datastore
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
@@ -12,7 +13,7 @@ import (
 )
 
 func (d *db) GetUserProfileByUserID(ctx context.Context, userID string) (*model.UserProfile, error) {
-	logrus.Debug("GetUserProfileByUserID::SQL Query")
+	logrus.Debugf("GetUserProfileByUserID::SQL Query, userID: %s", userID)
 	user := model.User{}
 	userProfile := model.UserProfile{}
 	if err := d.sql.First(&user, &model.User{ID: userID}).Preload("SocialInfos").Related(&userProfile).Error; err != nil {
@@ -29,7 +30,7 @@ func (d *db) GetUserProfileByUserID(ctx context.Context, userID string) (*model.
 func (d *db) GetUserProfileByID(ctx context.Context, id string) (*model.UserProfile, error) {
 	logrus.Debug("GetUserProfileByID::SQL Query")
 	userProfile := model.UserProfile{}
-	if err := d.sql.Where(id).Preload("SocialInfos").Error; err != nil {
+	if err := d.sql.Preload("SocialInfos").First(&userProfile, &model.UserProfile{ID: id}).Error; err != nil {
 		if gorm.IsRecordNotFoundError(err) {
 			return nil, nil
 		}
@@ -43,25 +44,28 @@ func (d *db) GetUserProfileByID(ctx context.Context, id string) (*model.UserProf
 func (d *db) CreateOrUpdateUserProfile(ctx context.Context, userProfile model.UserProfile) (*model.UserProfile, bool, error) {
 	logrus.Debugf("CreateOrUpdateUserProfile::SQL Insert/Update: %+v", userProfile)
 	found := model.UserProfile{}
-	isCreate := true
+	isCreate := false
 	if err := d.sql.First(&found, model.UserProfile{ID: userProfile.ID}).Error; err != nil {
 		if gorm.IsRecordNotFoundError(err) {
-			if err := d.sql.Create(&userProfile).Preload("SocialInfos").Error; err != nil {
+			if err := d.sql.Preload("SocialInfos").Create(&userProfile).Error; err != nil {
 				logrus.WithError(err).Errorf("CreateOrUpdateUserProfile::Failed creating new object")
 				return nil, false, err
 			}
-			isCreate = false
+			isCreate = true
 		} else {
 			logrus.WithError(err).Errorf("CreateOrUpdateUserProfile::Failed checking for UserProfile")
 			return nil, false, err
 		}
 	} else {
-		// Not found so this is an update.
-		if err := d.sql.Save(&userProfile).Preload("SocialInfos").Error; err != nil {
+		// Found so this is an update.
+		logrus.Debugf("I found: %+v", found)
+		if err := d.sql.Preload("SocialInfos").Save(&userProfile).Error; err != nil {
 			logrus.WithError(err).Errorf("CreateOrUpdateUserProfile::Failed updating user profile")
 			return nil, false, err
 		}
+		return nil, false, fmt.Errorf("early exit")
 	}
+	logrus.Debugf("Updated or created user profile: %+v", userProfile)
 	return &userProfile, isCreate, nil
 }
 

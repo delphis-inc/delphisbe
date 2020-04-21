@@ -7,6 +7,7 @@ import (
 
 	"github.com/nedrocks/delphisbe/graph/generated"
 	"github.com/nedrocks/delphisbe/graph/model"
+	"github.com/sirupsen/logrus"
 )
 
 func (r *moderatorResolver) Discussion(ctx context.Context, obj *model.Moderator) (*model.Discussion, error) {
@@ -23,8 +24,10 @@ func (r *moderatorResolver) Discussion(ctx context.Context, obj *model.Moderator
 }
 
 func (r *moderatorResolver) UserProfile(ctx context.Context, obj *model.Moderator) (*model.UserProfile, error) {
+	logrus.Debugf("Have moderator: %+v", obj)
 	if obj.UserProfile == nil && obj.UserProfileID != nil {
 		userProfile, err := r.DAOManager.GetUserProfileByID(ctx, *obj.UserProfileID)
+		logrus.Debugf("User Profile: %+v; err: %+v", userProfile, err)
 
 		if err != nil {
 			return nil, err

@@ -50,6 +50,7 @@ func (b *delphisBackend) GetOrCreateUser(ctx context.Context, input LoginWithTwi
 	}
 
 	var userObj *model.User
+	logrus.Debugf("isCreated? %t, userProfileObj: %+v", isCreated, userProfileObj)
 	if isCreated || userProfileObj.UserID == nil {
 		userObj = &model.User{
 			ID:        util.UUIDv4(),

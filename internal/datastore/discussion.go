@@ -24,7 +24,7 @@ func (d *db) GetDiscussionByID(ctx context.Context, id string) (*model.Discussio
 func (d *db) GetDiscussionsByIDs(ctx context.Context, ids []string) (map[string]*model.Discussion, error) {
 	logrus.Debug("GetDiscussionsByIDs::SQL Query")
 	discussions := []model.Discussion{}
-	if err := d.sql.Where(ids).Find(&discussions).Error; err != nil {
+	if err := d.sql.Where(ids).Preload("Moderator").Find(&discussions).Error; err != nil {
 		if gorm.IsRecordNotFoundError(err) {
 			// This is a not found situation with multiple ids. Not sure what to do here..?
 		} else {
@@ -46,7 +46,7 @@ func (d *db) GetDiscussionByModeratorID(ctx context.Context, moderatorID string)
 	logrus.Debugf("GetDiscussionByModeratorID::SQL Query")
 	discussion := model.Discussion{}
 	moderator := model.Moderator{}
-	if err := d.sql.First(&moderator, &model.Moderator{ID: moderatorID}).Related(&discussion).Error; err != nil {
+	if err := d.sql.Preload("Moderator").First(&moderator, model.Moderator{ID: moderatorID}).Related(&discussion).Error; err != nil {
 		if gorm.IsRecordNotFoundError(err) {
 			return nil, nil
 		}
@@ -62,7 +62,7 @@ func (d *db) ListDiscussions(ctx context.Context) (*model.DiscussionsConnection,
 	logrus.Debugf("ListDiscussions::SQL Query")
 
 	discussions := []model.Discussion{}
-	if err := d.sql.Find(&discussions).Error; err != nil {
+	if err := d.sql.Preload("Moderator").Find(&discussions).Error; err != nil {
 		logrus.WithError(err).Errorf("ListDiscussions::Failed to list discussions")
 		return nil, err
 	}
@@ -97,7 +97,7 @@ func (d *db) UpsertDiscussion(ctx context.Context, discussion model.Discussion) 
 			return nil, err
 		}
 	} else {
-		if err := d.sql.Save(&discussion).Error; err != nil {
+		if err := d.sql.Preload("Moderator").Save(&discussion).Error; err != nil {
 			logrus.WithError(err).Errorf("UpsertDiscussion::Failed updating disucssion object")
 			return nil, err
 		}

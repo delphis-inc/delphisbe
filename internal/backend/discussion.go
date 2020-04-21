@@ -9,6 +9,15 @@ import (
 )
 
 func (d *delphisBackend) CreateNewDiscussion(ctx context.Context, creatingUser *model.User, anonymityType model.AnonymityType, title string) (*model.Discussion, error) {
+	moderatorObj := model.Moderator{
+		ID:            util.UUIDv4(),
+		UserProfileID: &creatingUser.UserProfile.ID,
+	}
+	_, err := d.db.CreateModerator(ctx, moderatorObj)
+	if err != nil {
+		return nil, err
+	}
+
 	discussionID := util.UUIDv4()
 	discussionObj := model.Discussion{
 		CreatedAt:     time.Now(),
@@ -16,9 +25,10 @@ func (d *delphisBackend) CreateNewDiscussion(ctx context.Context, creatingUser *
 		ID:            discussionID,
 		AnonymityType: anonymityType,
 		Title:         title,
+		ModeratorID:   &moderatorObj.ID,
 	}
 
-	_, err := d.db.UpsertDiscussion(ctx, discussionObj)
+	_, err = d.db.UpsertDiscussion(ctx, discussionObj)
 
 	if err != nil {
 		return nil, err

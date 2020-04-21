@@ -29,3 +29,17 @@ func (d *db) UpsertSocialInfo(ctx context.Context, obj model.SocialInfo) (*model
 	}
 	return &obj, nil
 }
+
+func (d *db) GetSocialInfosByUserProfileID(ctx context.Context, userProfileID string) ([]model.SocialInfo, error) {
+	logrus.Debugf("GetSocialInfosByUserProfileID::SQL Query")
+	found := []model.SocialInfo{}
+	if err := d.sql.Where(&model.SocialInfo{UserProfileID: userProfileID}).Find(&found).Error; err != nil {
+		if gorm.IsRecordNotFoundError(err) {
+
+		} else {
+			logrus.WithError(err).Errorf("GetSocialInfosByUserProfileID::Failed getting social infos")
+			return nil, err
+		}
+	}
+	return found, nil
+}

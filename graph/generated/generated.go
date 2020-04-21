@@ -202,6 +202,8 @@ type ComplexityRoot struct {
 }
 
 type DiscussionResolver interface {
+	Moderator(ctx context.Context, obj *model.Discussion) (*model.Moderator, error)
+
 	Posts(ctx context.Context, obj *model.Discussion) ([]*model.Post, error)
 	Participants(ctx context.Context, obj *model.Discussion) ([]*model.Participant, error)
 
@@ -1316,13 +1318,13 @@ func (ec *executionContext) _Discussion_moderator(ctx context.Context, field gra
 		Object:   "Discussion",
 		Field:    field,
 		Args:     nil,
-		IsMethod: false,
+		IsMethod: true,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.Moderator, nil
+		return ec.resolvers.Discussion().Moderator(rctx, obj)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -1334,9 +1336,9 @@ func (ec *executionContext) _Discussion_moderator(ctx context.Context, field gra
 		}
 		return graphql.Null
 	}
-	res := resTmp.(model.Moderator)
+	res := resTmp.(*model.Moderator)
 	fc.Result = res
-	return ec.marshalNModerator2githubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐModerator(ctx, field.Selections, res)
+	return ec.marshalNModerator2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐModerator(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Discussion_anonymityType(ctx context.Context, field graphql.CollectedField, obj *model.Discussion) (ret graphql.Marshaler) {
@@ -5012,10 +5014,19 @@ func (ec *executionContext) _Discussion(ctx context.Context, sel ast.SelectionSe
 				atomic.AddUint32(&invalids, 1)
 			}
 		case "moderator":
-			out.Values[i] = ec._Discussion_moderator(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				atomic.AddUint32(&invalids, 1)
-			}
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Discussion_moderator(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
 		case "anonymityType":
 			out.Values[i] = ec._Discussion_anonymityType(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
@@ -6420,6 +6431,16 @@ func (ec *executionContext) marshalNInt2int(ctx context.Context, sel ast.Selecti
 
 func (ec *executionContext) marshalNModerator2githubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐModerator(ctx context.Context, sel ast.SelectionSet, v model.Moderator) graphql.Marshaler {
 	return ec._Moderator(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNModerator2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐModerator(ctx context.Context, sel ast.SelectionSet, v *model.Moderator) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	return ec._Moderator(ctx, sel, v)
 }
 
 func (ec *executionContext) marshalNPageInfo2githubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐPageInfo(ctx context.Context, sel ast.SelectionSet, v model.PageInfo) graphql.Marshaler {

@@ -36,7 +36,7 @@ func (d *db) UpsertUser(ctx context.Context, user model.User) (*model.User, erro
 func (d *db) GetUserByID(ctx context.Context, userID string) (*model.User, error) {
 	logrus.Debug("GetUserByID::SQL Query")
 	found := model.User{}
-	if err := d.sql.Preload("Participants").Preload("Viewers").First(&found, &model.User{ID: userID}).Error; err != nil {
+	if err := d.sql.Preload("Participants").Preload("Viewers").Preload("UserProfile").First(&found, &model.User{ID: userID}).Error; err != nil {
 		if gorm.IsRecordNotFoundError(err) {
 			return nil, nil
 		}

@@ -16,6 +16,7 @@ type DelphisBackend interface {
 	GetDiscussionsByIDs(ctx context.Context, ids []string) (map[string]*model.Discussion, error)
 	GetDiscussionByModeratorID(ctx context.Context, moderatorID string) (*model.Discussion, error)
 	ListDiscussions(ctx context.Context) (*model.DiscussionsConnection, error)
+	GetModeratorByID(ctx context.Context, id string) (*model.Moderator, error)
 	CreateParticipantForDiscussion(ctx context.Context, discussionID string, userID string) (*model.Participant, error)
 	GetParticipantsByDiscussionID(ctx context.Context, id string) ([]model.Participant, error)
 	GetParticipantByID(ctx context.Context, id string) (*model.Participant, error)
@@ -29,6 +30,7 @@ type DelphisBackend interface {
 	GetViewerByID(ctx context.Context, viewerID string) (*model.Viewer, error)
 	GetViewersByIDs(ctx context.Context, viewerIDs []string) (map[string]*model.Viewer, error)
 	CreateViewerForDiscussion(ctx context.Context, discussionID string, userID string) (*model.Viewer, error)
+	GetSocialInfosByUserProfileID(ctx context.Context, userProfileID string) ([]model.SocialInfo, error)
 	UpsertSocialInfo(ctx context.Context, socialInfo model.SocialInfo) (*model.SocialInfo, error)
 
 	NewAccessToken(ctx context.Context, userID string) (*auth.DelphisAccessToken, error)

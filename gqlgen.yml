@@ -60,6 +60,8 @@ models:
         resolver: true
       participants:
         resolver: true
+      moderator:
+        resolver: true
   Moderator:
     fields:
       discussion:
