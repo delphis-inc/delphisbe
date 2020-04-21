@@ -8,6 +8,11 @@
         "isFargate": true
     },
     "env": "staging",
+    "sqldb": {
+        "host": "chatham-staging-aurora-pgsql.cluster-cgw5uhmof8wi.us-west-2.rds.amazonaws.com",
+        "port": 5432,
+        "db_name": "chatham_staging"
+    },
     "db": {
         "region": "us-west-2",
         "tables_config": {

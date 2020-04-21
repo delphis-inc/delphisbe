@@ -82,7 +82,8 @@ func NewDatastore(config config.Config, awsSession *session.Session) Datastore {
 }
 
 func NewSQLDatastore(sqlDbConfig config.SQLDBConfig, awsSession *session.Session) *gorm.DB {
-	db, err := gorm.Open("postgres", "postgresql://127.0.0.1:5432/chatham_local?sslmode=disable")
+	dbURI := fmt.Sprintf("host=%s port=%d user=%s dbname=%s sslmode=disable password=%s", sqlDbConfig.Host, sqlDbConfig.Port, sqlDbConfig.Username, sqlDbConfig.DBName, sqlDbConfig.Password)
+	db, err := gorm.Open("postgres", dbURI)
 	if err != nil {
 		logrus.WithError(err).Fatalf("Failed to open db")
 		return nil

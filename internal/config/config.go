@@ -18,6 +18,7 @@ type Config struct {
 func (c *Config) ReadEnvAndUpdate() {
 	viper.AutomaticEnv()
 	c.Twitter.ConsumerKey, c.Twitter.ConsumerSecret, c.Auth.HMACSecret = viper.GetString("twitter_consumer_key"), viper.GetString("twitter_consumer_secret"), viper.GetString("auth_hmac_secret")
+	c.SQLDBConfig.Username, c.SQLDBConfig.Password = viper.GetString("db_user"), viper.GetString("db_password")
 }
 
 type AWSConfig struct {
@@ -53,8 +54,11 @@ type DBConfig struct {
 }
 
 type SQLDBConfig struct {
-	Host string `json:"host" mapstructure:"host"`
-	Port int    `json:"port" mapstructure:"port"`
+	Host     string `json:"host" mapstructure:"host"`
+	Port     int    `json:"port" mapstructure:"port"`
+	DBName   string `json:"db_name" mapstructure:"db_name"`
+	Username string
+	Password string
 }
 
 type TablesConfig struct {
@@ -97,7 +101,7 @@ func ReadConfig() (*Config, error) {
 	}
 
 	viper.SetEnvPrefix("delphis")
-	_ = viper.BindEnv("twitter_consumer_key", "twitter_consumer_secret", "auth_hmac_secret")
+	_ = viper.BindEnv("twitter_consumer_key", "twitter_consumer_secret", "auth_hmac_secret", "db_username", "db_password")
 	config.ReadEnvAndUpdate()
 
 	return &config, nil

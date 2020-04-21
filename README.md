@@ -72,3 +72,14 @@ I had to do the following:
 > CREATE ROLE chatham_app;
 > GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public to chatham_app;
 > GRANT chatham_app TO chatham_staging;
+
+# Local to remote AWS database
+Setup the jumpbox:
+```
+Host delphis-bastion-db
+     HostName ec2-34-208-84-118.us-west-2.compute.amazonaws.com
+     IdentityFile /Users/ned/.ssh/delphis-keypair.pem
+     LocalForward 3333 chatham-staging-aurora-pgsql.cluster-cgw5uhmof8wi.us-west-2.rds.amazonaws.com:5432
+     User ec2-user
+```
+and kick it off. Then use `localhost:3333` for the database.
