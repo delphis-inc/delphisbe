@@ -8,7 +8,7 @@ import (
 	"github.com/nedrocks/delphisbe/internal/util"
 )
 
-func (d *delphisBackend) CreatePost(ctx context.Context, discussionKey model.DiscussionParticipantKey, content string) (*model.Post, error) {
+func (d *delphisBackend) CreatePost(ctx context.Context, discussionID string, participantID string, content string) (*model.Post, error) {
 	postContent := model.PostContent{
 		ID:      util.UUIDv4(),
 		Content: content,
@@ -18,9 +18,9 @@ func (d *delphisBackend) CreatePost(ctx context.Context, discussionKey model.Dis
 		ID:            util.UUIDv4(),
 		CreatedAt:     time.Now(),
 		UpdatedAt:     time.Now(),
-		DiscussionID:  discussionKey.DiscussionID,
-		ParticipantID: discussionKey.ParticipantID,
-		PostContentID: postContent.ID,
+		DiscussionID:  &discussionID,
+		ParticipantID: &participantID,
+		PostContentID: &postContent.ID,
 		PostContent:   postContent,
 	}
 

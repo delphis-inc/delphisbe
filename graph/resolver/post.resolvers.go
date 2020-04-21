@@ -19,8 +19,8 @@ func (r *postResolver) Content(ctx context.Context, obj *model.Post) (string, er
 }
 
 func (r *postResolver) Discussion(ctx context.Context, obj *model.Post) (*model.Discussion, error) {
-	if obj.Discussion == nil {
-		res, err := r.DAOManager.GetDiscussionByID(ctx, obj.DiscussionID)
+	if obj.Discussion == nil && obj.DiscussionID != nil {
+		res, err := r.DAOManager.GetDiscussionByID(ctx, *obj.DiscussionID)
 
 		if err != nil {
 			return nil, err
@@ -31,11 +31,8 @@ func (r *postResolver) Discussion(ctx context.Context, obj *model.Post) (*model.
 }
 
 func (r *postResolver) Participant(ctx context.Context, obj *model.Post) (*model.Participant, error) {
-	if obj.Participant == nil {
-		participant, err := r.DAOManager.GetParticipantByID(ctx, model.DiscussionParticipantKey{
-			DiscussionID:  obj.DiscussionID,
-			ParticipantID: obj.ParticipantID,
-		})
+	if obj.Participant == nil && obj.ParticipantID != nil {
+		participant, err := r.DAOManager.GetParticipantByID(ctx, *obj.ParticipantID)
 
 		if err != nil {
 			return nil, err

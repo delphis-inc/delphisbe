@@ -11,8 +11,8 @@ import (
 )
 
 func (r *participantResolver) Discussion(ctx context.Context, obj *model.Participant) (*model.Discussion, error) {
-	if obj.Discussion == nil {
-		disc, err := r.resolveDiscussionByID(ctx, obj.DiscussionID)
+	if obj.Discussion == nil && obj.DiscussionID != nil {
+		disc, err := r.resolveDiscussionByID(ctx, *obj.DiscussionID)
 		if err != nil {
 			return nil, err
 		}
@@ -23,11 +23,8 @@ func (r *participantResolver) Discussion(ctx context.Context, obj *model.Partici
 }
 
 func (r *participantResolver) Viewer(ctx context.Context, obj *model.Participant) (*model.Viewer, error) {
-	if obj.Viewer == nil {
-		viewerObj, err := r.DAOManager.GetViewerByID(ctx, model.DiscussionViewerKey{
-			DiscussionID: obj.DiscussionID,
-			ViewerID:     obj.ViewerID,
-		})
+	if obj.Viewer == nil && obj.ViewerID != nil {
+		viewerObj, err := r.DAOManager.GetViewerByID(ctx, *obj.ViewerID)
 
 		if err != nil {
 			return nil, err
@@ -43,16 +40,21 @@ func (r *participantResolver) DiscussionNotificationPreferences(ctx context.Cont
 }
 
 func (r *participantResolver) Posts(ctx context.Context, obj *model.Participant) ([]*model.Post, error) {
-	posts, err := r.DAOManager.GetPostsByDiscussionID(ctx, obj.DiscussionID)
+	if obj.DiscussionID == nil {
+		return nil, nil
+	}
+	posts, err := r.DAOManager.GetPostsByDiscussionID(ctx, *obj.DiscussionID)
 	if err != nil {
 		return nil, err
 	}
 
 	n := 0
 	for _, post := range posts {
-		if post.ParticipantID == obj.ParticipantID {
-			posts[n] = post
-			n++
+		if post.ParticipantID != nil {
+			if *post.ParticipantID == obj.ID {
+				posts[n] = post
+				n++
+			}
 		}
 	}
 	posts = posts[:n]

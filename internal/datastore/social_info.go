@@ -1,0 +1,31 @@
+package datastore
+
+import (
+	"context"
+
+	"github.com/jinzhu/gorm"
+	"github.com/nedrocks/delphisbe/graph/model"
+	"github.com/sirupsen/logrus"
+)
+
+func (d *db) UpsertSocialInfo(ctx context.Context, obj model.SocialInfo) (*model.SocialInfo, error) {
+	logrus.Debugf("UpsertSocialInfo::SQL Create/Update")
+	found := model.SocialInfo{}
+	if err := d.sql.First(&found, model.SocialInfo{Network: obj.Network, UserProfileID: obj.UserProfileID}).Error; err != nil {
+		if gorm.IsRecordNotFoundError(err) {
+			if err := d.sql.Create(&obj).Error; err != nil {
+				logrus.WithError(err).Errorf("UpsertSocialInfo::Failed to create new object")
+				return nil, err
+			}
+		} else {
+			logrus.WithError(err).Errorf("UpsertSocialInfo::Failed checking for SocialInfo object")
+			return nil, err
+		}
+	} else {
+		if err := d.sql.Save(&obj).Error; err != nil {
+			logrus.WithError(err).Errorf("UpsertSocialInfo::Failed updating SocialInfo object")
+			return nil, err
+		}
+	}
+	return &obj, nil
+}

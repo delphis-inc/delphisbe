@@ -11,7 +11,7 @@ import (
 
 func (r *moderatorResolver) Discussion(ctx context.Context, obj *model.Moderator) (*model.Discussion, error) {
 	if obj.Discussion == nil {
-		discussion, err := r.DAOManager.GetDiscussionByID(ctx, obj.DiscussionID)
+		discussion, err := r.DAOManager.GetDiscussionByModeratorID(ctx, obj.ID)
 
 		if err != nil {
 			return nil, err
@@ -23,8 +23,8 @@ func (r *moderatorResolver) Discussion(ctx context.Context, obj *model.Moderator
 }
 
 func (r *moderatorResolver) UserProfile(ctx context.Context, obj *model.Moderator) (*model.UserProfile, error) {
-	if obj.UserProfile == nil {
-		userProfile, err := r.DAOManager.GetUserProfileByID(ctx, obj.UserProfileID)
+	if obj.UserProfile == nil && obj.UserProfileID != nil {
+		userProfile, err := r.DAOManager.GetUserProfileByID(ctx, *obj.UserProfileID)
 
 		if err != nil {
 			return nil, err

@@ -1,0 +1,1 @@
+ALTER TABLE social_infos ADD CONSTRAINT social_infos_user_profiles_fk_cc5dd3246e1d FOREIGN KEY (user_profile_id) REFERENCES user_profiles (id) MATCH FULL;

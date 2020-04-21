@@ -15,15 +15,10 @@ func (d *delphisBackend) CreateNewDiscussion(ctx context.Context, creatingUser *
 		UpdatedAt:     time.Now(),
 		ID:            discussionID,
 		AnonymityType: anonymityType,
-		Moderator: model.Moderator{
-			ID:            discussionID,
-			UserProfileID: creatingUser.UserProfileID,
-			DiscussionID:  discussionID,
-		},
-		Title: title,
+		Title:         title,
 	}
 
-	_, err := d.db.PutDiscussion(ctx, discussionObj)
+	_, err := d.db.UpsertDiscussion(ctx, discussionObj)
 
 	if err != nil {
 		return nil, err
@@ -38,6 +33,10 @@ func (d *delphisBackend) GetDiscussionByID(ctx context.Context, id string) (*mod
 
 func (d *delphisBackend) GetDiscussionsByIDs(ctx context.Context, ids []string) (map[string]*model.Discussion, error) {
 	return d.db.GetDiscussionsByIDs(ctx, ids)
+}
+
+func (d *delphisBackend) GetDiscussionByModeratorID(ctx context.Context, moderatorID string) (*model.Discussion, error) {
+	return d.db.GetDiscussionByModeratorID(ctx, moderatorID)
 }
 
 func (d *delphisBackend) ListDiscussions(ctx context.Context) (*model.DiscussionsConnection, error) {

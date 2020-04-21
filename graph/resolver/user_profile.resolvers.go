@@ -10,7 +10,7 @@ import (
 )
 
 func (r *userProfileResolver) ProfileImageURL(ctx context.Context, obj *model.UserProfile) (string, error) {
-	return obj.TwitterInfo.ProfileImageURL, nil
+	return obj.SocialInfos[0].ProfileImageURL, nil
 }
 
 func (r *Resolver) UserProfile() generated.UserProfileResolver { return &userProfileResolver{r} }

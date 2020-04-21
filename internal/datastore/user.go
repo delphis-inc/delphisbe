@@ -6,111 +6,49 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbattribute"
+	"github.com/jinzhu/gorm"
 	"github.com/nedrocks/delphisbe/graph/model"
 	"github.com/sirupsen/logrus"
 )
 
-func (d *db) AddParticipantToUser(ctx context.Context, userID string, discussionParticipantKey model.DiscussionParticipantKey) (*model.User, error) {
-	logrus.Debug("AddParticipantToUser: Dynamo Update")
-	av, err := dynamodbattribute.Marshal(discussionParticipantKey)
-	if err != nil {
-		logrus.WithError(err).Errorf("AddParticipantToUser: Failed to marshal value: %+v", discussionParticipantKey)
-		return nil, err
+func (d *db) UpsertUser(ctx context.Context, user model.User) (*model.User, error) {
+	logrus.Debugf("UpsertUser::SQL Insert/Update: %+v", user)
+	found := model.User{}
+	if err := d.sql.First(&found, model.User{ID: user.ID}).Error; err != nil {
+		if gorm.IsRecordNotFoundError(err) {
+			if err := d.sql.Create(&user).Error; err != nil {
+				logrus.WithError(err).Errorf("UpsertUser::Failed to create new object")
+				return nil, err
+			}
+		} else {
+			logrus.WithError(err).Errorf("UpsertUser::Failed checking for User object")
+			return nil, err
+		}
+	} else {
+		if err := d.sql.Save(&user).Error; err != nil {
+			logrus.WithError(err).Errorf("UpsertUser::Failed updating user object")
+			return nil, err
+		}
 	}
-	res, err := d.dynamo.UpdateItem(&dynamodb.UpdateItemInput{
-		TableName:        aws.String(d.dbConfig.Users.TableName),
-		UpdateExpression: aws.String("ADD DiscussionParticipants :pids"),
-		Key: map[string]*dynamodb.AttributeValue{
-			"ID": {
-				S: aws.String(userID),
-			},
-		},
-		ExpressionAttributeValues: map[string]*dynamodb.AttributeValue{
-			":pids": {
-				SS: []*string{av.S},
-			},
-		},
-		ReturnValues: aws.String("UPDATED_NEW"),
-	})
-
-	if err != nil {
-		logrus.WithError(err).Errorf("Failed updating user object")
-		return nil, err
-	}
-
-	userObj := model.User{}
-
-	err = dynamodbattribute.UnmarshalMap(res.Attributes, &userObj)
-
-	if err != nil {
-		logrus.WithError(err).Errorf("Failed unmarshaling returned value: %+v", res.Attributes)
-		return nil, err
-	}
-
-	return &userObj, err
-}
-
-func (d *db) AddViewerToUser(ctx context.Context, userID string, discussionViewerKey model.DiscussionViewerKey) (*model.User, error) {
-	logrus.Debug("AddViewerToUser: Dynamo Update")
-	av, err := dynamodbattribute.Marshal(discussionViewerKey)
-	if err != nil {
-		logrus.WithError(err).Errorf("AddViewerToUser: Failed to marshal value: %+v", discussionViewerKey)
-		return nil, err
-	}
-	res, err := d.dynamo.UpdateItem(&dynamodb.UpdateItemInput{
-		TableName:        aws.String(d.dbConfig.Users.TableName),
-		UpdateExpression: aws.String("ADD DiscussionViewers :vids"),
-		Key: map[string]*dynamodb.AttributeValue{
-			"ID": {
-				S: aws.String(userID),
-			},
-		},
-		ExpressionAttributeValues: map[string]*dynamodb.AttributeValue{
-			":vids": {
-				SS: []*string{av.S},
-			},
-		},
-		ReturnValues: aws.String("UPDATED_NEW"),
-	})
-
-	if err != nil {
-		logrus.WithError(err).Errorf("Failed updating user object")
-		return nil, err
-	}
-
-	userObj := model.User{}
-	err = dynamodbattribute.UnmarshalMap(res.Attributes, &userObj)
-
-	if err != nil {
-		logrus.WithError(err).Errorf("Failed to unmarshal response value: %+v", res.Attributes)
-		return nil, err
-	}
-
-	return &userObj, err
-}
-
-func (d *db) PutUser(ctx context.Context, user model.User) (*model.User, error) {
-	logrus.Debug("PutUser::Dynamo PutItem")
-	av, err := d.marshalMap(user)
-	if err != nil {
-		logrus.WithError(err).Errorf("PutUser: Failed to marshal user object: %+v", user)
-		return nil, err
-	}
-
-	_, err = d.dynamo.PutItem(&dynamodb.PutItemInput{
-		TableName: aws.String(d.dbConfig.Users.TableName),
-		Item:      av,
-	})
-
-	if err != nil {
-		logrus.WithError(err).Errorf("PutUser: Failed to put user object: %+v", av)
-		return nil, err
-	}
-
 	return &user, nil
 }
 
 func (d *db) GetUserByID(ctx context.Context, userID string) (*model.User, error) {
+	logrus.Debug("GetUserByID::SQL Query")
+	found := model.User{}
+	if err := d.sql.Preload("Participants").Preload("Viewers").First(&found, &model.User{ID: userID}).Error; err != nil {
+		if gorm.IsRecordNotFoundError(err) {
+			return nil, nil
+		}
+		logrus.WithError(err).Errorf("GetUserByID::Failed to get user")
+		return nil, err
+	}
+	logrus.Debugf("Found: %+v", found)
+
+	return &found, nil
+}
+
+func (d *db) GetUserByIDDynamo(ctx context.Context, userID string) (*model.User, error) {
 	logrus.Debug("GetUserByID: Dynamo GetItem")
 	res, err := d.dynamo.GetItem(&dynamodb.GetItemInput{
 		TableName: aws.String(d.dbConfig.Users.TableName),
@@ -131,6 +69,27 @@ func (d *db) GetUserByID(ctx context.Context, userID string) (*model.User, error
 
 	if err != nil {
 		logrus.WithError(err).Errorf("GetUserByID: Failed to unmarshal user object: %+v", res.Item)
+		return nil, err
+	}
+
+	return &user, nil
+}
+
+func (d *db) PutUserDynamo(ctx context.Context, user model.User) (*model.User, error) {
+	logrus.Debug("PutUser::Dynamo PutItem")
+	av, err := d.marshalMap(user)
+	if err != nil {
+		logrus.WithError(err).Errorf("PutUser: Failed to marshal user object: %+v", user)
+		return nil, err
+	}
+
+	_, err = d.dynamo.PutItem(&dynamodb.PutItemInput{
+		TableName: aws.String(d.dbConfig.Users.TableName),
+		Item:      av,
+	})
+
+	if err != nil {
+		logrus.WithError(err).Errorf("PutUser: Failed to put user object: %+v", av)
 		return nil, err
 	}
 

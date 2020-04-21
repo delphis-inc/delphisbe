@@ -15,8 +15,8 @@ func (r *viewerResolver) NotificationPreferences(ctx context.Context, obj *model
 }
 
 func (r *viewerResolver) Discussion(ctx context.Context, obj *model.Viewer) (*model.Discussion, error) {
-	if obj.Discussion == nil {
-		res, err := r.DAOManager.GetDiscussionByID(ctx, obj.DiscussionID)
+	if obj.Discussion == nil && obj.DiscussionID != nil {
+		res, err := r.DAOManager.GetDiscussionByID(ctx, *obj.DiscussionID)
 
 		if err != nil {
 			return nil, err

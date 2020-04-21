@@ -3,29 +3,22 @@ package model
 import "time"
 
 type Viewer struct {
-	ID        string     `json:"id" dynamodbav:"ViewerID" gorm:"type:varchar(32)"`
-	CreatedAt time.Time  `json:"createdAt" gorm:"not null"`
-	UpdatedAt time.Time  `json:"updatedAt" gorm:"not null"`
-	DeletedAt *time.Time `json:"deletedAt" gorm:"not null"`
+	ID        string     `json:"id" dynamodbav:"ViewerID" gorm:"type:varchar(36)"`
+	CreatedAt time.Time  `json:"createdAt" gorm:"not null;default:CURRENT_TIMESTAMP"`
+	UpdatedAt time.Time  `json:"updatedAt" gorm:"not null;default:CURRENT_TIMESTAMP ONUPDATE CURRENT_TIMESTAMP"`
+	DeletedAt *time.Time `json:"deletedAt"`
 	//NotificationPreferences ViewerNotificationPreferences `json:"notificationPreferences"`
-	DiscussionID     string      `json:"discussionID" dynamodbav:"DiscussionID" gorm:"type:varchar(32)"`
+	DiscussionID     *string     `json:"discussionID" dynamodbav:"DiscussionID" gorm:"type:varchar(36)"`
 	Discussion       *Discussion `json:"discussion" dynamodbav:"-" gorm:"-"` //gorm:"foreignkey:discussion_id;association_foreignkey:id"`
 	LastViewed       *time.Time  `json:"lastViewed"`
-	LastViewedPostID *string     `json:"lastViewedPostID" gorm:"type:varchar(32)"`
-	LastViewedPost   *Post       `json:"lastViewedPost" dynamodbav:"-" gorm:"-"` //gorm:"foreignkey:last_post_viewed_id;association_foreignkey:id"`
+	LastViewedPostID *string     `json:"lastViewedPostID" gorm:"type:varchar(36)"`
+	LastViewedPost   *Post       `json:"lastViewedPost" dynamodbav:"-" gorm:"foreignKey:LastViewedPostID"` //gorm:"foreignkey:last_post_viewed_id;association_foreignkey:id"`
 	//Bookmarks               *PostsConnection              `json:"bookmarks" dynamodbav:"-"`
 
 	// NOTE: This is not exposed currently but keeping it here for
 	// testing purposes. We will try out exposing user information one of the tests.
-	UserID string `json:"userID" gorm:"type:varchar(32)"`
-	User   *User  `json:"user" dynamodbav:"-" gorm:"-"` //gorm:"foreignkey:UserID"`
-}
-
-func (v Viewer) DiscussionViewerKey() DiscussionViewerKey {
-	return DiscussionViewerKey{
-		DiscussionID: v.DiscussionID,
-		ViewerID:     v.ID,
-	}
+	UserID *string `json:"userID" gorm:"type:varchar(36)"`
+	User   *User   `json:"user" dynamodbav:"-" gorm:"-"`
 }
 
 type ViewersEdge struct {

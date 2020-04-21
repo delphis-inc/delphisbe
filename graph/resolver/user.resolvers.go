@@ -9,12 +9,23 @@ import (
 
 	"github.com/nedrocks/delphisbe/graph/generated"
 	"github.com/nedrocks/delphisbe/graph/model"
+	"github.com/sirupsen/logrus"
 )
 
 func (r *userResolver) Participants(ctx context.Context, obj *model.User) ([]*model.Participant, error) {
 	participants := make([]*model.Participant, 0)
 	for _, p := range obj.Participants {
-		if p != nil && p.Discussion != nil && p.Discussion.DeletedAt == nil {
+		discussion := p.Discussion
+		if discussion == nil && p.DiscussionID != nil {
+			var err error
+			discussion, err = r.DAOManager.GetDiscussionByID(ctx, *p.DiscussionID)
+			if err != nil {
+				logrus.Debugf("Caught an error getting discussion for participant")
+				// Silently ignore for now.
+			}
+			p.Discussion = discussion
+		}
+		if discussion != nil && discussion.DeletedAt == nil {
 			participants = append(participants, p)
 		}
 	}
@@ -29,6 +40,16 @@ func (r *userResolver) Participants(ctx context.Context, obj *model.User) ([]*mo
 func (r *userResolver) Viewers(ctx context.Context, obj *model.User) ([]*model.Viewer, error) {
 	viewers := make([]*model.Viewer, 0)
 	for _, v := range obj.Viewers {
+		discussion := v.Discussion
+		if v != nil && discussion == nil && v.DiscussionID != nil {
+			var err error
+			discussion, err = r.DAOManager.GetDiscussionByID(ctx, *v.DiscussionID)
+			if err != nil {
+				logrus.Debugf("Caught an error getting discussion for participant")
+				// Silently ignore for now.
+			}
+			v.Discussion = discussion
+		}
 		if v != nil && v.Discussion != nil && v.Discussion.DeletedAt == nil {
 			viewers = append(viewers, v)
 		}
@@ -45,7 +66,7 @@ func (r *userResolver) Bookmarks(ctx context.Context, obj *model.User) ([]*model
 
 func (r *userResolver) Profile(ctx context.Context, obj *model.User) (*model.UserProfile, error) {
 	if obj.UserProfile == nil {
-		userProfile, err := r.DAOManager.GetUserProfileByID(ctx, obj.UserProfileID)
+		userProfile, err := r.DAOManager.GetUserProfileByUserID(ctx, obj.ID)
 		if err != nil {
 			return nil, err
 		}

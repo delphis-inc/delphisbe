@@ -1,32 +1,40 @@
 package model
 
-import "fmt"
+import (
+	"fmt"
+	"time"
+)
 
 const (
 	twitterURLFmt = "https://www.twitter.com/%s"
 )
 
 type UserProfile struct {
-	ID          string `json:"id" gorm:"type:varchar(32)"`
-	DisplayName string `json:"displayName" gorm:"type:varchar(256)"`
-	UserID      string `json:"userID" dynamodbav:",omitempty" gorm:"type:varchar(32)"`
-	User        User   `json:"user" gorm:"-"` //gorm:"foreignkey:user_id;association_foreignkey:id"`
+	ID          string     `json:"id" gorm:"type:varchar(32)"`
+	CreatedAt   time.Time  `json:"createdAt" gorm:"not null;default:CURRENT_TIMESTAMP"`
+	UpdatedAt   time.Time  `json:"updatedAt" gorm:"not null;default:CURRENT_TIMESTAMP ONUPDATE CURRENT_TIMESTAMP"`
+	DeletedAt   *time.Time `json:"deletedAt"`
+	DisplayName string     `json:"displayName" gorm:"type:varchar(256)"`
+	UserID      *string    `json:"userID" dynamodbav:",omitempty" gorm:"type:varchar(32)"`
 	// Handle without the `@` sign.
 	TwitterHandle string `json:"twitterHandle"`
-	// ModeratedDiscussionIDs []string     `json:"moderatedDiscussionIDs" dynamodbav:",stringset,omitempty"`
-	// ModeratedDiscussions   []Discussion `json:"moderatedDiscussions" dynamodbav:"-" gorm:"-"`
 
-	// Twitter related fields
-	TwitterInfo SocialInfo `json:"twitterInfo" gorm:"type:json"`
+	SocialInfos []SocialInfo `json:"socialInfos" gorm:"foreignKey:UserProfileID;PRELOAD:true"`
 }
 
 type SocialInfo struct {
-	AccessToken       string `json:"accessToken"`
-	AccessTokenSecret string `json:"accessTokenSecret"`
-	UserID            string `json:"userID"`
-	ProfileImageURL   string `json:"profileImageURL"`
-	ScreenName        string `json:"screenName"`
-	IsVerified        bool   `json:"isVerified"`
+	CreatedAt         time.Time  `json:"createdAt" gorm:"not null;default:CURRENT_TIMESTAMP"`
+	UpdatedAt         time.Time  `json:"updatedAt" gorm:"not null;default:CURRENT_TIMESTAMP ONUPDATE CURRENT_TIMESTAMP"`
+	DeletedAt         *time.Time `json:"deletedAt"`
+	AccessToken       string     `json:"accessToken"`
+	AccessTokenSecret string     `json:"accessTokenSecret"`
+	// NOTE: This is the social network UserID (not Chatham)
+	UserID          string `json:"userID"`
+	ProfileImageURL string `json:"profileImageURL"`
+	ScreenName      string `json:"screenName"`
+	IsVerified      bool   `json:"isVerified"`
+	Network         string `json:"network" gorm:"type:varchar(16);primary_key;auto_increment:false"`
+	UserProfileID   string `json:"user_profile_id" gorm:"type:varchar(32);primary_key;auto_increment:false"`
 }
 
 func (u *UserProfile) TwitterURL() URL {

@@ -20,30 +20,29 @@ import (
 type Datastore interface {
 	GetDiscussionByID(ctx context.Context, id string) (*model.Discussion, error)
 	GetDiscussionsByIDs(ctx context.Context, ids []string) (map[string]*model.Discussion, error)
+	GetDiscussionByModeratorID(ctx context.Context, moderatorID string) (*model.Discussion, error)
 	ListDiscussions(ctx context.Context) (*model.DiscussionsConnection, error)
-	PutDiscussion(ctx context.Context, discussion model.Discussion) (*model.Discussion, error)
+	UpsertDiscussion(ctx context.Context, discussion model.Discussion) (*model.Discussion, error)
+	GetParticipantByID(ctx context.Context, participantID string) (*model.Participant, error)
 	GetParticipantsByDiscussionID(ctx context.Context, id string) ([]model.Participant, error)
-	GetParticipantsByIDs(ctx context.Context, discussionParticipantKeys []model.DiscussionParticipantKey) (map[model.DiscussionParticipantKey]*model.Participant, error)
 	PutParticipant(ctx context.Context, participant model.Participant) (*model.Participant, error)
-	AddParticipantToUser(ctx context.Context, userID string, discussionParticipant model.DiscussionParticipantKey) (*model.User, error)
 	GetPostsByDiscussionID(ctx context.Context, discussionID string) ([]*model.Post, error)
 	PutPost(ctx context.Context, post model.Post) (*model.Post, error)
-	AddViewerToUser(ctx context.Context, userID string, discussionViewerKey model.DiscussionViewerKey) (*model.User, error)
 	GetUserProfileByID(ctx context.Context, id string) (*model.UserProfile, error)
-	AddModeratedDiscussionToUserProfile(ctx context.Context, userProfileID string, discussionID string) (*model.UserProfile, error)
+	GetUserProfileByUserID(ctx context.Context, userID string) (*model.UserProfile, error)
+	UpsertSocialInfo(ctx context.Context, obj model.SocialInfo) (*model.SocialInfo, error)
 	CreateOrUpdateUserProfile(ctx context.Context, userProfile model.UserProfile) (*model.UserProfile, bool, error)
-	UpdateUserProfileTwitterInfo(ctx context.Context, userProfile model.UserProfile, twitterInfo model.SocialInfo) (*model.UserProfile, error)
-	UpdateUserProfileUserID(ctx context.Context, userProfileID string, userID string) (*model.UserProfile, error)
-	PutUser(ctx context.Context, user model.User) (*model.User, error)
+	UpsertUser(ctx context.Context, user model.User) (*model.User, error)
 	GetUserByID(ctx context.Context, userID string) (*model.User, error)
-	GetViewersByIDs(ctx context.Context, discussionViewerKeys []model.DiscussionViewerKey) (map[model.DiscussionViewerKey]*model.Viewer, error)
-	PutViewer(ctx context.Context, viewer model.Viewer) (*model.Viewer, error)
+	GetViewersByIDs(ctx context.Context, viewerIDs []string) (map[string]*model.Viewer, error)
+	UpsertViewer(ctx context.Context, viewer model.Viewer) (*model.Viewer, error)
 
 	marshalMap(in interface{}) (map[string]*dynamodb.AttributeValue, error)
 }
 
 type db struct {
 	dynamo   dynamodbiface.DynamoDBAPI
+	sql      *gorm.DB
 	dbConfig config.TablesConfig
 	encoder  *dynamodbattribute.Encoder
 }
@@ -58,15 +57,17 @@ func (d *db) marshalMap(in interface{}) (map[string]*dynamodb.AttributeValue, er
 	return av.M, nil
 }
 
-func NewDatastore(dbConfig config.DBConfig, awsSession *session.Session) Datastore {
+func NewDatastore(config config.Config, awsSession *session.Session) Datastore {
 	mySession := awsSession
+	dbConfig := config.DBConfig
 	if dbConfig.Host != "" && dbConfig.Port != 0 {
 		mySession = mySession.Copy(awsSession.Config.WithEndpoint(fmt.Sprintf("%s:%d", dbConfig.Host, dbConfig.Port)))
-		logrus.Debugf("endpoint: %s", mySession.Config.Endpoint)
+		logrus.Debugf("endpoint: %v", mySession.Config.Endpoint)
 	}
 	dbSvc := dynamodb.New(mySession)
 	return &db{
 		dbConfig: dbConfig.TablesConfig,
+		sql:      NewSQLDatastore(config.SQLDBConfig, awsSession),
 		dynamo:   dbSvc,
 		encoder: &dynamodbattribute.Encoder{
 			MarshalOptions: dynamodbattribute.MarshalOptions{
@@ -77,13 +78,18 @@ func NewDatastore(dbConfig config.DBConfig, awsSession *session.Session) Datasto
 	}
 }
 
-func NewSQLDatastore(sqlDbConfig config.SQLDBConfig, awsSession *session.Session) Datastore {
+func NewSQLDatastore(sqlDbConfig config.SQLDBConfig, awsSession *session.Session) *gorm.DB {
 	db, err := gorm.Open("postgres", "postgresql://127.0.0.1:5432/chatham_local?sslmode=disable")
 	if err != nil {
 		logrus.WithError(err).Fatalf("Failed to open db")
+		return nil
 	}
-	// need to defer closing the db.
-	db.AutoMigrate(model.DatabaseModels...)
 
-	return nil
+	// Set autoload
+	//db = db.Set("gorm:auto_preload", true)
+	db = db.LogMode(true)
+	// need to defer closing the db.
+	//db.AutoMigrate(model.DatabaseModels...)
+
+	return db
 }
