@@ -88,7 +88,7 @@ func (d *db) UpsertDiscussion(ctx context.Context, discussion model.Discussion) 
 	found := model.Discussion{}
 	if err := d.sql.First(&found, model.Discussion{ID: discussion.ID}).Error; err != nil {
 		if gorm.IsRecordNotFoundError(err) {
-			if err := d.sql.Create(&discussion).Error; err != nil {
+			if err := d.sql.Create(&discussion).First(&found, model.Discussion{ID: discussion.ID}).Error; err != nil {
 				logrus.WithError(err).Errorf("UpsertDiscussion::Failed to create new object")
 				return nil, err
 			}
@@ -97,12 +97,15 @@ func (d *db) UpsertDiscussion(ctx context.Context, discussion model.Discussion) 
 			return nil, err
 		}
 	} else {
-		if err := d.sql.Preload("Moderator").Save(&discussion).Error; err != nil {
+		if err := d.sql.Preload("Moderator").Model(&discussion).Updates(model.Discussion{
+			Title:         discussion.Title,
+			AnonymityType: discussion.AnonymityType,
+		}).First(&found).Error; err != nil {
 			logrus.WithError(err).Errorf("UpsertDiscussion::Failed updating disucssion object")
 			return nil, err
 		}
 	}
-	return &discussion, nil
+	return &found, nil
 }
 
 //////////

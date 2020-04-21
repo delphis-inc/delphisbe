@@ -16,7 +16,7 @@ func (d *db) UpsertUser(ctx context.Context, user model.User) (*model.User, erro
 	found := model.User{}
 	if err := d.sql.First(&found, model.User{ID: user.ID}).Error; err != nil {
 		if gorm.IsRecordNotFoundError(err) {
-			if err := d.sql.Create(&user).Error; err != nil {
+			if err := d.sql.Create(&user).First(&found, model.User{ID: user.ID}).Error; err != nil {
 				logrus.WithError(err).Errorf("UpsertUser::Failed to create new object")
 				return nil, err
 			}
@@ -25,7 +25,9 @@ func (d *db) UpsertUser(ctx context.Context, user model.User) (*model.User, erro
 			return nil, err
 		}
 	} else {
-		if err := d.sql.Save(&user).Error; err != nil {
+		if err := d.sql.Model(&user).Updates(model.User{
+			// Nothing should actually update here rn.
+		}).First(&found).Error; err != nil {
 			logrus.WithError(err).Errorf("UpsertUser::Failed updating user object")
 			return nil, err
 		}

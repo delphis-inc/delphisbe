@@ -89,6 +89,7 @@ type ComplexityRoot struct {
 	Participant struct {
 		Discussion                        func(childComplexity int) int
 		DiscussionNotificationPreferences func(childComplexity int) int
+		ID                                func(childComplexity int) int
 		ParticipantID                     func(childComplexity int) int
 		Posts                             func(childComplexity int) int
 		Viewer                            func(childComplexity int) int
@@ -434,6 +435,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Participant.DiscussionNotificationPreferences(childComplexity), true
+
+	case "Participant.id":
+		if e.complexity.Participant.ID == nil {
+			break
+		}
+
+		return e.complexity.Participant.ID(childComplexity), true
 
 	case "Participant.participantID":
 		if e.complexity.Participant.ParticipantID == nil {
@@ -971,6 +979,8 @@ var sources = []*ast.Source{
     hasNextPage: Boolean!
 }`, BuiltIn: false},
 	&ast.Source{Name: "graph/types/participant.graphqls", Input: `type Participant {
+    # The UUID for this participant.
+    id: ID!
     # Fetching a participant directly is okay because we have no link back to who the user is.
     participantID: Int
     # Link to the discussion. May be null if the discussion is deleted or unavailable.
@@ -1855,6 +1865,40 @@ func (ec *executionContext) _PageInfo_hasNextPage(ctx context.Context, field gra
 	res := resTmp.(bool)
 	fc.Result = res
 	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Participant_id(ctx context.Context, field graphql.CollectedField, obj *model.Participant) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "Participant",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.ID, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNID2string(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Participant_participantID(ctx context.Context, field graphql.CollectedField, obj *model.Participant) (ret graphql.Marshaler) {
@@ -5233,6 +5277,11 @@ func (ec *executionContext) _Participant(ctx context.Context, sel ast.SelectionS
 		switch field.Name {
 		case "__typename":
 			out.Values[i] = graphql.MarshalString("Participant")
+		case "id":
+			out.Values[i] = ec._Participant_id(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&invalids, 1)
+			}
 		case "participantID":
 			out.Values[i] = ec._Participant_participantID(ctx, field, obj)
 		case "discussion":

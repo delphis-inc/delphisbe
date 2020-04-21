@@ -15,7 +15,7 @@ func (d *db) UpsertViewer(ctx context.Context, viewer model.Viewer) (*model.View
 	found := model.Viewer{}
 	if err := d.sql.First(&found, model.Viewer{ID: viewer.ID}).Error; err != nil {
 		if gorm.IsRecordNotFoundError(err) {
-			if err := d.sql.Create(&viewer).Error; err != nil {
+			if err := d.sql.Create(&viewer).First(&found, model.Viewer{ID: viewer.ID}).Error; err != nil {
 				logrus.WithError(err).Errorf("UpsertViewer::Failed to create new object")
 				return nil, err
 			}
@@ -24,12 +24,15 @@ func (d *db) UpsertViewer(ctx context.Context, viewer model.Viewer) (*model.View
 			return nil, err
 		}
 	} else {
-		if err := d.sql.Save(&viewer).Error; err != nil {
+		if err := d.sql.Model(&viewer).Updates(model.Viewer{
+			LastViewed:       viewer.LastViewed,
+			LastViewedPostID: viewer.LastViewedPostID,
+		}).First(&found).Error; err != nil {
 			logrus.WithError(err).Errorf("UpsertViewer::Failed updating viewer object")
 			return nil, err
 		}
 	}
-	return &viewer, nil
+	return &found, nil
 }
 
 func (d *db) GetViewerByID(ctx context.Context, viewerID string) (*model.Viewer, error) {

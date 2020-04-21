@@ -2,7 +2,6 @@ package datastore
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
@@ -44,29 +43,32 @@ func (d *db) GetUserProfileByID(ctx context.Context, id string) (*model.UserProf
 func (d *db) CreateOrUpdateUserProfile(ctx context.Context, userProfile model.UserProfile) (*model.UserProfile, bool, error) {
 	logrus.Debugf("CreateOrUpdateUserProfile::SQL Insert/Update: %+v", userProfile)
 	found := model.UserProfile{}
-	isCreate := false
 	if err := d.sql.First(&found, model.UserProfile{ID: userProfile.ID}).Error; err != nil {
 		if gorm.IsRecordNotFoundError(err) {
-			if err := d.sql.Preload("SocialInfos").Create(&userProfile).Error; err != nil {
+			if err := d.sql.Preload("SocialInfos").Create(&userProfile).First(&found, model.UserProfile{ID: userProfile.ID}).Error; err != nil {
 				logrus.WithError(err).Errorf("CreateOrUpdateUserProfile::Failed creating new object")
 				return nil, false, err
 			}
-			isCreate = true
+			return &userProfile, true, nil
 		} else {
 			logrus.WithError(err).Errorf("CreateOrUpdateUserProfile::Failed checking for UserProfile")
 			return nil, false, err
 		}
 	} else {
 		// Found so this is an update.
-		logrus.Debugf("I found: %+v", found)
-		if err := d.sql.Preload("SocialInfos").Save(&userProfile).Error; err != nil {
+		toUpdate := model.UserProfile{
+			DisplayName:   userProfile.DisplayName,
+			TwitterHandle: userProfile.TwitterHandle,
+		}
+		if found.UserID == nil && userProfile.UserID != nil {
+			toUpdate.UserID = userProfile.UserID
+		}
+		if err := d.sql.Preload("SocialInfos").Model(&userProfile).Updates(toUpdate).First(&found).Error; err != nil {
 			logrus.WithError(err).Errorf("CreateOrUpdateUserProfile::Failed updating user profile")
 			return nil, false, err
 		}
-		return nil, false, fmt.Errorf("early exit")
+		return &found, false, nil
 	}
-	logrus.Debugf("Updated or created user profile: %+v", userProfile)
-	return &userProfile, isCreate, nil
 }
 
 func (d *db) AddModeratedDiscussionToUserProfileDynamo(ctx context.Context, userProfileID string, discussionID string) (*model.UserProfile, error) {

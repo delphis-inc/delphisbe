@@ -23,9 +23,10 @@ func (d *db) GetModeratorByID(ctx context.Context, id string) (*model.Moderator,
 
 func (d *db) CreateModerator(ctx context.Context, moderator model.Moderator) (*model.Moderator, error) {
 	logrus.Debugf("CreateModerator::SQL Insert")
-	if err := d.sql.Save(&moderator).Error; err != nil {
+	found := model.Moderator{}
+	if err := d.sql.Create(&moderator).First(&found, model.Moderator{ID: moderator.ID}).Error; err != nil {
 		logrus.WithError(err).Errorf("Failed to create moderator")
 		return nil, err
 	}
-	return &moderator, nil
+	return &found, nil
 }

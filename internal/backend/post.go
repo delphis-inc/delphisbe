@@ -21,7 +21,7 @@ func (d *delphisBackend) CreatePost(ctx context.Context, discussionID string, pa
 		DiscussionID:  &discussionID,
 		ParticipantID: &participantID,
 		PostContentID: &postContent.ID,
-		PostContent:   postContent,
+		PostContent:   &postContent,
 	}
 
 	postObj, err := d.db.PutPost(ctx, post)

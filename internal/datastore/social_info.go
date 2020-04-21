@@ -13,7 +13,7 @@ func (d *db) UpsertSocialInfo(ctx context.Context, obj model.SocialInfo) (*model
 	found := model.SocialInfo{}
 	if err := d.sql.First(&found, model.SocialInfo{Network: obj.Network, UserProfileID: obj.UserProfileID}).Error; err != nil {
 		if gorm.IsRecordNotFoundError(err) {
-			if err := d.sql.Create(&obj).Error; err != nil {
+			if err := d.sql.Create(&obj).First(&found, model.SocialInfo{Network: obj.Network, UserProfileID: obj.UserProfileID}).Error; err != nil {
 				logrus.WithError(err).Errorf("UpsertSocialInfo::Failed to create new object")
 				return nil, err
 			}
@@ -22,12 +22,19 @@ func (d *db) UpsertSocialInfo(ctx context.Context, obj model.SocialInfo) (*model
 			return nil, err
 		}
 	} else {
-		if err := d.sql.Save(&obj).Error; err != nil {
+		if err := d.sql.Model(&obj).Updates(model.SocialInfo{
+			AccessToken:       obj.AccessToken,
+			AccessTokenSecret: obj.AccessTokenSecret,
+			UserID:            obj.UserID,
+			ProfileImageURL:   obj.ProfileImageURL,
+			ScreenName:        obj.ScreenName,
+			IsVerified:        obj.IsVerified,
+		}).First(&found).Error; err != nil {
 			logrus.WithError(err).Errorf("UpsertSocialInfo::Failed updating SocialInfo object")
 			return nil, err
 		}
 	}
-	return &obj, nil
+	return &found, nil
 }
 
 func (d *db) GetSocialInfosByUserProfileID(ctx context.Context, userProfileID string) ([]model.SocialInfo, error) {

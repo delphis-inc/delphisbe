@@ -13,7 +13,7 @@ type Post struct {
 	Participant       *Participant       `json:"participant" dynamodbav:"-" gorm:"foreignkey:ParticipantID"`
 	ParticipantID     *string            `json:"participantID" gorm:"varchar(36)"`
 	PostContentID     *string            `json:"postContentID" gorm:"type:varchar(36)"`
-	PostContent       PostContent        `json:"postContent" gorm:"foreignkey:PostContentID"`
+	PostContent       *PostContent       `json:"postContent" gorm:"foreignkey:PostContentID"`
 }
 
 type PostsEdge struct {

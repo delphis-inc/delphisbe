@@ -13,18 +13,19 @@ import (
 
 func (d *db) PutPost(ctx context.Context, post model.Post) (*model.Post, error) {
 	logrus.Debug("PutPost::SQL Create")
-	if err := d.sql.Create(&post).Error; err != nil {
+	found := model.Post{}
+	if err := d.sql.Create(&post).First(&found, model.Post{ID: post.ID}).Error; err != nil {
 		logrus.WithError(err).Errorf("Failed to create a post")
 		return nil, err
 	}
 
-	return &post, nil
+	return &found, nil
 }
 
 func (d *db) GetPostsByDiscussionID(ctx context.Context, discussionID string) ([]*model.Post, error) {
 	logrus.Debug("GetPostsByDiscussionID::SQL Query")
 	posts := []model.Post{}
-	if err := d.sql.Where(model.Post{DiscussionID: &discussionID}).Find(&posts).Error; err != nil {
+	if err := d.sql.Where(model.Post{DiscussionID: &discussionID}).Preload("PostContent").Find(&posts).Error; err != nil {
 		if gorm.IsRecordNotFoundError(err) {
 			// Not sure if this will return not found error... If the discussion is empty maybe?
 			// Should this be nil, nil?
@@ -33,6 +34,8 @@ func (d *db) GetPostsByDiscussionID(ctx context.Context, discussionID string) ([
 		logrus.WithError(err).Errorf("Failed to get posts by discussionID")
 		return nil, err
 	}
+
+	logrus.Debugf("Found posts: %+v", posts)
 
 	returnedPosts := []*model.Post{}
 	for _, p := range posts {

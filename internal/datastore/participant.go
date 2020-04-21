@@ -39,12 +39,13 @@ func (d *db) GetParticipantsByDiscussionID(ctx context.Context, id string) ([]mo
 
 func (d *db) PutParticipant(ctx context.Context, participant model.Participant) (*model.Participant, error) {
 	logrus.Debug("PutParticipant::SQL Create")
-	if err := d.sql.Create(&participant).Error; err != nil {
+	found := model.Participant{}
+	if err := d.sql.Create(&participant).First(&found, model.Participant{ID: participant.ID}).Error; err != nil {
 		logrus.WithError(err).Errorf("PutParticipant::Faield to put Participant")
 		return nil, err
 	}
 
-	return &participant, nil
+	return &found, nil
 }
 
 ////////////
