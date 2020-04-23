@@ -8,6 +8,7 @@ import (
 
 	"github.com/nedrocks/delphisbe/graph/generated"
 	"github.com/nedrocks/delphisbe/graph/model"
+	"github.com/nedrocks/delphisbe/internal/auth"
 )
 
 func (r *discussionResolver) Moderator(ctx context.Context, obj *model.Discussion) (*model.Moderator, error) {
@@ -56,6 +57,26 @@ func (r *discussionResolver) CreatedAt(ctx context.Context, obj *model.Discussio
 
 func (r *discussionResolver) UpdatedAt(ctx context.Context, obj *model.Discussion) (string, error) {
 	return obj.UpdatedAt.Format(time.RFC3339), nil
+}
+
+func (r *discussionResolver) MeParticipant(ctx context.Context, obj *model.Discussion) (*model.Participant, error) {
+	creatingUser := auth.GetAuthedUser(ctx)
+	if creatingUser == nil {
+		// Only works for logged in. Won't throw an error here though.
+		return nil, nil
+	}
+	allParticipants, err := r.Participants(ctx, obj)
+	if err != nil {
+		return nil, err
+	}
+	for _, participant := range allParticipants {
+		if participant.UserID != nil && *participant.UserID == creatingUser.UserID {
+			return participant, nil
+		}
+	}
+
+	// Not a participant -- Not returning an error yet.
+	return nil, nil
 }
 
 func (r *Resolver) Discussion() generated.DiscussionResolver { return &discussionResolver{r} }

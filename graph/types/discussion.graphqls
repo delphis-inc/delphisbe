@@ -17,6 +17,9 @@ type Discussion {
 
     createdAt: String!
     updatedAt: String!
+
+    # Will return information based on the logged in user
+    meParticipant: Participant
 }
 
 # type DiscussionsConnection {

@@ -61,6 +61,7 @@ type ComplexityRoot struct {
 		AnonymityType func(childComplexity int) int
 		CreatedAt     func(childComplexity int) int
 		ID            func(childComplexity int) int
+		MeParticipant func(childComplexity int) int
 		Moderator     func(childComplexity int) int
 		Participants  func(childComplexity int) int
 		Posts         func(childComplexity int) int
@@ -210,6 +211,7 @@ type DiscussionResolver interface {
 
 	CreatedAt(ctx context.Context, obj *model.Discussion) (string, error)
 	UpdatedAt(ctx context.Context, obj *model.Discussion) (string, error)
+	MeParticipant(ctx context.Context, obj *model.Discussion) (*model.Participant, error)
 }
 type ModeratorResolver interface {
 	Discussion(ctx context.Context, obj *model.Moderator) (*model.Discussion, error)
@@ -308,6 +310,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Discussion.ID(childComplexity), true
+
+	case "Discussion.meParticipant":
+		if e.complexity.Discussion.MeParticipant == nil {
+			break
+		}
+
+		return e.complexity.Discussion.MeParticipant(childComplexity), true
 
 	case "Discussion.moderator":
 		if e.complexity.Discussion.Moderator == nil {
@@ -952,6 +961,9 @@ var sources = []*ast.Source{
 
     createdAt: String!
     updatedAt: String!
+
+    # Will return information based on the logged in user
+    meParticipant: Participant
 }
 
 # type DiscussionsConnection {
@@ -1547,6 +1559,37 @@ func (ec *executionContext) _Discussion_updatedAt(ctx context.Context, field gra
 	res := resTmp.(string)
 	fc.Result = res
 	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Discussion_meParticipant(ctx context.Context, field graphql.CollectedField, obj *model.Discussion) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "Discussion",
+		Field:    field,
+		Args:     nil,
+		IsMethod: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Discussion().MeParticipant(rctx, obj)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*model.Participant)
+	fc.Result = res
+	return ec.marshalOParticipant2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐParticipant(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Moderator_id(ctx context.Context, field graphql.CollectedField, obj *model.Moderator) (ret graphql.Marshaler) {
@@ -5129,6 +5172,17 @@ func (ec *executionContext) _Discussion(ctx context.Context, sel ast.SelectionSe
 				if res == graphql.Null {
 					atomic.AddUint32(&invalids, 1)
 				}
+				return res
+			})
+		case "meParticipant":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Discussion_meParticipant(ctx, field, obj)
 				return res
 			})
 		default:
