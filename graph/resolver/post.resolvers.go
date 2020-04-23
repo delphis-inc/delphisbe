@@ -8,6 +8,7 @@ import (
 
 	"github.com/nedrocks/delphisbe/graph/generated"
 	"github.com/nedrocks/delphisbe/graph/model"
+	"github.com/sirupsen/logrus"
 )
 
 func (r *postResolver) IsDeleted(ctx context.Context, obj *model.Post) (bool, error) {
@@ -15,6 +16,18 @@ func (r *postResolver) IsDeleted(ctx context.Context, obj *model.Post) (bool, er
 }
 
 func (r *postResolver) Content(ctx context.Context, obj *model.Post) (string, error) {
+	if obj.PostContent == nil && obj.PostContentID != nil {
+		postContent, err := r.DAOManager.GetPostContentByID(ctx, *obj.PostContentID)
+		if err != nil {
+			return "", err
+		}
+		obj.PostContent = postContent
+	}
+	if obj.PostContent == nil {
+		// If it is still nil we should return an empty string I guess?
+		logrus.Errorf("PostContent is nil for post ID: %s", obj.ID)
+		return "", nil
+	}
 	return obj.PostContent.Content, nil
 }
 

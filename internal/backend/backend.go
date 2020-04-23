@@ -22,6 +22,7 @@ type DelphisBackend interface {
 	GetParticipantByID(ctx context.Context, id string) (*model.Participant, error)
 	CreatePost(ctx context.Context, discussionID string, participantID string, content string) (*model.Post, error)
 	GetPostsByDiscussionID(ctx context.Context, discussionID string) ([]*model.Post, error)
+	GetPostContentByID(ctx context.Context, id string) (*model.PostContent, error)
 	GetUserProfileByID(ctx context.Context, id string) (*model.UserProfile, error)
 	GetUserProfileByUserID(ctx context.Context, userID string) (*model.UserProfile, error)
 	CreateUser(ctx context.Context) (*model.User, error)
