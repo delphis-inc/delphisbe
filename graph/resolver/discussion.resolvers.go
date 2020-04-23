@@ -40,9 +40,9 @@ func (r *discussionResolver) Participants(ctx context.Context, obj *model.Discus
 		}
 
 		particPointers := make([]*model.Participant, 0)
-		for _, elem := range participants {
+		for i, elem := range participants {
 			elem.Discussion = obj
-			particPointers = append(particPointers, &elem)
+			particPointers = append(particPointers, &participants[i])
 		}
 
 		obj.Participants = particPointers

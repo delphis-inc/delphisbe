@@ -4,6 +4,7 @@ go 1.13
 
 require (
 	github.com/99designs/gqlgen v0.11.1
+	github.com/Timothylock/go-signin-with-apple v0.0.0-20200221193809-1a722422658e // indirect
 	github.com/aws/aws-sdk-go v1.29.19
 	github.com/coreos/pkg v0.0.0-20180928190104-399ea9e2e55f
 	github.com/denisenkom/go-mssqldb v0.0.0-20200206145737-bbfc9a55622e // indirect

@@ -38,8 +38,8 @@ func (d *db) GetPostsByDiscussionID(ctx context.Context, discussionID string) ([
 	logrus.Debugf("Found posts: %+v", posts)
 
 	returnedPosts := []*model.Post{}
-	for _, p := range posts {
-		returnedPosts = append(returnedPosts, &p)
+	for i := range posts {
+		returnedPosts = append(returnedPosts, &posts[i])
 	}
 	return returnedPosts, nil
 }

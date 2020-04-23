@@ -83,3 +83,6 @@ Host delphis-bastion-db
      User ec2-user
 ```
 and kick it off. Then use `localhost:3333` for the database.
+
+# Infra todos:
+* The VPC is different between the main VPC and the ECS fargate tasks. I have peered these manually and added a routing to their subnets. This should be done within terraform.

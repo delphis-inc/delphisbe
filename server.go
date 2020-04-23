@@ -39,6 +39,7 @@ const (
 
 func main() {
 	logrus.SetLevel(logrus.DebugLevel)
+	logrus.Debugf("Starting")
 
 	port := os.Getenv("PORT")
 	if port == "" {
@@ -52,6 +53,7 @@ func main() {
 		logrus.WithError(err).Errorf("Error loading config file")
 		return
 	}
+	logrus.Debugf("Got config from file")
 
 	awsConfig := aws.NewConfig().WithRegion(conf.AWS.Region).WithCredentialsChainVerboseErrors(true)
 	var awsSession *session.Session
@@ -67,11 +69,12 @@ func main() {
 			awsConfig = awsConfig.WithCredentials(creds)
 		}
 	}
+	logrus.Debugf("Got creds from remote")
 	awsSession = session.Must(session.NewSession(awsConfig))
 
 	secretManager := secrets.NewSecretsManager(awsConfig, awsSession)
 	secrets, err := secretManager.GetSecrets()
-
+	logrus.Debugf("Got secrets")
 	if err == nil {
 		for k, v := range secrets {
 			os.Setenv(k, v)
@@ -79,7 +82,9 @@ func main() {
 		conf.ReadEnvAndUpdate()
 	}
 
+	logrus.Debugf("about to create backend")
 	delphisBackend := backend.NewDelphisBackend(*conf, awsSession)
+	logrus.Debugf("Created backend")
 
 	generatedSchema := generated.NewExecutableSchema(generated.Config{
 		Resolvers: &resolver.Resolver{
@@ -87,7 +92,6 @@ func main() {
 		},
 	})
 
-	//wrappedSchema := introspection.WrapSchema(generatedSchema.Schema())
 	b := bytes.Buffer{}
 	f := formatter.NewFormatter(&b)
 	f.FormatSchema(generatedSchema.Schema())
