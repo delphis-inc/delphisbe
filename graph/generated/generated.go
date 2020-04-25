@@ -39,6 +39,7 @@ type Config struct {
 
 type ResolverRoot interface {
 	Discussion() DiscussionResolver
+	Flair() FlairResolver
 	Moderator() ModeratorResolver
 	Mutation() MutationResolver
 	Participant() ParticipantResolver
@@ -71,6 +72,13 @@ type ComplexityRoot struct {
 		UpdatedAt     func(childComplexity int) int
 	}
 
+	Flair struct {
+		DisplayName func(childComplexity int) int
+		ID          func(childComplexity int) int
+		ImageURL    func(childComplexity int) int
+		Source      func(childComplexity int) int
+	}
+
 	Moderator struct {
 		Discussion  func(childComplexity int) int
 		ID          func(childComplexity int) int
@@ -100,6 +108,12 @@ type ComplexityRoot struct {
 
 	ParticipantNotificationPreferences struct {
 		ID func(childComplexity int) int
+	}
+
+	ParticipantProfile struct {
+		Flair         func(childComplexity int) int
+		GradientColor func(childComplexity int) int
+		IsAnonymous   func(childComplexity int) int
 	}
 
 	ParticipantsConnection struct {
@@ -218,6 +232,9 @@ type DiscussionResolver interface {
 	CreatedAt(ctx context.Context, obj *model.Discussion) (string, error)
 	UpdatedAt(ctx context.Context, obj *model.Discussion) (string, error)
 	MeParticipant(ctx context.Context, obj *model.Discussion) (*model.Participant, error)
+}
+type FlairResolver interface {
+	ImageURL(ctx context.Context, obj *model.Flair) (*model.URL, error)
 }
 type ModeratorResolver interface {
 	Discussion(ctx context.Context, obj *model.Moderator) (*model.Discussion, error)
@@ -362,6 +379,34 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Discussion.UpdatedAt(childComplexity), true
 
+	case "Flair.displayName":
+		if e.complexity.Flair.DisplayName == nil {
+			break
+		}
+
+		return e.complexity.Flair.DisplayName(childComplexity), true
+
+	case "Flair.id":
+		if e.complexity.Flair.ID == nil {
+			break
+		}
+
+		return e.complexity.Flair.ID(childComplexity), true
+
+	case "Flair.imageURL":
+		if e.complexity.Flair.ImageURL == nil {
+			break
+		}
+
+		return e.complexity.Flair.ImageURL(childComplexity), true
+
+	case "Flair.source":
+		if e.complexity.Flair.Source == nil {
+			break
+		}
+
+		return e.complexity.Flair.Source(childComplexity), true
+
 	case "Moderator.discussion":
 		if e.complexity.Moderator.Discussion == nil {
 			break
@@ -488,6 +533,27 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.ParticipantNotificationPreferences.ID(childComplexity), true
+
+	case "ParticipantProfile.flair":
+		if e.complexity.ParticipantProfile.Flair == nil {
+			break
+		}
+
+		return e.complexity.ParticipantProfile.Flair(childComplexity), true
+
+	case "ParticipantProfile.gradientColor":
+		if e.complexity.ParticipantProfile.GradientColor == nil {
+			break
+		}
+
+		return e.complexity.ParticipantProfile.GradientColor(childComplexity), true
+
+	case "ParticipantProfile.isAnonymous":
+		if e.complexity.ParticipantProfile.IsAnonymous == nil {
+			break
+		}
+
+		return e.complexity.ParticipantProfile.IsAnonymous(childComplexity), true
 
 	case "ParticipantsConnection.edges":
 		if e.complexity.ParticipantsConnection.Edges == nil {
@@ -1016,6 +1082,12 @@ var sources = []*ast.Source{
 # }
 `, BuiltIn: false},
 	&ast.Source{Name: "graph/types/discussion_notification_preferences.graphqls", Input: `union DiscussionNotificationPreferences = ViewerNotificationPreferences | ParticipantNotificationPreferences`, BuiltIn: false},
+	&ast.Source{Name: "graph/types/flair.graphqls", Input: `type Flair {
+    id: ID!
+    displayName: String!
+    imageURL: URL
+    source: String!
+}`, BuiltIn: false},
 	&ast.Source{Name: "graph/types/moderator.graphqls", Input: `type Moderator {
     id: ID!
 
@@ -1044,6 +1116,32 @@ var sources = []*ast.Source{
 }`, BuiltIn: false},
 	&ast.Source{Name: "graph/types/participant_notification_preferences.graphqls", Input: `type ParticipantNotificationPreferences {
     id: ID!
+}`, BuiltIn: false},
+	&ast.Source{Name: "graph/types/participant_profile.graphqls", Input: `enum GradientColor {
+    UNKNOWN,
+    MAUVE,
+    FUSCHIA,
+    CINNABAR,
+    VERMILLION,
+    CERULEAN,
+    TURQUOISE,
+    CELADON,
+    TAUPE,
+    SAFFRON,
+    VIRIDIAN,
+    CHARTRUESE,
+    LAVENDER,
+    GOLDENROD,
+    SEAFOAM,
+    AZALEA,
+    VIOLET,
+    MAHOGANY,
+}
+
+type ParticipantProfile {
+    isAnonymous: Boolean
+    flair: Flair
+    gradientColor: GradientColor
 }`, BuiltIn: false},
 	&ast.Source{Name: "graph/types/participants_connection.graphqls", Input: `type ParticipantsConnection {
     totalCount: Int!
@@ -1649,6 +1747,139 @@ func (ec *executionContext) _Discussion_meParticipant(ctx context.Context, field
 	return ec.marshalOParticipant2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐParticipant(ctx, field.Selections, res)
 }
 
+func (ec *executionContext) _Flair_id(ctx context.Context, field graphql.CollectedField, obj *model.Flair) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "Flair",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.ID, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNID2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Flair_displayName(ctx context.Context, field graphql.CollectedField, obj *model.Flair) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "Flair",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.DisplayName, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Flair_imageURL(ctx context.Context, field graphql.CollectedField, obj *model.Flair) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "Flair",
+		Field:    field,
+		Args:     nil,
+		IsMethod: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Flair().ImageURL(rctx, obj)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*model.URL)
+	fc.Result = res
+	return ec.marshalOURL2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐURL(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Flair_source(ctx context.Context, field graphql.CollectedField, obj *model.Flair) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "Flair",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Source, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
 func (ec *executionContext) _Moderator_id(ctx context.Context, field graphql.CollectedField, obj *model.Moderator) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -2194,6 +2425,99 @@ func (ec *executionContext) _ParticipantNotificationPreferences_id(ctx context.C
 	res := resTmp.(string)
 	fc.Result = res
 	return ec.marshalNID2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _ParticipantProfile_isAnonymous(ctx context.Context, field graphql.CollectedField, obj *model.ParticipantProfile) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "ParticipantProfile",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.IsAnonymous, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*bool)
+	fc.Result = res
+	return ec.marshalOBoolean2ᚖbool(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _ParticipantProfile_flair(ctx context.Context, field graphql.CollectedField, obj *model.ParticipantProfile) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "ParticipantProfile",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Flair, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*model.Flair)
+	fc.Result = res
+	return ec.marshalOFlair2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐFlair(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _ParticipantProfile_gradientColor(ctx context.Context, field graphql.CollectedField, obj *model.ParticipantProfile) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "ParticipantProfile",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.GradientColor, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*model.GradientColor)
+	fc.Result = res
+	return ec.marshalOGradientColor2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐGradientColor(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _ParticipantsConnection_totalCount(ctx context.Context, field graphql.CollectedField, obj *model.ParticipantsConnection) (ret graphql.Marshaler) {
@@ -5301,6 +5625,54 @@ func (ec *executionContext) _Discussion(ctx context.Context, sel ast.SelectionSe
 	return out
 }
 
+var flairImplementors = []string{"Flair"}
+
+func (ec *executionContext) _Flair(ctx context.Context, sel ast.SelectionSet, obj *model.Flair) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, flairImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("Flair")
+		case "id":
+			out.Values[i] = ec._Flair_id(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&invalids, 1)
+			}
+		case "displayName":
+			out.Values[i] = ec._Flair_displayName(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&invalids, 1)
+			}
+		case "imageURL":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Flair_imageURL(ctx, field, obj)
+				return res
+			})
+		case "source":
+			out.Values[i] = ec._Flair_source(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&invalids, 1)
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
 var moderatorImplementors = []string{"Moderator"}
 
 func (ec *executionContext) _Moderator(ctx context.Context, sel ast.SelectionSet, obj *model.Moderator) graphql.Marshaler {
@@ -5520,6 +5892,34 @@ func (ec *executionContext) _ParticipantNotificationPreferences(ctx context.Cont
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
+var participantProfileImplementors = []string{"ParticipantProfile"}
+
+func (ec *executionContext) _ParticipantProfile(ctx context.Context, sel ast.SelectionSet, obj *model.ParticipantProfile) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, participantProfileImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("ParticipantProfile")
+		case "isAnonymous":
+			out.Values[i] = ec._ParticipantProfile_isAnonymous(ctx, field, obj)
+		case "flair":
+			out.Values[i] = ec._ParticipantProfile_flair(ctx, field, obj)
+		case "gradientColor":
+			out.Values[i] = ec._ParticipantProfile_gradientColor(ctx, field, obj)
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -7147,6 +7547,41 @@ func (ec *executionContext) marshalODiscussion2ᚖgithubᚗcomᚋnedrocksᚋdelp
 	return ec._Discussion(ctx, sel, v)
 }
 
+func (ec *executionContext) marshalOFlair2githubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐFlair(ctx context.Context, sel ast.SelectionSet, v model.Flair) graphql.Marshaler {
+	return ec._Flair(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalOFlair2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐFlair(ctx context.Context, sel ast.SelectionSet, v *model.Flair) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._Flair(ctx, sel, v)
+}
+
+func (ec *executionContext) unmarshalOGradientColor2githubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐGradientColor(ctx context.Context, v interface{}) (model.GradientColor, error) {
+	var res model.GradientColor
+	return res, res.UnmarshalGQL(v)
+}
+
+func (ec *executionContext) marshalOGradientColor2githubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐGradientColor(ctx context.Context, sel ast.SelectionSet, v model.GradientColor) graphql.Marshaler {
+	return v
+}
+
+func (ec *executionContext) unmarshalOGradientColor2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐGradientColor(ctx context.Context, v interface{}) (*model.GradientColor, error) {
+	if v == nil {
+		return nil, nil
+	}
+	res, err := ec.unmarshalOGradientColor2githubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐGradientColor(ctx, v)
+	return &res, err
+}
+
+func (ec *executionContext) marshalOGradientColor2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐGradientColor(ctx context.Context, sel ast.SelectionSet, v *model.GradientColor) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return v
+}
+
 func (ec *executionContext) unmarshalOID2string(ctx context.Context, v interface{}) (string, error) {
 	return graphql.UnmarshalID(v)
 }
@@ -7519,6 +7954,17 @@ func (ec *executionContext) marshalOTime2ᚖtimeᚐTime(ctx context.Context, sel
 		return graphql.Null
 	}
 	return ec.marshalOTime2timeᚐTime(ctx, sel, *v)
+}
+
+func (ec *executionContext) marshalOURL2githubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐURL(ctx context.Context, sel ast.SelectionSet, v model.URL) graphql.Marshaler {
+	return ec._URL(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalOURL2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐURL(ctx context.Context, sel ast.SelectionSet, v *model.URL) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._URL(ctx, sel, v)
 }
 
 func (ec *executionContext) marshalOViewer2githubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐViewer(ctx context.Context, sel ast.SelectionSet, v model.Viewer) graphql.Marshaler {

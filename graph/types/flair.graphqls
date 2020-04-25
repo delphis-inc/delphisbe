@@ -1,0 +1,6 @@
+type Flair {
+    id: ID!
+    displayName: String!
+    imageURL: URL
+    source: String!
+}

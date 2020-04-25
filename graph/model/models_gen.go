@@ -72,6 +72,79 @@ func (e AnonymityType) MarshalGQL(w io.Writer) {
 	fmt.Fprint(w, strconv.Quote(e.String()))
 }
 
+type GradientColor string
+
+const (
+	GradientColorUnknown    GradientColor = "UNKNOWN"
+	GradientColorMauve      GradientColor = "MAUVE"
+	GradientColorFuschia    GradientColor = "FUSCHIA"
+	GradientColorCinnabar   GradientColor = "CINNABAR"
+	GradientColorVermillion GradientColor = "VERMILLION"
+	GradientColorCerulean   GradientColor = "CERULEAN"
+	GradientColorTurquoise  GradientColor = "TURQUOISE"
+	GradientColorCeladon    GradientColor = "CELADON"
+	GradientColorTaupe      GradientColor = "TAUPE"
+	GradientColorSaffron    GradientColor = "SAFFRON"
+	GradientColorViridian   GradientColor = "VIRIDIAN"
+	GradientColorChartruese GradientColor = "CHARTRUESE"
+	GradientColorLavender   GradientColor = "LAVENDER"
+	GradientColorGoldenrod  GradientColor = "GOLDENROD"
+	GradientColorSeafoam    GradientColor = "SEAFOAM"
+	GradientColorAzalea     GradientColor = "AZALEA"
+	GradientColorViolet     GradientColor = "VIOLET"
+	GradientColorMahogany   GradientColor = "MAHOGANY"
+)
+
+var AllGradientColor = []GradientColor{
+	GradientColorUnknown,
+	GradientColorMauve,
+	GradientColorFuschia,
+	GradientColorCinnabar,
+	GradientColorVermillion,
+	GradientColorCerulean,
+	GradientColorTurquoise,
+	GradientColorCeladon,
+	GradientColorTaupe,
+	GradientColorSaffron,
+	GradientColorViridian,
+	GradientColorChartruese,
+	GradientColorLavender,
+	GradientColorGoldenrod,
+	GradientColorSeafoam,
+	GradientColorAzalea,
+	GradientColorViolet,
+	GradientColorMahogany,
+}
+
+func (e GradientColor) IsValid() bool {
+	switch e {
+	case GradientColorUnknown, GradientColorMauve, GradientColorFuschia, GradientColorCinnabar, GradientColorVermillion, GradientColorCerulean, GradientColorTurquoise, GradientColorCeladon, GradientColorTaupe, GradientColorSaffron, GradientColorViridian, GradientColorChartruese, GradientColorLavender, GradientColorGoldenrod, GradientColorSeafoam, GradientColorAzalea, GradientColorViolet, GradientColorMahogany:
+		return true
+	}
+	return false
+}
+
+func (e GradientColor) String() string {
+	return string(e)
+}
+
+func (e *GradientColor) UnmarshalGQL(v interface{}) error {
+	str, ok := v.(string)
+	if !ok {
+		return fmt.Errorf("enums must be strings")
+	}
+
+	*e = GradientColor(str)
+	if !e.IsValid() {
+		return fmt.Errorf("%s is not a valid GradientColor", str)
+	}
+	return nil
+}
+
+func (e GradientColor) MarshalGQL(w io.Writer) {
+	fmt.Fprint(w, strconv.Quote(e.String()))
+}
+
 type PostDeletedReason string
 
 const (
