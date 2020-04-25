@@ -9,6 +9,7 @@ import (
 	"github.com/nedrocks/delphisbe/graph/generated"
 	"github.com/nedrocks/delphisbe/graph/model"
 	"github.com/nedrocks/delphisbe/internal/auth"
+	"github.com/sirupsen/logrus"
 )
 
 func (r *mutationResolver) CreateDiscussion(ctx context.Context, anonymityType model.AnonymityType, title string) (*model.Discussion, error) {
@@ -94,6 +95,12 @@ func (r *mutationResolver) AddPost(ctx context.Context, discussionID string, pos
 		return nil, fmt.Errorf("Failed to create post")
 	}
 
+	err = r.DAOManager.NotifySubscribersOfCreatedPost(ctx, createdPost, discussionID)
+	if err != nil {
+		// Silently ignore this
+		logrus.Warnf("Failed to notify subscribers of created post")
+	}
+
 	return createdPost, nil
 }
 
@@ -144,8 +151,23 @@ func (r *queryResolver) Me(ctx context.Context) (*model.User, error) {
 	return creatingUser.User, nil
 }
 
-func (r *Resolver) Mutation() generated.MutationResolver { return &mutationResolver{r} }
-func (r *Resolver) Query() generated.QueryResolver       { return &queryResolver{r} }
+func (r *subscriptionResolver) PostAdded(ctx context.Context, discussionID string) (<-chan *model.Post, error) {
+	currentUser := auth.GetAuthedUser(ctx)
+	if currentUser == nil {
+		return nil, fmt.Errorf("Need auth")
+	}
+	events := make(chan *model.Post, 1)
+	err := r.DAOManager.SubscribeToDiscussion(ctx, currentUser.UserID, events, discussionID)
+	if err != nil {
+		return nil, err
+	}
+	return events, nil
+}
+
+func (r *Resolver) Mutation() generated.MutationResolver         { return &mutationResolver{r} }
+func (r *Resolver) Query() generated.QueryResolver               { return &queryResolver{r} }
+func (r *Resolver) Subscription() generated.SubscriptionResolver { return &subscriptionResolver{r} }
 
 type mutationResolver struct{ *Resolver }
 type queryResolver struct{ *Resolver }
+type subscriptionResolver struct{ *Resolver }

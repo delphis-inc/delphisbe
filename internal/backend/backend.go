@@ -2,10 +2,12 @@ package backend
 
 import (
 	"context"
+	"sync"
 
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/nedrocks/delphisbe/graph/model"
 	"github.com/nedrocks/delphisbe/internal/auth"
+	"github.com/nedrocks/delphisbe/internal/cache"
 	"github.com/nedrocks/delphisbe/internal/config"
 	"github.com/nedrocks/delphisbe/internal/datastore"
 )
@@ -15,12 +17,15 @@ type DelphisBackend interface {
 	GetDiscussionByID(ctx context.Context, id string) (*model.Discussion, error)
 	GetDiscussionsByIDs(ctx context.Context, ids []string) (map[string]*model.Discussion, error)
 	GetDiscussionByModeratorID(ctx context.Context, moderatorID string) (*model.Discussion, error)
+	SubscribeToDiscussion(ctx context.Context, subscriberUserID string, postChannel chan *model.Post, discussionID string) error
+	UnSubscribeFromDiscussion(ctx context.Context, subscriberUserID string, discussionID string) error
 	ListDiscussions(ctx context.Context) (*model.DiscussionsConnection, error)
 	GetModeratorByID(ctx context.Context, id string) (*model.Moderator, error)
 	CreateParticipantForDiscussion(ctx context.Context, discussionID string, userID string) (*model.Participant, error)
 	GetParticipantsByDiscussionID(ctx context.Context, id string) ([]model.Participant, error)
 	GetParticipantByID(ctx context.Context, id string) (*model.Participant, error)
 	CreatePost(ctx context.Context, discussionID string, participantID string, content string) (*model.Post, error)
+	NotifySubscribersOfCreatedPost(ctx context.Context, post *model.Post, discussionID string) error
 	GetPostsByDiscussionID(ctx context.Context, discussionID string) ([]*model.Post, error)
 	GetPostContentByID(ctx context.Context, id string) (*model.PostContent, error)
 	GetUserProfileByID(ctx context.Context, id string) (*model.UserProfile, error)
@@ -40,13 +45,18 @@ type DelphisBackend interface {
 }
 
 type delphisBackend struct {
-	db   datastore.Datastore
-	auth auth.DelphisAuth
+	db              datastore.Datastore
+	auth            auth.DelphisAuth
+	cache           cache.ChathamCache
+	discussionMutex sync.Mutex
 }
 
 func NewDelphisBackend(conf config.Config, awsSession *session.Session) DelphisBackend {
+	chathamCache := cache.NewInMemoryCache()
 	return &delphisBackend{
-		db:   datastore.NewDatastore(conf, awsSession),
-		auth: auth.NewDelphisAuth(&conf.Auth),
+		db:              datastore.NewDatastore(conf, awsSession),
+		auth:            auth.NewDelphisAuth(&conf.Auth),
+		cache:           chathamCache,
+		discussionMutex: sync.Mutex{},
 	}
 }

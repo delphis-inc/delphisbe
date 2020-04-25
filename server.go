@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws/credentials/endpointcreds"
+	"github.com/gorilla/websocket"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials"
@@ -21,6 +22,7 @@ import (
 	"github.com/nedrocks/delphisbe/internal/secrets"
 
 	"github.com/99designs/gqlgen/graphql/handler"
+	"github.com/99designs/gqlgen/graphql/handler/transport"
 	"github.com/99designs/gqlgen/graphql/playground"
 	gologinOauth1 "github.com/dghubble/gologin/oauth1"
 	"github.com/dghubble/gologin/twitter"
@@ -97,6 +99,15 @@ func main() {
 	f.FormatSchema(generatedSchema.Schema())
 
 	srv := handler.NewDefaultServer(generatedSchema)
+
+	srv.AddTransport(transport.Websocket{
+		KeepAlivePingInterval: 10 * time.Second,
+		Upgrader: websocket.Upgrader{
+			CheckOrigin: func(r *http.Request) bool {
+				return true
+			},
+		},
+	})
 
 	http.Handle("/", allowCors(healthCheck()))
 	http.Handle("/graphiql", allowCors(playground.Handler("GraphQL playground", "/query")))

@@ -2,11 +2,14 @@ package backend
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/nedrocks/delphisbe/graph/model"
 	"github.com/nedrocks/delphisbe/internal/util"
 )
+
+const discussionSubscriberKey = "discussion_subscribers-%s"
 
 func (d *delphisBackend) CreateNewDiscussion(ctx context.Context, creatingUser *model.User, anonymityType model.AnonymityType, title string) (*model.Discussion, error) {
 	moderatorObj := model.Moderator{
@@ -51,4 +54,40 @@ func (d *delphisBackend) GetDiscussionByModeratorID(ctx context.Context, moderat
 
 func (d *delphisBackend) ListDiscussions(ctx context.Context) (*model.DiscussionsConnection, error) {
 	return d.db.ListDiscussions(ctx)
+}
+
+func (d *delphisBackend) SubscribeToDiscussion(ctx context.Context, subscriberUserID string, postChannel chan *model.Post, discussionID string) error {
+	cacheKey := fmt.Sprintf(discussionSubscriberKey, discussionID)
+	d.discussionMutex.Lock()
+	defer d.discussionMutex.Unlock()
+	currentSubsIface, found := d.cache.Get(cacheKey)
+	if !found {
+		currentSubsIface = map[string]chan *model.Post{}
+	}
+	var currentSubs map[string]chan *model.Post
+	var ok bool
+	if currentSubs, ok = currentSubsIface.(map[string]chan *model.Post); !ok {
+		currentSubs = map[string]chan *model.Post{}
+	}
+	currentSubs[subscriberUserID] = postChannel
+	d.cache.Set(cacheKey, currentSubs, time.Hour)
+	return nil
+}
+
+func (d *delphisBackend) UnSubscribeFromDiscussion(ctx context.Context, subscriberUserID string, discussionID string) error {
+	cacheKey := fmt.Sprintf(discussionSubscriberKey, discussionID)
+	d.discussionMutex.Lock()
+	defer d.discussionMutex.Unlock()
+	currentSubsIface, found := d.cache.Get(cacheKey)
+	if !found {
+		return nil
+	}
+	var currentSubs map[string]chan *model.Post
+	var ok bool
+	if currentSubs, ok = currentSubsIface.(map[string]chan *model.Post); !ok {
+		currentSubs = map[string]chan *model.Post{}
+	}
+	delete(currentSubs, subscriberUserID)
+	d.cache.Set(cacheKey, currentSubs, time.Hour)
+	return nil
 }

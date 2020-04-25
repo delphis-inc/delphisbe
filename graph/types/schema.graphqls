@@ -1,6 +1,7 @@
 schema {
   query: Query
   mutation: Mutation
+  subscription: Subscription
 }
 
 # The Query type represents all of the entry points into the API.
@@ -16,4 +17,8 @@ type Mutation {
   createDiscussion(anonymityType: AnonymityType!, title: String!): Discussion!
   addDiscussionParticipant(discussionID: String!, userID: String!): Participant!
   addPost(discussionID: ID!, postContent: String!): Post!
+}
+
+type Subscription {
+  postAdded(discussionID: String!): Post
 }
