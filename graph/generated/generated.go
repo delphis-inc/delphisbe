@@ -100,6 +100,7 @@ type ComplexityRoot struct {
 	Participant struct {
 		Discussion                        func(childComplexity int) int
 		DiscussionNotificationPreferences func(childComplexity int) int
+		Flair                             func(childComplexity int) int
 		ID                                func(childComplexity int) int
 		ParticipantID                     func(childComplexity int) int
 		Posts                             func(childComplexity int) int
@@ -250,6 +251,7 @@ type ParticipantResolver interface {
 	Viewer(ctx context.Context, obj *model.Participant) (*model.Viewer, error)
 	DiscussionNotificationPreferences(ctx context.Context, obj *model.Participant) (model.DiscussionNotificationPreferences, error)
 	Posts(ctx context.Context, obj *model.Participant) ([]*model.Post, error)
+	Flair(ctx context.Context, obj *model.Participant) (*model.Flair, error)
 }
 type ParticipantsConnectionResolver interface {
 	Edges(ctx context.Context, obj *model.ParticipantsConnection) ([]*model.ParticipantsEdge, error)
@@ -393,7 +395,11 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Flair.ID(childComplexity), true
 
+<<<<<<< HEAD
 	case "Flair.imageURL":
+=======
+	case "Flair.imageUrl":
+>>>>>>> Add Flair tables and simple resolver
 		if e.complexity.Flair.ImageURL == nil {
 			break
 		}
@@ -498,6 +504,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Participant.DiscussionNotificationPreferences(childComplexity), true
+
+	case "Participant.flair":
+		if e.complexity.Participant.Flair == nil {
+			break
+		}
+
+		return e.complexity.Participant.Flair(childComplexity), true
 
 	case "Participant.id":
 		if e.complexity.Participant.ID == nil {
@@ -1083,11 +1096,24 @@ var sources = []*ast.Source{
 `, BuiltIn: false},
 	&ast.Source{Name: "graph/types/discussion_notification_preferences.graphqls", Input: `union DiscussionNotificationPreferences = ViewerNotificationPreferences | ParticipantNotificationPreferences`, BuiltIn: false},
 	&ast.Source{Name: "graph/types/flair.graphqls", Input: `type Flair {
+<<<<<<< HEAD
     id: ID!
     displayName: String!
     imageURL: URL
     source: String!
 }`, BuiltIn: false},
+=======
+    # The UUID for this flair
+    id: ID!
+    # The text to display. Must be present if image is null.
+    displayName: String
+    # The image to display.  Must be present if displayName is null.
+    imageUrl: String
+    # The verification source
+    source: String!
+}
+`, BuiltIn: false},
+>>>>>>> Add Flair tables and simple resolver
 	&ast.Source{Name: "graph/types/moderator.graphqls", Input: `type Moderator {
     id: ID!
 
@@ -1113,7 +1139,10 @@ var sources = []*ast.Source{
     discussionNotificationPreferences: DiscussionNotificationPreferences!
     # Gets a list of all posts created by this participant in the given discussion.
     posts: [Post!]
-}`, BuiltIn: false},
+    # The flair that has been assigned to this participant
+    flair: Flair
+}
+`, BuiltIn: false},
 	&ast.Source{Name: "graph/types/participant_notification_preferences.graphqls", Input: `type ParticipantNotificationPreferences {
     id: ID!
 }`, BuiltIn: false},
@@ -1208,11 +1237,13 @@ type Mutation {
   createDiscussion(anonymityType: AnonymityType!, title: String!): Discussion!
   addDiscussionParticipant(discussionID: String!, userID: String!): Participant!
   addPost(discussionID: ID!, postContent: String!): Post!
+  # addFlair(participantID: String!, ...)
 }
 
 type Subscription {
   postAdded(discussionID: String!): Post
-}`, BuiltIn: false},
+}
+`, BuiltIn: false},
 	&ast.Source{Name: "graph/types/sudo_user.graphqls", Input: `# A SudoUser describes the unlocked version of a user. Due to implementation
 # the server cannot access the sudo properties for a user without first 
 # unlocking the secure information with the user's master password
@@ -1805,6 +1836,7 @@ func (ec *executionContext) _Flair_displayName(ctx context.Context, field graphq
 		return graphql.Null
 	}
 	if resTmp == nil {
+<<<<<<< HEAD
 		if !graphql.HasFieldError(ctx, fc) {
 			ec.Errorf(ctx, "must not be null")
 		}
@@ -1816,6 +1848,16 @@ func (ec *executionContext) _Flair_displayName(ctx context.Context, field graphq
 }
 
 func (ec *executionContext) _Flair_imageURL(ctx context.Context, field graphql.CollectedField, obj *model.Flair) (ret graphql.Marshaler) {
+=======
+		return graphql.Null
+	}
+	res := resTmp.(*string)
+	fc.Result = res
+	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Flair_imageUrl(ctx context.Context, field graphql.CollectedField, obj *model.Flair) (ret graphql.Marshaler) {
+>>>>>>> Add Flair tables and simple resolver
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -1826,13 +1868,21 @@ func (ec *executionContext) _Flair_imageURL(ctx context.Context, field graphql.C
 		Object:   "Flair",
 		Field:    field,
 		Args:     nil,
+<<<<<<< HEAD
 		IsMethod: true,
+=======
+		IsMethod: false,
+>>>>>>> Add Flair tables and simple resolver
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
+<<<<<<< HEAD
 		return ec.resolvers.Flair().ImageURL(rctx, obj)
+=======
+		return obj.ImageURL, nil
+>>>>>>> Add Flair tables and simple resolver
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -1841,9 +1891,15 @@ func (ec *executionContext) _Flair_imageURL(ctx context.Context, field graphql.C
 	if resTmp == nil {
 		return graphql.Null
 	}
+<<<<<<< HEAD
 	res := resTmp.(*model.URL)
 	fc.Result = res
 	return ec.marshalOURL2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐURL(ctx, field.Selections, res)
+=======
+	res := resTmp.(*string)
+	fc.Result = res
+	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
+>>>>>>> Add Flair tables and simple resolver
 }
 
 func (ec *executionContext) _Flair_source(ctx context.Context, field graphql.CollectedField, obj *model.Flair) (ret graphql.Marshaler) {
@@ -2391,6 +2447,37 @@ func (ec *executionContext) _Participant_posts(ctx context.Context, field graphq
 	res := resTmp.([]*model.Post)
 	fc.Result = res
 	return ec.marshalOPost2ᚕᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐPostᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Participant_flair(ctx context.Context, field graphql.CollectedField, obj *model.Participant) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "Participant",
+		Field:    field,
+		Args:     nil,
+		IsMethod: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Participant().Flair(rctx, obj)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*model.Flair)
+	fc.Result = res
+	return ec.marshalOFlair2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐFlair(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _ParticipantNotificationPreferences_id(ctx context.Context, field graphql.CollectedField, obj *model.ParticipantNotificationPreferences) (ret graphql.Marshaler) {
@@ -5639,6 +5726,7 @@ func (ec *executionContext) _Flair(ctx context.Context, sel ast.SelectionSet, ob
 		case "id":
 			out.Values[i] = ec._Flair_id(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
+<<<<<<< HEAD
 				atomic.AddUint32(&invalids, 1)
 			}
 		case "displayName":
@@ -5661,6 +5749,18 @@ func (ec *executionContext) _Flair(ctx context.Context, sel ast.SelectionSet, ob
 			out.Values[i] = ec._Flair_source(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				atomic.AddUint32(&invalids, 1)
+=======
+				invalids++
+			}
+		case "displayName":
+			out.Values[i] = ec._Flair_displayName(ctx, field, obj)
+		case "imageUrl":
+			out.Values[i] = ec._Flair_imageUrl(ctx, field, obj)
+		case "source":
+			out.Values[i] = ec._Flair_source(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+>>>>>>> Add Flair tables and simple resolver
 			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
@@ -5863,6 +5963,17 @@ func (ec *executionContext) _Participant(ctx context.Context, sel ast.SelectionS
 					}
 				}()
 				res = ec._Participant_posts(ctx, field, obj)
+				return res
+			})
+		case "flair":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Participant_flair(ctx, field, obj)
 				return res
 			})
 		default:
@@ -7558,6 +7669,7 @@ func (ec *executionContext) marshalOFlair2ᚖgithubᚗcomᚋnedrocksᚋdelphisbe
 	return ec._Flair(ctx, sel, v)
 }
 
+<<<<<<< HEAD
 func (ec *executionContext) unmarshalOGradientColor2githubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐGradientColor(ctx context.Context, v interface{}) (model.GradientColor, error) {
 	var res model.GradientColor
 	return res, res.UnmarshalGQL(v)
@@ -7582,6 +7694,8 @@ func (ec *executionContext) marshalOGradientColor2ᚖgithubᚗcomᚋnedrocksᚋd
 	return v
 }
 
+=======
+>>>>>>> Add Flair tables and simple resolver
 func (ec *executionContext) unmarshalOID2string(ctx context.Context, v interface{}) (string, error) {
 	return graphql.UnmarshalID(v)
 }

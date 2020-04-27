@@ -72,6 +72,8 @@ models:
     fields:
       discussion:
         resolver: true
+      flair:
+        resolver: true
       viewer:
         resolver: true
       discussionNotificationPreferences:

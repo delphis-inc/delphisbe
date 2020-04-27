@@ -61,6 +61,13 @@ func (r *participantResolver) Posts(ctx context.Context, obj *model.Participant)
 	return posts, nil
 }
 
+func (r *participantResolver) Flair(ctx context.Context, obj *model.Participant) (*model.Flair, error) {
+	if obj.Flair == nil && obj.FlairID != nil {
+		return r.DAOManager.GetFlairByID(ctx, *obj.FlairID)
+	}
+	return obj.Flair, nil
+}
+
 func (r *Resolver) Participant() generated.ParticipantResolver { return &participantResolver{r} }
 
 type participantResolver struct{ *Resolver }

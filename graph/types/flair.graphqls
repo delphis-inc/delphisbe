@@ -1,6 +1,10 @@
 type Flair {
+    # The UUID for this flair
     id: ID!
-    displayName: String!
-    imageURL: URL
+    # The text to display. Must be present if image is null.
+    displayName: String
+    # The image to display.  Must be present if displayName is null.
+    imageURL: String
+    # The verification source
     source: String!
 }

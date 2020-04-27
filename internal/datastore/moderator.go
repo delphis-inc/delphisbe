@@ -11,7 +11,7 @@ import (
 func (d *db) GetModeratorByID(ctx context.Context, id string) (*model.Moderator, error) {
 	logrus.Debug("GetModeratorByID::SQL Query")
 	moderator := model.Moderator{}
-	if err := d.sql.Preload("UserProfile").First(&moderator, id).Error; err != nil {
+	if err := d.sql.Preload("UserProfile").First(&moderator, model.Moderator{ID: id}).Error; err != nil {
 		if gorm.IsRecordNotFoundError(err) {
 			return nil, nil
 		}

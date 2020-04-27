@@ -11,4 +11,6 @@ type Participant {
     discussionNotificationPreferences: DiscussionNotificationPreferences!
     # Gets a list of all posts created by this participant in the given discussion.
     posts: [Post!]
+    # The flair that has been assigned to this participant
+    flair: Flair
 }

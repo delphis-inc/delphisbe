@@ -13,6 +13,8 @@ type Participant struct {
 	ViewerID      *string          `json:"viewerID" gorm:"type:varchar(36)"`
 	Viewer        *Viewer          `json:"viewer" dynamodbav:"-" gorm:"foreignKey:ViewerID"`
 	Posts         *PostsConnection `json:"posts" dynamodbav:"-"`
+	FlairID       *string          `json:"flairID" dynamodbav:"FlairID" gorm:"type:varchar(36)"`
+	Flair         *Flair           `json:"flair" dynamodbav:"-" gorm:"foreignKey:FlairID"`
 
 	// NOTE: This is not exposed currently but keeping it here for
 	// testing purposes. We will try out exposing user information one of the tests.
