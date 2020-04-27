@@ -157,10 +157,22 @@ func (r *subscriptionResolver) PostAdded(ctx context.Context, discussionID strin
 		return nil, fmt.Errorf("Need auth")
 	}
 	events := make(chan *model.Post, 1)
+
+	go func() {
+		<-ctx.Done()
+		err := r.DAOManager.UnSubscribeFromDiscussion(ctx, currentUser.UserID, discussionID)
+		if err != nil {
+			logrus.WithError(err).Errorf("Failed to unsubscribe from discussion")
+		}
+		close(events)
+	}()
+
 	err := r.DAOManager.SubscribeToDiscussion(ctx, currentUser.UserID, events, discussionID)
 	if err != nil {
+		close(events)
 		return nil, err
 	}
+
 	return events, nil
 }
 
