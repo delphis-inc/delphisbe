@@ -17,4 +17,7 @@ type User {
     bookmarks: [PostBookmark!]
 
     profile: UserProfile!
+
+    # The user's available flairs
+    flairs: [Flair]
 }

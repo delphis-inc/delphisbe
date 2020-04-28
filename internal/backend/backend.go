@@ -25,7 +25,7 @@ type DelphisBackend interface {
 	// Flair backend
 	GetFlairByID(ctx context.Context, id string) (*model.Flair, error)
 	GetFlairByUserIDFlairID(ctx context.Context, userID string, flairID string) (*model.Flair, error)
-	GetFlairsByUserID(ctx context.Context, userID string) ([]model.Flair, error)
+	GetFlairsByUserID(ctx context.Context, userID string) ([]*model.Flair, error)
 	AddFlair(ctx context.Context, participant *model.Participant, flairID string) (*model.Participant, error)
 	RemoveFlair(ctx context.Context, participant *model.Participant) (*model.Participant, error)
 	CreateNewFlair(ctx context.Context, displayName *string, imageURL *string, source string) (*model.Flair, error)

@@ -12,4 +12,5 @@ type User struct {
 	// Going through a `through` table so we can encrypt this in the future.
 	Participants []*Participant `json:"participants" dynamodbav:"-" gorm:"foreignKey:UserID"`
 	Viewers      []*Viewer      `json:"viewers" dynamodbav:"-" gorm:"foreignKey:UserID"`
+	Flairs       []*Flair       `json:"flairs" dynamodbav:"-" gorm:"foreignKey:FlairID"`
 }

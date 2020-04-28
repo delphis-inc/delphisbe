@@ -29,7 +29,7 @@ type Datastore interface {
 	// Flair
 	GetFlairByID(ctx context.Context, id string) (*model.Flair, error)
 	GetFlairByUserIDFlairID(ctx context.Context, userID string, flairID string) (*model.Flair, error)
-	GetFlairsByUserID(ctx context.Context, userID string) ([]model.Flair, error)
+	GetFlairsByUserID(ctx context.Context, userID string) ([]*model.Flair, error)
 	AssignFlair(ctx context.Context, participant *model.Participant, flairID *string) (*model.Participant, error)
 	UpsertFlair(ctx context.Context, flair model.Flair) (*model.Flair, error)
 

@@ -188,6 +188,7 @@ type ComplexityRoot struct {
 
 	User struct {
 		Bookmarks    func(childComplexity int) int
+		Flairs       func(childComplexity int) int
 		ID           func(childComplexity int) int
 		Participants func(childComplexity int) int
 		Profile      func(childComplexity int) int
@@ -291,6 +292,7 @@ type UserResolver interface {
 	Viewers(ctx context.Context, obj *model.User) ([]*model.Viewer, error)
 	Bookmarks(ctx context.Context, obj *model.User) ([]*model.PostBookmark, error)
 	Profile(ctx context.Context, obj *model.User) (*model.UserProfile, error)
+	Flairs(ctx context.Context, obj *model.User) ([]*model.Flair, error)
 }
 type UserProfileResolver interface {
 	ProfileImageURL(ctx context.Context, obj *model.UserProfile) (string, error)
@@ -862,6 +864,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.User.Bookmarks(childComplexity), true
 
+	case "User.flairs":
+		if e.complexity.User.Flairs == nil {
+			break
+		}
+
+		return e.complexity.User.Flairs(childComplexity), true
+
 	case "User.id":
 		if e.complexity.User.ID == nil {
 			break
@@ -1306,7 +1315,11 @@ type User {
     bookmarks: [PostBookmark!]
 
     profile: UserProfile!
-}`, BuiltIn: false},
+
+    # The user's available flairs
+    flairs: [Flair]
+}
+`, BuiltIn: false},
 	&ast.Source{Name: "graph/types/user_profile.graphqls", Input: `type UserProfile {
     id: ID!
 
@@ -4177,6 +4190,37 @@ func (ec *executionContext) _User_profile(ctx context.Context, field graphql.Col
 	return ec.marshalNUserProfile2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐUserProfile(ctx, field.Selections, res)
 }
 
+func (ec *executionContext) _User_flairs(ctx context.Context, field graphql.CollectedField, obj *model.User) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "User",
+		Field:    field,
+		Args:     nil,
+		IsMethod: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.User().Flairs(rctx, obj)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.([]*model.Flair)
+	fc.Result = res
+	return ec.marshalOFlair2ᚕᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐFlair(ctx, field.Selections, res)
+}
+
 func (ec *executionContext) _UserProfile_id(ctx context.Context, field graphql.CollectedField, obj *model.UserProfile) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -6799,6 +6843,17 @@ func (ec *executionContext) _User(ctx context.Context, sel ast.SelectionSet, obj
 				}
 				return res
 			})
+		case "flairs":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._User_flairs(ctx, field, obj)
+				return res
+			})
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -7853,6 +7908,46 @@ func (ec *executionContext) marshalODiscussion2ᚖgithubᚗcomᚋnedrocksᚋdelp
 
 func (ec *executionContext) marshalOFlair2githubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐFlair(ctx context.Context, sel ast.SelectionSet, v model.Flair) graphql.Marshaler {
 	return ec._Flair(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalOFlair2ᚕᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐFlair(ctx context.Context, sel ast.SelectionSet, v []*model.Flair) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalOFlair2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐFlair(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+	return ret
 }
 
 func (ec *executionContext) marshalOFlair2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐFlair(ctx context.Context, sel ast.SelectionSet, v *model.Flair) graphql.Marshaler {

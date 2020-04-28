@@ -37,6 +37,6 @@ func (d *delphisBackend) GetFlairByUserIDFlairID(ctx context.Context, userID str
 	return d.db.GetFlairByUserIDFlairID(ctx, userID, flairID)
 }
 
-func (d *delphisBackend) GetFlairsByUserID(ctx context.Context, userID string) ([]model.Flair, error) {
+func (d *delphisBackend) GetFlairsByUserID(ctx context.Context, userID string) ([]*model.Flair, error) {
 	return d.db.GetFlairsByUserID(ctx, userID)
 }
