@@ -9,6 +9,5 @@ type Moderator struct {
 	DeletedAt     *time.Time   `json:"deletedAt"`
 	UserProfileID *string      `json:"userProfileID" gorm:"type:varchar(36)"`
 	UserProfile   *UserProfile `json:"userProfile" dynamodbav:"-" gorm:"foreignKey:UserProfileID"`
-
-	Discussion *Discussion `gorm:"-" dynamodbav:"-"`
+	Discussion    *Discussion `gorm:"-" dynamodbav:"-"`
 }

@@ -32,3 +32,6 @@ gql/schema/bindata.go
 # binaries
 delphis_server
 delphisbe
+
+# OSX
+.DS_Store

@@ -17,7 +17,7 @@ A few things you'll need to install. Assuming you're on mac:
 > GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public to chatham_app;
 > GRANT chatham_app TO chatham_local;
 ```
-  * Run sql scripts to create tables: `psql -U chatham_local -d chatham_local -f _scripts/000....sql`
+  * Run sql scripts to create tables: `psql -U chatham_local -d chatham_local -f _scripts/migrations/000....sql`
 * Setup internal dependencies: `make setup-internal-dep`
 * Add an entry into your `/etc/hosts` that looks like `127.0.0.1	local.delphishq.com`. This is required for cookie management (cookies don't like localhost).
 * Get the twitter credentials and put them in your environment:
