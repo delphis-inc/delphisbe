@@ -21,10 +21,17 @@ type DelphisBackend interface {
 	UnSubscribeFromDiscussion(ctx context.Context, subscriberUserID string, discussionID string) error
 	ListDiscussions(ctx context.Context) (*model.DiscussionsConnection, error)
 	GetModeratorByID(ctx context.Context, id string) (*model.Moderator, error)
+
+	// Flair backend
 	// CreateNewFlair(ctx context.Context, displayName *string, imageURL *string, source string) (*model.Flair, error)
 	GetFlairByID(ctx context.Context, id string) (*model.Flair, error)
-	// UpdateFlair()...
+	GetFlairByUserIDFlairID(ctx context.Context, userID string, flairID string) (*model.Flair, error)
+	GetFlairsByUserID(ctx context.Context, userID string) ([]model.Flair, error)
+	AddFlair(ctx context.Context, participant *model.Participant, flairID string) (*model.Participant, error)
+	RemoveFlair(ctx context.Context, participant *model.Participant) (*model.Participant, error)
+
 	CreateParticipantForDiscussion(ctx context.Context, discussionID string, userID string) (*model.Participant, error)
+	GetParticipantByDiscussionIDUserID(ctx context.Context, discussionID string, userID string) (*model.Participant, error)
 	GetParticipantsByDiscussionID(ctx context.Context, id string) ([]model.Participant, error)
 	GetParticipantByID(ctx context.Context, id string) (*model.Participant, error)
 	CreatePost(ctx context.Context, discussionID string, participantID string, content string) (*model.Post, error)

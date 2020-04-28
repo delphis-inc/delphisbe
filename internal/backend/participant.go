@@ -45,6 +45,10 @@ func (d *delphisBackend) GetParticipantsByDiscussionID(ctx context.Context, id s
 	return d.db.GetParticipantsByDiscussionID(ctx, id)
 }
 
+func (d *delphisBackend) GetParticipantByDiscussionIDUserID(ctx context.Context, discussionID string, userID string) (*model.Participant, error) {
+	return d.db.GetParticipantByDiscussionIDUserID(ctx, discussionID, userID)
+}
+
 func (d *delphisBackend) GetParticipantByID(ctx context.Context, id string) (*model.Participant, error) {
 	participant, err := d.db.GetParticipantByID(ctx, id)
 
@@ -53,4 +57,11 @@ func (d *delphisBackend) GetParticipantByID(ctx context.Context, id string) (*mo
 	}
 
 	return participant, nil
+}
+
+func (d *delphisBackend) AddFlair(ctx context.Context, participant *model.Participant, flairID string) (*model.Participant, error) {
+	return d.db.AssignFlair(ctx, participant, &flairID)
+}
+func (d *delphisBackend) RemoveFlair(ctx context.Context, participant *model.Participant) (*model.Participant, error) {
+	return d.db.AssignFlair(ctx, participant, nil)
 }

@@ -14,9 +14,11 @@ type Query {
 }
 
 type Mutation {
-  createDiscussion(anonymityType: AnonymityType!, title: String!): Discussion!
   addDiscussionParticipant(discussionID: String!, userID: String!): Participant!
+  addFlair(discussionID: ID!, flairID: String!): Participant!
   addPost(discussionID: ID!, postContent: String!): Post!
+  createDiscussion(anonymityType: AnonymityType!, title: String!): Discussion!
+  removeFlair(discussionID: ID!): Participant!
 }
 
 type Subscription {

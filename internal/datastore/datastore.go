@@ -28,9 +28,13 @@ type Datastore interface {
 
 	// TODO: Add Datastore methods
 	GetFlairByID(ctx context.Context, id string) (*model.Flair, error)
+	GetFlairByUserIDFlairID(ctx context.Context, userID string, flairID string) (*model.Flair, error)
+	GetFlairsByUserID(ctx context.Context, userID string) ([]model.Flair, error)
+	AssignFlair(ctx context.Context, participant *model.Participant, flairID *string) (*model.Participant, error)
 
 	GetParticipantByID(ctx context.Context, participantID string) (*model.Participant, error)
 	GetParticipantsByDiscussionID(ctx context.Context, id string) ([]model.Participant, error)
+	GetParticipantByDiscussionIDUserID(ctx context.Context, discussionID string, userID string) (*model.Participant, error)
 	PutParticipant(ctx context.Context, participant model.Participant) (*model.Participant, error)
 	GetPostsByDiscussionID(ctx context.Context, discussionID string) ([]*model.Post, error)
 	GetPostContentByID(ctx context.Context, id string) (*model.PostContent, error)

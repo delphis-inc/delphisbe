@@ -87,8 +87,10 @@ type ComplexityRoot struct {
 
 	Mutation struct {
 		AddDiscussionParticipant func(childComplexity int, discussionID string, userID string) int
+		AddFlair                 func(childComplexity int, discussionID string, flairID string) int
 		AddPost                  func(childComplexity int, discussionID string, postContent string) int
 		CreateDiscussion         func(childComplexity int, anonymityType model.AnonymityType, title string) int
+		RemoveFlair              func(childComplexity int, discussionID string) int
 	}
 
 	PageInfo struct {
@@ -242,9 +244,11 @@ type ModeratorResolver interface {
 	UserProfile(ctx context.Context, obj *model.Moderator) (*model.UserProfile, error)
 }
 type MutationResolver interface {
-	CreateDiscussion(ctx context.Context, anonymityType model.AnonymityType, title string) (*model.Discussion, error)
 	AddDiscussionParticipant(ctx context.Context, discussionID string, userID string) (*model.Participant, error)
+	AddFlair(ctx context.Context, discussionID string, flairID string) (*model.Participant, error)
 	AddPost(ctx context.Context, discussionID string, postContent string) (*model.Post, error)
+	CreateDiscussion(ctx context.Context, anonymityType model.AnonymityType, title string) (*model.Discussion, error)
+	RemoveFlair(ctx context.Context, discussionID string) (*model.Participant, error)
 }
 type ParticipantResolver interface {
 	Discussion(ctx context.Context, obj *model.Participant) (*model.Discussion, error)
@@ -446,6 +450,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Mutation.AddDiscussionParticipant(childComplexity, args["discussionID"].(string), args["userID"].(string)), true
 
+	case "Mutation.addFlair":
+		if e.complexity.Mutation.AddFlair == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_addFlair_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.AddFlair(childComplexity, args["discussionID"].(string), args["flairID"].(string)), true
+
 	case "Mutation.addPost":
 		if e.complexity.Mutation.AddPost == nil {
 			break
@@ -469,6 +485,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Mutation.CreateDiscussion(childComplexity, args["anonymityType"].(model.AnonymityType), args["title"].(string)), true
+
+	case "Mutation.removeFlair":
+		if e.complexity.Mutation.RemoveFlair == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_removeFlair_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.RemoveFlair(childComplexity, args["discussionID"].(string)), true
 
 	case "PageInfo.endCursor":
 		if e.complexity.PageInfo.EndCursor == nil {
@@ -1234,10 +1262,11 @@ type Query {
 }
 
 type Mutation {
-  createDiscussion(anonymityType: AnonymityType!, title: String!): Discussion!
   addDiscussionParticipant(discussionID: String!, userID: String!): Participant!
+  addFlair(discussionID: ID!, flairID: String!): Participant!
   addPost(discussionID: ID!, postContent: String!): Post!
-  # addFlair(participantID: String!, ...)
+  createDiscussion(anonymityType: AnonymityType!, title: String!): Discussion!
+  removeFlair(discussionID: ID!): Participant!
 }
 
 type Subscription {
@@ -1345,6 +1374,28 @@ func (ec *executionContext) field_Mutation_addDiscussionParticipant_args(ctx con
 	return args, nil
 }
 
+func (ec *executionContext) field_Mutation_addFlair_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 string
+	if tmp, ok := rawArgs["discussionID"]; ok {
+		arg0, err = ec.unmarshalNID2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["discussionID"] = arg0
+	var arg1 string
+	if tmp, ok := rawArgs["flairID"]; ok {
+		arg1, err = ec.unmarshalNString2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["flairID"] = arg1
+	return args, nil
+}
+
 func (ec *executionContext) field_Mutation_addPost_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
@@ -1386,6 +1437,20 @@ func (ec *executionContext) field_Mutation_createDiscussion_args(ctx context.Con
 		}
 	}
 	args["title"] = arg1
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_removeFlair_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 string
+	if tmp, ok := rawArgs["discussionID"]; ok {
+		arg0, err = ec.unmarshalNID2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["discussionID"] = arg0
 	return args, nil
 }
 
@@ -2035,47 +2100,6 @@ func (ec *executionContext) _Moderator_userProfile(ctx context.Context, field gr
 	return ec.marshalNUserProfile2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐUserProfile(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Mutation_createDiscussion(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:   "Mutation",
-		Field:    field,
-		Args:     nil,
-		IsMethod: true,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	rawArgs := field.ArgumentMap(ec.Variables)
-	args, err := ec.field_Mutation_createDiscussion_args(ctx, rawArgs)
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	fc.Args = args
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().CreateDiscussion(rctx, args["anonymityType"].(model.AnonymityType), args["title"].(string))
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(*model.Discussion)
-	fc.Result = res
-	return ec.marshalNDiscussion2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐDiscussion(ctx, field.Selections, res)
-}
-
 func (ec *executionContext) _Mutation_addDiscussionParticipant(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -2101,6 +2125,47 @@ func (ec *executionContext) _Mutation_addDiscussionParticipant(ctx context.Conte
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
 		return ec.resolvers.Mutation().AddDiscussionParticipant(rctx, args["discussionID"].(string), args["userID"].(string))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.Participant)
+	fc.Result = res
+	return ec.marshalNParticipant2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐParticipant(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Mutation_addFlair(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "Mutation",
+		Field:    field,
+		Args:     nil,
+		IsMethod: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Mutation_addFlair_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().AddFlair(rctx, args["discussionID"].(string), args["flairID"].(string))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -2156,6 +2221,88 @@ func (ec *executionContext) _Mutation_addPost(ctx context.Context, field graphql
 	res := resTmp.(*model.Post)
 	fc.Result = res
 	return ec.marshalNPost2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐPost(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Mutation_createDiscussion(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "Mutation",
+		Field:    field,
+		Args:     nil,
+		IsMethod: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Mutation_createDiscussion_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().CreateDiscussion(rctx, args["anonymityType"].(model.AnonymityType), args["title"].(string))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.Discussion)
+	fc.Result = res
+	return ec.marshalNDiscussion2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐDiscussion(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Mutation_removeFlair(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "Mutation",
+		Field:    field,
+		Args:     nil,
+		IsMethod: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Mutation_removeFlair_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().RemoveFlair(rctx, args["discussionID"].(string))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.Participant)
+	fc.Result = res
+	return ec.marshalNParticipant2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐParticipant(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _PageInfo_startCursor(ctx context.Context, field graphql.CollectedField, obj *model.PageInfo) (ret graphql.Marshaler) {
@@ -5840,18 +5987,28 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 		switch field.Name {
 		case "__typename":
 			out.Values[i] = graphql.MarshalString("Mutation")
-		case "createDiscussion":
-			out.Values[i] = ec._Mutation_createDiscussion(ctx, field)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
 		case "addDiscussionParticipant":
 			out.Values[i] = ec._Mutation_addDiscussionParticipant(ctx, field)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
+		case "addFlair":
+			out.Values[i] = ec._Mutation_addFlair(ctx, field)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
 		case "addPost":
 			out.Values[i] = ec._Mutation_addPost(ctx, field)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "createDiscussion":
+			out.Values[i] = ec._Mutation_createDiscussion(ctx, field)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "removeFlair":
+			out.Values[i] = ec._Mutation_removeFlair(ctx, field)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}

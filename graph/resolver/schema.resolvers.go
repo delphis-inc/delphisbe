@@ -12,6 +12,81 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+func (r *mutationResolver) AddDiscussionParticipant(ctx context.Context, discussionID string, userID string) (*model.Participant, error) {
+	participantObj, err := r.DAOManager.CreateParticipantForDiscussion(ctx, discussionID, userID)
+
+	// TODO: Only the current user can join the conversation
+	if err != nil {
+		return nil, err
+	}
+
+	return participantObj, nil
+}
+
+func (r *mutationResolver) AddFlair(ctx context.Context, discussionID string, flairID string) (*model.Participant, error) {
+	creatingUser := auth.GetAuthedUser(ctx)
+	if creatingUser == nil {
+		return nil, fmt.Errorf("Need auth")
+	}
+
+	participant, err := r.DAOManager.GetParticipantByDiscussionIDUserID(ctx, discussionID, creatingUser.UserID)
+	if err != nil {
+		return nil, err
+	} else if participant == nil {
+		return nil, fmt.Errorf("Current user not a participant in this discussion")
+	}
+
+	// Ensure this flair exists and belongs to the creating user
+	flair, err := r.DAOManager.GetFlairByUserIDFlairID(ctx, creatingUser.UserID, flairID)
+	if err != nil || flair == nil {
+		return nil, fmt.Errorf("Flair with ID %s not found", flairID)
+	}
+
+	// Add the flair to the participant
+	return r.DAOManager.AddFlair(ctx, participant, flairID)
+}
+
+func (r *mutationResolver) AddPost(ctx context.Context, discussionID string, postContent string) (*model.Post, error) {
+	creatingUser := auth.GetAuthedUser(ctx)
+	if creatingUser == nil {
+		return nil, fmt.Errorf("Need auth")
+	}
+
+	if creatingUser.User == nil {
+		user, err := r.DAOManager.GetUserByID(ctx, creatingUser.UserID)
+		if err != nil {
+			return nil, fmt.Errorf("Error finding user with ID: %s", creatingUser.UserID)
+		}
+		creatingUser.User = user
+	}
+
+	// TODO: Don't need to look up discussion here since it's already handled in the participant lookup below
+	discussion, err := r.DAOManager.GetDiscussionByID(ctx, discussionID)
+	if discussion == nil || err != nil {
+		return nil, fmt.Errorf("Discussion with ID %s not found", discussionID)
+	}
+
+	participant, err := r.DAOManager.GetParticipantByDiscussionIDUserID(ctx, discussionID, creatingUser.UserID)
+	if err != nil {
+		return nil, err
+	} else if participant == nil {
+		return nil, fmt.Errorf("Current user not a participant in this discussion")
+	}
+
+	createdPost, err := r.DAOManager.CreatePost(ctx, discussionID, participant.ID, postContent)
+	if err != nil {
+		return nil, fmt.Errorf("Failed to create post")
+	}
+
+	err = r.DAOManager.NotifySubscribersOfCreatedPost(ctx, createdPost, discussionID)
+	if err != nil {
+		// Silently ignore this
+		logrus.Warnf("Failed to notify subscribers of created post")
+	}
+
+	return createdPost, nil
+}
+
 func (r *mutationResolver) CreateDiscussion(ctx context.Context, anonymityType model.AnonymityType, title string) (*model.Discussion, error) {
 	creatingUser := auth.GetAuthedUser(ctx)
 	if creatingUser == nil {
@@ -45,63 +120,21 @@ func (r *mutationResolver) CreateDiscussion(ctx context.Context, anonymityType m
 	return discussionObj, nil
 }
 
-func (r *mutationResolver) AddDiscussionParticipant(ctx context.Context, discussionID string, userID string) (*model.Participant, error) {
-	participantObj, err := r.DAOManager.CreateParticipantForDiscussion(ctx, discussionID, userID)
-
-	// TODO: Only the current user can join the conversation
-	if err != nil {
-		return nil, err
-	}
-
-	return participantObj, nil
-}
-
-func (r *mutationResolver) AddPost(ctx context.Context, discussionID string, postContent string) (*model.Post, error) {
+func (r *mutationResolver) RemoveFlair(ctx context.Context, discussionID string) (*model.Participant, error) {
 	creatingUser := auth.GetAuthedUser(ctx)
 	if creatingUser == nil {
 		return nil, fmt.Errorf("Need auth")
 	}
 
-	if creatingUser.User == nil {
-		user, err := r.DAOManager.GetUserByID(ctx, creatingUser.UserID)
-		if err != nil {
-			return nil, fmt.Errorf("Error finding user with ID: %s", creatingUser.UserID)
-		}
-		creatingUser.User = user
-	}
-
-	discussion, err := r.DAOManager.GetDiscussionByID(ctx, discussionID)
-	if discussion == nil || err != nil {
-		return nil, fmt.Errorf("Discussion with ID %s not found", discussionID)
-	}
-
-	participants, err := r.DAOManager.GetParticipantsByDiscussionID(ctx, discussionID)
+	participant, err := r.DAOManager.GetParticipantByDiscussionIDUserID(ctx, discussionID, creatingUser.UserID)
 	if err != nil {
 		return nil, err
-	}
-	var participant *model.Participant
-	for _, p := range participants {
-		if p.UserID != nil && *p.UserID == creatingUser.UserID {
-			participant = &p
-			break
-		}
-	}
-	if participant == nil {
+	} else if participant == nil {
 		return nil, fmt.Errorf("Current user not a participant in this discussion")
 	}
 
-	createdPost, err := r.DAOManager.CreatePost(ctx, discussion.ID, participant.ID, postContent)
-	if err != nil {
-		return nil, fmt.Errorf("Failed to create post")
-	}
-
-	err = r.DAOManager.NotifySubscribersOfCreatedPost(ctx, createdPost, discussionID)
-	if err != nil {
-		// Silently ignore this
-		logrus.Warnf("Failed to notify subscribers of created post")
-	}
-
-	return createdPost, nil
+	// Remove any flair by assigning nil
+	return r.DAOManager.RemoveFlair(ctx, participant)
 }
 
 func (r *queryResolver) Discussion(ctx context.Context, id string) (*model.Discussion, error) {
