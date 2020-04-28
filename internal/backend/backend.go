@@ -23,12 +23,12 @@ type DelphisBackend interface {
 	GetModeratorByID(ctx context.Context, id string) (*model.Moderator, error)
 
 	// Flair backend
-	// CreateNewFlair(ctx context.Context, displayName *string, imageURL *string, source string) (*model.Flair, error)
 	GetFlairByID(ctx context.Context, id string) (*model.Flair, error)
 	GetFlairByUserIDFlairID(ctx context.Context, userID string, flairID string) (*model.Flair, error)
 	GetFlairsByUserID(ctx context.Context, userID string) ([]model.Flair, error)
 	AddFlair(ctx context.Context, participant *model.Participant, flairID string) (*model.Participant, error)
 	RemoveFlair(ctx context.Context, participant *model.Participant) (*model.Participant, error)
+	CreateNewFlair(ctx context.Context, displayName *string, imageURL *string, source string) (*model.Flair, error)
 
 	CreateParticipantForDiscussion(ctx context.Context, discussionID string, userID string) (*model.Participant, error)
 	GetParticipantByDiscussionIDUserID(ctx context.Context, discussionID string, userID string) (*model.Participant, error)

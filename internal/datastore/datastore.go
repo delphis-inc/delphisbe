@@ -26,11 +26,12 @@ type Datastore interface {
 	ListDiscussions(ctx context.Context) (*model.DiscussionsConnection, error)
 	UpsertDiscussion(ctx context.Context, discussion model.Discussion) (*model.Discussion, error)
 
-	// TODO: Add Datastore methods
+	// Flair
 	GetFlairByID(ctx context.Context, id string) (*model.Flair, error)
 	GetFlairByUserIDFlairID(ctx context.Context, userID string, flairID string) (*model.Flair, error)
 	GetFlairsByUserID(ctx context.Context, userID string) ([]model.Flair, error)
 	AssignFlair(ctx context.Context, participant *model.Participant, flairID *string) (*model.Participant, error)
+	UpsertFlair(ctx context.Context, flair model.Flair) (*model.Flair, error)
 
 	GetParticipantByID(ctx context.Context, participantID string) (*model.Participant, error)
 	GetParticipantsByDiscussionID(ctx context.Context, id string) ([]model.Participant, error)

@@ -107,10 +107,6 @@ func (r *mutationResolver) CreateDiscussion(ctx context.Context, anonymityType m
 		return nil, err
 	}
 
-	if err != nil {
-		return nil, err
-	}
-
 	_, err = r.DAOManager.CreateParticipantForDiscussion(ctx, discussionObj.ID, creatingUser.UserID)
 
 	if err != nil {
@@ -118,6 +114,21 @@ func (r *mutationResolver) CreateDiscussion(ctx context.Context, anonymityType m
 	}
 
 	return discussionObj, nil
+}
+
+func (r *mutationResolver) CreateFlair(ctx context.Context, displayName *string, imageURL *string, source string) (*model.Flair, error) {
+	creatingUser := auth.GetAuthedUser(ctx)
+	if creatingUser == nil {
+		// Need to add auth logic here
+		return nil, fmt.Errorf("Need auth")
+	}
+
+	flairObj, err := r.DAOManager.CreateNewFlair(ctx, displayName, imageURL, source)
+	if err != nil {
+		return nil, err
+	}
+
+	return flairObj, nil
 }
 
 func (r *mutationResolver) RemoveFlair(ctx context.Context, discussionID string) (*model.Participant, error) {
@@ -143,7 +154,6 @@ func (r *queryResolver) Discussion(ctx context.Context, id string) (*model.Discu
 
 func (r *queryResolver) ListDiscussions(ctx context.Context) ([]*model.Discussion, error) {
 	connection, err := r.DAOManager.ListDiscussions(ctx)
-
 	if err != nil {
 		return nil, err
 	}

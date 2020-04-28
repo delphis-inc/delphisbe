@@ -18,6 +18,7 @@ type Mutation {
   addFlair(discussionID: ID!, flairID: String!): Participant!
   addPost(discussionID: ID!, postContent: String!): Post!
   createDiscussion(anonymityType: AnonymityType!, title: String!): Discussion!
+  createFlair(displayName: String, imageURL: String, Source: String!): Flair!
   removeFlair(discussionID: ID!): Participant!
 }
 
