@@ -1,5 +1,0 @@
-enum PostDeletedReason {
-    UNKNOWN
-    MODERATOR_REMOVED
-    PARTICIPANT_REMOVED
-}
