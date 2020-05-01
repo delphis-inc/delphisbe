@@ -62,13 +62,13 @@ func (d *db) PutParticipant(ctx context.Context, participant model.Participant) 
 	return &found, nil
 }
 
-func (d *db) AssignFlair(ctx context.Context, participant *model.Participant, flairID *string ) (*model.Participant, error) {
+func (d *db) AssignFlair(ctx context.Context, participant model.Participant, flairID *string ) (*model.Participant, error) {
 	logrus.Debug("AssignFlair::SQL Update")
 	if err := d.sql.Model(&participant).Update("FlairID", flairID).Error; err != nil {
 		logrus.WithError(err).Errorf("AssignFlair::Failed to update")
-		return participant, err
+		return &participant, err
 	}
-	return participant, nil
+	return &participant, nil
 }
 
 ////////////

@@ -60,8 +60,8 @@ func (r *discussionResolver) UpdatedAt(ctx context.Context, obj *model.Discussio
 }
 
 func (r *discussionResolver) MeParticipant(ctx context.Context, obj *model.Discussion) (*model.Participant, error) {
-	creatingUser := auth.GetAuthedUser(ctx)
-	if creatingUser == nil {
+	currentUser := auth.GetAuthedUser(ctx)
+	if currentUser == nil {
 		// Only works for logged in. Won't throw an error here though.
 		return nil, nil
 	}
@@ -70,7 +70,7 @@ func (r *discussionResolver) MeParticipant(ctx context.Context, obj *model.Discu
 		return nil, err
 	}
 	for _, participant := range allParticipants {
-		if participant.UserID != nil && *participant.UserID == creatingUser.UserID {
+		if participant.UserID != nil && *participant.UserID == currentUser.UserID {
 			return participant, nil
 		}
 	}

@@ -9,17 +9,29 @@ type Query {
   discussion(id: ID!): Discussion
   listDiscussions: [Discussion!]
   # Need to add verification that the caller is the user.
-  user(id:ID!): User!
+  user(id: ID!): User!
   me: User!
 }
 
 type Mutation {
   addDiscussionParticipant(discussionID: String!, userID: String!): Participant!
-  addFlair(discussionID: ID!, flairID: String!): Participant!
   addPost(discussionID: ID!, postContent: String!): Post!
   createDiscussion(anonymityType: AnonymityType!, title: String!): Discussion!
-  createFlair(displayName: String, imageURL: String, Source: String!): Flair!
-  removeFlair(discussionID: ID!): Participant!
+
+  # Creates a User Flair from a Flair template, accessible via available flair
+  createFlair(userID: String!, templateID: String!): Flair!
+  # Removes a User Flair from a user's available flair
+  removeFlair(id: String!): Flair!
+
+  # Assigns a User Flair to a Participant
+  assignFlair(participantID: String!, flairID: String!): Participant!
+  # Removes a User Flair from a Participant
+  unassignFlair(participantID: String!): Participant!
+
+  # Creates a new flair template
+  createFlairTemplate(displayName: String, imageURL: String, source: String!): FlairTemplate!
+  # Removes a flair template
+  removeFlairTemplate(id: String!): FlairTemplate!
 }
 
 type Subscription {

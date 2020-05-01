@@ -3,13 +3,14 @@ package model
 import "time"
 
 type Flair struct {
-	ID          string     `json:"id" dynamodbav:"ID" gorm:"type:varchar(36);primary_key"`
-	DisplayName *string    `json:"displayName" gorm:"type:varchar(128)"`
-	ImageURL    *string    `json:"imageURL" gorm:"type:text"`
-	Source      string     `json:"source" gorm:"type:varchar(128);NOT NULL"`
-	CreatedAt   time.Time  `json:"createdAt" gorm:"NOT NULL;default:CURRENT_TIMESTAMP"`
-	UpdatedAt   time.Time  `json:"updatedAt" gorm:"NOT NULL;default:CURRENT_TIMESTAMP ONUPDATE CURRENT_TIMESTAMP"`
-	DeletedAt   *time.Time `json:"deletedAt"`
+	ID          string         `json:"id" dynamodbav:"ID" gorm:"type:varchar(36);primary_key;"`
+	TemplateID  string         `json:"templateID" dynamodbav:"TemplateID" gorm:"type:varchar(36);"`
+	Template    *FlairTemplate `json:"template" dynamodbav:"-" gorm:"foreignKey:TemplateID;"`
+	UserID      string         `json:"userID" dynamodbav:"UserID" gorm:"type:varchar(36);"`
+	User        *User          `json:"user" dynamodbav:"-" gorm:"foreignKey:UserID;"`
+	CreatedAt   time.Time      `json:"createdAt" gorm:"NOT NULL;default:CURRENT_TIMESTAMP;"`
+	UpdatedAt   time.Time      `json:"updatedAt" gorm:"NOT NULL;default:CURRENT_TIMESTAMP ONUPDATE CURRENT_TIMESTAMP;"`
+	DeletedAt   *time.Time     `json:"deletedAt"`
 }
 
 type FlairsEdge struct {
@@ -36,8 +37,3 @@ func (p *FlairsConnection) PageInfo() PageInfo {
 		HasNextPage: p.to < len(p.ids),
 	}
 }
-
-// type UserFlair struct {
-// 	UserID  string `json:"userID" gorm:"type:varchar(36);primary_key"`
-// 	FlairID string `json:"flairID" gorm:"type:varchar(36);primary_key"`
-// }

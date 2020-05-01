@@ -25,14 +25,14 @@ type Datastore interface {
 	GetModeratorByID(ctx context.Context, id string) (*model.Moderator, error)
 	ListDiscussions(ctx context.Context) (*model.DiscussionsConnection, error)
 	UpsertDiscussion(ctx context.Context, discussion model.Discussion) (*model.Discussion, error)
-
-	// Flair
+	AssignFlair(ctx context.Context, participant model.Participant, flairID *string) (*model.Participant, error)
 	GetFlairByID(ctx context.Context, id string) (*model.Flair, error)
-	GetFlairByUserIDFlairID(ctx context.Context, userID string, flairID string) (*model.Flair, error)
 	GetFlairsByUserID(ctx context.Context, userID string) ([]*model.Flair, error)
-	AssignFlair(ctx context.Context, participant *model.Participant, flairID *string) (*model.Participant, error)
+	RemoveFlair(ctx context.Context, flair model.Flair) (*model.Flair, error)
 	UpsertFlair(ctx context.Context, flair model.Flair) (*model.Flair, error)
-
+	GetFlairTemplateByID(ctx context.Context, id string) (*model.FlairTemplate, error)
+	UpsertFlairTemplate(ctx context.Context, flairTemplate model.FlairTemplate) (*model.FlairTemplate, error)
+	RemoveFlairTemplate(ctx context.Context, flairTemplate model.FlairTemplate) (*model.FlairTemplate, error)
 	GetParticipantByID(ctx context.Context, participantID string) (*model.Participant, error)
 	GetParticipantsByDiscussionID(ctx context.Context, id string) ([]model.Participant, error)
 	GetParticipantByDiscussionIDUserID(ctx context.Context, discussionID string, userID string) (*model.Participant, error)

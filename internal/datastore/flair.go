@@ -23,9 +23,8 @@ func (d *db) UpsertFlair(ctx context.Context, data model.Flair) (*model.Flair, e
 		}
 	} else {
 		if err := d.sql.Model(&data).Updates(model.Flair{
-			DisplayName: data.DisplayName,
-			ImageURL:    data.ImageURL,
-			Source:      data.Source,
+			UserID:     data.UserID,
+			TemplateID: data.TemplateID,
 		}).First(&flair).Error; err != nil {
 			logrus.WithError(err).Errorf("UpsertFlair::Failed updating flair object")
 			return nil, err
@@ -47,29 +46,30 @@ func (d *db) GetFlairByID(ctx context.Context, id string) (*model.Flair, error) 
 	return &flair, nil
 }
 
-func (d *db) GetFlairByUserIDFlairID(ctx context.Context, userID string, flairID string) (*model.Flair, error) {
-	logrus.Debugf("GetFlairByUserIDFlairID::SQL Query")
-	flair := model.Flair{}
-	if err := d.sql.Joins("JOIN user_flairs ON user_id = ? AND flair_id = ?", userID, flairID).First(&flair).Error; err != nil {
-		if gorm.IsRecordNotFoundError(err) {
-			return nil, nil
-		}
-		logrus.WithError(err).Errorf("GetFlairByUserIDFlairID::Failed to get flair by user ID")
-		return nil, err
-	}
-	return &flair, nil
-}
-
 func (d *db) GetFlairsByUserID(ctx context.Context, userID string) ([]*model.Flair, error) {
-	logrus.Debugf("GetFlairsByUserID::SQL Query")
+	logrus.Debug("GetFlairsByUserID::SQL Query")
 	flairs := []*model.Flair{}
-	if err := d.sql.Joins("JOIN user_flairs ON user_id = ?", userID).Find(&flairs).Error; err != nil {
+	if err := d.sql.Where(model.Flair{UserID: userID}).Find(&flairs).Error; err != nil {
 		if gorm.IsRecordNotFoundError(err) {
-			return nil, nil
+			return []*model.Flair{}, nil
 		}
 		logrus.WithError(err).Errorf("GetFlairsByUserID::Failed to get flairs by user ID")
-		return nil, err
+		return []*model.Flair{}, err
 	}
 	return flairs, nil
 }
 
+func (d *db) RemoveFlair(ctx context.Context, flair model.Flair) (*model.Flair, error) {
+	logrus.Debug("RemoveFlair::SQL Query")
+	// Ensure that flair.ID is set, otherwise GORM could delete all flair
+	if &flair.ID == nil {
+		logrus.Errorf("Attempted to delete flair with no ID")
+	} else if err := d.sql.Delete(&flair).Error; err != nil {
+		if gorm.IsRecordNotFoundError(err) {
+			return &flair, nil
+		}
+		logrus.WithError(err).Errorf("RemoveFlair::Failed to delete flair")
+		return &flair, err
+	}
+	return &flair, nil
+}

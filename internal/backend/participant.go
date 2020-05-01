@@ -59,9 +59,11 @@ func (d *delphisBackend) GetParticipantByID(ctx context.Context, id string) (*mo
 	return participant, nil
 }
 
-func (d *delphisBackend) AddFlair(ctx context.Context, participant *model.Participant, flairID string) (*model.Participant, error) {
+func (d *delphisBackend) AssignFlair(ctx context.Context, participant model.Participant, flairID string) (*model.Participant, error) {
 	return d.db.AssignFlair(ctx, participant, &flairID)
 }
-func (d *delphisBackend) RemoveFlair(ctx context.Context, participant *model.Participant) (*model.Participant, error) {
+
+func (d *delphisBackend) UnassignFlair(ctx context.Context, participant model.Participant) (*model.Participant, error) {
 	return d.db.AssignFlair(ctx, participant, nil)
 }
+

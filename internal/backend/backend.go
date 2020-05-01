@@ -21,15 +21,15 @@ type DelphisBackend interface {
 	UnSubscribeFromDiscussion(ctx context.Context, subscriberUserID string, discussionID string) error
 	ListDiscussions(ctx context.Context) (*model.DiscussionsConnection, error)
 	GetModeratorByID(ctx context.Context, id string) (*model.Moderator, error)
-
-	// Flair backend
+	AssignFlair(ctx context.Context, participant model.Participant, flairID string) (*model.Participant, error)
+	CreateFlair(ctx context.Context, userID string, templateID string) (*model.Flair, error)
 	GetFlairByID(ctx context.Context, id string) (*model.Flair, error)
-	GetFlairByUserIDFlairID(ctx context.Context, userID string, flairID string) (*model.Flair, error)
 	GetFlairsByUserID(ctx context.Context, userID string) ([]*model.Flair, error)
-	AddFlair(ctx context.Context, participant *model.Participant, flairID string) (*model.Participant, error)
-	RemoveFlair(ctx context.Context, participant *model.Participant) (*model.Participant, error)
-	CreateNewFlair(ctx context.Context, displayName *string, imageURL *string, source string) (*model.Flair, error)
-
+	RemoveFlair(ctx context.Context, flair model.Flair) (*model.Flair, error)
+	UnassignFlair(ctx context.Context, participant model.Participant) (*model.Participant, error)
+	CreateFlairTemplate(ctx context.Context, displayName *string, imageURL *string, source string) (*model.FlairTemplate, error)
+	RemoveFlairTemplate(ctx context.Context, flairTemplate model.FlairTemplate) (*model.FlairTemplate, error)
+	GetFlairTemplateByID(ctx context.Context, id string) (*model.FlairTemplate, error)
 	CreateParticipantForDiscussion(ctx context.Context, discussionID string, userID string) (*model.Participant, error)
 	GetParticipantByDiscussionIDUserID(ctx context.Context, discussionID string, userID string) (*model.Participant, error)
 	GetParticipantsByDiscussionID(ctx context.Context, id string) ([]model.Participant, error)

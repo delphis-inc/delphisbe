@@ -8,35 +8,31 @@ import (
 	"github.com/nedrocks/delphisbe/internal/util"
 )
 
-func (d *delphisBackend) CreateNewFlair(ctx context.Context, displayName *string, imageURL *string, source string) (*model.Flair, error) {
-	flairID := util.UUIDv4()
-	flairObj := model.Flair{
-		CreatedAt:   time.Now(),
-		UpdatedAt:   time.Now(),
-		ID:          flairID,
-		DisplayName: displayName,
-		ImageURL:    imageURL,
-		Source:      source,
+func (d *delphisBackend) CreateFlair(ctx context.Context, userID string, templateID string) (*model.Flair, error) {
+	flair := model.Flair{
+		ID:         util.UUIDv4(),
+		CreatedAt:  time.Now(),
+		UpdatedAt:  time.Now(),
+		UserID:     userID,
+		TemplateID: templateID,
 	}
 
-	_, err := d.db.UpsertFlair(ctx, flairObj)
-
+	_, err := d.db.UpsertFlair(ctx, flair)
 	if err != nil {
 		return nil, err
 	}
 
-	return &flairObj, nil
+	return &flair, nil
 }
-
 
 func (d *delphisBackend) GetFlairByID(ctx context.Context, id string) (*model.Flair, error) {
 	return d.db.GetFlairByID(ctx, id)
 }
 
-func (d *delphisBackend) GetFlairByUserIDFlairID(ctx context.Context, userID string, flairID string) (*model.Flair, error) {
-	return d.db.GetFlairByUserIDFlairID(ctx, userID, flairID)
-}
-
 func (d *delphisBackend) GetFlairsByUserID(ctx context.Context, userID string) ([]*model.Flair, error) {
 	return d.db.GetFlairsByUserID(ctx, userID)
+}
+
+func (d *delphisBackend) RemoveFlair(ctx context.Context, flair model.Flair) (*model.Flair, error) {
+	return d.db.RemoveFlair(ctx, flair)
 }

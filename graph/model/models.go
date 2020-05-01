@@ -6,6 +6,7 @@ var (
 		UserProfile{},
 		Moderator{},
 		Discussion{},
+		FlairTemplate{},
 		Flair{},
 		Participant{},
 		PostContent{},
