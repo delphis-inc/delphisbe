@@ -222,6 +222,7 @@ func (r *mutationResolver) CreateFlairTemplate(ctx context.Context, displayName 
 	if currentUser == nil {
 		return nil, fmt.Errorf("Need auth")
 	}
+	// TODO: Only admins should be able to create flair templates
 
 	return r.DAOManager.CreateFlairTemplate(ctx, displayName, imageURL, source)
 }
@@ -231,6 +232,7 @@ func (r *mutationResolver) RemoveFlairTemplate(ctx context.Context, id string) (
 	if currentUser == nil {
 		return nil, fmt.Errorf("Need auth")
 	}
+	// TODO: Only admins should be able to remove flair templates
 
 	flairTemplate, err := r.DAOManager.GetFlairTemplateByID(ctx, id)
 	if err != nil {
