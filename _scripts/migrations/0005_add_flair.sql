@@ -2,7 +2,7 @@
  */
 CREATE TABLE IF NOT EXISTS flair_templates (
     id varchar(36) PRIMARY KEY,
-    display_name varchar(128),
+    display_name varchar(64),
     image_url text,
     source varchar(128) NOT NULL,
     created_at timestamp with time zone NOT NULL,
@@ -32,3 +32,8 @@ CREATE TABLE IF NOT EXISTS flairs (
 ALTER TABLE participants
 ADD COLUMN flair_id varchar(36)
 REFERENCES flairs(id) ON DELETE SET NULL;
+
+-- Add indexes
+CREATE INDEX flairs_fkey_user_id on flairs (user_id); -- For getting available flair
+CREATE INDEX flairs_fkey_template_id on flairs (template_id); -- For deleting templates
+CREATE INDEX participants_fkey_flair_id on participants (flair_id); -- For deleting flair and templates

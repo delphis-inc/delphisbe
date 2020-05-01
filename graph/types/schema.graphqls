@@ -8,6 +8,7 @@ schema {
 type Query {
   discussion(id: ID!): Discussion
   listDiscussions: [Discussion!]
+  flairTemplates(query: String): [FlairTemplate!]
   # Need to add verification that the caller is the user.
   user(id: ID!): User!
   me: User!

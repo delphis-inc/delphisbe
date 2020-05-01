@@ -8,6 +8,21 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+func (d *db) ListFlairTemplates(ctx context.Context, query *string) ([]*model.FlairTemplate, error) {
+	logrus.Debug("ListFlairTemplates::SQL Query")
+	var flairTemplates []*model.FlairTemplate
+	sql := d.sql
+	if query != nil {
+		likeQuery := "%" + *query + "%"
+		sql = sql.Where("source ILIKE ?", likeQuery).Or("display_name ILIKE ?", likeQuery)
+	}
+	if err := sql.Find(&flairTemplates).Error; err != nil {
+		logrus.WithError(err).Errorf("ListFlairTemplates::Failed to fetch FlairTemplates")
+		return nil, err
+	}
+	return flairTemplates, nil
+}
+
 func (d *db) UpsertFlairTemplate(ctx context.Context, data model.FlairTemplate) (*model.FlairTemplate, error) {
 	logrus.Debug("UpsertFlairTemplate::SQL Create or Update")
 	flairTemplate := model.FlairTemplate{}

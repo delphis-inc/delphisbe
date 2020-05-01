@@ -30,6 +30,7 @@ type Datastore interface {
 	GetFlairsByUserID(ctx context.Context, userID string) ([]*model.Flair, error)
 	RemoveFlair(ctx context.Context, flair model.Flair) (*model.Flair, error)
 	UpsertFlair(ctx context.Context, flair model.Flair) (*model.Flair, error)
+	ListFlairTemplates(ctx context.Context, query *string) ([]*model.FlairTemplate, error)
 	GetFlairTemplateByID(ctx context.Context, id string) (*model.FlairTemplate, error)
 	UpsertFlairTemplate(ctx context.Context, flairTemplate model.FlairTemplate) (*model.FlairTemplate, error)
 	RemoveFlairTemplate(ctx context.Context, flairTemplate model.FlairTemplate) (*model.FlairTemplate, error)

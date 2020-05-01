@@ -27,6 +27,7 @@ type DelphisBackend interface {
 	GetFlairsByUserID(ctx context.Context, userID string) ([]*model.Flair, error)
 	RemoveFlair(ctx context.Context, flair model.Flair) (*model.Flair, error)
 	UnassignFlair(ctx context.Context, participant model.Participant) (*model.Participant, error)
+	ListFlairTemplates(ctx context.Context, query *string) ([]*model.FlairTemplate, error)
 	CreateFlairTemplate(ctx context.Context, displayName *string, imageURL *string, source string) (*model.FlairTemplate, error)
 	RemoveFlairTemplate(ctx context.Context, flairTemplate model.FlairTemplate) (*model.FlairTemplate, error)
 	GetFlairTemplateByID(ctx context.Context, id string) (*model.FlairTemplate, error)

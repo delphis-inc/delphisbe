@@ -37,7 +37,7 @@ func (r *mutationResolver) AddPost(ctx context.Context, discussionID string, pos
 		creatingUser.User = user
 	}
 
-	// TODO: Don't need to look up discussion here since it's already handled in the participant lookup below
+	// Note: This is here mainly to ensure the discussion is not (soft) deleted
 	discussion, err := r.DAOManager.GetDiscussionByID(ctx, discussionID)
 	if discussion == nil || err != nil {
 		return nil, fmt.Errorf("Discussion with ID %s not found", discussionID)
@@ -97,7 +97,7 @@ func (r *mutationResolver) CreateFlair(ctx context.Context, userID string, templ
 	if currentUser == nil {
 		return nil, fmt.Errorf("Need auth")
 	}
-	// TODO: Currently this only allows the requesting user to create flair for
+	// TODO: This only allows the requesting user to create flair for
 	// themselves. But this API takes in userID so that an admin or moderator
 	// could potentially create flair on behalf of another user. To add this
 	// functionality remove the following line and add authorization/permission
@@ -142,7 +142,7 @@ func (r *mutationResolver) RemoveFlair(ctx context.Context, id string) (*model.F
 		return nil, fmt.Errorf("Already removed")
 	}
 
-	// TODO: Currently this only allows the requesting user to remove flair for
+	// TODO: This only allows the requesting user to remove flair for
 	// themselves. But an admin or moderator could potentially remove flair on
 	// behalf of another user. To add this functionality remove the following
 	// line and add authorization/permission logic.
@@ -180,11 +180,11 @@ func (r *mutationResolver) AssignFlair(ctx context.Context, participantID string
 		return nil, fmt.Errorf("Unathorized")
 	}
 
-	// TODO: Currently this only allows the requesting user to assign flair to
-	// their own participant. But this API takes in userID so that an admin or
-	// moderator could potentially assign flair on behalf of another
-	// participant. To add this functionality remove the following line and
-	// add authorization/permission logic.
+	// TODO: This only allows the requesting user to assign flair to their own
+	// participant. But this API takes in userID so that an admin or moderator
+	// could potentially assign flair on behalf of another participant. To add
+	// this functionality remove the following line and add
+	// authorization/permission logic.
 	if currentUser.UserID != *participant.UserID {
 		return nil, fmt.Errorf("Unauthorized")
 	}
@@ -205,9 +205,9 @@ func (r *mutationResolver) UnassignFlair(ctx context.Context, participantID stri
 		return nil, fmt.Errorf("Error fetching participant with ID (%s)", participantID)
 	}
 
-	// TODO: Currently this only allows the requesting user to unassign flair
-	// from their own participant. But this API takes in userID so that an admin
-	// or moderator could potentially unassign flair on behalf of another
+	// TODO: This only allows the requesting user to unassign flair from their
+	// own participant. But this API takes in userID so that an admin or
+	// moderator could potentially unassign flair on behalf of another
 	// participant. To add this functionality remove the following line and
 	// add authorization/permission logic.
 	if currentUser.UserID != *participant.UserID {
@@ -261,6 +261,10 @@ func (r *queryResolver) ListDiscussions(ctx context.Context) ([]*model.Discussio
 		}
 	}
 	return discussions, nil
+}
+
+func (r *queryResolver) FlairTemplates(ctx context.Context, query *string) ([]*model.FlairTemplate, error) {
+	return r.DAOManager.ListFlairTemplates(ctx, query)
 }
 
 func (r *queryResolver) User(ctx context.Context, id string) (*model.User, error) {

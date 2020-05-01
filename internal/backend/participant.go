@@ -27,7 +27,6 @@ func (d *delphisBackend) CreateParticipantForDiscussion(ctx context.Context, dis
 		UpdatedAt:     time.Now(),
 		ParticipantID: len(allParticipants),
 		DiscussionID:  &discussionID,
-		// TODO: Create the viewer and add it here.
 		ViewerID: &viewerObj.ID,
 		UserID:   &userID,
 	}

@@ -179,6 +179,7 @@ type ComplexityRoot struct {
 
 	Query struct {
 		Discussion      func(childComplexity int, id string) int
+		FlairTemplates  func(childComplexity int, query *string) int
 		ListDiscussions func(childComplexity int) int
 		Me              func(childComplexity int) int
 		User            func(childComplexity int, id string) int
@@ -297,6 +298,7 @@ type PostsConnectionResolver interface {
 type QueryResolver interface {
 	Discussion(ctx context.Context, id string) (*model.Discussion, error)
 	ListDiscussions(ctx context.Context) ([]*model.Discussion, error)
+	FlairTemplates(ctx context.Context, query *string) ([]*model.FlairTemplate, error)
 	User(ctx context.Context, id string) (*model.User, error)
 	Me(ctx context.Context) (*model.User, error)
 }
@@ -878,6 +880,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Query.Discussion(childComplexity, args["id"].(string)), true
 
+	case "Query.flairTemplates":
+		if e.complexity.Query.FlairTemplates == nil {
+			break
+		}
+
+		args, err := ec.field_Query_flairTemplates_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.FlairTemplates(childComplexity, args["query"].(*string)), true
+
 	case "Query.listDiscussions":
 		if e.complexity.Query.ListDiscussions == nil {
 			break
@@ -1347,6 +1361,7 @@ type PostBookmark {
 type Query {
   discussion(id: ID!): Discussion
   listDiscussions: [Discussion!]
+  flairTemplates(query: String): [FlairTemplate!]
   # Need to add verification that the caller is the user.
   user(id: ID!): User!
   me: User!
@@ -1667,6 +1682,20 @@ func (ec *executionContext) field_Query_discussion_args(ctx context.Context, raw
 		}
 	}
 	args["id"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_flairTemplates_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 *string
+	if tmp, ok := rawArgs["query"]; ok {
+		arg0, err = ec.unmarshalOString2ᚖstring(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["query"] = arg0
 	return args, nil
 }
 
@@ -4138,6 +4167,44 @@ func (ec *executionContext) _Query_listDiscussions(ctx context.Context, field gr
 	res := resTmp.([]*model.Discussion)
 	fc.Result = res
 	return ec.marshalODiscussion2ᚕᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐDiscussionᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Query_flairTemplates(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "Query",
+		Field:    field,
+		Args:     nil,
+		IsMethod: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Query_flairTemplates_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().FlairTemplates(rctx, args["query"].(*string))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.([]*model.FlairTemplate)
+	fc.Result = res
+	return ec.marshalOFlairTemplate2ᚕᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐFlairTemplateᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Query_user(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -7113,6 +7180,17 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 				res = ec._Query_listDiscussions(ctx, field)
 				return res
 			})
+		case "flairTemplates":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_flairTemplates(ctx, field)
+				return res
+			})
 		case "user":
 			field := field
 			out.Concurrently(i, func() (res graphql.Marshaler) {
@@ -8397,6 +8475,46 @@ func (ec *executionContext) marshalOFlair2ᚖgithubᚗcomᚋnedrocksᚋdelphisbe
 		return graphql.Null
 	}
 	return ec._Flair(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalOFlairTemplate2ᚕᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐFlairTemplateᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.FlairTemplate) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNFlairTemplate2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐFlairTemplate(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+	return ret
 }
 
 func (ec *executionContext) unmarshalOGradientColor2githubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐGradientColor(ctx context.Context, v interface{}) (model.GradientColor, error) {
