@@ -23,9 +23,9 @@ func (d *db) UpsertFlairTemplate(ctx context.Context, data model.FlairTemplate) 
 		}
 	} else {
 		if err := d.sql.Model(&data).Updates(model.FlairTemplate{
-           DisplayName: data.DisplayName,
-           ImageURL:    data.ImageURL,
-           Source:      data.Source,
+		   DisplayName: data.DisplayName,
+		   ImageURL:    data.ImageURL,
+		   Source:      data.Source,
 		}).First(&flairTemplate).Error; err != nil {
 			logrus.WithError(err).Errorf("UpsertFlairTemplate::Failed updating flairTemplate object")
 			return nil, err
@@ -48,27 +48,38 @@ func (d *db) GetFlairTemplateByID(ctx context.Context, id string) (*model.FlairT
 }
 
 func (d *db) RemoveFlairTemplate(ctx context.Context, flairTemplate model.FlairTemplate) (*model.FlairTemplate, error) {
-    logrus.Debug("RemoveFlairTemplate::SQL Query")
-    // Ensure that flairTemplate.ID is set, otherwise GORM could delete all flairTemplate
-    if &flairTemplate.ID == nil {
-        logrus.Errorf("Attempted to delete flair template with no ID")
-        return &flairTemplate, nil
-    }
-    err := d.sql.Transaction(func(tx *gorm.DB) error {
-    	// Delete all the flairs using this template
-        if err := tx.Where(model.Flair{TemplateID: flairTemplate.ID}).
-        			 Delete([]model.Flair{}).Error; err != nil {
-	        return  err
-	    }
-    	// Delete the template
-        if err := tx.Delete(&flairTemplate).Error; err != nil {
-            return err
-        }
-        return nil
-    })
-    if err != nil {
+	logrus.Debug("RemoveFlairTemplate::SQL Query")
+	// Ensure that flairTemplate.ID is set, otherwise GORM could delete all flairTemplate
+	if &flairTemplate.ID == nil {
+		logrus.Errorf("Attempted to delete flair template with no ID")
+		return &flairTemplate, nil
+	}
+	err := d.sql.Transaction(func(tx *gorm.DB) error {
+		// Set Null all participants referencing the flairs we just deleted.
+		if err := tx.Unscoped().Model(model.Participant{}).
+					 Joins("FROM flairs").
+					 Where("flair_id = flairs.id AND flairs.template_id = ?", flairTemplate.ID).
+					 Update("flair_id", nil).Error; err != nil {
+			logrus.WithError(err).Errorf("RemoveFlairTemplate::Failed to unassign related flairs")
+			return err
+		}
+
+		// Delete all the flairs for this template
+		if err := tx.Where(model.Flair{TemplateID: flairTemplate.ID}).
+					 Delete([]model.Flair{}).Error; err != nil {
+			logrus.WithError(err).Errorf("RemoveFlairTemplate::Failed to delete related flairs")
+			return err
+		}
+
+		// Delete the template itself
+		if err := tx.Delete(&flairTemplate).Error; err != nil {
+			return err
+		}
+		return nil
+	})
+	if err != nil {
 		logrus.WithError(err).Errorf("RemoveFlairTemplate::Failed to delete flair template")
 		return &flairTemplate, err
-    }
-    return &flairTemplate, nil
+	}
+	return &flairTemplate, nil
 }

@@ -10,8 +10,6 @@ type FlairTemplate struct {
 	CreatedAt   time.Time  `json:"createdAt" gorm:"not null;default:CURRENT_TIMESTAMP;"`
 	UpdatedAt   time.Time  `json:"updatedAt" gorm:"not null;default:CURRENT_TIMESTAMP ONUPDATE CURRENT_TIMESTAMP;"`
 	DeletedAt   *time.Time `json:"deletedAt"`
-
-	// Flairs      []Flair    `json:"flairs" gorm:"foreignkey:TemplateID;"`
 }
 
 type FlairTemplatesEdge struct {
