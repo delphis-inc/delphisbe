@@ -64,10 +64,24 @@ func (d *db) RemoveFlair(ctx context.Context, flair model.Flair) (*model.Flair, 
 	// Ensure that flair.ID is set, otherwise GORM could delete all flair
 	if &flair.ID == nil {
 		logrus.Errorf("Attempted to delete flair with no ID")
-	} else if err := d.sql.Delete(&flair).Error; err != nil {
-		if gorm.IsRecordNotFoundError(err) {
-			return &flair, nil
+		return &flair, nil
+	}
+	err := d.sql.Transaction(func(tx *gorm.DB) error {
+		// Set Null all participants referencing the flairs we just deleted.
+		if err := tx.Unscoped().Model(model.Participant{}).
+					 Where(model.Participant{FlairID: &flair.ID}).
+					 Update("flair_id", nil).Error; err != nil {
+			logrus.WithError(err).Errorf("RemoveFlair::Failed to unassign flairs")
+			return err
 		}
+
+		// Delete the flair
+		if err := tx.Delete(&flair).Error; err != nil {
+			return err
+		}
+		return nil
+	})
+	if err != nil {
 		logrus.WithError(err).Errorf("RemoveFlair::Failed to delete flair")
 		return &flair, err
 	}

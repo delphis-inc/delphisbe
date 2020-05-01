@@ -12,7 +12,7 @@ type Participant {
     # Gets a list of all posts created by this participant in the given discussion.
     posts: [Post!]
     # Whether to include a link to their user profile
-    isAnonymous: Boolean
+    isAnonymous: Boolean!
     gradientColor: GradientColor
     # The flair that has been assigned to this participant if any
     flair: Flair

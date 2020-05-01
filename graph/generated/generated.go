@@ -1282,7 +1282,7 @@ enum PostDeletedReason {
     # Gets a list of all posts created by this participant in the given discussion.
     posts: [Post!]
     # Whether to include a link to their user profile
-    isAnonymous: Boolean
+    isAnonymous: Boolean!
     gradientColor: GradientColor
     # The flair that has been assigned to this participant if any
     flair: Flair
@@ -3074,11 +3074,14 @@ func (ec *executionContext) _Participant_isAnonymous(ctx context.Context, field 
 		return graphql.Null
 	}
 	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
 		return graphql.Null
 	}
 	res := resTmp.(bool)
 	fc.Result = res
-	return ec.marshalOBoolean2bool(ctx, field.Selections, res)
+	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Participant_gradientColor(ctx context.Context, field graphql.CollectedField, obj *model.Participant) (ret graphql.Marshaler) {
@@ -6636,6 +6639,9 @@ func (ec *executionContext) _Participant(ctx context.Context, sel ast.SelectionS
 			})
 		case "isAnonymous":
 			out.Values[i] = ec._Participant_isAnonymous(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&invalids, 1)
+			}
 		case "gradientColor":
 			out.Values[i] = ec._Participant_gradientColor(ctx, field, obj)
 		case "flair":
