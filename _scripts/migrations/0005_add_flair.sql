@@ -7,7 +7,8 @@ CREATE TABLE IF NOT EXISTS flair_templates (
     source varchar(128) NOT NULL,
     created_at timestamp with time zone NOT NULL,
     updated_at timestamp with time zone NOT NULL,
-    deleted_at timestamp with time zone
+    deleted_at timestamp with time zone,
+    UNIQUE(display_name, image_url, source)
 );
 
 /* Create the user/flair join table.
@@ -25,7 +26,8 @@ CREATE TABLE IF NOT EXISTS flairs (
     -- verified_at timestamp with time zone
     created_at timestamp with time zone NOT NULL,
     updated_at timestamp with time zone NOT NULL,
-    deleted_at timestamp with time zone
+    deleted_at timestamp with time zone,
+    UNIQUE(user_id, template_id)
 );
 
 -- Add optional flair_id column and foreign key to participants table.
