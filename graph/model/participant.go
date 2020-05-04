@@ -18,10 +18,8 @@ type Participant struct {
 	IsAnonymous   bool             `json:"isAnonymous" gorm:"not null;default:true;"`
 	GradientColor *GradientColor   `json:"gradientColor" gorm:"type:varchar(36);not null;"`
 
-	// NOTE: This is not exposed currently but keeping it here for
-	// testing purposes. We will try out exposing user information one of the tests.
 	UserID *string `json:"userID" gorm:"type:varchar(36);"`
-	User   *User   `json:"user" dynamodbav:"-" gorm:"foreignKey:UserID;"` //gorm:"foreignkey:user_id;assciation_foreignkey:id;"`
+	User   *User   `json:"user" dynamodbav:"-" gorm:"foreignKey:UserID;"`
 }
 
 type ParticipantsEdge struct {

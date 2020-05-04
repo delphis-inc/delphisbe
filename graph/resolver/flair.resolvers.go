@@ -4,6 +4,7 @@ package resolver
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/nedrocks/delphisbe/graph/generated"
 	"github.com/nedrocks/delphisbe/graph/model"
@@ -35,8 +36,11 @@ func (r *flairResolver) Source(ctx context.Context, obj *model.Flair) (string, e
 	if obj.Template == nil {
 		template, err := r.DAOManager.GetFlairTemplateByID(ctx, obj.TemplateID)
 		if err != nil || template == nil {
-			// TODO: Not sure what to return here... This really should never happen.
-			return "error", err
+			if err == nil {
+				// In order to ensure we return an error craft one
+				err = fmt.Errorf("No flair template found for requested flair")
+			}
+			return "", err
 		}
 		obj.Template = template
 	}
