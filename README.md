@@ -14,6 +14,7 @@ A few things you'll need to install. Assuming you're on mac:
 > CREATE DATABASE chatham_local;
 > CREATE USER chatham_local;
 > CREATE ROLE chatham_app;
+> GRANT usage ON SCHEMA public TO chatham_app;
 > GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public to chatham_app;
 > GRANT chatham_app TO chatham_local;
 ```

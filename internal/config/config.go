@@ -101,7 +101,7 @@ func ReadConfig() (*Config, error) {
 	}
 
 	viper.SetEnvPrefix("delphis")
-	_ = viper.BindEnv("twitter_consumer_key", "twitter_consumer_secret", "auth_hmac_secret", "db_username", "db_password")
+	_ = viper.BindEnv("twitter_consumer_key", "twitter_consumer_secret", "auth_hmac_secret", "db_user", "db_password")
 	config.ReadEnvAndUpdate()
 
 	return &config, nil
