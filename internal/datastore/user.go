@@ -37,17 +37,17 @@ func (d *db) UpsertUser(ctx context.Context, user model.User) (*model.User, erro
 
 func (d *db) GetUserByID(ctx context.Context, userID string) (*model.User, error) {
 	logrus.Debug("GetUserByID::SQL Query")
-	found := model.User{}
-	if err := d.sql.Preload("Participants").Preload("Viewers").Preload("UserProfile").First(&found, &model.User{ID: userID}).Error; err != nil {
+	user := model.User{}
+	if err := d.sql.Preload("Participants").Preload("Viewers").Preload("UserProfile").First(&user, &model.User{ID: userID}).Error; err != nil {
 		if gorm.IsRecordNotFoundError(err) {
 			return nil, nil
 		}
 		logrus.WithError(err).Errorf("GetUserByID::Failed to get user")
 		return nil, err
 	}
-	logrus.Debugf("Found: %+v", found)
+	logrus.Debugf("Found: %+v", user)
 
-	return &found, nil
+	return &user, nil
 }
 
 func (d *db) GetUserByIDDynamo(ctx context.Context, userID string) (*model.User, error) {

@@ -1,5 +1,5 @@
-type Flair {
-    # The UUID for this flair
+type FlairTemplate {
+    # The UUID for this template
     id: ID!
     # The text to display
     displayName: String

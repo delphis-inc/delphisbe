@@ -79,6 +79,13 @@ type ComplexityRoot struct {
 		Source      func(childComplexity int) int
 	}
 
+	FlairTemplate struct {
+		DisplayName func(childComplexity int) int
+		ID          func(childComplexity int) int
+		ImageURL    func(childComplexity int) int
+		Source      func(childComplexity int) int
+	}
+
 	Moderator struct {
 		Discussion  func(childComplexity int) int
 		ID          func(childComplexity int) int
@@ -88,7 +95,13 @@ type ComplexityRoot struct {
 	Mutation struct {
 		AddDiscussionParticipant func(childComplexity int, discussionID string, userID string) int
 		AddPost                  func(childComplexity int, discussionID string, postContent string) int
+		AssignFlair              func(childComplexity int, participantID string, flairID string) int
 		CreateDiscussion         func(childComplexity int, anonymityType model.AnonymityType, title string) int
+		CreateFlair              func(childComplexity int, userID string, templateID string) int
+		CreateFlairTemplate      func(childComplexity int, displayName *string, imageURL *string, source string) int
+		RemoveFlair              func(childComplexity int, id string) int
+		RemoveFlairTemplate      func(childComplexity int, id string) int
+		UnassignFlair            func(childComplexity int, participantID string) int
 	}
 
 	PageInfo struct {
@@ -100,7 +113,10 @@ type ComplexityRoot struct {
 	Participant struct {
 		Discussion                        func(childComplexity int) int
 		DiscussionNotificationPreferences func(childComplexity int) int
+		Flair                             func(childComplexity int) int
+		GradientColor                     func(childComplexity int) int
 		ID                                func(childComplexity int) int
+		IsAnonymous                       func(childComplexity int) int
 		ParticipantID                     func(childComplexity int) int
 		Posts                             func(childComplexity int) int
 		Viewer                            func(childComplexity int) int
@@ -108,12 +124,6 @@ type ComplexityRoot struct {
 
 	ParticipantNotificationPreferences struct {
 		ID func(childComplexity int) int
-	}
-
-	ParticipantProfile struct {
-		Flair         func(childComplexity int) int
-		GradientColor func(childComplexity int) int
-		IsAnonymous   func(childComplexity int) int
 	}
 
 	ParticipantsConnection struct {
@@ -169,6 +179,7 @@ type ComplexityRoot struct {
 
 	Query struct {
 		Discussion      func(childComplexity int, id string) int
+		FlairTemplates  func(childComplexity int, query *string) int
 		ListDiscussions func(childComplexity int) int
 		Me              func(childComplexity int) int
 		User            func(childComplexity int, id string) int
@@ -185,6 +196,7 @@ type ComplexityRoot struct {
 
 	User struct {
 		Bookmarks    func(childComplexity int) int
+		Flairs       func(childComplexity int) int
 		ID           func(childComplexity int) int
 		Participants func(childComplexity int) int
 		Profile      func(childComplexity int) int
@@ -234,22 +246,32 @@ type DiscussionResolver interface {
 	MeParticipant(ctx context.Context, obj *model.Discussion) (*model.Participant, error)
 }
 type FlairResolver interface {
-	ImageURL(ctx context.Context, obj *model.Flair) (*model.URL, error)
+	DisplayName(ctx context.Context, obj *model.Flair) (*string, error)
+	ImageURL(ctx context.Context, obj *model.Flair) (*string, error)
+	Source(ctx context.Context, obj *model.Flair) (string, error)
 }
 type ModeratorResolver interface {
 	Discussion(ctx context.Context, obj *model.Moderator) (*model.Discussion, error)
 	UserProfile(ctx context.Context, obj *model.Moderator) (*model.UserProfile, error)
 }
 type MutationResolver interface {
-	CreateDiscussion(ctx context.Context, anonymityType model.AnonymityType, title string) (*model.Discussion, error)
 	AddDiscussionParticipant(ctx context.Context, discussionID string, userID string) (*model.Participant, error)
 	AddPost(ctx context.Context, discussionID string, postContent string) (*model.Post, error)
+	CreateDiscussion(ctx context.Context, anonymityType model.AnonymityType, title string) (*model.Discussion, error)
+	CreateFlair(ctx context.Context, userID string, templateID string) (*model.Flair, error)
+	RemoveFlair(ctx context.Context, id string) (*model.Flair, error)
+	AssignFlair(ctx context.Context, participantID string, flairID string) (*model.Participant, error)
+	UnassignFlair(ctx context.Context, participantID string) (*model.Participant, error)
+	CreateFlairTemplate(ctx context.Context, displayName *string, imageURL *string, source string) (*model.FlairTemplate, error)
+	RemoveFlairTemplate(ctx context.Context, id string) (*model.FlairTemplate, error)
 }
 type ParticipantResolver interface {
 	Discussion(ctx context.Context, obj *model.Participant) (*model.Discussion, error)
 	Viewer(ctx context.Context, obj *model.Participant) (*model.Viewer, error)
 	DiscussionNotificationPreferences(ctx context.Context, obj *model.Participant) (model.DiscussionNotificationPreferences, error)
 	Posts(ctx context.Context, obj *model.Participant) ([]*model.Post, error)
+
+	Flair(ctx context.Context, obj *model.Participant) (*model.Flair, error)
 }
 type ParticipantsConnectionResolver interface {
 	Edges(ctx context.Context, obj *model.ParticipantsConnection) ([]*model.ParticipantsEdge, error)
@@ -276,6 +298,7 @@ type PostsConnectionResolver interface {
 type QueryResolver interface {
 	Discussion(ctx context.Context, id string) (*model.Discussion, error)
 	ListDiscussions(ctx context.Context) ([]*model.Discussion, error)
+	FlairTemplates(ctx context.Context, query *string) ([]*model.FlairTemplate, error)
 	User(ctx context.Context, id string) (*model.User, error)
 	Me(ctx context.Context) (*model.User, error)
 }
@@ -287,6 +310,7 @@ type UserResolver interface {
 	Viewers(ctx context.Context, obj *model.User) ([]*model.Viewer, error)
 	Bookmarks(ctx context.Context, obj *model.User) ([]*model.PostBookmark, error)
 	Profile(ctx context.Context, obj *model.User) (*model.UserProfile, error)
+	Flairs(ctx context.Context, obj *model.User) ([]*model.Flair, error)
 }
 type UserProfileResolver interface {
 	ProfileImageURL(ctx context.Context, obj *model.UserProfile) (string, error)
@@ -407,6 +431,34 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Flair.Source(childComplexity), true
 
+	case "FlairTemplate.displayName":
+		if e.complexity.FlairTemplate.DisplayName == nil {
+			break
+		}
+
+		return e.complexity.FlairTemplate.DisplayName(childComplexity), true
+
+	case "FlairTemplate.id":
+		if e.complexity.FlairTemplate.ID == nil {
+			break
+		}
+
+		return e.complexity.FlairTemplate.ID(childComplexity), true
+
+	case "FlairTemplate.imageURL":
+		if e.complexity.FlairTemplate.ImageURL == nil {
+			break
+		}
+
+		return e.complexity.FlairTemplate.ImageURL(childComplexity), true
+
+	case "FlairTemplate.source":
+		if e.complexity.FlairTemplate.Source == nil {
+			break
+		}
+
+		return e.complexity.FlairTemplate.Source(childComplexity), true
+
 	case "Moderator.discussion":
 		if e.complexity.Moderator.Discussion == nil {
 			break
@@ -452,6 +504,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Mutation.AddPost(childComplexity, args["discussionID"].(string), args["postContent"].(string)), true
 
+	case "Mutation.assignFlair":
+		if e.complexity.Mutation.AssignFlair == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_assignFlair_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.AssignFlair(childComplexity, args["participantID"].(string), args["flairID"].(string)), true
+
 	case "Mutation.createDiscussion":
 		if e.complexity.Mutation.CreateDiscussion == nil {
 			break
@@ -463,6 +527,66 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Mutation.CreateDiscussion(childComplexity, args["anonymityType"].(model.AnonymityType), args["title"].(string)), true
+
+	case "Mutation.createFlair":
+		if e.complexity.Mutation.CreateFlair == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_createFlair_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.CreateFlair(childComplexity, args["userID"].(string), args["templateID"].(string)), true
+
+	case "Mutation.createFlairTemplate":
+		if e.complexity.Mutation.CreateFlairTemplate == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_createFlairTemplate_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.CreateFlairTemplate(childComplexity, args["displayName"].(*string), args["imageURL"].(*string), args["source"].(string)), true
+
+	case "Mutation.removeFlair":
+		if e.complexity.Mutation.RemoveFlair == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_removeFlair_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.RemoveFlair(childComplexity, args["id"].(string)), true
+
+	case "Mutation.removeFlairTemplate":
+		if e.complexity.Mutation.RemoveFlairTemplate == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_removeFlairTemplate_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.RemoveFlairTemplate(childComplexity, args["id"].(string)), true
+
+	case "Mutation.unassignFlair":
+		if e.complexity.Mutation.UnassignFlair == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_unassignFlair_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.UnassignFlair(childComplexity, args["participantID"].(string)), true
 
 	case "PageInfo.endCursor":
 		if e.complexity.PageInfo.EndCursor == nil {
@@ -499,12 +623,33 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Participant.DiscussionNotificationPreferences(childComplexity), true
 
+	case "Participant.flair":
+		if e.complexity.Participant.Flair == nil {
+			break
+		}
+
+		return e.complexity.Participant.Flair(childComplexity), true
+
+	case "Participant.gradientColor":
+		if e.complexity.Participant.GradientColor == nil {
+			break
+		}
+
+		return e.complexity.Participant.GradientColor(childComplexity), true
+
 	case "Participant.id":
 		if e.complexity.Participant.ID == nil {
 			break
 		}
 
 		return e.complexity.Participant.ID(childComplexity), true
+
+	case "Participant.isAnonymous":
+		if e.complexity.Participant.IsAnonymous == nil {
+			break
+		}
+
+		return e.complexity.Participant.IsAnonymous(childComplexity), true
 
 	case "Participant.participantID":
 		if e.complexity.Participant.ParticipantID == nil {
@@ -533,27 +678,6 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.ParticipantNotificationPreferences.ID(childComplexity), true
-
-	case "ParticipantProfile.flair":
-		if e.complexity.ParticipantProfile.Flair == nil {
-			break
-		}
-
-		return e.complexity.ParticipantProfile.Flair(childComplexity), true
-
-	case "ParticipantProfile.gradientColor":
-		if e.complexity.ParticipantProfile.GradientColor == nil {
-			break
-		}
-
-		return e.complexity.ParticipantProfile.GradientColor(childComplexity), true
-
-	case "ParticipantProfile.isAnonymous":
-		if e.complexity.ParticipantProfile.IsAnonymous == nil {
-			break
-		}
-
-		return e.complexity.ParticipantProfile.IsAnonymous(childComplexity), true
 
 	case "ParticipantsConnection.edges":
 		if e.complexity.ParticipantsConnection.Edges == nil {
@@ -756,6 +880,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Query.Discussion(childComplexity, args["id"].(string)), true
 
+	case "Query.flairTemplates":
+		if e.complexity.Query.FlairTemplates == nil {
+			break
+		}
+
+		args, err := ec.field_Query_flairTemplates_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.FlairTemplates(childComplexity, args["query"].(*string)), true
+
 	case "Query.listDiscussions":
 		if e.complexity.Query.ListDiscussions == nil {
 			break
@@ -814,6 +950,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.User.Bookmarks(childComplexity), true
+
+	case "User.flairs":
+		if e.complexity.User.Flairs == nil {
+			break
+		}
+
+		return e.complexity.User.Flairs(childComplexity), true
 
 	case "User.id":
 		if e.complexity.User.ID == nil {
@@ -1036,16 +1179,6 @@ func (ec *executionContext) introspectType(name string) (*introspection.Type, er
 }
 
 var sources = []*ast.Source{
-	&ast.Source{Name: "graph/types/anonymity_type.graphqls", Input: `enum AnonymityType {
-    UNKNOWN
-    WEAK
-    STRONG
-}`, BuiltIn: false},
-	&ast.Source{Name: "graph/types/deleted_reason.graphqls", Input: `enum PostDeletedReason {
-    UNKNOWN
-    MODERATOR_REMOVED
-    PARTICIPANT_REMOVED
-}`, BuiltIn: false},
 	&ast.Source{Name: "graph/types/discussion.graphqls", Input: `type Discussion {
     # Unique id for this discussion
     id: ID!
@@ -1082,12 +1215,61 @@ var sources = []*ast.Source{
 # }
 `, BuiltIn: false},
 	&ast.Source{Name: "graph/types/discussion_notification_preferences.graphqls", Input: `union DiscussionNotificationPreferences = ViewerNotificationPreferences | ParticipantNotificationPreferences`, BuiltIn: false},
+	&ast.Source{Name: "graph/types/enums.graphqls", Input: `enum AnonymityType {
+    UNKNOWN
+    WEAK
+    STRONG
+}
+
+enum GradientColor {
+    UNKNOWN,
+    MAUVE,
+    FUSCHIA,
+    CINNABAR,
+    VERMILLION,
+    CERULEAN,
+    TURQUOISE,
+    CELADON,
+    TAUPE,
+    SAFFRON,
+    VIRIDIAN,
+    CHARTRUESE,
+    LAVENDER,
+    GOLDENROD,
+    SEAFOAM,
+    AZALEA,
+    VIOLET,
+    MAHOGANY,
+}
+
+enum PostDeletedReason {
+    UNKNOWN
+    MODERATOR_REMOVED
+    PARTICIPANT_REMOVED
+}
+`, BuiltIn: false},
 	&ast.Source{Name: "graph/types/flair.graphqls", Input: `type Flair {
+    # The UUID for this flair
     id: ID!
-    displayName: String!
-    imageURL: URL
+    # The text to display
+    displayName: String
+    # The image to display
+    imageURL: String
+    # The verification source
     source: String!
-}`, BuiltIn: false},
+}
+`, BuiltIn: false},
+	&ast.Source{Name: "graph/types/flair_template.graphqls", Input: `type FlairTemplate {
+    # The UUID for this template
+    id: ID!
+    # The text to display
+    displayName: String
+    # The image to display
+    imageURL: String
+    # The verification source
+    source: String!
+}
+`, BuiltIn: false},
 	&ast.Source{Name: "graph/types/moderator.graphqls", Input: `type Moderator {
     id: ID!
 
@@ -1113,35 +1295,15 @@ var sources = []*ast.Source{
     discussionNotificationPreferences: DiscussionNotificationPreferences!
     # Gets a list of all posts created by this participant in the given discussion.
     posts: [Post!]
-}`, BuiltIn: false},
+    # Whether to include a link to their user profile
+    isAnonymous: Boolean!
+    gradientColor: GradientColor
+    # The flair that has been assigned to this participant if any
+    flair: Flair
+}
+`, BuiltIn: false},
 	&ast.Source{Name: "graph/types/participant_notification_preferences.graphqls", Input: `type ParticipantNotificationPreferences {
     id: ID!
-}`, BuiltIn: false},
-	&ast.Source{Name: "graph/types/participant_profile.graphqls", Input: `enum GradientColor {
-    UNKNOWN,
-    MAUVE,
-    FUSCHIA,
-    CINNABAR,
-    VERMILLION,
-    CERULEAN,
-    TURQUOISE,
-    CELADON,
-    TAUPE,
-    SAFFRON,
-    VIRIDIAN,
-    CHARTRUESE,
-    LAVENDER,
-    GOLDENROD,
-    SEAFOAM,
-    AZALEA,
-    VIOLET,
-    MAHOGANY,
-}
-
-type ParticipantProfile {
-    isAnonymous: Boolean
-    flair: Flair
-    gradientColor: GradientColor
 }`, BuiltIn: false},
 	&ast.Source{Name: "graph/types/participants_connection.graphqls", Input: `type ParticipantsConnection {
     totalCount: Int!
@@ -1199,20 +1361,37 @@ type PostBookmark {
 type Query {
   discussion(id: ID!): Discussion
   listDiscussions: [Discussion!]
+  flairTemplates(query: String): [FlairTemplate!]
   # Need to add verification that the caller is the user.
-  user(id:ID!): User!
+  user(id: ID!): User!
   me: User!
 }
 
 type Mutation {
-  createDiscussion(anonymityType: AnonymityType!, title: String!): Discussion!
   addDiscussionParticipant(discussionID: String!, userID: String!): Participant!
   addPost(discussionID: ID!, postContent: String!): Post!
+  createDiscussion(anonymityType: AnonymityType!, title: String!): Discussion!
+
+  # Creates a User Flair from a Flair template, accessible via available flair
+  createFlair(userID: String!, templateID: String!): Flair!
+  # Removes a User Flair from a user's available flair
+  removeFlair(id: String!): Flair!
+
+  # Assigns a User Flair to a Participant
+  assignFlair(participantID: String!, flairID: String!): Participant!
+  # Removes a User Flair from a Participant
+  unassignFlair(participantID: String!): Participant!
+
+  # Creates a new flair template
+  createFlairTemplate(displayName: String, imageURL: String, source: String!): FlairTemplate!
+  # Removes a flair template
+  removeFlairTemplate(id: String!): FlairTemplate!
 }
 
 type Subscription {
   postAdded(discussionID: String!): Post
-}`, BuiltIn: false},
+}
+`, BuiltIn: false},
 	&ast.Source{Name: "graph/types/sudo_user.graphqls", Input: `# A SudoUser describes the unlocked version of a user. Due to implementation
 # the server cannot access the sudo properties for a user without first 
 # unlocking the secure information with the user's master password
@@ -1247,7 +1426,11 @@ type User {
     bookmarks: [PostBookmark!]
 
     profile: UserProfile!
-}`, BuiltIn: false},
+
+    # The user's available flairs
+    flairs: [Flair!]
+}
+`, BuiltIn: false},
 	&ast.Source{Name: "graph/types/user_profile.graphqls", Input: `type UserProfile {
     id: ID!
 
@@ -1336,6 +1519,28 @@ func (ec *executionContext) field_Mutation_addPost_args(ctx context.Context, raw
 	return args, nil
 }
 
+func (ec *executionContext) field_Mutation_assignFlair_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 string
+	if tmp, ok := rawArgs["participantID"]; ok {
+		arg0, err = ec.unmarshalNString2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["participantID"] = arg0
+	var arg1 string
+	if tmp, ok := rawArgs["flairID"]; ok {
+		arg1, err = ec.unmarshalNString2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["flairID"] = arg1
+	return args, nil
+}
+
 func (ec *executionContext) field_Mutation_createDiscussion_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
@@ -1355,6 +1560,100 @@ func (ec *executionContext) field_Mutation_createDiscussion_args(ctx context.Con
 		}
 	}
 	args["title"] = arg1
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_createFlairTemplate_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 *string
+	if tmp, ok := rawArgs["displayName"]; ok {
+		arg0, err = ec.unmarshalOString2ᚖstring(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["displayName"] = arg0
+	var arg1 *string
+	if tmp, ok := rawArgs["imageURL"]; ok {
+		arg1, err = ec.unmarshalOString2ᚖstring(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["imageURL"] = arg1
+	var arg2 string
+	if tmp, ok := rawArgs["source"]; ok {
+		arg2, err = ec.unmarshalNString2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["source"] = arg2
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_createFlair_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 string
+	if tmp, ok := rawArgs["userID"]; ok {
+		arg0, err = ec.unmarshalNString2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["userID"] = arg0
+	var arg1 string
+	if tmp, ok := rawArgs["templateID"]; ok {
+		arg1, err = ec.unmarshalNString2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["templateID"] = arg1
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_removeFlairTemplate_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 string
+	if tmp, ok := rawArgs["id"]; ok {
+		arg0, err = ec.unmarshalNString2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["id"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_removeFlair_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 string
+	if tmp, ok := rawArgs["id"]; ok {
+		arg0, err = ec.unmarshalNString2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["id"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_unassignFlair_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 string
+	if tmp, ok := rawArgs["participantID"]; ok {
+		arg0, err = ec.unmarshalNString2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["participantID"] = arg0
 	return args, nil
 }
 
@@ -1383,6 +1682,20 @@ func (ec *executionContext) field_Query_discussion_args(ctx context.Context, raw
 		}
 	}
 	args["id"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_flairTemplates_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 *string
+	if tmp, ok := rawArgs["query"]; ok {
+		arg0, err = ec.unmarshalOString2ᚖstring(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["query"] = arg0
 	return args, nil
 }
 
@@ -1792,27 +2105,24 @@ func (ec *executionContext) _Flair_displayName(ctx context.Context, field graphq
 		Object:   "Flair",
 		Field:    field,
 		Args:     nil,
-		IsMethod: false,
+		IsMethod: true,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.DisplayName, nil
+		return ec.resolvers.Flair().DisplayName(rctx, obj)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
 		return graphql.Null
 	}
 	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
 		return graphql.Null
 	}
-	res := resTmp.(string)
+	res := resTmp.(*string)
 	fc.Result = res
-	return ec.marshalNString2string(ctx, field.Selections, res)
+	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Flair_imageURL(ctx context.Context, field graphql.CollectedField, obj *model.Flair) (ret graphql.Marshaler) {
@@ -1841,9 +2151,9 @@ func (ec *executionContext) _Flair_imageURL(ctx context.Context, field graphql.C
 	if resTmp == nil {
 		return graphql.Null
 	}
-	res := resTmp.(*model.URL)
+	res := resTmp.(*string)
 	fc.Result = res
-	return ec.marshalOURL2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐURL(ctx, field.Selections, res)
+	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Flair_source(ctx context.Context, field graphql.CollectedField, obj *model.Flair) (ret graphql.Marshaler) {
@@ -1855,6 +2165,136 @@ func (ec *executionContext) _Flair_source(ctx context.Context, field graphql.Col
 	}()
 	fc := &graphql.FieldContext{
 		Object:   "Flair",
+		Field:    field,
+		Args:     nil,
+		IsMethod: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Flair().Source(rctx, obj)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _FlairTemplate_id(ctx context.Context, field graphql.CollectedField, obj *model.FlairTemplate) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "FlairTemplate",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.ID, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNID2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _FlairTemplate_displayName(ctx context.Context, field graphql.CollectedField, obj *model.FlairTemplate) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "FlairTemplate",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.DisplayName, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*string)
+	fc.Result = res
+	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _FlairTemplate_imageURL(ctx context.Context, field graphql.CollectedField, obj *model.FlairTemplate) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "FlairTemplate",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.ImageURL, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*string)
+	fc.Result = res
+	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _FlairTemplate_source(ctx context.Context, field graphql.CollectedField, obj *model.FlairTemplate) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "FlairTemplate",
 		Field:    field,
 		Args:     nil,
 		IsMethod: false,
@@ -1979,47 +2419,6 @@ func (ec *executionContext) _Moderator_userProfile(ctx context.Context, field gr
 	return ec.marshalNUserProfile2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐUserProfile(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Mutation_createDiscussion(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:   "Mutation",
-		Field:    field,
-		Args:     nil,
-		IsMethod: true,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	rawArgs := field.ArgumentMap(ec.Variables)
-	args, err := ec.field_Mutation_createDiscussion_args(ctx, rawArgs)
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	fc.Args = args
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().CreateDiscussion(rctx, args["anonymityType"].(model.AnonymityType), args["title"].(string))
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(*model.Discussion)
-	fc.Result = res
-	return ec.marshalNDiscussion2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐDiscussion(ctx, field.Selections, res)
-}
-
 func (ec *executionContext) _Mutation_addDiscussionParticipant(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -2100,6 +2499,293 @@ func (ec *executionContext) _Mutation_addPost(ctx context.Context, field graphql
 	res := resTmp.(*model.Post)
 	fc.Result = res
 	return ec.marshalNPost2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐPost(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Mutation_createDiscussion(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "Mutation",
+		Field:    field,
+		Args:     nil,
+		IsMethod: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Mutation_createDiscussion_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().CreateDiscussion(rctx, args["anonymityType"].(model.AnonymityType), args["title"].(string))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.Discussion)
+	fc.Result = res
+	return ec.marshalNDiscussion2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐDiscussion(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Mutation_createFlair(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "Mutation",
+		Field:    field,
+		Args:     nil,
+		IsMethod: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Mutation_createFlair_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().CreateFlair(rctx, args["userID"].(string), args["templateID"].(string))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.Flair)
+	fc.Result = res
+	return ec.marshalNFlair2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐFlair(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Mutation_removeFlair(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "Mutation",
+		Field:    field,
+		Args:     nil,
+		IsMethod: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Mutation_removeFlair_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().RemoveFlair(rctx, args["id"].(string))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.Flair)
+	fc.Result = res
+	return ec.marshalNFlair2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐFlair(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Mutation_assignFlair(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "Mutation",
+		Field:    field,
+		Args:     nil,
+		IsMethod: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Mutation_assignFlair_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().AssignFlair(rctx, args["participantID"].(string), args["flairID"].(string))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.Participant)
+	fc.Result = res
+	return ec.marshalNParticipant2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐParticipant(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Mutation_unassignFlair(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "Mutation",
+		Field:    field,
+		Args:     nil,
+		IsMethod: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Mutation_unassignFlair_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().UnassignFlair(rctx, args["participantID"].(string))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.Participant)
+	fc.Result = res
+	return ec.marshalNParticipant2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐParticipant(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Mutation_createFlairTemplate(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "Mutation",
+		Field:    field,
+		Args:     nil,
+		IsMethod: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Mutation_createFlairTemplate_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().CreateFlairTemplate(rctx, args["displayName"].(*string), args["imageURL"].(*string), args["source"].(string))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.FlairTemplate)
+	fc.Result = res
+	return ec.marshalNFlairTemplate2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐFlairTemplate(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Mutation_removeFlairTemplate(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "Mutation",
+		Field:    field,
+		Args:     nil,
+		IsMethod: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Mutation_removeFlairTemplate_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().RemoveFlairTemplate(rctx, args["id"].(string))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.FlairTemplate)
+	fc.Result = res
+	return ec.marshalNFlairTemplate2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐFlairTemplate(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _PageInfo_startCursor(ctx context.Context, field graphql.CollectedField, obj *model.PageInfo) (ret graphql.Marshaler) {
@@ -2393,6 +3079,102 @@ func (ec *executionContext) _Participant_posts(ctx context.Context, field graphq
 	return ec.marshalOPost2ᚕᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐPostᚄ(ctx, field.Selections, res)
 }
 
+func (ec *executionContext) _Participant_isAnonymous(ctx context.Context, field graphql.CollectedField, obj *model.Participant) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "Participant",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.IsAnonymous, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(bool)
+	fc.Result = res
+	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Participant_gradientColor(ctx context.Context, field graphql.CollectedField, obj *model.Participant) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "Participant",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.GradientColor, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*model.GradientColor)
+	fc.Result = res
+	return ec.marshalOGradientColor2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐGradientColor(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Participant_flair(ctx context.Context, field graphql.CollectedField, obj *model.Participant) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "Participant",
+		Field:    field,
+		Args:     nil,
+		IsMethod: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Participant().Flair(rctx, obj)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*model.Flair)
+	fc.Result = res
+	return ec.marshalOFlair2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐFlair(ctx, field.Selections, res)
+}
+
 func (ec *executionContext) _ParticipantNotificationPreferences_id(ctx context.Context, field graphql.CollectedField, obj *model.ParticipantNotificationPreferences) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -2425,99 +3207,6 @@ func (ec *executionContext) _ParticipantNotificationPreferences_id(ctx context.C
 	res := resTmp.(string)
 	fc.Result = res
 	return ec.marshalNID2string(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) _ParticipantProfile_isAnonymous(ctx context.Context, field graphql.CollectedField, obj *model.ParticipantProfile) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:   "ParticipantProfile",
-		Field:    field,
-		Args:     nil,
-		IsMethod: false,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.IsAnonymous, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		return graphql.Null
-	}
-	res := resTmp.(*bool)
-	fc.Result = res
-	return ec.marshalOBoolean2ᚖbool(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) _ParticipantProfile_flair(ctx context.Context, field graphql.CollectedField, obj *model.ParticipantProfile) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:   "ParticipantProfile",
-		Field:    field,
-		Args:     nil,
-		IsMethod: false,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.Flair, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		return graphql.Null
-	}
-	res := resTmp.(*model.Flair)
-	fc.Result = res
-	return ec.marshalOFlair2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐFlair(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) _ParticipantProfile_gradientColor(ctx context.Context, field graphql.CollectedField, obj *model.ParticipantProfile) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:   "ParticipantProfile",
-		Field:    field,
-		Args:     nil,
-		IsMethod: false,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.GradientColor, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		return graphql.Null
-	}
-	res := resTmp.(*model.GradientColor)
-	fc.Result = res
-	return ec.marshalOGradientColor2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐGradientColor(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _ParticipantsConnection_totalCount(ctx context.Context, field graphql.CollectedField, obj *model.ParticipantsConnection) (ret graphql.Marshaler) {
@@ -3480,6 +4169,44 @@ func (ec *executionContext) _Query_listDiscussions(ctx context.Context, field gr
 	return ec.marshalODiscussion2ᚕᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐDiscussionᚄ(ctx, field.Selections, res)
 }
 
+func (ec *executionContext) _Query_flairTemplates(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "Query",
+		Field:    field,
+		Args:     nil,
+		IsMethod: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Query_flairTemplates_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().FlairTemplates(rctx, args["query"].(*string))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.([]*model.FlairTemplate)
+	fc.Result = res
+	return ec.marshalOFlairTemplate2ᚕᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐFlairTemplateᚄ(ctx, field.Selections, res)
+}
+
 func (ec *executionContext) _Query_user(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -3899,6 +4626,37 @@ func (ec *executionContext) _User_profile(ctx context.Context, field graphql.Col
 	res := resTmp.(*model.UserProfile)
 	fc.Result = res
 	return ec.marshalNUserProfile2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐUserProfile(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _User_flairs(ctx context.Context, field graphql.CollectedField, obj *model.User) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "User",
+		Field:    field,
+		Args:     nil,
+		IsMethod: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.User().Flairs(rctx, obj)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.([]*model.Flair)
+	fc.Result = res
+	return ec.marshalOFlair2ᚕᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐFlairᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _UserProfile_id(ctx context.Context, field graphql.CollectedField, obj *model.UserProfile) (ret graphql.Marshaler) {
@@ -5642,10 +6400,16 @@ func (ec *executionContext) _Flair(ctx context.Context, sel ast.SelectionSet, ob
 				atomic.AddUint32(&invalids, 1)
 			}
 		case "displayName":
-			out.Values[i] = ec._Flair_displayName(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				atomic.AddUint32(&invalids, 1)
-			}
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Flair_displayName(ctx, field, obj)
+				return res
+			})
 		case "imageURL":
 			field := field
 			out.Concurrently(i, func() (res graphql.Marshaler) {
@@ -5658,9 +6422,54 @@ func (ec *executionContext) _Flair(ctx context.Context, sel ast.SelectionSet, ob
 				return res
 			})
 		case "source":
-			out.Values[i] = ec._Flair_source(ctx, field, obj)
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Flair_source(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
+var flairTemplateImplementors = []string{"FlairTemplate"}
+
+func (ec *executionContext) _FlairTemplate(ctx context.Context, sel ast.SelectionSet, obj *model.FlairTemplate) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, flairTemplateImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("FlairTemplate")
+		case "id":
+			out.Values[i] = ec._FlairTemplate_id(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				atomic.AddUint32(&invalids, 1)
+				invalids++
+			}
+		case "displayName":
+			out.Values[i] = ec._FlairTemplate_displayName(ctx, field, obj)
+		case "imageURL":
+			out.Values[i] = ec._FlairTemplate_imageURL(ctx, field, obj)
+		case "source":
+			out.Values[i] = ec._FlairTemplate_source(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
 			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
@@ -5740,11 +6549,6 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 		switch field.Name {
 		case "__typename":
 			out.Values[i] = graphql.MarshalString("Mutation")
-		case "createDiscussion":
-			out.Values[i] = ec._Mutation_createDiscussion(ctx, field)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
 		case "addDiscussionParticipant":
 			out.Values[i] = ec._Mutation_addDiscussionParticipant(ctx, field)
 			if out.Values[i] == graphql.Null {
@@ -5752,6 +6556,41 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			}
 		case "addPost":
 			out.Values[i] = ec._Mutation_addPost(ctx, field)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "createDiscussion":
+			out.Values[i] = ec._Mutation_createDiscussion(ctx, field)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "createFlair":
+			out.Values[i] = ec._Mutation_createFlair(ctx, field)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "removeFlair":
+			out.Values[i] = ec._Mutation_removeFlair(ctx, field)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "assignFlair":
+			out.Values[i] = ec._Mutation_assignFlair(ctx, field)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "unassignFlair":
+			out.Values[i] = ec._Mutation_unassignFlair(ctx, field)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "createFlairTemplate":
+			out.Values[i] = ec._Mutation_createFlairTemplate(ctx, field)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "removeFlairTemplate":
+			out.Values[i] = ec._Mutation_removeFlairTemplate(ctx, field)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
@@ -5865,6 +6704,24 @@ func (ec *executionContext) _Participant(ctx context.Context, sel ast.SelectionS
 				res = ec._Participant_posts(ctx, field, obj)
 				return res
 			})
+		case "isAnonymous":
+			out.Values[i] = ec._Participant_isAnonymous(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&invalids, 1)
+			}
+		case "gradientColor":
+			out.Values[i] = ec._Participant_gradientColor(ctx, field, obj)
+		case "flair":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Participant_flair(ctx, field, obj)
+				return res
+			})
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -5892,34 +6749,6 @@ func (ec *executionContext) _ParticipantNotificationPreferences(ctx context.Cont
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
-		default:
-			panic("unknown field " + strconv.Quote(field.Name))
-		}
-	}
-	out.Dispatch()
-	if invalids > 0 {
-		return graphql.Null
-	}
-	return out
-}
-
-var participantProfileImplementors = []string{"ParticipantProfile"}
-
-func (ec *executionContext) _ParticipantProfile(ctx context.Context, sel ast.SelectionSet, obj *model.ParticipantProfile) graphql.Marshaler {
-	fields := graphql.CollectFields(ec.OperationContext, sel, participantProfileImplementors)
-
-	out := graphql.NewFieldSet(fields)
-	var invalids uint32
-	for i, field := range fields {
-		switch field.Name {
-		case "__typename":
-			out.Values[i] = graphql.MarshalString("ParticipantProfile")
-		case "isAnonymous":
-			out.Values[i] = ec._ParticipantProfile_isAnonymous(ctx, field, obj)
-		case "flair":
-			out.Values[i] = ec._ParticipantProfile_flair(ctx, field, obj)
-		case "gradientColor":
-			out.Values[i] = ec._ParticipantProfile_gradientColor(ctx, field, obj)
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -6351,6 +7180,17 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 				res = ec._Query_listDiscussions(ctx, field)
 				return res
 			})
+		case "flairTemplates":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_flairTemplates(ctx, field)
+				return res
+			})
 		case "user":
 			field := field
 			out.Concurrently(i, func() (res graphql.Marshaler) {
@@ -6507,6 +7347,17 @@ func (ec *executionContext) _User(ctx context.Context, sel ast.SelectionSet, obj
 				if res == graphql.Null {
 					atomic.AddUint32(&invalids, 1)
 				}
+				return res
+			})
+		case "flairs":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._User_flairs(ctx, field, obj)
 				return res
 			})
 		default:
@@ -7027,6 +7878,34 @@ func (ec *executionContext) marshalNDiscussionNotificationPreferences2githubᚗc
 		return graphql.Null
 	}
 	return ec._DiscussionNotificationPreferences(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalNFlair2githubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐFlair(ctx context.Context, sel ast.SelectionSet, v model.Flair) graphql.Marshaler {
+	return ec._Flair(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNFlair2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐFlair(ctx context.Context, sel ast.SelectionSet, v *model.Flair) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	return ec._Flair(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalNFlairTemplate2githubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐFlairTemplate(ctx context.Context, sel ast.SelectionSet, v model.FlairTemplate) graphql.Marshaler {
+	return ec._FlairTemplate(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNFlairTemplate2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐFlairTemplate(ctx context.Context, sel ast.SelectionSet, v *model.FlairTemplate) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	return ec._FlairTemplate(ctx, sel, v)
 }
 
 func (ec *executionContext) unmarshalNID2string(ctx context.Context, v interface{}) (string, error) {
@@ -7551,11 +8430,91 @@ func (ec *executionContext) marshalOFlair2githubᚗcomᚋnedrocksᚋdelphisbeᚋ
 	return ec._Flair(ctx, sel, &v)
 }
 
+func (ec *executionContext) marshalOFlair2ᚕᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐFlairᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.Flair) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNFlair2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐFlair(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+	return ret
+}
+
 func (ec *executionContext) marshalOFlair2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐFlair(ctx context.Context, sel ast.SelectionSet, v *model.Flair) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
 	}
 	return ec._Flair(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalOFlairTemplate2ᚕᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐFlairTemplateᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.FlairTemplate) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNFlairTemplate2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐFlairTemplate(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+	return ret
 }
 
 func (ec *executionContext) unmarshalOGradientColor2githubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐGradientColor(ctx context.Context, v interface{}) (model.GradientColor, error) {
@@ -7954,17 +8913,6 @@ func (ec *executionContext) marshalOTime2ᚖtimeᚐTime(ctx context.Context, sel
 		return graphql.Null
 	}
 	return ec.marshalOTime2timeᚐTime(ctx, sel, *v)
-}
-
-func (ec *executionContext) marshalOURL2githubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐURL(ctx context.Context, sel ast.SelectionSet, v model.URL) graphql.Marshaler {
-	return ec._URL(ctx, sel, &v)
-}
-
-func (ec *executionContext) marshalOURL2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐURL(ctx context.Context, sel ast.SelectionSet, v *model.URL) graphql.Marshaler {
-	if v == nil {
-		return graphql.Null
-	}
-	return ec._URL(ctx, sel, v)
 }
 
 func (ec *executionContext) marshalOViewer2githubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐViewer(ctx context.Context, sel ast.SelectionSet, v model.Viewer) graphql.Marshaler {

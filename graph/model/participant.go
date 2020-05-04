@@ -3,19 +3,25 @@ package model
 import "time"
 
 type Participant struct {
-	ID            string           `json:"id" gorm:"type:varchar(36)"`
+	ID            string           `json:"id" gorm:"type:varchar(36);"`
 	ParticipantID int              `json:"participantID" dynamodbav:"ParticipantID"`
-	CreatedAt     time.Time        `json:"createdAt" gorm:"not null;default:CURRENT_TIMESTAMP"`
-	UpdatedAt     time.Time        `json:"updatedAt" gorm:"not null;default:CURRENT_TIMESTAMP ONUPDATE CURRENT_TIMESTAMP"`
+	CreatedAt     time.Time        `json:"createdAt" gorm:"not null;default:CURRENT_TIMESTAMP;"`
+	UpdatedAt     time.Time        `json:"updatedAt" gorm:"not null;default:CURRENT_TIMESTAMP ONUPDATE CURRENT_TIMESTAMP;"`
 	DeletedAt     *time.Time       `json:"deletedAt"`
-	DiscussionID  *string          `json:"discussionID" dynamodbav:"DiscussionID" gorm:"type:varchar(36)"`
-	Discussion    *Discussion      `json:"discussion" dynamodbav:"-" gorm:"foreignKey:DiscussionID"`
-	ViewerID      *string          `json:"viewerID" gorm:"type:varchar(36)"`
-	Viewer        *Viewer          `json:"viewer" dynamodbav:"-" gorm:"foreignKey:ViewerID"`
+	DiscussionID  *string          `json:"discussionID" dynamodbav:"DiscussionID" gorm:"type:varchar(36);"`
+	Discussion    *Discussion      `json:"discussion" dynamodbav:"-" gorm:"foreignKey:DiscussionID;"`
+	ViewerID      *string          `json:"viewerID" gorm:"type:varchar(36);"`
+	Viewer        *Viewer          `json:"viewer" dynamodbav:"-" gorm:"foreignKey:ViewerID;"`
 	Posts         *PostsConnection `json:"posts" dynamodbav:"-"`
+	FlairID       *string          `json:"flairID" dynamodbav:"FlairID" gorm:"type:varchar(36);"`
+	Flair         *Flair           `json:"flair" dynamodbav:"-" gorm:"foreignKey:FlairID;"`
+	IsAnonymous   bool             `json:"isAnonymous" gorm:"not null;default:true;"`
+	GradientColor *GradientColor   `json:"gradientColor" gorm:"type:varchar(36);not null;"`
 
-	UserID *string `json:"userID" gorm:"type:varchar(36)"`
-	User   *User   `json:"user" dynamodbav:"-" gorm:"foreignKey:UserID"` //gorm:"foreignkey:user_id;assciation_foreignkey:id"`
+	// NOTE: This is not exposed currently but keeping it here for
+	// testing purposes. We will try out exposing user information one of the tests.
+	UserID *string `json:"userID" gorm:"type:varchar(36);"`
+	User   *User   `json:"user" dynamodbav:"-" gorm:"foreignKey:UserID;"` //gorm:"foreignkey:user_id;assciation_foreignkey:id;"`
 }
 
 type ParticipantsEdge struct {
