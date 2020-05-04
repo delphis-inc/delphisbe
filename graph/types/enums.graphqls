@@ -1,3 +1,9 @@
+enum AnonymityType {
+    UNKNOWN
+    WEAK
+    STRONG
+}
+
 enum GradientColor {
     UNKNOWN,
     MAUVE,
@@ -19,8 +25,8 @@ enum GradientColor {
     MAHOGANY,
 }
 
-type ParticipantProfile {
-    isAnonymous: Boolean
-    flair: Flair
-    gradientColor: GradientColor
+enum PostDeletedReason {
+    UNKNOWN
+    MODERATOR_REMOVED
+    PARTICIPANT_REMOVED
 }

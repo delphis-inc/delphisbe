@@ -75,6 +75,10 @@ func (r *userResolver) Profile(ctx context.Context, obj *model.User) (*model.Use
 	return obj.UserProfile, nil
 }
 
+func (r *userResolver) Flairs(ctx context.Context, obj *model.User) ([]*model.Flair, error) {
+	return r.DAOManager.GetFlairsByUserID(ctx, obj.ID)
+}
+
 func (r *Resolver) User() generated.UserResolver { return &userResolver{r} }
 
 type userResolver struct{ *Resolver }

@@ -37,6 +37,20 @@ func (d *db) GetParticipantsByDiscussionID(ctx context.Context, id string) ([]mo
 	return participants, nil
 }
 
+func (d *db) GetParticipantByDiscussionIDUserID(ctx context.Context, discussionID string, userID string) (*model.Participant, error) {
+	logrus.Debugf("GetParticipantByDiscussionIDUserID::SQL Query")
+	participant := model.Participant{}
+	if err := d.sql.Where(&model.Participant{DiscussionID: &discussionID, UserID: &userID}).First(&participant).Error; err != nil {
+		if gorm.IsRecordNotFoundError(err) {
+			return nil, nil
+		}
+		logrus.WithError(err).Errorf("GetParticipantByDiscussionIDUserID::Failed to get participant by discussion ID and user ID")
+		return nil, err
+	}
+	return &participant, nil
+}
+
+
 func (d *db) PutParticipant(ctx context.Context, participant model.Participant) (*model.Participant, error) {
 	logrus.Debug("PutParticipant::SQL Create")
 	found := model.Participant{}
@@ -46,6 +60,15 @@ func (d *db) PutParticipant(ctx context.Context, participant model.Participant) 
 	}
 
 	return &found, nil
+}
+
+func (d *db) AssignFlair(ctx context.Context, participant model.Participant, flairID *string ) (*model.Participant, error) {
+	logrus.Debug("AssignFlair::SQL Update")
+	if err := d.sql.Model(&participant).Update("FlairID", flairID).Error; err != nil {
+		logrus.WithError(err).Errorf("AssignFlair::Failed to update")
+		return &participant, err
+	}
+	return &participant, nil
 }
 
 ////////////

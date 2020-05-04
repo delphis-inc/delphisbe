@@ -25,8 +25,18 @@ type Datastore interface {
 	GetModeratorByID(ctx context.Context, id string) (*model.Moderator, error)
 	ListDiscussions(ctx context.Context) (*model.DiscussionsConnection, error)
 	UpsertDiscussion(ctx context.Context, discussion model.Discussion) (*model.Discussion, error)
+	AssignFlair(ctx context.Context, participant model.Participant, flairID *string) (*model.Participant, error)
+	GetFlairByID(ctx context.Context, id string) (*model.Flair, error)
+	GetFlairsByUserID(ctx context.Context, userID string) ([]*model.Flair, error)
+	RemoveFlair(ctx context.Context, flair model.Flair) (*model.Flair, error)
+	UpsertFlair(ctx context.Context, flair model.Flair) (*model.Flair, error)
+	ListFlairTemplates(ctx context.Context, query *string) ([]*model.FlairTemplate, error)
+	GetFlairTemplateByID(ctx context.Context, id string) (*model.FlairTemplate, error)
+	UpsertFlairTemplate(ctx context.Context, flairTemplate model.FlairTemplate) (*model.FlairTemplate, error)
+	RemoveFlairTemplate(ctx context.Context, flairTemplate model.FlairTemplate) (*model.FlairTemplate, error)
 	GetParticipantByID(ctx context.Context, participantID string) (*model.Participant, error)
 	GetParticipantsByDiscussionID(ctx context.Context, id string) ([]model.Participant, error)
+	GetParticipantByDiscussionIDUserID(ctx context.Context, discussionID string, userID string) (*model.Participant, error)
 	PutParticipant(ctx context.Context, participant model.Participant) (*model.Participant, error)
 	GetPostsByDiscussionID(ctx context.Context, discussionID string) ([]*model.Post, error)
 	GetPostContentByID(ctx context.Context, id string) (*model.PostContent, error)
@@ -86,11 +96,11 @@ func NewSQLDatastore(sqlDbConfig config.SQLDBConfig, awsSession *session.Session
 	dbURI := fmt.Sprintf("host=%s port=%d user=%s dbname=%s sslmode=disable password=%s", sqlDbConfig.Host, sqlDbConfig.Port, sqlDbConfig.Username, sqlDbConfig.DBName, sqlDbConfig.Password)
 	logrus.Debugf("About to open connection to DB")
 	db, err := gorm.Open("postgres", dbURI)
-	logrus.Debugf("Opened connection to DB!")
 	if err != nil {
 		logrus.WithError(err).Fatalf("Failed to open db")
 		return nil
 	}
+	logrus.Debugf("Opened connection to DB!")
 
 	// Set autoload
 	//db = db.Set("gorm:auto_preload", true)
