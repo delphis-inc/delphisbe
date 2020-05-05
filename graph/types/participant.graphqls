@@ -16,4 +16,6 @@ type Participant {
     gradientColor: GradientColor
     # The flair that has been assigned to this participant if any
     flair: Flair
+
+    hasJoined: Boolean!
 }

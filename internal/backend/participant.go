@@ -27,8 +27,8 @@ func (d *delphisBackend) CreateParticipantForDiscussion(ctx context.Context, dis
 		UpdatedAt:     time.Now(),
 		ParticipantID: len(allParticipants),
 		DiscussionID:  &discussionID,
-		ViewerID: &viewerObj.ID,
-		UserID:   &userID,
+		ViewerID:      &viewerObj.ID,
+		UserID:        &userID,
 	}
 
 	_, err = d.db.PutParticipant(ctx, participantObj)
@@ -66,3 +66,27 @@ func (d *delphisBackend) UnassignFlair(ctx context.Context, participant model.Pa
 	return d.db.AssignFlair(ctx, participant, nil)
 }
 
+func (d *delphisBackend) GetTotalParticipantCountByDiscussionID(ctx context.Context, discussionID string) int {
+	return d.db.GetTotalParticipantCountByDiscussionID(ctx, discussionID)
+}
+
+func (d *delphisBackend) CopyAndUpdateParticipant(ctx context.Context, orig model.Participant, input model.UpdateParticipantInput) (*model.Participant, error) {
+	participantCount := d.GetTotalParticipantCountByDiscussionID(ctx, *orig.DiscussionID)
+	now := time.Now()
+	copiedObj := orig
+	copiedObj.ID = util.UUIDv4()
+	copiedObj.CreatedAt = now
+	copiedObj.UpdatedAt = now
+	if input.GradientColor != nil || (input.IsUnsetGradient != nil && *input.IsUnsetGradient) {
+		copiedObj.GradientColor = input.GradientColor
+	}
+	if input.FlairID != nil || (input.IsUnsetFlairID != nil && *input.IsUnsetFlairID) {
+		copiedObj.FlairID = input.FlairID
+	}
+	if input.IsAnonymous != nil {
+		copiedObj.IsAnonymous = *input.IsAnonymous
+	}
+	copiedObj.ParticipantID = participantCount
+
+	return d.db.PutParticipant(ctx, copiedObj)
+}

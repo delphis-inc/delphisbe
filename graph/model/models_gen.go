@@ -23,6 +23,14 @@ type URL struct {
 	URL         string `json:"url"`
 }
 
+type UpdateParticipantInput struct {
+	GradientColor   *GradientColor `json:"gradientColor"`
+	IsUnsetGradient *bool          `json:"isUnsetGradient"`
+	FlairID         *string        `json:"flairID"`
+	IsUnsetFlairID  *bool          `json:"isUnsetFlairID"`
+	IsAnonymous     *bool          `json:"isAnonymous"`
+}
+
 type ViewerNotificationPreferences struct {
 	ID string `json:"id"`
 }

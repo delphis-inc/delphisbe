@@ -244,6 +244,30 @@ func (r *mutationResolver) RemoveFlairTemplate(ctx context.Context, id string) (
 	return r.DAOManager.RemoveFlairTemplate(ctx, *flairTemplate)
 }
 
+func (r *mutationResolver) UpdateParticipant(ctx context.Context, participantID string, updateInput model.UpdateParticipantInput) (*model.Participant, error) {
+	currentUser := auth.GetAuthedUser(ctx)
+	if currentUser == nil {
+		return nil, fmt.Errorf("Need auth")
+	}
+	// TODO: Check Authz here.
+
+	// TODO: Ensure the participant ID we request is the currently active
+	// one; (highest participantID for the given user)
+	participantObj, err := r.DAOManager.GetParticipantByID(ctx, participantID)
+	if err != nil {
+		return nil, err
+	}
+	if participantObj == nil {
+		return nil, fmt.Errorf("Failed to find participant with ID %s", participantID)
+	}
+
+	res, err := r.DAOManager.CopyAndUpdateParticipant(ctx, *participantObj, updateInput)
+	if err != nil {
+		return nil, err
+	}
+	return res, nil
+}
+
 func (r *queryResolver) Discussion(ctx context.Context, id string) (*model.Discussion, error) {
 	return r.resolveDiscussionByID(ctx, id)
 }

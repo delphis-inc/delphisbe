@@ -102,6 +102,7 @@ type ComplexityRoot struct {
 		RemoveFlair              func(childComplexity int, id string) int
 		RemoveFlairTemplate      func(childComplexity int, id string) int
 		UnassignFlair            func(childComplexity int, participantID string) int
+		UpdateParticipant        func(childComplexity int, participantID string, updateInput model.UpdateParticipantInput) int
 	}
 
 	PageInfo struct {
@@ -115,6 +116,7 @@ type ComplexityRoot struct {
 		DiscussionNotificationPreferences func(childComplexity int) int
 		Flair                             func(childComplexity int) int
 		GradientColor                     func(childComplexity int) int
+		HasJoined                         func(childComplexity int) int
 		ID                                func(childComplexity int) int
 		IsAnonymous                       func(childComplexity int) int
 		ParticipantID                     func(childComplexity int) int
@@ -264,6 +266,7 @@ type MutationResolver interface {
 	UnassignFlair(ctx context.Context, participantID string) (*model.Participant, error)
 	CreateFlairTemplate(ctx context.Context, displayName *string, imageURL *string, source string) (*model.FlairTemplate, error)
 	RemoveFlairTemplate(ctx context.Context, id string) (*model.FlairTemplate, error)
+	UpdateParticipant(ctx context.Context, participantID string, updateInput model.UpdateParticipantInput) (*model.Participant, error)
 }
 type ParticipantResolver interface {
 	Discussion(ctx context.Context, obj *model.Participant) (*model.Discussion, error)
@@ -588,6 +591,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Mutation.UnassignFlair(childComplexity, args["participantID"].(string)), true
 
+	case "Mutation.updateParticipant":
+		if e.complexity.Mutation.UpdateParticipant == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_updateParticipant_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.UpdateParticipant(childComplexity, args["participantID"].(string), args["updateInput"].(model.UpdateParticipantInput)), true
+
 	case "PageInfo.endCursor":
 		if e.complexity.PageInfo.EndCursor == nil {
 			break
@@ -636,6 +651,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Participant.GradientColor(childComplexity), true
+
+	case "Participant.hasJoined":
+		if e.complexity.Participant.HasJoined == nil {
+			break
+		}
+
+		return e.complexity.Participant.HasJoined(childComplexity), true
 
 	case "Participant.id":
 		if e.complexity.Participant.ID == nil {
@@ -1300,6 +1322,8 @@ enum PostDeletedReason {
     gradientColor: GradientColor
     # The flair that has been assigned to this participant if any
     flair: Flair
+
+    hasJoined: Boolean!
 }
 `, BuiltIn: false},
 	&ast.Source{Name: "graph/types/participant_notification_preferences.graphqls", Input: `type ParticipantNotificationPreferences {
@@ -1367,6 +1391,14 @@ type Query {
   me: User!
 }
 
+input UpdateParticipantInput {
+  gradientColor: GradientColor
+  isUnsetGradient: Boolean
+  flairID: ID
+  isUnsetFlairID: Boolean
+  isAnonymous: Boolean
+}
+
 type Mutation {
   addDiscussionParticipant(discussionID: String!, userID: String!): Participant!
   addPost(discussionID: ID!, postContent: String!): Post!
@@ -1386,6 +1418,10 @@ type Mutation {
   createFlairTemplate(displayName: String, imageURL: String, source: String!): FlairTemplate!
   # Removes a flair template
   removeFlairTemplate(id: String!): FlairTemplate!
+
+  # A slight misnomer here because this will be a copy-on-write. The participant
+  # object actually is immutable.
+  updateParticipant(participantID: ID!, updateInput: UpdateParticipantInput!): Participant!
 }
 
 type Subscription {
@@ -1654,6 +1690,28 @@ func (ec *executionContext) field_Mutation_unassignFlair_args(ctx context.Contex
 		}
 	}
 	args["participantID"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_updateParticipant_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 string
+	if tmp, ok := rawArgs["participantID"]; ok {
+		arg0, err = ec.unmarshalNID2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["participantID"] = arg0
+	var arg1 model.UpdateParticipantInput
+	if tmp, ok := rawArgs["updateInput"]; ok {
+		arg1, err = ec.unmarshalNUpdateParticipantInput2githubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐUpdateParticipantInput(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["updateInput"] = arg1
 	return args, nil
 }
 
@@ -2788,6 +2846,47 @@ func (ec *executionContext) _Mutation_removeFlairTemplate(ctx context.Context, f
 	return ec.marshalNFlairTemplate2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐFlairTemplate(ctx, field.Selections, res)
 }
 
+func (ec *executionContext) _Mutation_updateParticipant(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "Mutation",
+		Field:    field,
+		Args:     nil,
+		IsMethod: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Mutation_updateParticipant_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().UpdateParticipant(rctx, args["participantID"].(string), args["updateInput"].(model.UpdateParticipantInput))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.Participant)
+	fc.Result = res
+	return ec.marshalNParticipant2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐParticipant(ctx, field.Selections, res)
+}
+
 func (ec *executionContext) _PageInfo_startCursor(ctx context.Context, field graphql.CollectedField, obj *model.PageInfo) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -3173,6 +3272,40 @@ func (ec *executionContext) _Participant_flair(ctx context.Context, field graphq
 	res := resTmp.(*model.Flair)
 	fc.Result = res
 	return ec.marshalOFlair2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐFlair(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Participant_hasJoined(ctx context.Context, field graphql.CollectedField, obj *model.Participant) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "Participant",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.HasJoined, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(bool)
+	fc.Result = res
+	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _ParticipantNotificationPreferences_id(ctx context.Context, field graphql.CollectedField, obj *model.ParticipantNotificationPreferences) (ret graphql.Marshaler) {
@@ -6240,6 +6373,48 @@ func (ec *executionContext) ___Type_ofType(ctx context.Context, field graphql.Co
 
 // region    **************************** input.gotpl *****************************
 
+func (ec *executionContext) unmarshalInputUpdateParticipantInput(ctx context.Context, obj interface{}) (model.UpdateParticipantInput, error) {
+	var it model.UpdateParticipantInput
+	var asMap = obj.(map[string]interface{})
+
+	for k, v := range asMap {
+		switch k {
+		case "gradientColor":
+			var err error
+			it.GradientColor, err = ec.unmarshalOGradientColor2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐGradientColor(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "isUnsetGradient":
+			var err error
+			it.IsUnsetGradient, err = ec.unmarshalOBoolean2ᚖbool(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "flairID":
+			var err error
+			it.FlairID, err = ec.unmarshalOID2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "isUnsetFlairID":
+			var err error
+			it.IsUnsetFlairID, err = ec.unmarshalOBoolean2ᚖbool(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "isAnonymous":
+			var err error
+			it.IsAnonymous, err = ec.unmarshalOBoolean2ᚖbool(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		}
+	}
+
+	return it, nil
+}
+
 // endregion **************************** input.gotpl *****************************
 
 // region    ************************** interface.gotpl ***************************
@@ -6594,6 +6769,11 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
+		case "updateParticipant":
+			out.Values[i] = ec._Mutation_updateParticipant(ctx, field)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -6722,6 +6902,11 @@ func (ec *executionContext) _Participant(ctx context.Context, sel ast.SelectionS
 				res = ec._Participant_flair(ctx, field, obj)
 				return res
 			})
+		case "hasJoined":
+			out.Values[i] = ec._Participant_hasJoined(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&invalids, 1)
+			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -8068,6 +8253,10 @@ func (ec *executionContext) marshalNTime2timeᚐTime(ctx context.Context, sel as
 
 func (ec *executionContext) marshalNURL2githubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐURL(ctx context.Context, sel ast.SelectionSet, v model.URL) graphql.Marshaler {
 	return ec._URL(ctx, sel, &v)
+}
+
+func (ec *executionContext) unmarshalNUpdateParticipantInput2githubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐUpdateParticipantInput(ctx context.Context, v interface{}) (model.UpdateParticipantInput, error) {
+	return ec.unmarshalInputUpdateParticipantInput(ctx, v)
 }
 
 func (ec *executionContext) marshalNUser2githubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐUser(ctx context.Context, sel ast.SelectionSet, v model.User) graphql.Marshaler {

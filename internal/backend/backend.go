@@ -35,6 +35,8 @@ type DelphisBackend interface {
 	GetParticipantByDiscussionIDUserID(ctx context.Context, discussionID string, userID string) (*model.Participant, error)
 	GetParticipantsByDiscussionID(ctx context.Context, id string) ([]model.Participant, error)
 	GetParticipantByID(ctx context.Context, id string) (*model.Participant, error)
+	GetTotalParticipantCountByDiscussionID(ctx context.Context, discussionID string) int
+	CopyAndUpdateParticipant(ctx context.Context, orig model.Participant, input model.UpdateParticipantInput) (*model.Participant, error)
 	CreatePost(ctx context.Context, discussionID string, participantID string, content string) (*model.Post, error)
 	NotifySubscribersOfCreatedPost(ctx context.Context, post *model.Post, discussionID string) error
 	GetPostsByDiscussionID(ctx context.Context, discussionID string) ([]*model.Post, error)

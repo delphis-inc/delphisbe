@@ -14,6 +14,14 @@ type Query {
   me: User!
 }
 
+input UpdateParticipantInput {
+  gradientColor: GradientColor
+  isUnsetGradient: Boolean
+  flairID: ID
+  isUnsetFlairID: Boolean
+  isAnonymous: Boolean
+}
+
 type Mutation {
   addDiscussionParticipant(discussionID: String!, userID: String!): Participant!
   addPost(discussionID: ID!, postContent: String!): Post!
@@ -33,6 +41,10 @@ type Mutation {
   createFlairTemplate(displayName: String, imageURL: String, source: String!): FlairTemplate!
   # Removes a flair template
   removeFlairTemplate(id: String!): FlairTemplate!
+
+  # A slight misnomer here because this will be a copy-on-write. The participant
+  # object actually is immutable.
+  updateParticipant(participantID: ID!, updateInput: UpdateParticipantInput!): Participant!
 }
 
 type Subscription {

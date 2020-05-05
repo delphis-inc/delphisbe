@@ -34,6 +34,7 @@ type Datastore interface {
 	GetFlairTemplateByID(ctx context.Context, id string) (*model.FlairTemplate, error)
 	UpsertFlairTemplate(ctx context.Context, flairTemplate model.FlairTemplate) (*model.FlairTemplate, error)
 	RemoveFlairTemplate(ctx context.Context, flairTemplate model.FlairTemplate) (*model.FlairTemplate, error)
+	GetTotalParticipantCountByDiscussionID(ctx context.Context, discussionID string) int
 	GetParticipantByID(ctx context.Context, participantID string) (*model.Participant, error)
 	GetParticipantsByDiscussionID(ctx context.Context, id string) ([]model.Participant, error)
 	GetParticipantByDiscussionIDUserID(ctx context.Context, discussionID string, userID string) (*model.Participant, error)
