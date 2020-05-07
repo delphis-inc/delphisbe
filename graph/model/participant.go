@@ -15,13 +15,13 @@ type Participant struct {
 	Posts         *PostsConnection `json:"posts" dynamodbav:"-"`
 	FlairID       *string          `json:"flairID" dynamodbav:"FlairID" gorm:"type:varchar(36);"`
 	Flair         *Flair           `json:"flair" dynamodbav:"-" gorm:"foreignKey:FlairID;"`
-	IsAnonymous   bool             `json:"isAnonymous" gorm:"not null;default:true;"`
 	GradientColor *GradientColor   `json:"gradientColor" gorm:"type:varchar(36);not null;"`
 
 	UserID *string `json:"userID" gorm:"type:varchar(36);"`
 	User   *User   `json:"user" dynamodbav:"-" gorm:"foreignKey:UserID;"`
 
-	HasJoined bool `json:"hasJoined" gorm:"type:boolean;"`
+	HasJoined   bool `json:"hasJoined" gorm:"type:boolean;"`
+	IsAnonymous bool `json:"isAnonymous"`
 }
 
 type ParticipantsEdge struct {
