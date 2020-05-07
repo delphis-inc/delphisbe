@@ -31,7 +31,7 @@ type DelphisBackend interface {
 	CreateFlairTemplate(ctx context.Context, displayName *string, imageURL *string, source string) (*model.FlairTemplate, error)
 	RemoveFlairTemplate(ctx context.Context, flairTemplate model.FlairTemplate) (*model.FlairTemplate, error)
 	GetFlairTemplateByID(ctx context.Context, id string) (*model.FlairTemplate, error)
-	CreateParticipantForDiscussion(ctx context.Context, discussionID string, userID string) (*model.Participant, error)
+	CreateParticipantForDiscussion(ctx context.Context, discussionID string, userID string, discussionParticipantInput model.AddDiscussionParticipantInput) (*model.Participant, error)
 	GetParticipantByDiscussionIDUserID(ctx context.Context, discussionID string, userID string) (*model.Participant, error)
 	GetParticipantsByDiscussionID(ctx context.Context, id string) ([]model.Participant, error)
 	GetParticipantByID(ctx context.Context, id string) (*model.Participant, error)

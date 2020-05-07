@@ -12,6 +12,12 @@ type DiscussionNotificationPreferences interface {
 	IsDiscussionNotificationPreferences()
 }
 
+type AddDiscussionParticipantInput struct {
+	GradientColor *GradientColor `json:"gradientColor"`
+	FlairID       *string        `json:"flairID"`
+	HasJoined     *bool          `json:"hasJoined"`
+}
+
 type ParticipantNotificationPreferences struct {
 	ID string `json:"id"`
 }
@@ -29,6 +35,7 @@ type UpdateParticipantInput struct {
 	FlairID         *string        `json:"flairID"`
 	IsUnsetFlairID  *bool          `json:"isUnsetFlairID"`
 	IsAnonymous     *bool          `json:"isAnonymous"`
+	HasJoined       *bool          `json:"hasJoined"`
 }
 
 type ViewerNotificationPreferences struct {

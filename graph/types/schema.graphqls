@@ -20,10 +20,17 @@ input UpdateParticipantInput {
   flairID: ID
   isUnsetFlairID: Boolean
   isAnonymous: Boolean
+  hasJoined: Boolean
+}
+
+input AddDiscussionParticipantInput {
+  gradientColor: GradientColor
+  flairID: ID
+  hasJoined: Boolean
 }
 
 type Mutation {
-  addDiscussionParticipant(discussionID: String!, userID: String!): Participant!
+  addDiscussionParticipant(discussionID: String!, userID: String!, discussionParticipantInput: AddDiscussionParticipantInput!): Participant!
   addPost(discussionID: ID!, postContent: String!): Post!
   createDiscussion(anonymityType: AnonymityType!, title: String!): Discussion!
 

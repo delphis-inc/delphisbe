@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"log"
+	"math/rand"
 	"net/http"
 	"net/url"
 	"os"
@@ -42,6 +43,8 @@ const (
 func main() {
 	logrus.SetLevel(logrus.DebugLevel)
 	logrus.Debugf("Starting")
+
+	rand.Seed(time.Now().Unix())
 
 	port := os.Getenv("PORT")
 	if port == "" {

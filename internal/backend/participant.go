@@ -2,18 +2,62 @@ package backend
 
 import (
 	"context"
+	"fmt"
+	"math/rand"
 	"time"
 
 	"github.com/nedrocks/delphisbe/graph/model"
 	"github.com/nedrocks/delphisbe/internal/util"
 )
 
-func (d *delphisBackend) CreateParticipantForDiscussion(ctx context.Context, discussionID string, userID string) (*model.Participant, error) {
-	allParticipants, err := d.GetParticipantsByDiscussionID(ctx, discussionID)
-
-	if err != nil {
+func (d *delphisBackend) CreateParticipantForDiscussion(ctx context.Context, discussionID string, userID string, discussionParticipantInput model.AddDiscussionParticipantInput) (*model.Participant, error) {
+	userObj, err := d.GetUserByID(ctx, userID)
+	if err != nil || userObj == nil {
+		if userObj == nil {
+			err = fmt.Errorf("Could not find User with ID %s so failing creation of Participant", userID)
+		}
 		return nil, err
 	}
+
+	allParticipantCount := d.GetTotalParticipantCountByDiscussionID(ctx, discussionID)
+
+	participantObj := model.Participant{
+		ID:            util.UUIDv4(),
+		CreatedAt:     time.Now(),
+		UpdatedAt:     time.Now(),
+		ParticipantID: allParticipantCount,
+		DiscussionID:  &discussionID,
+		UserID:        &userID,
+	}
+
+	if discussionParticipantInput.GradientColor != nil {
+		participantObj.GradientColor = discussionParticipantInput.GradientColor
+	} else {
+		gradientColor := model.GradientColorUnknown
+		for gradientColor == model.GradientColorUnknown {
+			gradientColor = model.AllGradientColor[rand.Intn(len(model.AllGradientColor))]
+		}
+		// TODO: We need to create a unique gradient color / name pairing once we have names.
+		participantObj.GradientColor = &gradientColor
+	}
+
+	if discussionParticipantInput.FlairID != nil {
+		if userObj.Flairs == nil {
+			userObj.Flairs, err = d.GetFlairsByUserID(ctx, userID)
+			if err == nil {
+				return nil, err
+			}
+		}
+		if len(userObj.Flairs) > 0 {
+			for _, elem := range userObj.Flairs {
+				if elem != nil && elem.ID == *discussionParticipantInput.FlairID {
+					participantObj.FlairID = discussionParticipantInput.FlairID
+				}
+			}
+		}
+	}
+
+	participantObj.HasJoined = discussionParticipantInput.HasJoined != nil && *discussionParticipantInput.HasJoined
 
 	viewerObj, err := d.CreateViewerForDiscussion(ctx, discussionID, userID)
 
@@ -21,15 +65,7 @@ func (d *delphisBackend) CreateParticipantForDiscussion(ctx context.Context, dis
 		return nil, err
 	}
 
-	participantObj := model.Participant{
-		ID:            util.UUIDv4(),
-		CreatedAt:     time.Now(),
-		UpdatedAt:     time.Now(),
-		ParticipantID: len(allParticipants),
-		DiscussionID:  &discussionID,
-		ViewerID:      &viewerObj.ID,
-		UserID:        &userID,
-	}
+	participantObj.ViewerID = &viewerObj.ID
 
 	_, err = d.db.PutParticipant(ctx, participantObj)
 
@@ -85,6 +121,9 @@ func (d *delphisBackend) CopyAndUpdateParticipant(ctx context.Context, orig mode
 	}
 	if input.IsAnonymous != nil {
 		copiedObj.IsAnonymous = *input.IsAnonymous
+	}
+	if input.HasJoined != nil {
+		copiedObj.HasJoined = *input.HasJoined
 	}
 	copiedObj.ParticipantID = participantCount
 

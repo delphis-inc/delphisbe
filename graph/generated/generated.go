@@ -93,7 +93,7 @@ type ComplexityRoot struct {
 	}
 
 	Mutation struct {
-		AddDiscussionParticipant func(childComplexity int, discussionID string, userID string) int
+		AddDiscussionParticipant func(childComplexity int, discussionID string, userID string, discussionParticipantInput model.AddDiscussionParticipantInput) int
 		AddPost                  func(childComplexity int, discussionID string, postContent string) int
 		AssignFlair              func(childComplexity int, participantID string, flairID string) int
 		CreateDiscussion         func(childComplexity int, anonymityType model.AnonymityType, title string) int
@@ -257,7 +257,7 @@ type ModeratorResolver interface {
 	UserProfile(ctx context.Context, obj *model.Moderator) (*model.UserProfile, error)
 }
 type MutationResolver interface {
-	AddDiscussionParticipant(ctx context.Context, discussionID string, userID string) (*model.Participant, error)
+	AddDiscussionParticipant(ctx context.Context, discussionID string, userID string, discussionParticipantInput model.AddDiscussionParticipantInput) (*model.Participant, error)
 	AddPost(ctx context.Context, discussionID string, postContent string) (*model.Post, error)
 	CreateDiscussion(ctx context.Context, anonymityType model.AnonymityType, title string) (*model.Discussion, error)
 	CreateFlair(ctx context.Context, userID string, templateID string) (*model.Flair, error)
@@ -493,7 +493,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Mutation.AddDiscussionParticipant(childComplexity, args["discussionID"].(string), args["userID"].(string)), true
+		return e.complexity.Mutation.AddDiscussionParticipant(childComplexity, args["discussionID"].(string), args["userID"].(string), args["discussionParticipantInput"].(model.AddDiscussionParticipantInput)), true
 
 	case "Mutation.addPost":
 		if e.complexity.Mutation.AddPost == nil {
@@ -1397,10 +1397,17 @@ input UpdateParticipantInput {
   flairID: ID
   isUnsetFlairID: Boolean
   isAnonymous: Boolean
+  hasJoined: Boolean
+}
+
+input AddDiscussionParticipantInput {
+  gradientColor: GradientColor
+  flairID: ID
+  hasJoined: Boolean
 }
 
 type Mutation {
-  addDiscussionParticipant(discussionID: String!, userID: String!): Participant!
+  addDiscussionParticipant(discussionID: String!, userID: String!, discussionParticipantInput: AddDiscussionParticipantInput!): Participant!
   addPost(discussionID: ID!, postContent: String!): Post!
   createDiscussion(anonymityType: AnonymityType!, title: String!): Discussion!
 
@@ -1530,6 +1537,14 @@ func (ec *executionContext) field_Mutation_addDiscussionParticipant_args(ctx con
 		}
 	}
 	args["userID"] = arg1
+	var arg2 model.AddDiscussionParticipantInput
+	if tmp, ok := rawArgs["discussionParticipantInput"]; ok {
+		arg2, err = ec.unmarshalNAddDiscussionParticipantInput2githubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐAddDiscussionParticipantInput(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["discussionParticipantInput"] = arg2
 	return args, nil
 }
 
@@ -2501,7 +2516,7 @@ func (ec *executionContext) _Mutation_addDiscussionParticipant(ctx context.Conte
 	fc.Args = args
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().AddDiscussionParticipant(rctx, args["discussionID"].(string), args["userID"].(string))
+		return ec.resolvers.Mutation().AddDiscussionParticipant(rctx, args["discussionID"].(string), args["userID"].(string), args["discussionParticipantInput"].(model.AddDiscussionParticipantInput))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -6373,6 +6388,36 @@ func (ec *executionContext) ___Type_ofType(ctx context.Context, field graphql.Co
 
 // region    **************************** input.gotpl *****************************
 
+func (ec *executionContext) unmarshalInputAddDiscussionParticipantInput(ctx context.Context, obj interface{}) (model.AddDiscussionParticipantInput, error) {
+	var it model.AddDiscussionParticipantInput
+	var asMap = obj.(map[string]interface{})
+
+	for k, v := range asMap {
+		switch k {
+		case "gradientColor":
+			var err error
+			it.GradientColor, err = ec.unmarshalOGradientColor2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐGradientColor(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "flairID":
+			var err error
+			it.FlairID, err = ec.unmarshalOID2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "hasJoined":
+			var err error
+			it.HasJoined, err = ec.unmarshalOBoolean2ᚖbool(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		}
+	}
+
+	return it, nil
+}
+
 func (ec *executionContext) unmarshalInputUpdateParticipantInput(ctx context.Context, obj interface{}) (model.UpdateParticipantInput, error) {
 	var it model.UpdateParticipantInput
 	var asMap = obj.(map[string]interface{})
@@ -6406,6 +6451,12 @@ func (ec *executionContext) unmarshalInputUpdateParticipantInput(ctx context.Con
 		case "isAnonymous":
 			var err error
 			it.IsAnonymous, err = ec.unmarshalOBoolean2ᚖbool(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "hasJoined":
+			var err error
+			it.HasJoined, err = ec.unmarshalOBoolean2ᚖbool(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -8017,6 +8068,10 @@ func (ec *executionContext) ___Type(ctx context.Context, sel ast.SelectionSet, o
 // endregion **************************** object.gotpl ****************************
 
 // region    ***************************** type.gotpl *****************************
+
+func (ec *executionContext) unmarshalNAddDiscussionParticipantInput2githubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐAddDiscussionParticipantInput(ctx context.Context, v interface{}) (model.AddDiscussionParticipantInput, error) {
+	return ec.unmarshalInputAddDiscussionParticipantInput(ctx, v)
+}
 
 func (ec *executionContext) unmarshalNAnonymityType2githubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐAnonymityType(ctx context.Context, v interface{}) (model.AnonymityType, error) {
 	var res model.AnonymityType

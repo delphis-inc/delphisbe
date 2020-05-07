@@ -12,8 +12,8 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func (r *mutationResolver) AddDiscussionParticipant(ctx context.Context, discussionID string, userID string) (*model.Participant, error) {
-	participantObj, err := r.DAOManager.CreateParticipantForDiscussion(ctx, discussionID, userID)
+func (r *mutationResolver) AddDiscussionParticipant(ctx context.Context, discussionID string, userID string, discussionParticipantInput model.AddDiscussionParticipantInput) (*model.Participant, error) {
+	participantObj, err := r.DAOManager.CreateParticipantForDiscussion(ctx, discussionID, userID, discussionParticipantInput)
 
 	// TODO: Only the current user can join the conversation
 	if err != nil {
@@ -83,7 +83,8 @@ func (r *mutationResolver) CreateDiscussion(ctx context.Context, anonymityType m
 		return nil, err
 	}
 
-	_, err = r.DAOManager.CreateParticipantForDiscussion(ctx, discussionObj.ID, creatingUser.UserID)
+	trueObj := true
+	_, err = r.DAOManager.CreateParticipantForDiscussion(ctx, discussionObj.ID, creatingUser.UserID, model.AddDiscussionParticipantInput{HasJoined: &trueObj})
 
 	if err != nil {
 		return nil, err
