@@ -16,6 +16,7 @@ type AddDiscussionParticipantInput struct {
 	GradientColor *GradientColor `json:"gradientColor"`
 	FlairID       *string        `json:"flairID"`
 	HasJoined     *bool          `json:"hasJoined"`
+	IsAnonymous   bool           `json:"isAnonymous"`
 }
 
 type ParticipantNotificationPreferences struct {

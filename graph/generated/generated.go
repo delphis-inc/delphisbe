@@ -1404,6 +1404,7 @@ input AddDiscussionParticipantInput {
   gradientColor: GradientColor
   flairID: ID
   hasJoined: Boolean
+  isAnonymous: Boolean!
 }
 
 type Mutation {
@@ -6409,6 +6410,12 @@ func (ec *executionContext) unmarshalInputAddDiscussionParticipantInput(ctx cont
 		case "hasJoined":
 			var err error
 			it.HasJoined, err = ec.unmarshalOBoolean2ᚖbool(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "isAnonymous":
+			var err error
+			it.IsAnonymous, err = ec.unmarshalNBoolean2bool(ctx, v)
 			if err != nil {
 				return it, err
 			}

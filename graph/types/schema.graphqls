@@ -27,6 +27,7 @@ input AddDiscussionParticipantInput {
   gradientColor: GradientColor
   flairID: ID
   hasJoined: Boolean
+  isAnonymous: Boolean!
 }
 
 type Mutation {

@@ -58,6 +58,7 @@ func (d *delphisBackend) CreateParticipantForDiscussion(ctx context.Context, dis
 	}
 
 	participantObj.HasJoined = discussionParticipantInput.HasJoined != nil && *discussionParticipantInput.HasJoined
+	participantObj.IsAnonymous = discussionParticipantInput.IsAnonymous
 
 	viewerObj, err := d.CreateViewerForDiscussion(ctx, discussionID, userID)
 
