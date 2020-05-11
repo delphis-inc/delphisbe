@@ -15,7 +15,10 @@ func CreateFlair(db backend.DelphisBackend, reader *csv.Reader) {
 
 	// Get and validate header row
 	var header [2]string
-	row, _ := reader.Read()
+	row, err := reader.Read();
+	if err != nil {
+		logrus.Fatal(err)
+	}
 	copy(header[:], row)
 	if header != expectedHeader {
 		logrus.WithFields(logrus.Fields{
