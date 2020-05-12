@@ -7,6 +7,9 @@
         "useCredentials": false,
         "isFargate": true
     },
+    "ably": {
+        "enabled": true
+    },
     "env": "staging",
     "sqldb": {
         "host": "chatham-staging-aurora-pgsql.cluster-cgw5uhmof8wi.us-west-2.rds.amazonaws.com",

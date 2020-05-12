@@ -6,6 +6,9 @@
         "region": "us-west-2",
         "useCredentials": false
     },
+    "ably": {
+        "enabled": true
+    },
     "env": "local_use_aws",
     "sqldb": {
         "host": "127.0.0.1",

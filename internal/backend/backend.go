@@ -58,6 +58,8 @@ type DelphisBackend interface {
 	NewAccessToken(ctx context.Context, userID string) (*auth.DelphisAccessToken, error)
 	ValidateAccessToken(ctx context.Context, token string) (*auth.DelphisAuthedUser, error)
 	ValidateRefreshToken(ctx context.Context, token string) (*auth.DelphisRefreshTokenUser, error)
+
+	SendNotificationsToSubscribers(ctx context.Context, discussion *model.Discussion, post *model.Post) (*SendNotificationResponse, error)
 }
 
 type delphisBackend struct {
@@ -65,6 +67,7 @@ type delphisBackend struct {
 	auth            auth.DelphisAuth
 	cache           cache.ChathamCache
 	discussionMutex sync.Mutex
+	config          config.Config
 }
 
 func NewDelphisBackend(conf config.Config, awsSession *session.Session) DelphisBackend {
@@ -74,5 +77,6 @@ func NewDelphisBackend(conf config.Config, awsSession *session.Session) DelphisB
 		auth:            auth.NewDelphisAuth(&conf.Auth),
 		cache:           chathamCache,
 		discussionMutex: sync.Mutex{},
+		config:          conf,
 	}
 }

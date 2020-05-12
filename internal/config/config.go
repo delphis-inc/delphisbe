@@ -13,12 +13,14 @@ type Config struct {
 	Twitter     TwitterConfig `json:"twitter" mapstructure:"twitter"`
 	Auth        AuthConfig    `json:"authConfig"`
 	AWS         AWSConfig     `json:"awsConfig" mapstructure:"aws"`
+	AblyConfig  AblyConfig    `json:"ablyConfig" mapstructure:"ably"`
 }
 
 func (c *Config) ReadEnvAndUpdate() {
 	viper.AutomaticEnv()
 	c.Twitter.ConsumerKey, c.Twitter.ConsumerSecret, c.Auth.HMACSecret = viper.GetString("twitter_consumer_key"), viper.GetString("twitter_consumer_secret"), viper.GetString("auth_hmac_secret")
 	c.SQLDBConfig.Username, c.SQLDBConfig.Password = viper.GetString("db_user"), viper.GetString("db_password")
+	c.AblyConfig.Username, c.AblyConfig.Password = viper.GetString("ably_user"), viper.GetString("ably_password")
 }
 
 type AWSConfig struct {
@@ -26,6 +28,12 @@ type AWSConfig struct {
 	UseCredentials bool           `json:"useCredentials" mapstructure:"useCredentials"`
 	Credentials    AWSCredentials `json:"credentials" mapstructure:"credentials"`
 	IsFargate      bool           `json:"isFargate" mapstructure:"isFargate"`
+}
+
+type AblyConfig struct {
+	Username string `json:"username" mapstructure:"region"`
+	Password string `json:"password" mapstructure:"password"`
+	Enabled  bool   `json:"enabled" mapstructure:"enabled"`
 }
 
 type AWSCredentials struct {

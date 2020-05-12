@@ -10,6 +10,9 @@
             "secret": "fakeSecretAccessKey"
         }
     },
+    "ably": {
+        "enabled": false
+    },
     "env": "local",
     "sqldb": {
         "host": "127.0.0.1",

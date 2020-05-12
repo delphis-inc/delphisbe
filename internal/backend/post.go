@@ -32,6 +32,16 @@ func (d *delphisBackend) CreatePost(ctx context.Context, discussionID string, pa
 		return nil, err
 	}
 
+	discussion, err := d.db.GetDiscussionByID(ctx, discussionID)
+	if err != nil {
+		logrus.WithError(err).Debugf("Skipping notification to subscribers because of an error")
+	} else {
+		_, err := d.SendNotificationsToSubscribers(ctx, discussion, &post)
+		if err != nil {
+			logrus.WithError(err).Warn("Failed to send push notifications on createPost")
+		}
+	}
+
 	return postObj, nil
 }
 
