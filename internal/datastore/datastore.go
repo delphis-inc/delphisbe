@@ -79,7 +79,7 @@ func NewDatastore(config config.Config, awsSession *session.Session) Datastore {
 	dbConfig := config.DBConfig
 	if dbConfig.Host != "" && dbConfig.Port != 0 {
 		mySession = mySession.Copy(awsSession.Config.WithEndpoint(fmt.Sprintf("%s:%d", dbConfig.Host, dbConfig.Port)))
-		logrus.Debugf("endpoint: %v", mySession.Config.Endpoint)
+		logrus.Debugf("endpoint: %v", *mySession.Config.Endpoint)
 	}
 	dbSvc := dynamodb.New(mySession)
 	return &db{
