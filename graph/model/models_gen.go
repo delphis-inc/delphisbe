@@ -161,6 +161,51 @@ func (e GradientColor) MarshalGQL(w io.Writer) {
 	fmt.Fprint(w, strconv.Quote(e.String()))
 }
 
+type Platform string
+
+const (
+	PlatformUnknown Platform = "UNKNOWN"
+	PlatformIos     Platform = "IOS"
+	PlatformAndroid Platform = "ANDROID"
+	PlatformWeb     Platform = "WEB"
+)
+
+var AllPlatform = []Platform{
+	PlatformUnknown,
+	PlatformIos,
+	PlatformAndroid,
+	PlatformWeb,
+}
+
+func (e Platform) IsValid() bool {
+	switch e {
+	case PlatformUnknown, PlatformIos, PlatformAndroid, PlatformWeb:
+		return true
+	}
+	return false
+}
+
+func (e Platform) String() string {
+	return string(e)
+}
+
+func (e *Platform) UnmarshalGQL(v interface{}) error {
+	str, ok := v.(string)
+	if !ok {
+		return fmt.Errorf("enums must be strings")
+	}
+
+	*e = Platform(str)
+	if !e.IsValid() {
+		return fmt.Errorf("%s is not a valid Platform", str)
+	}
+	return nil
+}
+
+func (e Platform) MarshalGQL(w io.Writer) {
+	fmt.Fprint(w, strconv.Quote(e.String()))
+}
+
 type PostDeletedReason string
 
 const (

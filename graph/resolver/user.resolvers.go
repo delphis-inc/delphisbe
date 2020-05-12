@@ -79,6 +79,19 @@ func (r *userResolver) Flairs(ctx context.Context, obj *model.User) ([]*model.Fl
 	return r.DAOManager.GetFlairsByUserID(ctx, obj.ID)
 }
 
+func (r *userResolver) Devices(ctx context.Context, obj *model.User) ([]*model.UserDevice, error) {
+	devices, err := r.DAOManager.GetUserDevicesByUserID(ctx, obj.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	resp := make([]*model.UserDevice, len(devices))
+	for i := range devices {
+		resp[i] = &devices[i]
+	}
+	return resp, nil
+}
+
 func (r *Resolver) User() generated.UserResolver { return &userResolver{r} }
 
 type userResolver struct{ *Resolver }

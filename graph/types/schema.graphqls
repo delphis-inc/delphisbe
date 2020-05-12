@@ -53,6 +53,9 @@ type Mutation {
   # A slight misnomer here because this will be a copy-on-write. The participant
   # object actually is immutable.
   updateParticipant(participantID: ID!, updateInput: UpdateParticipantInput!): Participant!
+
+  # Upsert user device
+  upsertUserDevice(userID: ID, platform: Platform!, deviceID: String!, token: String): UserDevice!
 }
 
 type Subscription {

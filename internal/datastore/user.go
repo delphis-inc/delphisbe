@@ -12,7 +12,7 @@ import (
 )
 
 func (d *db) UpsertUser(ctx context.Context, user model.User) (*model.User, error) {
-	logrus.Debugf("UpsertUser::SQL Insert/Update: %+v", user)
+	logrus.Debugf("UpsertUser::SQL Insert/Update")
 	found := model.User{}
 	if err := d.sql.First(&found, model.User{ID: user.ID}).Error; err != nil {
 		if gorm.IsRecordNotFoundError(err) {
@@ -32,7 +32,7 @@ func (d *db) UpsertUser(ctx context.Context, user model.User) (*model.User, erro
 			return nil, err
 		}
 	}
-	return &user, nil
+	return &found, nil
 }
 
 func (d *db) GetUserByID(ctx context.Context, userID string) (*model.User, error) {

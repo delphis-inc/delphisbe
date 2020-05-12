@@ -20,4 +20,6 @@ type User {
 
     # The user's available flairs
     flairs: [Flair!]
+    # The user's devices.
+    devices: [UserDevice!]
 }

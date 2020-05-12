@@ -269,6 +269,15 @@ func (r *mutationResolver) UpdateParticipant(ctx context.Context, participantID 
 	return res, nil
 }
 
+func (r *mutationResolver) UpsertUserDevice(ctx context.Context, userID *string, platform model.Platform, deviceID string, token *string) (*model.UserDevice, error) {
+	// TODO: Check authz
+	resp, err := r.DAOManager.UpsertUserDevice(ctx, deviceID, userID, platform.String(), token)
+	if err != nil {
+		return nil, err
+	}
+	return resp, nil
+}
+
 func (r *queryResolver) Discussion(ctx context.Context, id string) (*model.Discussion, error) {
 	return r.resolveDiscussionByID(ctx, id)
 }
@@ -280,9 +289,9 @@ func (r *queryResolver) ListDiscussions(ctx context.Context) ([]*model.Discussio
 	}
 
 	discussions := make([]*model.Discussion, 0)
-	for _, edge := range connection.Edges {
+	for i, edge := range connection.Edges {
 		if edge != nil {
-			discussions = append(discussions, edge.Node)
+			discussions = append(discussions, connection.Edges[i].Node)
 		}
 	}
 	return discussions, nil

@@ -51,6 +51,7 @@ type ResolverRoot interface {
 	Query() QueryResolver
 	Subscription() SubscriptionResolver
 	User() UserResolver
+	UserDevice() UserDeviceResolver
 	UserProfile() UserProfileResolver
 	Viewer() ViewerResolver
 	ViewersConnection() ViewersConnectionResolver
@@ -103,6 +104,7 @@ type ComplexityRoot struct {
 		RemoveFlairTemplate      func(childComplexity int, id string) int
 		UnassignFlair            func(childComplexity int, participantID string) int
 		UpdateParticipant        func(childComplexity int, participantID string, updateInput model.UpdateParticipantInput) int
+		UpsertUserDevice         func(childComplexity int, userID *string, platform model.Platform, deviceID string, token *string) int
 	}
 
 	PageInfo struct {
@@ -198,11 +200,19 @@ type ComplexityRoot struct {
 
 	User struct {
 		Bookmarks    func(childComplexity int) int
+		Devices      func(childComplexity int) int
 		Flairs       func(childComplexity int) int
 		ID           func(childComplexity int) int
 		Participants func(childComplexity int) int
 		Profile      func(childComplexity int) int
 		Viewers      func(childComplexity int) int
+	}
+
+	UserDevice struct {
+		ID       func(childComplexity int) int
+		LastSeen func(childComplexity int) int
+		Platform func(childComplexity int) int
+		User     func(childComplexity int) int
 	}
 
 	UserProfile struct {
@@ -267,6 +277,7 @@ type MutationResolver interface {
 	CreateFlairTemplate(ctx context.Context, displayName *string, imageURL *string, source string) (*model.FlairTemplate, error)
 	RemoveFlairTemplate(ctx context.Context, id string) (*model.FlairTemplate, error)
 	UpdateParticipant(ctx context.Context, participantID string, updateInput model.UpdateParticipantInput) (*model.Participant, error)
+	UpsertUserDevice(ctx context.Context, userID *string, platform model.Platform, deviceID string, token *string) (*model.UserDevice, error)
 }
 type ParticipantResolver interface {
 	Discussion(ctx context.Context, obj *model.Participant) (*model.Discussion, error)
@@ -314,6 +325,10 @@ type UserResolver interface {
 	Bookmarks(ctx context.Context, obj *model.User) ([]*model.PostBookmark, error)
 	Profile(ctx context.Context, obj *model.User) (*model.UserProfile, error)
 	Flairs(ctx context.Context, obj *model.User) ([]*model.Flair, error)
+	Devices(ctx context.Context, obj *model.User) ([]*model.UserDevice, error)
+}
+type UserDeviceResolver interface {
+	Platform(ctx context.Context, obj *model.UserDevice) (model.Platform, error)
 }
 type UserProfileResolver interface {
 	ProfileImageURL(ctx context.Context, obj *model.UserProfile) (string, error)
@@ -602,6 +617,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Mutation.UpdateParticipant(childComplexity, args["participantID"].(string), args["updateInput"].(model.UpdateParticipantInput)), true
+
+	case "Mutation.upsertUserDevice":
+		if e.complexity.Mutation.UpsertUserDevice == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_upsertUserDevice_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.UpsertUserDevice(childComplexity, args["userID"].(*string), args["platform"].(model.Platform), args["deviceID"].(string), args["token"].(*string)), true
 
 	case "PageInfo.endCursor":
 		if e.complexity.PageInfo.EndCursor == nil {
@@ -973,6 +1000,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.User.Bookmarks(childComplexity), true
 
+	case "User.devices":
+		if e.complexity.User.Devices == nil {
+			break
+		}
+
+		return e.complexity.User.Devices(childComplexity), true
+
 	case "User.flairs":
 		if e.complexity.User.Flairs == nil {
 			break
@@ -1007,6 +1041,34 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.User.Viewers(childComplexity), true
+
+	case "UserDevice.id":
+		if e.complexity.UserDevice.ID == nil {
+			break
+		}
+
+		return e.complexity.UserDevice.ID(childComplexity), true
+
+	case "UserDevice.lastSeen":
+		if e.complexity.UserDevice.LastSeen == nil {
+			break
+		}
+
+		return e.complexity.UserDevice.LastSeen(childComplexity), true
+
+	case "UserDevice.platform":
+		if e.complexity.UserDevice.Platform == nil {
+			break
+		}
+
+		return e.complexity.UserDevice.Platform(childComplexity), true
+
+	case "UserDevice.user":
+		if e.complexity.UserDevice.User == nil {
+			break
+		}
+
+		return e.complexity.UserDevice.User(childComplexity), true
 
 	case "UserProfile.displayName":
 		if e.complexity.UserProfile.DisplayName == nil {
@@ -1269,7 +1331,13 @@ enum PostDeletedReason {
     MODERATOR_REMOVED
     PARTICIPANT_REMOVED
 }
-`, BuiltIn: false},
+
+enum Platform {
+    UNKNOWN
+    IOS
+    ANDROID
+    WEB
+}`, BuiltIn: false},
 	&ast.Source{Name: "graph/types/flair.graphqls", Input: `type Flair {
     # The UUID for this flair
     id: ID!
@@ -1430,6 +1498,9 @@ type Mutation {
   # A slight misnomer here because this will be a copy-on-write. The participant
   # object actually is immutable.
   updateParticipant(participantID: ID!, updateInput: UpdateParticipantInput!): Participant!
+
+  # Upsert user device
+  upsertUserDevice(userID: ID, platform: Platform!, deviceID: String!, token: String): UserDevice!
 }
 
 type Subscription {
@@ -1473,8 +1544,16 @@ type User {
 
     # The user's available flairs
     flairs: [Flair!]
+    # The user's devices.
+    devices: [UserDevice!]
 }
 `, BuiltIn: false},
+	&ast.Source{Name: "graph/types/user_device.graphqls", Input: `type UserDevice {
+    id: ID!
+    user: User!
+    platform: Platform!
+    lastSeen: Time!
+}`, BuiltIn: false},
 	&ast.Source{Name: "graph/types/user_profile.graphqls", Input: `type UserProfile {
     id: ID!
 
@@ -1728,6 +1807,44 @@ func (ec *executionContext) field_Mutation_updateParticipant_args(ctx context.Co
 		}
 	}
 	args["updateInput"] = arg1
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_upsertUserDevice_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 *string
+	if tmp, ok := rawArgs["userID"]; ok {
+		arg0, err = ec.unmarshalOID2ᚖstring(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["userID"] = arg0
+	var arg1 model.Platform
+	if tmp, ok := rawArgs["platform"]; ok {
+		arg1, err = ec.unmarshalNPlatform2githubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐPlatform(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["platform"] = arg1
+	var arg2 string
+	if tmp, ok := rawArgs["deviceID"]; ok {
+		arg2, err = ec.unmarshalNString2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["deviceID"] = arg2
+	var arg3 *string
+	if tmp, ok := rawArgs["token"]; ok {
+		arg3, err = ec.unmarshalOString2ᚖstring(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["token"] = arg3
 	return args, nil
 }
 
@@ -2901,6 +3018,47 @@ func (ec *executionContext) _Mutation_updateParticipant(ctx context.Context, fie
 	res := resTmp.(*model.Participant)
 	fc.Result = res
 	return ec.marshalNParticipant2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐParticipant(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Mutation_upsertUserDevice(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "Mutation",
+		Field:    field,
+		Args:     nil,
+		IsMethod: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Mutation_upsertUserDevice_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().UpsertUserDevice(rctx, args["userID"].(*string), args["platform"].(model.Platform), args["deviceID"].(string), args["token"].(*string))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.UserDevice)
+	fc.Result = res
+	return ec.marshalNUserDevice2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐUserDevice(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _PageInfo_startCursor(ctx context.Context, field graphql.CollectedField, obj *model.PageInfo) (ret graphql.Marshaler) {
@@ -4806,6 +4964,173 @@ func (ec *executionContext) _User_flairs(ctx context.Context, field graphql.Coll
 	res := resTmp.([]*model.Flair)
 	fc.Result = res
 	return ec.marshalOFlair2ᚕᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐFlairᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _User_devices(ctx context.Context, field graphql.CollectedField, obj *model.User) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "User",
+		Field:    field,
+		Args:     nil,
+		IsMethod: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.User().Devices(rctx, obj)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.([]*model.UserDevice)
+	fc.Result = res
+	return ec.marshalOUserDevice2ᚕᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐUserDeviceᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _UserDevice_id(ctx context.Context, field graphql.CollectedField, obj *model.UserDevice) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "UserDevice",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.ID, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNID2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _UserDevice_user(ctx context.Context, field graphql.CollectedField, obj *model.UserDevice) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "UserDevice",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.User, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.User)
+	fc.Result = res
+	return ec.marshalNUser2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐUser(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _UserDevice_platform(ctx context.Context, field graphql.CollectedField, obj *model.UserDevice) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "UserDevice",
+		Field:    field,
+		Args:     nil,
+		IsMethod: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.UserDevice().Platform(rctx, obj)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(model.Platform)
+	fc.Result = res
+	return ec.marshalNPlatform2githubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐPlatform(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _UserDevice_lastSeen(ctx context.Context, field graphql.CollectedField, obj *model.UserDevice) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "UserDevice",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.LastSeen, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(time.Time)
+	fc.Result = res
+	return ec.marshalNTime2timeᚐTime(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _UserProfile_id(ctx context.Context, field graphql.CollectedField, obj *model.UserProfile) (ret graphql.Marshaler) {
@@ -6832,6 +7157,11 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
+		case "upsertUserDevice":
+			out.Values[i] = ec._Mutation_upsertUserDevice(ctx, field)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -7603,6 +7933,68 @@ func (ec *executionContext) _User(ctx context.Context, sel ast.SelectionSet, obj
 				res = ec._User_flairs(ctx, field, obj)
 				return res
 			})
+		case "devices":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._User_devices(ctx, field, obj)
+				return res
+			})
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
+var userDeviceImplementors = []string{"UserDevice"}
+
+func (ec *executionContext) _UserDevice(ctx context.Context, sel ast.SelectionSet, obj *model.UserDevice) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, userDeviceImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("UserDevice")
+		case "id":
+			out.Values[i] = ec._UserDevice_id(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&invalids, 1)
+			}
+		case "user":
+			out.Values[i] = ec._UserDevice_user(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&invalids, 1)
+			}
+		case "platform":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._UserDevice_platform(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
+		case "lastSeen":
+			out.Values[i] = ec._UserDevice_lastSeen(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&invalids, 1)
+			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -8229,6 +8621,15 @@ func (ec *executionContext) marshalNParticipantsEdge2ᚖgithubᚗcomᚋnedrocks�
 	return ec._ParticipantsEdge(ctx, sel, v)
 }
 
+func (ec *executionContext) unmarshalNPlatform2githubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐPlatform(ctx context.Context, v interface{}) (model.Platform, error) {
+	var res model.Platform
+	return res, res.UnmarshalGQL(v)
+}
+
+func (ec *executionContext) marshalNPlatform2githubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐPlatform(ctx context.Context, sel ast.SelectionSet, v model.Platform) graphql.Marshaler {
+	return v
+}
+
 func (ec *executionContext) marshalNPost2githubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐPost(ctx context.Context, sel ast.SelectionSet, v model.Post) graphql.Marshaler {
 	return ec._Post(ctx, sel, &v)
 }
@@ -8333,6 +8734,20 @@ func (ec *executionContext) marshalNUser2ᚖgithubᚗcomᚋnedrocksᚋdelphisbe�
 		return graphql.Null
 	}
 	return ec._User(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalNUserDevice2githubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐUserDevice(ctx context.Context, sel ast.SelectionSet, v model.UserDevice) graphql.Marshaler {
+	return ec._UserDevice(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNUserDevice2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐUserDevice(ctx context.Context, sel ast.SelectionSet, v *model.UserDevice) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	return ec._UserDevice(ctx, sel, v)
 }
 
 func (ec *executionContext) marshalNUserProfile2githubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐUserProfile(ctx context.Context, sel ast.SelectionSet, v model.UserProfile) graphql.Marshaler {
@@ -9164,6 +9579,46 @@ func (ec *executionContext) marshalOTime2ᚖtimeᚐTime(ctx context.Context, sel
 		return graphql.Null
 	}
 	return ec.marshalOTime2timeᚐTime(ctx, sel, *v)
+}
+
+func (ec *executionContext) marshalOUserDevice2ᚕᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐUserDeviceᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.UserDevice) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNUserDevice2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐUserDevice(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+	return ret
 }
 
 func (ec *executionContext) marshalOViewer2githubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐViewer(ctx context.Context, sel ast.SelectionSet, v model.Viewer) graphql.Marshaler {

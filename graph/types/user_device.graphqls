@@ -1,0 +1,6 @@
+type UserDevice {
+    id: ID!
+    user: User!
+    platform: Platform!
+    lastSeen: Time!
+}

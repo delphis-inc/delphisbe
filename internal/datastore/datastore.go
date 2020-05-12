@@ -49,6 +49,8 @@ type Datastore interface {
 	CreateOrUpdateUserProfile(ctx context.Context, userProfile model.UserProfile) (*model.UserProfile, bool, error)
 	UpsertUser(ctx context.Context, user model.User) (*model.User, error)
 	GetUserByID(ctx context.Context, userID string) (*model.User, error)
+	GetUserDevicesByUserID(ctx context.Context, userID string) ([]model.UserDevice, error)
+	UpsertUserDevice(ctx context.Context, userDevice model.UserDevice) (*model.UserDevice, error)
 	GetViewersByIDs(ctx context.Context, viewerIDs []string) (map[string]*model.Viewer, error)
 	UpsertViewer(ctx context.Context, viewer model.Viewer) (*model.Viewer, error)
 

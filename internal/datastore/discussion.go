@@ -69,10 +69,10 @@ func (d *db) ListDiscussions(ctx context.Context) (*model.DiscussionsConnection,
 
 	ids := make([]string, 0)
 	edges := make([]*model.DiscussionsEdge, 0)
-	for _, elem := range discussions {
-		discussionObj := model.Discussion{}
+	for i := range discussions {
+		discussionObj := &discussions[i]
 		edges = append(edges, &model.DiscussionsEdge{
-			Node: &elem,
+			Node: discussionObj,
 		})
 		ids = append(ids, discussionObj.ID)
 	}
