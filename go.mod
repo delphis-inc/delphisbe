@@ -4,6 +4,7 @@ go 1.13
 
 require (
 	github.com/99designs/gqlgen v0.11.1
+	github.com/DATA-DOG/go-sqlmock v1.4.1
 	github.com/Timothylock/go-signin-with-apple v0.0.0-20200221193809-1a722422658e // indirect
 	github.com/aws/aws-sdk-go v1.29.19
 	github.com/coreos/pkg v0.0.0-20180928190104-399ea9e2e55f
@@ -21,7 +22,9 @@ require (
 	github.com/patrickmn/go-cache v2.1.0+incompatible
 	github.com/satori/go.uuid v1.2.0
 	github.com/sirupsen/logrus v1.4.2
+	github.com/smartystreets/goconvey v1.6.4
 	github.com/spf13/viper v1.6.2
+	github.com/stretchr/testify v1.4.0
 	github.com/vektah/gqlparser v1.3.1
 	github.com/vektah/gqlparser/v2 v2.0.1
 	github.com/vektra/mockery v0.0.0-20181123154057-e78b021dcbb5 // indirect

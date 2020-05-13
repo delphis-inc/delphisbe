@@ -8,7 +8,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func (d *db) GetModeratorByID(ctx context.Context, id string) (*model.Moderator, error) {
+func (d *delphisDB) GetModeratorByID(ctx context.Context, id string) (*model.Moderator, error) {
 	logrus.Debug("GetModeratorByID::SQL Query")
 	moderator := model.Moderator{}
 	if err := d.sql.Preload("UserProfile").First(&moderator, model.Moderator{ID: id}).Error; err != nil {
@@ -21,7 +21,7 @@ func (d *db) GetModeratorByID(ctx context.Context, id string) (*model.Moderator,
 	return &moderator, nil
 }
 
-func (d *db) CreateModerator(ctx context.Context, moderator model.Moderator) (*model.Moderator, error) {
+func (d *delphisDB) CreateModerator(ctx context.Context, moderator model.Moderator) (*model.Moderator, error) {
 	logrus.Debugf("CreateModerator::SQL Insert")
 	found := model.Moderator{}
 	if err := d.sql.Create(&moderator).First(&found, model.Moderator{ID: moderator.ID}).Error; err != nil {

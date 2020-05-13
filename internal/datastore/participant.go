@@ -8,7 +8,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func (d *db) GetParticipantByID(ctx context.Context, id string) (*model.Participant, error) {
+func (d *delphisDB) GetParticipantByID(ctx context.Context, id string) (*model.Participant, error) {
 	logrus.Debugf("GetParticipantByID::SQL Query")
 	participant := model.Participant{}
 	if err := d.sql.Where(&model.Participant{ID: id}).First(&participant).Error; err != nil {
@@ -21,7 +21,7 @@ func (d *db) GetParticipantByID(ctx context.Context, id string) (*model.Particip
 	return &participant, nil
 }
 
-func (d *db) GetParticipantsByDiscussionID(ctx context.Context, id string) ([]model.Participant, error) {
+func (d *delphisDB) GetParticipantsByDiscussionID(ctx context.Context, id string) ([]model.Participant, error) {
 	logrus.Debugf("GetParticipantsByDiscussionID::SQL Query")
 	participants := []model.Participant{}
 	if err := d.sql.Where(&model.Participant{DiscussionID: &id}).Order("participant_id desc").Find(&participants).Error; err != nil {
@@ -34,7 +34,7 @@ func (d *db) GetParticipantsByDiscussionID(ctx context.Context, id string) ([]mo
 	return participants, nil
 }
 
-func (d *db) GetParticipantByDiscussionIDUserID(ctx context.Context, discussionID string, userID string) (*model.Participant, error) {
+func (d *delphisDB) GetParticipantByDiscussionIDUserID(ctx context.Context, discussionID string, userID string) (*model.Participant, error) {
 	logrus.Debugf("GetParticipantByDiscussionIDUserID::SQL Query")
 	participant := model.Participant{}
 	if err := d.sql.Where(&model.Participant{DiscussionID: &discussionID, UserID: &userID}).Order("participant_id desc").First(&participant).Error; err != nil {
@@ -47,7 +47,7 @@ func (d *db) GetParticipantByDiscussionIDUserID(ctx context.Context, discussionI
 	return &participant, nil
 }
 
-func (d *db) PutParticipant(ctx context.Context, participant model.Participant) (*model.Participant, error) {
+func (d *delphisDB) PutParticipant(ctx context.Context, participant model.Participant) (*model.Participant, error) {
 	logrus.Debug("PutParticipant::SQL Create")
 	found := model.Participant{}
 	if err := d.sql.Create(&participant).First(&found, model.Participant{ID: participant.ID}).Error; err != nil {
@@ -58,7 +58,7 @@ func (d *db) PutParticipant(ctx context.Context, participant model.Participant) 
 	return &found, nil
 }
 
-func (d *db) AssignFlair(ctx context.Context, participant model.Participant, flairID *string) (*model.Participant, error) {
+func (d *delphisDB) AssignFlair(ctx context.Context, participant model.Participant, flairID *string) (*model.Participant, error) {
 	logrus.Debug("AssignFlair::SQL Update")
 	if err := d.sql.Model(&participant).Update("FlairID", flairID).Error; err != nil {
 		logrus.WithError(err).Errorf("AssignFlair::Failed to update")
@@ -67,7 +67,7 @@ func (d *db) AssignFlair(ctx context.Context, participant model.Participant, fla
 	return &participant, nil
 }
 
-func (d *db) GetTotalParticipantCountByDiscussionID(ctx context.Context, discussionID string) int {
+func (d *delphisDB) GetTotalParticipantCountByDiscussionID(ctx context.Context, discussionID string) int {
 	count := 0
 	d.sql.Model(&model.Participant{}).Where(&model.Participant{DiscussionID: &discussionID}).Count(&count)
 	return count

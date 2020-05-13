@@ -8,7 +8,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func (d *db) UpsertSocialInfo(ctx context.Context, obj model.SocialInfo) (*model.SocialInfo, error) {
+func (d *delphisDB) UpsertSocialInfo(ctx context.Context, obj model.SocialInfo) (*model.SocialInfo, error) {
 	logrus.Debugf("UpsertSocialInfo::SQL Create/Update")
 	found := model.SocialInfo{}
 	if err := d.sql.First(&found, model.SocialInfo{Network: obj.Network, UserProfileID: obj.UserProfileID}).Error; err != nil {
@@ -37,7 +37,7 @@ func (d *db) UpsertSocialInfo(ctx context.Context, obj model.SocialInfo) (*model
 	return &found, nil
 }
 
-func (d *db) GetSocialInfosByUserProfileID(ctx context.Context, userProfileID string) ([]model.SocialInfo, error) {
+func (d *delphisDB) GetSocialInfosByUserProfileID(ctx context.Context, userProfileID string) ([]model.SocialInfo, error) {
 	logrus.Debugf("GetSocialInfosByUserProfileID::SQL Query")
 	found := []model.SocialInfo{}
 	if err := d.sql.Where(&model.SocialInfo{UserProfileID: userProfileID}).Find(&found).Error; err != nil {

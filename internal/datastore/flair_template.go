@@ -8,7 +8,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func (d *db) ListFlairTemplates(ctx context.Context, query *string) ([]*model.FlairTemplate, error) {
+func (d *delphisDB) ListFlairTemplates(ctx context.Context, query *string) ([]*model.FlairTemplate, error) {
 	logrus.Debug("ListFlairTemplates::SQL Query")
 	var flairTemplates []*model.FlairTemplate
 	sql := d.sql
@@ -23,7 +23,7 @@ func (d *db) ListFlairTemplates(ctx context.Context, query *string) ([]*model.Fl
 	return flairTemplates, nil
 }
 
-func (d *db) UpsertFlairTemplate(ctx context.Context, data model.FlairTemplate) (*model.FlairTemplate, error) {
+func (d *delphisDB) UpsertFlairTemplate(ctx context.Context, data model.FlairTemplate) (*model.FlairTemplate, error) {
 	logrus.Debug("UpsertFlairTemplate::SQL Create or Update")
 	flairTemplate := model.FlairTemplate{}
 	if err := d.sql.First(&flairTemplate, model.FlairTemplate{ID: data.ID}).Error; err != nil {
@@ -38,9 +38,9 @@ func (d *db) UpsertFlairTemplate(ctx context.Context, data model.FlairTemplate) 
 		}
 	} else {
 		if err := d.sql.Model(&data).Updates(model.FlairTemplate{
-		   DisplayName: data.DisplayName,
-		   ImageURL:    data.ImageURL,
-		   Source:      data.Source,
+			DisplayName: data.DisplayName,
+			ImageURL:    data.ImageURL,
+			Source:      data.Source,
 		}).First(&flairTemplate).Error; err != nil {
 			logrus.WithError(err).Errorf("UpsertFlairTemplate::Failed updating flairTemplate object")
 			return nil, err
@@ -49,7 +49,7 @@ func (d *db) UpsertFlairTemplate(ctx context.Context, data model.FlairTemplate) 
 	return &flairTemplate, nil
 }
 
-func (d *db) GetFlairTemplateByID(ctx context.Context, id string) (*model.FlairTemplate, error) {
+func (d *delphisDB) GetFlairTemplateByID(ctx context.Context, id string) (*model.FlairTemplate, error) {
 	logrus.Debug("GetFlairTemplateByID::SQL Query")
 	flairTemplate := model.FlairTemplate{}
 	if err := d.sql.First(&flairTemplate, model.FlairTemplate{ID: id}).Error; err != nil {
@@ -62,7 +62,7 @@ func (d *db) GetFlairTemplateByID(ctx context.Context, id string) (*model.FlairT
 	return &flairTemplate, nil
 }
 
-func (d *db) RemoveFlairTemplate(ctx context.Context, flairTemplate model.FlairTemplate) (*model.FlairTemplate, error) {
+func (d *delphisDB) RemoveFlairTemplate(ctx context.Context, flairTemplate model.FlairTemplate) (*model.FlairTemplate, error) {
 	logrus.Debug("RemoveFlairTemplate::SQL Query")
 	// Ensure that flairTemplate.ID is set, otherwise GORM could delete all flairTemplate
 	if &flairTemplate.ID == nil {
@@ -72,16 +72,16 @@ func (d *db) RemoveFlairTemplate(ctx context.Context, flairTemplate model.FlairT
 	err := d.sql.Transaction(func(tx *gorm.DB) error {
 		// Set Null all participants referencing the flairs we just deleted.
 		if err := tx.Unscoped().Model(model.Participant{}).
-					 Joins("FROM flairs").
-					 Where("flair_id = flairs.id AND flairs.template_id = ?", flairTemplate.ID).
-					 Update("flair_id", nil).Error; err != nil {
+			Joins("FROM flairs").
+			Where("flair_id = flairs.id AND flairs.template_id = ?", flairTemplate.ID).
+			Update("flair_id", nil).Error; err != nil {
 			logrus.WithError(err).Errorf("RemoveFlairTemplate::Failed to unassign related flairs")
 			return err
 		}
 
 		// Delete all the flairs for this template
 		if err := tx.Where(model.Flair{TemplateID: flairTemplate.ID}).
-					 Delete([]model.Flair{}).Error; err != nil {
+			Delete([]model.Flair{}).Error; err != nil {
 			logrus.WithError(err).Errorf("RemoveFlairTemplate::Failed to delete related flairs")
 			return err
 		}

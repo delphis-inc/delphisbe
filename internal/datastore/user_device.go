@@ -9,7 +9,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func (d *db) UpsertUserDevice(ctx context.Context, userDevice model.UserDevice) (*model.UserDevice, error) {
+func (d *delphisDB) UpsertUserDevice(ctx context.Context, userDevice model.UserDevice) (*model.UserDevice, error) {
 	logrus.Debugf("UpsertUserDevice::SQL Insert/Update")
 	found := model.UserDevice{}
 	if err := d.sql.First(&found, model.UserDevice{ID: userDevice.ID}).Error; err != nil {
@@ -40,7 +40,7 @@ func (d *db) UpsertUserDevice(ctx context.Context, userDevice model.UserDevice) 
 	return &found, nil
 }
 
-func (d *db) GetUserDevicesByUserID(ctx context.Context, userID string) ([]model.UserDevice, error) {
+func (d *delphisDB) GetUserDevicesByUserID(ctx context.Context, userID string) ([]model.UserDevice, error) {
 	logrus.Debugf("GetUserDevicesByUserID::SQL Query")
 	userDevices := []model.UserDevice{}
 	if err := d.sql.Where(&model.UserDevice{UserID: &userID}).Order("last_seen desc").Find(&userDevices).Error; err != nil {

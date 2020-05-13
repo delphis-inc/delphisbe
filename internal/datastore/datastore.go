@@ -57,7 +57,7 @@ type Datastore interface {
 	marshalMap(in interface{}) (map[string]*dynamodb.AttributeValue, error)
 }
 
-type db struct {
+type delphisDB struct {
 	dynamo   dynamodbiface.DynamoDBAPI
 	sql      *gorm.DB
 	dbConfig config.TablesConfig
@@ -65,7 +65,7 @@ type db struct {
 }
 
 //MarshalMap wraps the dynamodbattribute.MarshalMap with a defined encoder.
-func (d *db) marshalMap(in interface{}) (map[string]*dynamodb.AttributeValue, error) {
+func (d *delphisDB) marshalMap(in interface{}) (map[string]*dynamodb.AttributeValue, error) {
 	av, err := d.encoder.Encode(in)
 	if err != nil || av == nil || av.M == nil {
 		return map[string]*dynamodb.AttributeValue{}, err
@@ -82,7 +82,7 @@ func NewDatastore(config config.Config, awsSession *session.Session) Datastore {
 		logrus.Debugf("endpoint: %v", *mySession.Config.Endpoint)
 	}
 	dbSvc := dynamodb.New(mySession)
-	return &db{
+	return &delphisDB{
 		dbConfig: dbConfig.TablesConfig,
 		sql:      NewSQLDatastore(config.SQLDBConfig, awsSession),
 		dynamo:   dbSvc,

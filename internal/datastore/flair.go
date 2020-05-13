@@ -8,7 +8,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func (d *db) UpsertFlair(ctx context.Context, data model.Flair) (*model.Flair, error) {
+func (d *delphisDB) UpsertFlair(ctx context.Context, data model.Flair) (*model.Flair, error) {
 	logrus.Debug("UpsertFlair::SQL Create or Update")
 	flair := model.Flair{}
 	if err := d.sql.First(&flair, model.Flair{ID: data.ID}).Error; err != nil {
@@ -33,7 +33,7 @@ func (d *db) UpsertFlair(ctx context.Context, data model.Flair) (*model.Flair, e
 	return &flair, nil
 }
 
-func (d *db) GetFlairByID(ctx context.Context, id string) (*model.Flair, error) {
+func (d *delphisDB) GetFlairByID(ctx context.Context, id string) (*model.Flair, error) {
 	logrus.Debug("GetFlairByID::SQL Query")
 	flair := model.Flair{}
 	if err := d.sql.First(&flair, model.Flair{ID: id}).Error; err != nil {
@@ -46,7 +46,7 @@ func (d *db) GetFlairByID(ctx context.Context, id string) (*model.Flair, error) 
 	return &flair, nil
 }
 
-func (d *db) GetFlairsByUserID(ctx context.Context, userID string) ([]*model.Flair, error) {
+func (d *delphisDB) GetFlairsByUserID(ctx context.Context, userID string) ([]*model.Flair, error) {
 	logrus.Debug("GetFlairsByUserID::SQL Query")
 	flairs := []*model.Flair{}
 	if err := d.sql.Where(model.Flair{UserID: userID}).Find(&flairs).Error; err != nil {
@@ -59,7 +59,7 @@ func (d *db) GetFlairsByUserID(ctx context.Context, userID string) ([]*model.Fla
 	return flairs, nil
 }
 
-func (d *db) RemoveFlair(ctx context.Context, flair model.Flair) (*model.Flair, error) {
+func (d *delphisDB) RemoveFlair(ctx context.Context, flair model.Flair) (*model.Flair, error) {
 	logrus.Debug("RemoveFlair::SQL Query")
 	// Ensure that flair.ID is set, otherwise GORM could delete all flair
 	if &flair.ID == nil {
@@ -69,8 +69,8 @@ func (d *db) RemoveFlair(ctx context.Context, flair model.Flair) (*model.Flair, 
 	err := d.sql.Transaction(func(tx *gorm.DB) error {
 		// Set Null all participants referencing the flairs we just deleted.
 		if err := tx.Unscoped().Model(model.Participant{}).
-					 Where(model.Participant{FlairID: &flair.ID}).
-					 Update("flair_id", nil).Error; err != nil {
+			Where(model.Participant{FlairID: &flair.ID}).
+			Update("flair_id", nil).Error; err != nil {
 			logrus.WithError(err).Errorf("RemoveFlair::Failed to unassign flairs")
 			return err
 		}

@@ -3,14 +3,12 @@ package datastore
 import (
 	"context"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/jinzhu/gorm"
 	"github.com/nedrocks/delphisbe/graph/model"
 	"github.com/sirupsen/logrus"
 )
 
-func (d *db) UpsertViewer(ctx context.Context, viewer model.Viewer) (*model.Viewer, error) {
+func (d *delphisDB) UpsertViewer(ctx context.Context, viewer model.Viewer) (*model.Viewer, error) {
 	logrus.Debug("UpsertViewer::SQL Create/Update")
 	found := model.Viewer{}
 	if err := d.sql.First(&found, model.Viewer{ID: viewer.ID}).Error; err != nil {
@@ -35,7 +33,7 @@ func (d *db) UpsertViewer(ctx context.Context, viewer model.Viewer) (*model.View
 	return &found, nil
 }
 
-func (d *db) GetViewerByID(ctx context.Context, viewerID string) (*model.Viewer, error) {
+func (d *delphisDB) GetViewerByID(ctx context.Context, viewerID string) (*model.Viewer, error) {
 	logrus.Debug("GetViewerByID::SQL Query")
 	found := model.Viewer{}
 	if err := d.sql.First(&found, model.Viewer{ID: viewerID}).Error; err != nil {
@@ -48,7 +46,7 @@ func (d *db) GetViewerByID(ctx context.Context, viewerID string) (*model.Viewer,
 	return &found, nil
 }
 
-func (d *db) GetViewersByIDs(ctx context.Context, viewerIDs []string) (map[string]*model.Viewer, error) {
+func (d *delphisDB) GetViewersByIDs(ctx context.Context, viewerIDs []string) (map[string]*model.Viewer, error) {
 	logrus.Debug("GetViewersByIDs::SQL Query")
 	viewers := []model.Viewer{}
 	if err := d.sql.Where(viewerIDs).Find(&viewers).Error; err != nil {
@@ -129,23 +127,23 @@ func (d *db) GetViewersByIDs(ctx context.Context, viewerIDs []string) (map[strin
 // 	return viewers[discussionViewerKey], nil
 // }
 
-func (d *db) PutViewerDynamo(ctx context.Context, viewer model.Viewer) (*model.Viewer, error) {
-	logrus.Debug("PutViewer::Dynamo PutItem")
-	av, err := d.marshalMap(viewer)
-	if err != nil {
-		logrus.WithError(err).Errorf("PutViewer: Failed to marshal viewer object: %+v", viewer)
-		return nil, err
-	}
+// func (d *db) PutViewerDynamo(ctx context.Context, viewer model.Viewer) (*model.Viewer, error) {
+// 	logrus.Debug("PutViewer::Dynamo PutItem")
+// 	av, err := d.marshalMap(viewer)
+// 	if err != nil {
+// 		logrus.WithError(err).Errorf("PutViewer: Failed to marshal viewer object: %+v", viewer)
+// 		return nil, err
+// 	}
 
-	_, err = d.dynamo.PutItem(&dynamodb.PutItemInput{
-		TableName: aws.String(d.dbConfig.Viewers.TableName),
-		Item:      av,
-	})
+// 	_, err = d.dynamo.PutItem(&dynamodb.PutItemInput{
+// 		TableName: aws.String(d.dbConfig.Viewers.TableName),
+// 		Item:      av,
+// 	})
 
-	if err != nil {
-		logrus.WithError(err).Errorf("PutViewer: Failed to put viewer object: %+v", av)
-		return nil, err
-	}
+// 	if err != nil {
+// 		logrus.WithError(err).Errorf("PutViewer: Failed to put viewer object: %+v", av)
+// 		return nil, err
+// 	}
 
-	return &viewer, nil
-}
+// 	return &viewer, nil
+// }

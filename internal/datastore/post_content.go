@@ -8,7 +8,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func (d *db) GetPostContentByID(ctx context.Context, id string) (*model.PostContent, error) {
+func (d *delphisDB) GetPostContentByID(ctx context.Context, id string) (*model.PostContent, error) {
 	logrus.Debug("GetPostContentByID::SQL Query")
 	found := model.PostContent{}
 	if err := d.sql.First(&found, &model.PostContent{ID: id}).Error; err != nil {

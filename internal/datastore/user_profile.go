@@ -11,7 +11,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func (d *db) GetUserProfileByUserID(ctx context.Context, userID string) (*model.UserProfile, error) {
+func (d *delphisDB) GetUserProfileByUserID(ctx context.Context, userID string) (*model.UserProfile, error) {
 	logrus.Debugf("GetUserProfileByUserID::SQL Query, userID: %s", userID)
 	user := model.User{}
 	userProfile := model.UserProfile{}
@@ -26,7 +26,7 @@ func (d *db) GetUserProfileByUserID(ctx context.Context, userID string) (*model.
 	return &userProfile, nil
 }
 
-func (d *db) GetUserProfileByID(ctx context.Context, id string) (*model.UserProfile, error) {
+func (d *delphisDB) GetUserProfileByID(ctx context.Context, id string) (*model.UserProfile, error) {
 	logrus.Debug("GetUserProfileByID::SQL Query")
 	userProfile := model.UserProfile{}
 	if err := d.sql.Preload("SocialInfos").First(&userProfile, &model.UserProfile{ID: id}).Error; err != nil {
@@ -40,7 +40,7 @@ func (d *db) GetUserProfileByID(ctx context.Context, id string) (*model.UserProf
 	return &userProfile, nil
 }
 
-func (d *db) CreateOrUpdateUserProfile(ctx context.Context, userProfile model.UserProfile) (*model.UserProfile, bool, error) {
+func (d *delphisDB) CreateOrUpdateUserProfile(ctx context.Context, userProfile model.UserProfile) (*model.UserProfile, bool, error) {
 	logrus.Debugf("CreateOrUpdateUserProfile::SQL Insert/Update: %+v", userProfile)
 	found := model.UserProfile{}
 	if err := d.sql.First(&found, model.UserProfile{ID: userProfile.ID}).Error; err != nil {
@@ -71,7 +71,7 @@ func (d *db) CreateOrUpdateUserProfile(ctx context.Context, userProfile model.Us
 	}
 }
 
-func (d *db) AddModeratedDiscussionToUserProfileDynamo(ctx context.Context, userProfileID string, discussionID string) (*model.UserProfile, error) {
+func (d *delphisDB) AddModeratedDiscussionToUserProfileDynamo(ctx context.Context, userProfileID string, discussionID string) (*model.UserProfile, error) {
 	logrus.Debug("AddModeratedDiscussionToUserProfile: Dynamo UpdateItem")
 	res, err := d.dynamo.UpdateItem(&dynamodb.UpdateItemInput{
 		ExpressionAttributeNames: map[string]*string{
@@ -109,7 +109,7 @@ func (d *db) AddModeratedDiscussionToUserProfileDynamo(ctx context.Context, user
 	return &userProfileObj, nil
 }
 
-func (d *db) GetUserProfileByIDDynamo(ctx context.Context, id string) (*model.UserProfile, error) {
+func (d *delphisDB) GetUserProfileByIDDynamo(ctx context.Context, id string) (*model.UserProfile, error) {
 	logrus.Debug("GetUserProfileByID: Dynamo GetItem")
 	res, err := d.dynamo.GetItem(&dynamodb.GetItemInput{
 		TableName: aws.String(d.dbConfig.UserProfiles.TableName),
