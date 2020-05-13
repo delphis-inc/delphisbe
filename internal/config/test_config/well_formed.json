@@ -1,30 +1,55 @@
 {
-    "env": "well-formed",
+    "env": "well_formed",
+    "auth": {
+        "hmacSecret": "foo",
+        "domain": ".delphishq.com"
+    },
+    "aws": {
+        "region": "us-west-2",
+        "useCredentials": true,
+        "credentials": {    
+            "id": "fakeMyKeyId",
+            "secret": "fakeSecretAccessKey"
+        }
+    },
+    "ably": {
+        "enabled": false
+    },
+    "sqldb": {
+        "host": "127.0.0.1",
+        "port": 5432,
+        "db_name": "chatham_local"
+    },
     "db": {
-        "host": "localhost",
-        "port": 1337,
+        "host": "http://localhost",
+        "port": 7998,
+        "region": "us-west-2",
         "tables_config": {
             "discussions": {
-                "table_name": "well-formed.Discussions"
+                "table_name": "local.Discussions.v1"
             },
             "participants": {
-                "table_name": "well-formed.Participants"
+                "table_name": "local.Participants.v1"
             },
             "post_bookmarks": {
-                "table_name": "well-formed.PostBookmarks"
+                "table_name": "local.PostBookmarks.v1"
             },
             "posts": {
-                "table_name": "well-formed.Posts"
+                "table_name": "local.Posts.v1"
             },
             "users": {
-                "table_name": "well-formed.Users"
+                "table_name": "local.Users.v1"
             },
             "user_profiles": {
-                "table_name": "well-formed.UserProfiles"
+                "table_name": "local.UserProfiles.v1"
             },
             "viewers": {
-                "table_name": "well-formed.Viewers"
+                "table_name": "local.Viewers.v1"
             }
         }
+    },
+    "twitter": {
+        "callback": "http://local.delphishq.com:8080/twitter/callback",
+        "redirect": "http://local.delphishq.com:8000"
     }
 }

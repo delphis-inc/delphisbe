@@ -48,6 +48,7 @@ func Test_ReadConfig(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			clearConfig()
 			AddConfigDirectory(path.Join(dirName, "test_config"))
+			os.Setenv("DELPHIS_UNITTEST", "1")
 			os.Setenv("DELPHIS_ENV", "well_formed")
 
 			got, err := ReadConfig()
@@ -57,7 +58,7 @@ func Test_ReadConfig(t *testing.T) {
 			}
 
 			if got == nil || *got != *tt.want {
-				t.Errorf("ReadConfig = %+v, want: %+v", got, tt.want)
+				t.Errorf("ReadConfig = %+v, \nwant: %+v", got, tt.want)
 			}
 		})
 	}

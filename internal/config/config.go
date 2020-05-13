@@ -11,9 +11,9 @@ type Config struct {
 	DBConfig    DBConfig      `json:"db" mapstructure:"db"`
 	SQLDBConfig SQLDBConfig   `json:"sqldb" mapstructure:"sqldb"`
 	Twitter     TwitterConfig `json:"twitter" mapstructure:"twitter"`
-	Auth        AuthConfig    `json:"authConfig"`
-	AWS         AWSConfig     `json:"awsConfig" mapstructure:"aws"`
-	AblyConfig  AblyConfig    `json:"ablyConfig" mapstructure:"ably"`
+	Auth        AuthConfig    `json:"auth" mapstructure:"auth"`
+	AWS         AWSConfig     `json:"aws" mapstructure:"aws"`
+	AblyConfig  AblyConfig    `json:"ably" mapstructure:"ably"`
 }
 
 func (c *Config) ReadEnvAndUpdate() {
@@ -43,7 +43,7 @@ type AWSCredentials struct {
 }
 
 type AuthConfig struct {
-	HMACSecret string `json:"hmacSecret"`
+	HMACSecret string `json:"hmacSecret" mapstructure:"hmacSecret"`
 	Domain     string `json:"domain" mapstructure:"domain"`
 }
 
@@ -109,8 +109,11 @@ func ReadConfig() (*Config, error) {
 	}
 
 	viper.SetEnvPrefix("delphis")
-	_ = viper.BindEnv("twitter_consumer_key", "twitter_consumer_secret", "auth_hmac_secret", "db_user", "db_password")
-	config.ReadEnvAndUpdate()
+	_, ok := os.LookupEnv("DELPHIS_UNITTEST")
+	if !ok {
+		_ = viper.BindEnv("twitter_consumer_key", "twitter_consumer_secret", "auth_hmac_secret", "db_user", "db_password")
+		config.ReadEnvAndUpdate()
+	}
 
 	return &config, nil
 }
