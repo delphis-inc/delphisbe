@@ -53,8 +53,6 @@ type Datastore interface {
 	UpsertUserDevice(ctx context.Context, userDevice model.UserDevice) (*model.UserDevice, error)
 	GetViewersByIDs(ctx context.Context, viewerIDs []string) (map[string]*model.Viewer, error)
 	UpsertViewer(ctx context.Context, viewer model.Viewer) (*model.Viewer, error)
-
-	marshalMap(in interface{}) (map[string]*dynamodb.AttributeValue, error)
 }
 
 type delphisDB struct {

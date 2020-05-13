@@ -59,6 +59,9 @@ This should show your name as the moderator.
 
 And you're done!
 
+## Install Local tools
+1) Install Mockery via `go get -u github.com/vektra/mockery/.../`.
+
 # Build and deploy docker image
 Retrieve credentials, build image, tag image, and push image.
 

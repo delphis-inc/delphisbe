@@ -2,7 +2,6 @@ package backend
 
 import (
 	"context"
-	"time"
 
 	"github.com/nedrocks/delphisbe/graph/model"
 )
@@ -11,7 +10,7 @@ func (d *delphisBackend) UpsertUserDevice(ctx context.Context, deviceID string, 
 	userDevice := model.UserDevice{
 		ID:       deviceID,
 		Platform: platform,
-		LastSeen: time.Now(),
+		LastSeen: d.timeProvider.Now(),
 		Token:    token,
 		UserID:   userID,
 	}

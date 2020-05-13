@@ -10,6 +10,7 @@ import (
 	"github.com/nedrocks/delphisbe/internal/cache"
 	"github.com/nedrocks/delphisbe/internal/config"
 	"github.com/nedrocks/delphisbe/internal/datastore"
+	"github.com/nedrocks/delphisbe/internal/util"
 )
 
 type DelphisBackend interface {
@@ -68,6 +69,7 @@ type delphisBackend struct {
 	cache           cache.ChathamCache
 	discussionMutex sync.Mutex
 	config          config.Config
+	timeProvider    util.TimeProvider
 }
 
 func NewDelphisBackend(conf config.Config, awsSession *session.Session) DelphisBackend {
@@ -78,5 +80,6 @@ func NewDelphisBackend(conf config.Config, awsSession *session.Session) DelphisB
 		cache:           chathamCache,
 		discussionMutex: sync.Mutex{},
 		config:          conf,
+		timeProvider:    &util.RealTime{},
 	}
 }

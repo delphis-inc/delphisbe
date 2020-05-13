@@ -37,3 +37,6 @@ get-ecr-creds:
 start-db:
 	pg_ctl -D '/usr/local/var/postgresql@11/data' start
 
+.PHONY: mocks
+mocks:
+	${GOPATH}/bin/mockery -output ./mocks -name Datastore -dir ./internal/datastore -case underscore
