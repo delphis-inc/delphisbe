@@ -1380,6 +1380,12 @@ enum Platform {
     IOS
     ANDROID
     WEB
+}
+
+enum PostType {
+    TEXT,
+    MEDIA,
+    POLL
 }`, BuiltIn: false},
 	&ast.Source{Name: "graph/types/flair.graphqls", Input: `type Flair {
     # The UUID for this flair
@@ -1543,10 +1549,12 @@ input PollInput {
 
 input PostContentInput {
   postText: String!,
+  postType: PostType!,
   mentionedUserIDs:[ID!],
   quotedPostID: ID
   media: MediaInput,
   poll: PollInput
+
 }
 
 
@@ -7061,6 +7069,12 @@ func (ec *executionContext) unmarshalInputPostContentInput(ctx context.Context, 
 			if err != nil {
 				return it, err
 			}
+		case "postType":
+			var err error
+			it.PostType, err = ec.unmarshalNPostType2githubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐPostType(ctx, v)
+			if err != nil {
+				return it, err
+			}
 		case "mentionedUserIDs":
 			var err error
 			it.MentionedUserIDs, err = ec.unmarshalOID2ᚕstringᚄ(ctx, v)
@@ -9044,6 +9058,15 @@ func (ec *executionContext) marshalNPostBookmarksEdge2ᚖgithubᚗcomᚋnedrocks
 
 func (ec *executionContext) unmarshalNPostContentInput2githubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐPostContentInput(ctx context.Context, v interface{}) (model.PostContentInput, error) {
 	return ec.unmarshalInputPostContentInput(ctx, v)
+}
+
+func (ec *executionContext) unmarshalNPostType2githubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐPostType(ctx context.Context, v interface{}) (model.PostType, error) {
+	var res model.PostType
+	return res, res.UnmarshalGQL(v)
+}
+
+func (ec *executionContext) marshalNPostType2githubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐPostType(ctx context.Context, sel ast.SelectionSet, v model.PostType) graphql.Marshaler {
+	return v
 }
 
 func (ec *executionContext) marshalNPostsEdge2githubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐPostsEdge(ctx context.Context, sel ast.SelectionSet, v model.PostsEdge) graphql.Marshaler {

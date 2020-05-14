@@ -16,8 +16,6 @@ func (d *delphisBackend) CreatePost(ctx context.Context, discussionID string, pa
 		Content: input.PostText,
 	}
 
-	logrus.Infof("QuotePostID: %v\n", input.QuotedPostID)
-
 	post := model.Post{
 		ID:            util.UUIDv4(),
 		CreatedAt:     time.Now(),

@@ -37,3 +37,9 @@ enum Platform {
     ANDROID
     WEB
 }
+
+enum PostType {
+    TEXT,
+    MEDIA,
+    POLL
+}

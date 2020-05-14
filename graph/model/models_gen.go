@@ -48,6 +48,7 @@ type PollInput struct {
 
 type PostContentInput struct {
 	PostText         string      `json:"postText"`
+	PostType         PostType    `json:"postType"`
 	MentionedUserIDs []string    `json:"mentionedUserIDs"`
 	QuotedPostID     *string     `json:"quotedPostID"`
 	Media            *MediaInput `json:"media"`
@@ -275,5 +276,48 @@ func (e *PostDeletedReason) UnmarshalGQL(v interface{}) error {
 }
 
 func (e PostDeletedReason) MarshalGQL(w io.Writer) {
+	fmt.Fprint(w, strconv.Quote(e.String()))
+}
+
+type PostType string
+
+const (
+	PostTypeText  PostType = "TEXT"
+	PostTypeMedia PostType = "MEDIA"
+	PostTypePoll  PostType = "POLL"
+)
+
+var AllPostType = []PostType{
+	PostTypeText,
+	PostTypeMedia,
+	PostTypePoll,
+}
+
+func (e PostType) IsValid() bool {
+	switch e {
+	case PostTypeText, PostTypeMedia, PostTypePoll:
+		return true
+	}
+	return false
+}
+
+func (e PostType) String() string {
+	return string(e)
+}
+
+func (e *PostType) UnmarshalGQL(v interface{}) error {
+	str, ok := v.(string)
+	if !ok {
+		return fmt.Errorf("enums must be strings")
+	}
+
+	*e = PostType(str)
+	if !e.IsValid() {
+		return fmt.Errorf("%s is not a valid PostType", str)
+	}
+	return nil
+}
+
+func (e PostType) MarshalGQL(w io.Writer) {
 	fmt.Fprint(w, strconv.Quote(e.String()))
 }

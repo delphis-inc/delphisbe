@@ -10,7 +10,6 @@ import (
 
 func (d *delphisDB) PutPost(ctx context.Context, post model.Post) (*model.Post, error) {
 	logrus.Debug("PutPost::SQL Create")
-	logrus.Infof("PutPost: QuotePost: %v\n", post.QuotedPostID)
 	found := model.Post{}
 	if err := d.sql.Create(&post).First(&found, model.Post{ID: post.ID}).Error; err != nil {
 		logrus.WithError(err).Errorf("Failed to create a post")
@@ -49,13 +48,13 @@ func (d *delphisDB) GetPostsByDiscussionID(ctx context.Context, discussionID str
 
 	}
 
-	logrus.Infof("Posts: %+v\n", returnedPosts)
 	return returnedPosts, nil
 }
 
 func (d *delphisDB) getPostByID(ctx context.Context, postID string) (*model.Post, error) {
 	logrus.Debug("GetPostByID::SQL Query")
 	post := model.Post{}
+	// TODO: Clean up for single queries
 	if err := d.sql.Where([]string{postID}).Preload("PostContent").Find(&post).Error; err != nil {
 		if gorm.IsRecordNotFoundError(err) {
 			return nil, nil
