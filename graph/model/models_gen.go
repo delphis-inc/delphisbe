@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"strconv"
+	"time"
 )
 
 type DiscussionNotificationPreferences interface {
@@ -19,11 +20,39 @@ type AddDiscussionParticipantInput struct {
 	IsAnonymous   bool           `json:"isAnonymous"`
 }
 
+type MediaInput struct {
+	Type    string `json:"type"`
+	MediaID string `json:"mediaID"`
+}
+
 type ParticipantNotificationPreferences struct {
 	ID string `json:"id"`
 }
 
 func (ParticipantNotificationPreferences) IsDiscussionNotificationPreferences() {}
+
+type ParticipantProfile struct {
+	IsAnonymous   *bool          `json:"isAnonymous"`
+	Flair         *Flair         `json:"flair"`
+	GradientColor *GradientColor `json:"gradientColor"`
+}
+
+type PollInput struct {
+	PollText string    `json:"pollText"`
+	Duration time.Time `json:"duration"`
+	Option1  string    `json:"option1"`
+	Option2  string    `json:"option2"`
+	Option3  *string   `json:"option3"`
+	Option4  *string   `json:"option4"`
+}
+
+type PostContentInput struct {
+	PostText         string      `json:"postText"`
+	MentionedUserIDs []string    `json:"mentionedUserIDs"`
+	QuotedPostID     *string     `json:"quotedPostID"`
+	Media            *MediaInput `json:"media"`
+	Poll             *PollInput  `json:"poll"`
+}
 
 type URL struct {
 	DisplayText string `json:"displayText"`

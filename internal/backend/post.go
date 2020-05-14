@@ -10,10 +10,10 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func (d *delphisBackend) CreatePost(ctx context.Context, discussionID string, participantID string, content string) (*model.Post, error) {
+func (d *delphisBackend) CreatePost(ctx context.Context, discussionID string, participantID string, input model.PostContentInput) (*model.Post, error) {
 	postContent := model.PostContent{
 		ID:      util.UUIDv4(),
-		Content: content,
+		Content: input.PostText,
 	}
 
 	post := model.Post{
@@ -24,6 +24,7 @@ func (d *delphisBackend) CreatePost(ctx context.Context, discussionID string, pa
 		ParticipantID: &participantID,
 		PostContentID: &postContent.ID,
 		PostContent:   &postContent,
+		QuotedPostID:  input.QuotedPostID,
 	}
 
 	postObj, err := d.db.PutPost(ctx, post)

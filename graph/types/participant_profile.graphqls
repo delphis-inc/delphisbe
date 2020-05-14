@@ -1,24 +1,3 @@
-enum GradientColor {
-    UNKNOWN,
-    MAUVE,
-    FUSCHIA,
-    CINNABAR,
-    VERMILLION,
-    CERULEAN,
-    TURQUOISE,
-    CELADON,
-    TAUPE,
-    SAFFRON,
-    VIRIDIAN,
-    CHARTRUESE,
-    LAVENDER,
-    GOLDENROD,
-    SEAFOAM,
-    AZALEA,
-    VIOLET,
-    MAHOGANY,
-}
-
 type ParticipantProfile {
     isAnonymous: Boolean
     flair: Flair

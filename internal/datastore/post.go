@@ -38,6 +38,8 @@ func (d *delphisDB) GetPostsByDiscussionID(ctx context.Context, discussionID str
 	for i := range posts {
 		returnedPosts = append(returnedPosts, &posts[i])
 	}
+
+	logrus.Infof("Posts: %+v\n", returnedPosts)
 	return returnedPosts, nil
 }
 

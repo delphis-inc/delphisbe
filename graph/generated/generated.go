@@ -95,7 +95,7 @@ type ComplexityRoot struct {
 
 	Mutation struct {
 		AddDiscussionParticipant func(childComplexity int, discussionID string, userID string, discussionParticipantInput model.AddDiscussionParticipantInput) int
-		AddPost                  func(childComplexity int, discussionID string, postContent string) int
+		AddPost                  func(childComplexity int, discussionID string, postContent model.PostContentInput) int
 		AssignFlair              func(childComplexity int, participantID string, flairID string) int
 		CreateDiscussion         func(childComplexity int, anonymityType model.AnonymityType, title string) int
 		CreateFlair              func(childComplexity int, userID string, templateID string) int
@@ -128,6 +128,12 @@ type ComplexityRoot struct {
 
 	ParticipantNotificationPreferences struct {
 		ID func(childComplexity int) int
+	}
+
+	ParticipantProfile struct {
+		Flair         func(childComplexity int) int
+		GradientColor func(childComplexity int) int
+		IsAnonymous   func(childComplexity int) int
 	}
 
 	ParticipantsConnection struct {
@@ -268,7 +274,7 @@ type ModeratorResolver interface {
 }
 type MutationResolver interface {
 	AddDiscussionParticipant(ctx context.Context, discussionID string, userID string, discussionParticipantInput model.AddDiscussionParticipantInput) (*model.Participant, error)
-	AddPost(ctx context.Context, discussionID string, postContent string) (*model.Post, error)
+	AddPost(ctx context.Context, discussionID string, postContent model.PostContentInput) (*model.Post, error)
 	CreateDiscussion(ctx context.Context, anonymityType model.AnonymityType, title string) (*model.Discussion, error)
 	CreateFlair(ctx context.Context, userID string, templateID string) (*model.Flair, error)
 	RemoveFlair(ctx context.Context, id string) (*model.Flair, error)
@@ -520,7 +526,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Mutation.AddPost(childComplexity, args["discussionID"].(string), args["postContent"].(string)), true
+		return e.complexity.Mutation.AddPost(childComplexity, args["discussionID"].(string), args["postContent"].(model.PostContentInput)), true
 
 	case "Mutation.assignFlair":
 		if e.complexity.Mutation.AssignFlair == nil {
@@ -727,6 +733,27 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.ParticipantNotificationPreferences.ID(childComplexity), true
+
+	case "ParticipantProfile.flair":
+		if e.complexity.ParticipantProfile.Flair == nil {
+			break
+		}
+
+		return e.complexity.ParticipantProfile.Flair(childComplexity), true
+
+	case "ParticipantProfile.gradientColor":
+		if e.complexity.ParticipantProfile.GradientColor == nil {
+			break
+		}
+
+		return e.complexity.ParticipantProfile.GradientColor(childComplexity), true
+
+	case "ParticipantProfile.isAnonymous":
+		if e.complexity.ParticipantProfile.IsAnonymous == nil {
+			break
+		}
+
+		return e.complexity.ParticipantProfile.IsAnonymous(childComplexity), true
 
 	case "ParticipantsConnection.edges":
 		if e.complexity.ParticipantsConnection.Edges == nil {
@@ -1397,6 +1424,11 @@ enum Platform {
 	&ast.Source{Name: "graph/types/participant_notification_preferences.graphqls", Input: `type ParticipantNotificationPreferences {
     id: ID!
 }`, BuiltIn: false},
+	&ast.Source{Name: "graph/types/participant_profile.graphqls", Input: `type ParticipantProfile {
+    isAnonymous: Boolean
+    flair: Flair
+    gradientColor: GradientColor
+}`, BuiltIn: false},
 	&ast.Source{Name: "graph/types/participants_connection.graphqls", Input: `type ParticipantsConnection {
     totalCount: Int!
     edges: [ParticipantsEdge!]
@@ -1475,9 +1507,34 @@ input AddDiscussionParticipantInput {
   isAnonymous: Boolean!
 }
 
+# TODO: implement
+input MediaInput {
+  type: String!,
+  mediaID: ID!
+}
+
+# TODO: implement
+input PollInput {
+  pollText: String!,
+  duration: Time!,
+  option1: String!,
+  option2: String!,
+  option3: String,
+  option4: String
+}
+
+input PostContentInput {
+  postText: String!,
+  mentionedUserIDs:[ID!],
+  quotedPostID: ID
+  media: MediaInput,
+  poll: PollInput
+}
+
+
 type Mutation {
   addDiscussionParticipant(discussionID: String!, userID: String!, discussionParticipantInput: AddDiscussionParticipantInput!): Participant!
-  addPost(discussionID: ID!, postContent: String!): Post!
+  addPost(discussionID: ID!, postContent: PostContentInput!): Post
   createDiscussion(anonymityType: AnonymityType!, title: String!): Discussion!
 
   # Creates a User Flair from a Flair template, accessible via available flair
@@ -1639,9 +1696,9 @@ func (ec *executionContext) field_Mutation_addPost_args(ctx context.Context, raw
 		}
 	}
 	args["discussionID"] = arg0
-	var arg1 string
+	var arg1 model.PostContentInput
 	if tmp, ok := rawArgs["postContent"]; ok {
-		arg1, err = ec.unmarshalNString2string(ctx, tmp)
+		arg1, err = ec.unmarshalNPostContentInput2githubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐPostContentInput(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -2675,21 +2732,18 @@ func (ec *executionContext) _Mutation_addPost(ctx context.Context, field graphql
 	fc.Args = args
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().AddPost(rctx, args["discussionID"].(string), args["postContent"].(string))
+		return ec.resolvers.Mutation().AddPost(rctx, args["discussionID"].(string), args["postContent"].(model.PostContentInput))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
 		return graphql.Null
 	}
 	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
 		return graphql.Null
 	}
 	res := resTmp.(*model.Post)
 	fc.Result = res
-	return ec.marshalNPost2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐPost(ctx, field.Selections, res)
+	return ec.marshalOPost2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐPost(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Mutation_createDiscussion(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -3514,6 +3568,99 @@ func (ec *executionContext) _ParticipantNotificationPreferences_id(ctx context.C
 	res := resTmp.(string)
 	fc.Result = res
 	return ec.marshalNID2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _ParticipantProfile_isAnonymous(ctx context.Context, field graphql.CollectedField, obj *model.ParticipantProfile) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "ParticipantProfile",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.IsAnonymous, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*bool)
+	fc.Result = res
+	return ec.marshalOBoolean2ᚖbool(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _ParticipantProfile_flair(ctx context.Context, field graphql.CollectedField, obj *model.ParticipantProfile) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "ParticipantProfile",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Flair, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*model.Flair)
+	fc.Result = res
+	return ec.marshalOFlair2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐFlair(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _ParticipantProfile_gradientColor(ctx context.Context, field graphql.CollectedField, obj *model.ParticipantProfile) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "ParticipantProfile",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.GradientColor, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*model.GradientColor)
+	fc.Result = res
+	return ec.marshalOGradientColor2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐGradientColor(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _ParticipantsConnection_totalCount(ctx context.Context, field graphql.CollectedField, obj *model.ParticipantsConnection) (ret graphql.Marshaler) {
@@ -6750,6 +6897,120 @@ func (ec *executionContext) unmarshalInputAddDiscussionParticipantInput(ctx cont
 	return it, nil
 }
 
+func (ec *executionContext) unmarshalInputMediaInput(ctx context.Context, obj interface{}) (model.MediaInput, error) {
+	var it model.MediaInput
+	var asMap = obj.(map[string]interface{})
+
+	for k, v := range asMap {
+		switch k {
+		case "type":
+			var err error
+			it.Type, err = ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "mediaID":
+			var err error
+			it.MediaID, err = ec.unmarshalNID2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		}
+	}
+
+	return it, nil
+}
+
+func (ec *executionContext) unmarshalInputPollInput(ctx context.Context, obj interface{}) (model.PollInput, error) {
+	var it model.PollInput
+	var asMap = obj.(map[string]interface{})
+
+	for k, v := range asMap {
+		switch k {
+		case "pollText":
+			var err error
+			it.PollText, err = ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "duration":
+			var err error
+			it.Duration, err = ec.unmarshalNTime2timeᚐTime(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "option1":
+			var err error
+			it.Option1, err = ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "option2":
+			var err error
+			it.Option2, err = ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "option3":
+			var err error
+			it.Option3, err = ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "option4":
+			var err error
+			it.Option4, err = ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		}
+	}
+
+	return it, nil
+}
+
+func (ec *executionContext) unmarshalInputPostContentInput(ctx context.Context, obj interface{}) (model.PostContentInput, error) {
+	var it model.PostContentInput
+	var asMap = obj.(map[string]interface{})
+
+	for k, v := range asMap {
+		switch k {
+		case "postText":
+			var err error
+			it.PostText, err = ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "mentionedUserIDs":
+			var err error
+			it.MentionedUserIDs, err = ec.unmarshalOID2ᚕstringᚄ(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "quotedPostID":
+			var err error
+			it.QuotedPostID, err = ec.unmarshalOID2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "media":
+			var err error
+			it.Media, err = ec.unmarshalOMediaInput2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐMediaInput(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "poll":
+			var err error
+			it.Poll, err = ec.unmarshalOPollInput2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐPollInput(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		}
+	}
+
+	return it, nil
+}
+
 func (ec *executionContext) unmarshalInputUpdateParticipantInput(ctx context.Context, obj interface{}) (model.UpdateParticipantInput, error) {
 	var it model.UpdateParticipantInput
 	var asMap = obj.(map[string]interface{})
@@ -7114,9 +7375,6 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			}
 		case "addPost":
 			out.Values[i] = ec._Mutation_addPost(ctx, field)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
 		case "createDiscussion":
 			out.Values[i] = ec._Mutation_createDiscussion(ctx, field)
 			if out.Values[i] == graphql.Null {
@@ -7322,6 +7580,34 @@ func (ec *executionContext) _ParticipantNotificationPreferences(ctx context.Cont
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
+var participantProfileImplementors = []string{"ParticipantProfile"}
+
+func (ec *executionContext) _ParticipantProfile(ctx context.Context, sel ast.SelectionSet, obj *model.ParticipantProfile) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, participantProfileImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("ParticipantProfile")
+		case "isAnonymous":
+			out.Values[i] = ec._ParticipantProfile_isAnonymous(ctx, field, obj)
+		case "flair":
+			out.Values[i] = ec._ParticipantProfile_flair(ctx, field, obj)
+		case "gradientColor":
+			out.Values[i] = ec._ParticipantProfile_gradientColor(ctx, field, obj)
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -8672,6 +8958,10 @@ func (ec *executionContext) marshalNPostBookmarksEdge2ᚖgithubᚗcomᚋnedrocks
 	return ec._PostBookmarksEdge(ctx, sel, v)
 }
 
+func (ec *executionContext) unmarshalNPostContentInput2githubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐPostContentInput(ctx context.Context, v interface{}) (model.PostContentInput, error) {
+	return ec.unmarshalInputPostContentInput(ctx, v)
+}
+
 func (ec *executionContext) marshalNPostsEdge2githubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐPostsEdge(ctx context.Context, sel ast.SelectionSet, v model.PostsEdge) graphql.Marshaler {
 	return ec._PostsEdge(ctx, sel, &v)
 }
@@ -9215,6 +9505,38 @@ func (ec *executionContext) marshalOID2string(ctx context.Context, sel ast.Selec
 	return graphql.MarshalID(v)
 }
 
+func (ec *executionContext) unmarshalOID2ᚕstringᚄ(ctx context.Context, v interface{}) ([]string, error) {
+	var vSlice []interface{}
+	if v != nil {
+		if tmp1, ok := v.([]interface{}); ok {
+			vSlice = tmp1
+		} else {
+			vSlice = []interface{}{v}
+		}
+	}
+	var err error
+	res := make([]string, len(vSlice))
+	for i := range vSlice {
+		res[i], err = ec.unmarshalNID2string(ctx, vSlice[i])
+		if err != nil {
+			return nil, err
+		}
+	}
+	return res, nil
+}
+
+func (ec *executionContext) marshalOID2ᚕstringᚄ(ctx context.Context, sel ast.SelectionSet, v []string) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	ret := make(graphql.Array, len(v))
+	for i := range v {
+		ret[i] = ec.marshalNID2string(ctx, sel, v[i])
+	}
+
+	return ret
+}
+
 func (ec *executionContext) unmarshalOID2ᚖstring(ctx context.Context, v interface{}) (*string, error) {
 	if v == nil {
 		return nil, nil
@@ -9236,6 +9558,18 @@ func (ec *executionContext) unmarshalOInt2int(ctx context.Context, v interface{}
 
 func (ec *executionContext) marshalOInt2int(ctx context.Context, sel ast.SelectionSet, v int) graphql.Marshaler {
 	return graphql.MarshalInt(v)
+}
+
+func (ec *executionContext) unmarshalOMediaInput2githubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐMediaInput(ctx context.Context, v interface{}) (model.MediaInput, error) {
+	return ec.unmarshalInputMediaInput(ctx, v)
+}
+
+func (ec *executionContext) unmarshalOMediaInput2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐMediaInput(ctx context.Context, v interface{}) (*model.MediaInput, error) {
+	if v == nil {
+		return nil, nil
+	}
+	res, err := ec.unmarshalOMediaInput2githubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐMediaInput(ctx, v)
+	return &res, err
 }
 
 func (ec *executionContext) marshalOParticipant2githubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐParticipant(ctx context.Context, sel ast.SelectionSet, v model.Participant) graphql.Marshaler {
@@ -9327,6 +9661,18 @@ func (ec *executionContext) marshalOParticipantsEdge2ᚕᚖgithubᚗcomᚋnedroc
 	}
 	wg.Wait()
 	return ret
+}
+
+func (ec *executionContext) unmarshalOPollInput2githubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐPollInput(ctx context.Context, v interface{}) (model.PollInput, error) {
+	return ec.unmarshalInputPollInput(ctx, v)
+}
+
+func (ec *executionContext) unmarshalOPollInput2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐPollInput(ctx context.Context, v interface{}) (*model.PollInput, error) {
+	if v == nil {
+		return nil, nil
+	}
+	res, err := ec.unmarshalOPollInput2githubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐPollInput(ctx, v)
+	return &res, err
 }
 
 func (ec *executionContext) marshalOPost2githubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐPost(ctx context.Context, sel ast.SelectionSet, v model.Post) graphql.Marshaler {

@@ -85,3 +85,5 @@ CREATE TABLE IF NOT EXISTS viewers (
     discussion_id varchar(36),
     user_id varchar(36)
 );
+
+ALTER TABLE posts ADD COLUMN IF NOT EXISTS quoted_post_id varchar(36);

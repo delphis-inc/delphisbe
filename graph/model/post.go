@@ -14,6 +14,8 @@ type Post struct {
 	ParticipantID     *string            `json:"participantID" gorm:"varchar(36);"`
 	PostContentID     *string            `json:"postContentID" gorm:"type:varchar(36);"`
 	PostContent       *PostContent       `json:"postContent" gorm:"foreignkey:PostContentID;"`
+	QuotedPostID      *string            `json:"quotedPostID" gorm:"type:varchar(36);"`
+	QuotedPost        *Post
 }
 
 type PostsEdge struct {
