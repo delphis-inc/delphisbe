@@ -1,8 +1,56 @@
 package datastore
 
 import (
+	"context"
 	"testing"
+	"time"
+
+	"github.com/nedrocks/delphisbe/graph/model"
+	"github.com/nedrocks/delphisbe/internal/util"
 )
+
+//type MakeDatastore func(ctx context.Context, testData datastore.TestData) (datastore.Datastore, func() error, error)
+
+func TestDiscussionsDatastore(t *testing.T) {
+	// Test variables
+	discussionObj := model.Discussion{
+		CreatedAt:     time.Now(),
+		UpdatedAt:     time.Now(),
+		ID:            util.UUIDv4(),
+		AnonymityType: model.AnonymityTypeWeak,
+		Title:         "Discussion1",
+	}
+
+	tests := []struct {
+		scenario        string
+		testDiscussions []model.Discussion
+		test            func(ctx context.Context, t *testing.T, db Datastore, testData []model.Discussion)
+	}{
+		{
+			scenario:        "select discussion by ID and discussion exists",
+			testDiscussions: []model.Discussion{discussionObj},
+			test: func(ctx context.Context, t *testing.T, db Datastore, testData []model.Discussion) {
+				//assert.Nil(t, nil, nil)
+			},
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.scenario, func(t *testing.T) {
+			ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+			defer cancel()
+
+			db, close, err := MakeDatastore(ctx, TestData{Discussions: test.testDiscussions})
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			defer close()
+
+			test.test(ctx, t, db, test.testDiscussions)
+		})
+	}
+}
 
 func Test_GetDiscussionsByIDs(t *testing.T) {
 

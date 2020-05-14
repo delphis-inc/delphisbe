@@ -88,6 +88,7 @@ func (d *db) UpsertDiscussion(ctx context.Context, discussion model.Discussion) 
 	found := model.Discussion{}
 	if err := d.sql.First(&found, model.Discussion{ID: discussion.ID}).Error; err != nil {
 		if gorm.IsRecordNotFoundError(err) {
+			logrus.Infof("Creating one\n")
 			if err := d.sql.Create(&discussion).First(&found, model.Discussion{ID: discussion.ID}).Error; err != nil {
 				logrus.WithError(err).Errorf("UpsertDiscussion::Failed to create new object")
 				return nil, err
