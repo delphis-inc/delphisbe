@@ -155,6 +155,8 @@ type ComplexityRoot struct {
 		ID                func(childComplexity int) int
 		IsDeleted         func(childComplexity int) int
 		Participant       func(childComplexity int) int
+		QuotedPost        func(childComplexity int) int
+		QuotedPostID      func(childComplexity int) int
 		UpdatedAt         func(childComplexity int) int
 	}
 
@@ -839,6 +841,20 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Post.Participant(childComplexity), true
 
+	case "Post.quotedPost":
+		if e.complexity.Post.QuotedPost == nil {
+			break
+		}
+
+		return e.complexity.Post.QuotedPost(childComplexity), true
+
+	case "Post.quotedPostID":
+		if e.complexity.Post.QuotedPostID == nil {
+			break
+		}
+
+		return e.complexity.Post.QuotedPostID(childComplexity), true
+
 	case "Post.updatedAt":
 		if e.complexity.Post.UpdatedAt == nil {
 			break
@@ -1447,6 +1463,8 @@ enum Platform {
     participant: Participant!
     createdAt: String!
     updatedAt: String!
+    quotedPostID: ID
+    quotedPost: Post
 }`, BuiltIn: false},
 	&ast.Source{Name: "graph/types/post_bookmark.graphqls", Input: `# Defines a bookmark for a post. Built this way because I
 # assume we will have other types of bookmarks down the road
@@ -4094,6 +4112,68 @@ func (ec *executionContext) _Post_updatedAt(ctx context.Context, field graphql.C
 	res := resTmp.(string)
 	fc.Result = res
 	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Post_quotedPostID(ctx context.Context, field graphql.CollectedField, obj *model.Post) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "Post",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.QuotedPostID, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*string)
+	fc.Result = res
+	return ec.marshalOID2ᚖstring(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Post_quotedPost(ctx context.Context, field graphql.CollectedField, obj *model.Post) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "Post",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.QuotedPost, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*model.Post)
+	fc.Result = res
+	return ec.marshalOPost2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐPost(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _PostBookmark_id(ctx context.Context, field graphql.CollectedField, obj *model.PostBookmark) (ret graphql.Marshaler) {
@@ -7793,6 +7873,10 @@ func (ec *executionContext) _Post(ctx context.Context, sel ast.SelectionSet, obj
 				}
 				return res
 			})
+		case "quotedPostID":
+			out.Values[i] = ec._Post_quotedPostID(ctx, field, obj)
+		case "quotedPost":
+			out.Values[i] = ec._Post_quotedPost(ctx, field, obj)
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}

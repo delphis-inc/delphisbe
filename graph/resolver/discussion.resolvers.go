@@ -6,8 +6,6 @@ import (
 	"context"
 	"time"
 
-	"github.com/sirupsen/logrus"
-
 	"github.com/nedrocks/delphisbe/graph/generated"
 	"github.com/nedrocks/delphisbe/graph/model"
 	"github.com/nedrocks/delphisbe/internal/auth"
@@ -30,8 +28,6 @@ func (r *discussionResolver) Posts(ctx context.Context, obj *model.Discussion) (
 	if err != nil {
 		return nil, err
 	}
-
-	logrus.Info("Posts here: %+v\n", *posts[0].QuotedPostID)
 
 	return posts, nil
 }

@@ -16,6 +16,8 @@ func (d *delphisBackend) CreatePost(ctx context.Context, discussionID string, pa
 		Content: input.PostText,
 	}
 
+	logrus.Infof("QuotePostID: %v\n", input.QuotedPostID)
+
 	post := model.Post{
 		ID:            util.UUIDv4(),
 		CreatedAt:     time.Now(),
@@ -24,7 +26,11 @@ func (d *delphisBackend) CreatePost(ctx context.Context, discussionID string, pa
 		ParticipantID: &participantID,
 		PostContentID: &postContent.ID,
 		PostContent:   &postContent,
-		QuotedPostID:  input.QuotedPostID,
+	}
+
+	// Weird logic to have quoted_post_id actually set to nil as opposed to a blank space
+	if input.QuotedPostID != nil {
+		post.QuotedPostID = input.QuotedPostID
 	}
 
 	postObj, err := d.db.PutPost(ctx, post)
