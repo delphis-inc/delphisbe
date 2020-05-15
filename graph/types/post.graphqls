@@ -7,4 +7,5 @@ type Post {
     participant: Participant!
     createdAt: String!
     updatedAt: String!
+    quotedPost: Post
 }

@@ -2,88 +2,51 @@ package datastore
 
 import (
 	"testing"
+	//. "github.com/smartystreets/goconvey/convey"
 )
 
-func Test_MarshalPost(t *testing.T) {
-	// type args struct {
-	// 	post model.Post
-	// }
-
-	// havePostObj := model.Post{
-	// 	ID:            "11111",
-	// 	CreatedAt:     time.Now(),
-	// 	UpdatedAt:     time.Now(),
-	// 	DiscussionID:  "22222",
-	// 	ParticipantID: 99999,
-	// 	PostContentID: "33333",
-	// 	Participant:   &model.Participant{},
-	// 	PostContent: model.PostContent{
-	// 		ID:      "33333",
-	// 		Content: "Lorem ipsum dolar amet",
-	// 	},
-	// }
-
-	// datastoreObj := NewDatastore(config.DBConfig{})
-
-	// tests := []struct {
-	// 	name string
-	// 	args args
-	// 	want map[string]*dynamodb.AttributeValue
-	// }{
-	// 	{
-	// 		name: "fully filled object",
-	// 		args: args{
-	// 			post: havePostObj,
-	// 		},
-	// 		want: map[string]*dynamodb.AttributeValue{
-	// 			"ID": {
-	// 				S: aws.String(havePostObj.ID),
-	// 			},
-	// 			"CreatedAt": {
-	// 				S: aws.String(havePostObj.CreatedAt.Format(time.RFC3339Nano)),
-	// 			},
-	// 			"UpdatedAt": {
-	// 				S: aws.String(havePostObj.UpdatedAt.Format(time.RFC3339Nano)),
-	// 			},
-	// 			"DeletedAt": {
-	// 				NULL: aws.Bool(true),
-	// 			},
-	// 			"DeletedReasonCode": {
-	// 				NULL: aws.Bool(true),
-	// 			},
-	// 			"DiscussionID": {
-	// 				S: aws.String(havePostObj.DiscussionID),
-	// 			},
-	// 			"ParticipantID": {
-	// 				N: aws.String(strconv.Itoa(havePostObj.ParticipantID)),
-	// 			},
-	// 			"PostContentID": {
-	// 				S: aws.String(havePostObj.PostContentID),
-	// 			},
-	// 			"PostContent": {
-	// 				M: map[string]*dynamodb.AttributeValue{
-	// 					"ID": {
-	// 						S: aws.String(havePostObj.PostContent.ID),
-	// 					},
-	// 					"Content": {
-	// 						S: aws.String(havePostObj.PostContent.Content),
-	// 					},
-	// 				},
-	// 			},
-	// 		},
-	// 	},
-	// }
-
-	// for _, tt := range tests {
-	// 	t.Run(tt.name, func(t *testing.T) {
-	// 		marshaled, err := datastoreObj.marshalMap(tt.args.post)
-	// 		if err != nil {
-	// 			t.Errorf("Caught an error marshaling: %+v", err)
-	// 			return
-	// 		}
-	// 		if !reflect.DeepEqual(marshaled, tt.want) {
-	// 			t.Errorf("These objects did not match. Got: %+v\n\n Want: %+v", marshaled, tt.want)
-	// 		}
-	// 	})
-	// }
+func TestGetPostsByDiscussionID(t *testing.T) {
+	//ctx := context.Background()
+	//now := time.Now()
+	//discussionID := "discussion1"
+	//participantID := "participant1"
+	//postID := "post1"
+	//postObject := model.Post{
+	//	ID:            "post1",
+	//	CreatedAt:     now,
+	//	UpdatedAt:     now,
+	//	DiscussionID:  &discussionID,
+	//	ParticipantID: &participantID,
+	//	PostContentID: &postID,
+	//}
+	//
+	//Convey("GetPostsByDiscussionID", t, func() {
+	//	db, mock, err := sqlmock.New()
+	//
+	//	assert.Nil(t, err, "Failed setting up sqlmock db")
+	//
+	//	gormDB, _ := gorm.Open("postgres", db)
+	//	mockDatastore := &delphisDB{
+	//		dbConfig: config.TablesConfig{},
+	//		sql:      gormDB,
+	//		dynamo:   nil,
+	//		encoder:  nil,
+	//	}
+	//	defer db.Close()
+	//
+	//	expectedQueryStr := `SELECT * FROM "posts" WHERE "posts"."deleted_at" IS NULL AND (("posts"."discussion_id" = $1))`
+	//
+	//	Convey("when the objects are found", func() {
+	//		mock.ExpectQuery(regexp.QuoteMeta(expectedQueryStr)).WithArgs(discussionID).WillReturnRows(
+	//			sqlmock.NewRows([]string{"id", "created_at", "updated_at", "deleted_at", "deleted_reason_code", "discussion_id", "participant_id", "post_content_id"}).
+	//				AddRow(postObject.ID, postObject.CreatedAt, postObject.UpdatedAt, postObject.DeletedAt, postObject.DeletedReasonCode, postObject.DiscussionID, postObject.ParticipantID, postObject.PostContentID))
+	//
+	//		resp, err := mockDatastore.GetPostsByDiscussionID(ctx, discussionID)
+	//
+	//		So(err, ShouldBeNil)
+	//		So(resp, ShouldNotBeNil)
+	//		So(resp, ShouldResemble, []model.Post{postObject})
+	//		//So(mock.ExpectationsWereMet(), ShouldBeNil)
+	//	})
+	//})
 }

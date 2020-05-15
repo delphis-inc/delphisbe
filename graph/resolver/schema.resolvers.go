@@ -23,7 +23,7 @@ func (r *mutationResolver) AddDiscussionParticipant(ctx context.Context, discuss
 	return participantObj, nil
 }
 
-func (r *mutationResolver) AddPost(ctx context.Context, discussionID string, postContent string) (*model.Post, error) {
+func (r *mutationResolver) AddPost(ctx context.Context, discussionID string, postContent model.PostContentInput) (*model.Post, error) {
 	creatingUser := auth.GetAuthedUser(ctx)
 	if creatingUser == nil {
 		return nil, fmt.Errorf("Need auth")

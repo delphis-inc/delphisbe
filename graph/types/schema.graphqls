@@ -30,9 +30,35 @@ input AddDiscussionParticipantInput {
   isAnonymous: Boolean!
 }
 
+# TODO: implement
+input MediaInput {
+  type: String!,
+  mediaID: ID!
+}
+
+# TODO: implement
+input PollInput {
+  pollText: String!,
+  endTime: Time!,
+  option1: String!,
+  option2: String!,
+  option3: String,
+  option4: String
+}
+
+input PostContentInput {
+  postText: String!,
+  postType: PostType!,
+  mentionedUserIDs:[ID!],
+  quotedPostID: ID
+  media: MediaInput,
+  poll: PollInput
+}
+
+
 type Mutation {
   addDiscussionParticipant(discussionID: String!, userID: String!, discussionParticipantInput: AddDiscussionParticipantInput!): Participant!
-  addPost(discussionID: ID!, postContent: String!): Post!
+  addPost(discussionID: ID!, postContent: PostContentInput!): Post!
   createDiscussion(anonymityType: AnonymityType!, title: String!): Discussion!
 
   # Creates a User Flair from a Flair template, accessible via available flair

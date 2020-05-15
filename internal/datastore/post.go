@@ -36,9 +36,34 @@ func (d *delphisDB) GetPostsByDiscussionID(ctx context.Context, discussionID str
 
 	returnedPosts := []*model.Post{}
 	for i := range posts {
+		if posts[i].QuotedPostID != nil {
+			var err error
+			posts[i].QuotedPost, err = d.getPostByID(ctx, *posts[i].QuotedPostID)
+			if err != nil {
+				// Do we want to fail the whole discussion if we can't get a quote?
+				return nil, err
+			}
+		}
 		returnedPosts = append(returnedPosts, &posts[i])
+
 	}
+
 	return returnedPosts, nil
+}
+
+func (d *delphisDB) getPostByID(ctx context.Context, postID string) (*model.Post, error) {
+	logrus.Debug("GetPostByID::SQL Query")
+	post := model.Post{}
+	// TODO: Clean up for single queries
+	if err := d.sql.Where([]string{postID}).Preload("PostContent").Find(&post).Error; err != nil {
+		if gorm.IsRecordNotFoundError(err) {
+			return nil, nil
+		}
+		logrus.WithError(err).Errorf("Failed to get Post by ID")
+		return nil, err
+	}
+
+	return &post, nil
 }
 
 ///////////////
