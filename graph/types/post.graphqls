@@ -7,6 +7,5 @@ type Post {
     participant: Participant!
     createdAt: String!
     updatedAt: String!
-    quotedPostID: ID
     quotedPost: Post
 }
