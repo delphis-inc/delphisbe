@@ -23,7 +23,7 @@ func (r *mutationResolver) AddDiscussionParticipant(ctx context.Context, discuss
 	return participantObj, nil
 }
 
-func (r *mutationResolver) AddPost(ctx context.Context, discussionID string, postContent model.PostContentInput) (*model.Post, error) {
+func (r *mutationResolver) AddPost(ctx context.Context, discussionID string, participantID string, postContent model.PostContentInput) (*model.Post, error) {
 	creatingUser := auth.GetAuthedUser(ctx)
 	if creatingUser == nil {
 		return nil, fmt.Errorf("Need auth")
@@ -43,11 +43,12 @@ func (r *mutationResolver) AddPost(ctx context.Context, discussionID string, pos
 		return nil, fmt.Errorf("Discussion with ID %s not found", discussionID)
 	}
 
-	participant, err := r.DAOManager.GetParticipantByDiscussionIDUserID(ctx, discussionID, creatingUser.UserID)
+	//participant, err := r.DAOManager.GetParticipantByDiscussionIDUserID(ctx, discussionID, creatingUser.UserID)
+	participant, err := r.DAOManager.GetParticipantByID(ctx, participantID)
 	if err != nil {
 		return nil, err
 	} else if participant == nil {
-		return nil, fmt.Errorf("Current user not a participant in this discussion")
+		return nil, fmt.Errorf("Could not find Participant with ID %s", participantID)
 	}
 
 	createdPost, err := r.DAOManager.CreatePost(ctx, discussionID, participant.ID, postContent)
@@ -245,24 +246,22 @@ func (r *mutationResolver) RemoveFlairTemplate(ctx context.Context, id string) (
 	return r.DAOManager.RemoveFlairTemplate(ctx, *flairTemplate)
 }
 
-func (r *mutationResolver) UpdateParticipant(ctx context.Context, participantID string, updateInput model.UpdateParticipantInput) (*model.Participant, error) {
+func (r *mutationResolver) UpdateParticipant(ctx context.Context, discussionID string, participantID string, updateInput model.UpdateParticipantInput) (*model.Participant, error) {
 	currentUser := auth.GetAuthedUser(ctx)
 	if currentUser == nil {
 		return nil, fmt.Errorf("Need auth")
 	}
 	// TODO: Check Authz here.
 
-	// TODO: Ensure the participant ID we request is the currently active
-	// one; (highest participantID for the given user)
-	participantObj, err := r.DAOManager.GetParticipantByID(ctx, participantID)
+	participantResponse, err := r.DAOManager.GetParticipantsByDiscussionIDUserID(ctx, discussionID, currentUser.UserID)
 	if err != nil {
 		return nil, err
 	}
-	if participantObj == nil {
+	if participantResponse == nil {
 		return nil, fmt.Errorf("Failed to find participant with ID %s", participantID)
 	}
 
-	res, err := r.DAOManager.CopyAndUpdateParticipant(ctx, *participantObj, updateInput)
+	res, err := r.DAOManager.UpdateParticipant(ctx, *participantResponse, participantID, updateInput)
 	if err != nil {
 		return nil, err
 	}

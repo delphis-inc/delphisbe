@@ -33,11 +33,11 @@ type DelphisBackend interface {
 	RemoveFlairTemplate(ctx context.Context, flairTemplate model.FlairTemplate) (*model.FlairTemplate, error)
 	GetFlairTemplateByID(ctx context.Context, id string) (*model.FlairTemplate, error)
 	CreateParticipantForDiscussion(ctx context.Context, discussionID string, userID string, discussionParticipantInput model.AddDiscussionParticipantInput) (*model.Participant, error)
-	GetParticipantByDiscussionIDUserID(ctx context.Context, discussionID string, userID string) (*model.Participant, error)
+	GetParticipantsByDiscussionIDUserID(ctx context.Context, discussionID string, userID string) (*UserDiscussionParticipants, error)
 	GetParticipantsByDiscussionID(ctx context.Context, id string) ([]model.Participant, error)
 	GetParticipantByID(ctx context.Context, id string) (*model.Participant, error)
 	GetTotalParticipantCountByDiscussionID(ctx context.Context, discussionID string) int
-	CopyAndUpdateParticipant(ctx context.Context, orig model.Participant, input model.UpdateParticipantInput) (*model.Participant, error)
+	UpdateParticipant(ctx context.Context, participants UserDiscussionParticipants, currentParticipantID string, input model.UpdateParticipantInput) (*model.Participant, error)
 	CreatePost(ctx context.Context, discussionID string, participantID string, input model.PostContentInput) (*model.Post, error)
 	NotifySubscribersOfCreatedPost(ctx context.Context, post *model.Post, discussionID string) error
 	GetPostsByDiscussionID(ctx context.Context, discussionID string) ([]*model.Post, error)

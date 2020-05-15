@@ -65,18 +65,48 @@ func (r *discussionResolver) MeParticipant(ctx context.Context, obj *model.Discu
 		// Only works for logged in. Won't throw an error here though.
 		return nil, nil
 	}
-	allParticipants, err := r.Participants(ctx, obj)
+	// TODO We should return your most recent participant by post created
+	participants, err := r.MeAvailableParticipants(ctx, obj)
 	if err != nil {
 		return nil, err
 	}
-	for _, participant := range allParticipants {
-		if participant.UserID != nil && *participant.UserID == currentUser.UserID {
-			return participant, nil
+
+	if len(participants) == 1 {
+		return participants[0], nil
+	} else if len(participants) == 2 {
+		if participants[0].UpdatedAt.After(participants[1].UpdatedAt) {
+			return participants[0], nil
+		} else {
+			return participants[1], nil
 		}
 	}
 
 	// Not a participant -- Not returning an error yet.
 	return nil, nil
+}
+
+func (r *discussionResolver) MeAvailableParticipants(ctx context.Context, obj *model.Discussion) ([]*model.Participant, error) {
+	currentUser := auth.GetAuthedUser(ctx)
+	if currentUser == nil {
+		return nil, nil
+	}
+
+	participantResponse, err := r.DAOManager.GetParticipantsByDiscussionIDUserID(ctx, obj.ID, currentUser.UserID)
+	if err != nil {
+		return nil, err
+	}
+
+	participantArr := make([]*model.Participant, 0)
+	if participantArr != nil {
+		if participantResponse.NonAnon != nil {
+			participantArr = append(participantArr, participantResponse.NonAnon)
+		}
+		if participantResponse.Anon != nil {
+			participantArr = append(participantArr, participantResponse.Anon)
+		}
+	}
+
+	return participantArr, nil
 }
 
 func (r *Resolver) Discussion() generated.DiscussionResolver { return &discussionResolver{r} }

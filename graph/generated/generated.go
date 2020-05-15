@@ -62,15 +62,16 @@ type DirectiveRoot struct {
 
 type ComplexityRoot struct {
 	Discussion struct {
-		AnonymityType func(childComplexity int) int
-		CreatedAt     func(childComplexity int) int
-		ID            func(childComplexity int) int
-		MeParticipant func(childComplexity int) int
-		Moderator     func(childComplexity int) int
-		Participants  func(childComplexity int) int
-		Posts         func(childComplexity int) int
-		Title         func(childComplexity int) int
-		UpdatedAt     func(childComplexity int) int
+		AnonymityType           func(childComplexity int) int
+		CreatedAt               func(childComplexity int) int
+		ID                      func(childComplexity int) int
+		MeAvailableParticipants func(childComplexity int) int
+		MeParticipant           func(childComplexity int) int
+		Moderator               func(childComplexity int) int
+		Participants            func(childComplexity int) int
+		Posts                   func(childComplexity int) int
+		Title                   func(childComplexity int) int
+		UpdatedAt               func(childComplexity int) int
 	}
 
 	Flair struct {
@@ -95,7 +96,7 @@ type ComplexityRoot struct {
 
 	Mutation struct {
 		AddDiscussionParticipant func(childComplexity int, discussionID string, userID string, discussionParticipantInput model.AddDiscussionParticipantInput) int
-		AddPost                  func(childComplexity int, discussionID string, postContent model.PostContentInput) int
+		AddPost                  func(childComplexity int, discussionID string, participantID string, postContent model.PostContentInput) int
 		AssignFlair              func(childComplexity int, participantID string, flairID string) int
 		CreateDiscussion         func(childComplexity int, anonymityType model.AnonymityType, title string) int
 		CreateFlair              func(childComplexity int, userID string, templateID string) int
@@ -103,7 +104,7 @@ type ComplexityRoot struct {
 		RemoveFlair              func(childComplexity int, id string) int
 		RemoveFlairTemplate      func(childComplexity int, id string) int
 		UnassignFlair            func(childComplexity int, participantID string) int
-		UpdateParticipant        func(childComplexity int, participantID string, updateInput model.UpdateParticipantInput) int
+		UpdateParticipant        func(childComplexity int, discussionID string, participantID string, updateInput model.UpdateParticipantInput) int
 		UpsertUserDevice         func(childComplexity int, userID *string, platform model.Platform, deviceID string, token *string) int
 	}
 
@@ -156,7 +157,6 @@ type ComplexityRoot struct {
 		IsDeleted         func(childComplexity int) int
 		Participant       func(childComplexity int) int
 		QuotedPost        func(childComplexity int) int
-		QuotedPostID      func(childComplexity int) int
 		UpdatedAt         func(childComplexity int) int
 	}
 
@@ -264,6 +264,7 @@ type DiscussionResolver interface {
 	CreatedAt(ctx context.Context, obj *model.Discussion) (string, error)
 	UpdatedAt(ctx context.Context, obj *model.Discussion) (string, error)
 	MeParticipant(ctx context.Context, obj *model.Discussion) (*model.Participant, error)
+	MeAvailableParticipants(ctx context.Context, obj *model.Discussion) ([]*model.Participant, error)
 }
 type FlairResolver interface {
 	DisplayName(ctx context.Context, obj *model.Flair) (*string, error)
@@ -276,7 +277,7 @@ type ModeratorResolver interface {
 }
 type MutationResolver interface {
 	AddDiscussionParticipant(ctx context.Context, discussionID string, userID string, discussionParticipantInput model.AddDiscussionParticipantInput) (*model.Participant, error)
-	AddPost(ctx context.Context, discussionID string, postContent model.PostContentInput) (*model.Post, error)
+	AddPost(ctx context.Context, discussionID string, participantID string, postContent model.PostContentInput) (*model.Post, error)
 	CreateDiscussion(ctx context.Context, anonymityType model.AnonymityType, title string) (*model.Discussion, error)
 	CreateFlair(ctx context.Context, userID string, templateID string) (*model.Flair, error)
 	RemoveFlair(ctx context.Context, id string) (*model.Flair, error)
@@ -284,7 +285,7 @@ type MutationResolver interface {
 	UnassignFlair(ctx context.Context, participantID string) (*model.Participant, error)
 	CreateFlairTemplate(ctx context.Context, displayName *string, imageURL *string, source string) (*model.FlairTemplate, error)
 	RemoveFlairTemplate(ctx context.Context, id string) (*model.FlairTemplate, error)
-	UpdateParticipant(ctx context.Context, participantID string, updateInput model.UpdateParticipantInput) (*model.Participant, error)
+	UpdateParticipant(ctx context.Context, discussionID string, participantID string, updateInput model.UpdateParticipantInput) (*model.Participant, error)
 	UpsertUserDevice(ctx context.Context, userID *string, platform model.Platform, deviceID string, token *string) (*model.UserDevice, error)
 }
 type ParticipantResolver interface {
@@ -386,6 +387,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Discussion.ID(childComplexity), true
+
+	case "Discussion.meAvailableParticipants":
+		if e.complexity.Discussion.MeAvailableParticipants == nil {
+			break
+		}
+
+		return e.complexity.Discussion.MeAvailableParticipants(childComplexity), true
 
 	case "Discussion.meParticipant":
 		if e.complexity.Discussion.MeParticipant == nil {
@@ -528,7 +536,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Mutation.AddPost(childComplexity, args["discussionID"].(string), args["postContent"].(model.PostContentInput)), true
+		return e.complexity.Mutation.AddPost(childComplexity, args["discussionID"].(string), args["participantID"].(string), args["postContent"].(model.PostContentInput)), true
 
 	case "Mutation.assignFlair":
 		if e.complexity.Mutation.AssignFlair == nil {
@@ -624,7 +632,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Mutation.UpdateParticipant(childComplexity, args["participantID"].(string), args["updateInput"].(model.UpdateParticipantInput)), true
+		return e.complexity.Mutation.UpdateParticipant(childComplexity, args["discussionID"].(string), args["participantID"].(string), args["updateInput"].(model.UpdateParticipantInput)), true
 
 	case "Mutation.upsertUserDevice":
 		if e.complexity.Mutation.UpsertUserDevice == nil {
@@ -847,13 +855,6 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Post.QuotedPost(childComplexity), true
-
-	case "Post.quotedPostID":
-		if e.complexity.Post.QuotedPostID == nil {
-			break
-		}
-
-		return e.complexity.Post.QuotedPostID(childComplexity), true
 
 	case "Post.updatedAt":
 		if e.complexity.Post.UpdatedAt == nil {
@@ -1328,6 +1329,9 @@ var sources = []*ast.Source{
 
     # Will return information based on the logged in user
     meParticipant: Participant
+
+    # Will return available participants for ` + "`" + `me` + "`" + `
+    meAvailableParticipants: [Participant!]
 }
 
 # type DiscussionsConnection {
@@ -1469,7 +1473,6 @@ enum PostType {
     participant: Participant!
     createdAt: String!
     updatedAt: String!
-    quotedPostID: ID
     quotedPost: Post
 }`, BuiltIn: false},
 	&ast.Source{Name: "graph/types/post_bookmark.graphqls", Input: `# Defines a bookmark for a post. Built this way because I
@@ -1540,7 +1543,7 @@ input MediaInput {
 # TODO: implement
 input PollInput {
   pollText: String!,
-  duration: Time!,
+  endTime: Time!,
   option1: String!,
   option2: String!,
   option3: String,
@@ -1554,13 +1557,12 @@ input PostContentInput {
   quotedPostID: ID
   media: MediaInput,
   poll: PollInput
-
 }
 
 
 type Mutation {
   addDiscussionParticipant(discussionID: String!, userID: String!, discussionParticipantInput: AddDiscussionParticipantInput!): Participant!
-  addPost(discussionID: ID!, postContent: PostContentInput!): Post
+  addPost(discussionID: ID!, participantID: ID!, postContent: PostContentInput!): Post!
   createDiscussion(anonymityType: AnonymityType!, title: String!): Discussion!
 
   # Creates a User Flair from a Flair template, accessible via available flair
@@ -1580,7 +1582,7 @@ type Mutation {
 
   # A slight misnomer here because this will be a copy-on-write. The participant
   # object actually is immutable.
-  updateParticipant(participantID: ID!, updateInput: UpdateParticipantInput!): Participant!
+  updateParticipant(discussionID: ID!, participantID: ID!, updateInput: UpdateParticipantInput!): Participant!
 
   # Upsert user device
   upsertUserDevice(userID: ID, platform: Platform!, deviceID: String!, token: String): UserDevice!
@@ -1722,14 +1724,22 @@ func (ec *executionContext) field_Mutation_addPost_args(ctx context.Context, raw
 		}
 	}
 	args["discussionID"] = arg0
-	var arg1 model.PostContentInput
-	if tmp, ok := rawArgs["postContent"]; ok {
-		arg1, err = ec.unmarshalNPostContentInput2githubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐPostContentInput(ctx, tmp)
+	var arg1 string
+	if tmp, ok := rawArgs["participantID"]; ok {
+		arg1, err = ec.unmarshalNID2string(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
 	}
-	args["postContent"] = arg1
+	args["participantID"] = arg1
+	var arg2 model.PostContentInput
+	if tmp, ok := rawArgs["postContent"]; ok {
+		arg2, err = ec.unmarshalNPostContentInput2githubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐPostContentInput(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["postContent"] = arg2
 	return args, nil
 }
 
@@ -1875,21 +1885,29 @@ func (ec *executionContext) field_Mutation_updateParticipant_args(ctx context.Co
 	var err error
 	args := map[string]interface{}{}
 	var arg0 string
-	if tmp, ok := rawArgs["participantID"]; ok {
+	if tmp, ok := rawArgs["discussionID"]; ok {
 		arg0, err = ec.unmarshalNID2string(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
 	}
-	args["participantID"] = arg0
-	var arg1 model.UpdateParticipantInput
-	if tmp, ok := rawArgs["updateInput"]; ok {
-		arg1, err = ec.unmarshalNUpdateParticipantInput2githubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐUpdateParticipantInput(ctx, tmp)
+	args["discussionID"] = arg0
+	var arg1 string
+	if tmp, ok := rawArgs["participantID"]; ok {
+		arg1, err = ec.unmarshalNID2string(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
 	}
-	args["updateInput"] = arg1
+	args["participantID"] = arg1
+	var arg2 model.UpdateParticipantInput
+	if tmp, ok := rawArgs["updateInput"]; ok {
+		arg2, err = ec.unmarshalNUpdateParticipantInput2githubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐUpdateParticipantInput(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["updateInput"] = arg2
 	return args, nil
 }
 
@@ -2334,6 +2352,37 @@ func (ec *executionContext) _Discussion_meParticipant(ctx context.Context, field
 	return ec.marshalOParticipant2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐParticipant(ctx, field.Selections, res)
 }
 
+func (ec *executionContext) _Discussion_meAvailableParticipants(ctx context.Context, field graphql.CollectedField, obj *model.Discussion) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "Discussion",
+		Field:    field,
+		Args:     nil,
+		IsMethod: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Discussion().MeAvailableParticipants(rctx, obj)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.([]*model.Participant)
+	fc.Result = res
+	return ec.marshalOParticipant2ᚕᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐParticipantᚄ(ctx, field.Selections, res)
+}
+
 func (ec *executionContext) _Flair_id(ctx context.Context, field graphql.CollectedField, obj *model.Flair) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -2758,18 +2807,21 @@ func (ec *executionContext) _Mutation_addPost(ctx context.Context, field graphql
 	fc.Args = args
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().AddPost(rctx, args["discussionID"].(string), args["postContent"].(model.PostContentInput))
+		return ec.resolvers.Mutation().AddPost(rctx, args["discussionID"].(string), args["participantID"].(string), args["postContent"].(model.PostContentInput))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
 		return graphql.Null
 	}
 	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
 		return graphql.Null
 	}
 	res := resTmp.(*model.Post)
 	fc.Result = res
-	return ec.marshalOPost2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐPost(ctx, field.Selections, res)
+	return ec.marshalNPost2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐPost(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Mutation_createDiscussion(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -3083,7 +3135,7 @@ func (ec *executionContext) _Mutation_updateParticipant(ctx context.Context, fie
 	fc.Args = args
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().UpdateParticipant(rctx, args["participantID"].(string), args["updateInput"].(model.UpdateParticipantInput))
+		return ec.resolvers.Mutation().UpdateParticipant(rctx, args["discussionID"].(string), args["participantID"].(string), args["updateInput"].(model.UpdateParticipantInput))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -4120,37 +4172,6 @@ func (ec *executionContext) _Post_updatedAt(ctx context.Context, field graphql.C
 	res := resTmp.(string)
 	fc.Result = res
 	return ec.marshalNString2string(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) _Post_quotedPostID(ctx context.Context, field graphql.CollectedField, obj *model.Post) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:   "Post",
-		Field:    field,
-		Args:     nil,
-		IsMethod: false,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.QuotedPostID, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		return graphql.Null
-	}
-	res := resTmp.(*string)
-	fc.Result = res
-	return ec.marshalOID2ᚖstring(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Post_quotedPost(ctx context.Context, field graphql.CollectedField, obj *model.Post) (ret graphql.Marshaler) {
@@ -7021,9 +7042,9 @@ func (ec *executionContext) unmarshalInputPollInput(ctx context.Context, obj int
 			if err != nil {
 				return it, err
 			}
-		case "duration":
+		case "endTime":
 			var err error
-			it.Duration, err = ec.unmarshalNTime2timeᚐTime(ctx, v)
+			it.EndTime, err = ec.unmarshalNTime2timeᚐTime(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -7285,6 +7306,17 @@ func (ec *executionContext) _Discussion(ctx context.Context, sel ast.SelectionSe
 				res = ec._Discussion_meParticipant(ctx, field, obj)
 				return res
 			})
+		case "meAvailableParticipants":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Discussion_meAvailableParticipants(ctx, field, obj)
+				return res
+			})
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -7469,6 +7501,9 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			}
 		case "addPost":
 			out.Values[i] = ec._Mutation_addPost(ctx, field)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
 		case "createDiscussion":
 			out.Values[i] = ec._Mutation_createDiscussion(ctx, field)
 			if out.Values[i] == graphql.Null {
@@ -7887,8 +7922,6 @@ func (ec *executionContext) _Post(ctx context.Context, sel ast.SelectionSet, obj
 				}
 				return res
 			})
-		case "quotedPostID":
-			out.Values[i] = ec._Post_quotedPostID(ctx, field, obj)
 		case "quotedPost":
 			out.Values[i] = ec._Post_quotedPost(ctx, field, obj)
 		default:

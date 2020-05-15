@@ -39,7 +39,7 @@ type ParticipantProfile struct {
 
 type PollInput struct {
 	PollText string    `json:"pollText"`
-	Duration time.Time `json:"duration"`
+	EndTime  time.Time `json:"endTime"`
 	Option1  string    `json:"option1"`
 	Option2  string    `json:"option2"`
 	Option3  *string   `json:"option3"`

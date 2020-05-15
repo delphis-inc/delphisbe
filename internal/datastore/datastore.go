@@ -37,8 +37,8 @@ type Datastore interface {
 	GetTotalParticipantCountByDiscussionID(ctx context.Context, discussionID string) int
 	GetParticipantByID(ctx context.Context, participantID string) (*model.Participant, error)
 	GetParticipantsByDiscussionID(ctx context.Context, id string) ([]model.Participant, error)
-	GetParticipantByDiscussionIDUserID(ctx context.Context, discussionID string, userID string) (*model.Participant, error)
-	PutParticipant(ctx context.Context, participant model.Participant) (*model.Participant, error)
+	GetParticipantsByDiscussionIDUserID(ctx context.Context, discussionID string, userID string) ([]model.Participant, error)
+	UpsertParticipant(ctx context.Context, participant model.Participant) (*model.Participant, error)
 	GetPostsByDiscussionID(ctx context.Context, discussionID string) ([]*model.Post, error)
 	GetPostContentByID(ctx context.Context, id string) (*model.PostContent, error)
 	PutPost(ctx context.Context, post model.Post) (*model.Post, error)

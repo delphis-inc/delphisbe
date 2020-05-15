@@ -10,6 +10,11 @@ import (
 	"github.com/nedrocks/delphisbe/internal/util"
 )
 
+type UserDiscussionParticipants struct {
+	Anon    *model.Participant
+	NonAnon *model.Participant
+}
+
 func (d *delphisBackend) CreateParticipantForDiscussion(ctx context.Context, discussionID string, userID string, discussionParticipantInput model.AddDiscussionParticipantInput) (*model.Participant, error) {
 	userObj, err := d.GetUserByID(ctx, userID)
 	if err != nil || userObj == nil {
@@ -68,7 +73,7 @@ func (d *delphisBackend) CreateParticipantForDiscussion(ctx context.Context, dis
 
 	participantObj.ViewerID = &viewerObj.ID
 
-	_, err = d.db.PutParticipant(ctx, participantObj)
+	_, err = d.db.UpsertParticipant(ctx, participantObj)
 
 	if err != nil {
 		return nil, err
@@ -81,8 +86,23 @@ func (d *delphisBackend) GetParticipantsByDiscussionID(ctx context.Context, id s
 	return d.db.GetParticipantsByDiscussionID(ctx, id)
 }
 
-func (d *delphisBackend) GetParticipantByDiscussionIDUserID(ctx context.Context, discussionID string, userID string) (*model.Participant, error) {
-	return d.db.GetParticipantByDiscussionIDUserID(ctx, discussionID, userID)
+func (d *delphisBackend) GetParticipantsByDiscussionIDUserID(ctx context.Context, discussionID string, userID string) (*UserDiscussionParticipants, error) {
+	participants, err := d.db.GetParticipantsByDiscussionIDUserID(ctx, discussionID, userID)
+	if err != nil {
+		return nil, err
+	}
+
+	participantResponse := &UserDiscussionParticipants{}
+
+	for i, participant := range participants {
+		if participant.IsAnonymous && participantResponse.Anon == nil {
+			participantResponse.Anon = &participants[i]
+		}
+		if !participant.IsAnonymous && participantResponse.NonAnon == nil {
+			participantResponse.NonAnon = &participants[i]
+		}
+	}
+	return participantResponse, nil
 }
 
 func (d *delphisBackend) GetParticipantByID(ctx context.Context, id string) (*model.Participant, error) {
@@ -107,26 +127,48 @@ func (d *delphisBackend) GetTotalParticipantCountByDiscussionID(ctx context.Cont
 	return d.db.GetTotalParticipantCountByDiscussionID(ctx, discussionID)
 }
 
-func (d *delphisBackend) CopyAndUpdateParticipant(ctx context.Context, orig model.Participant, input model.UpdateParticipantInput) (*model.Participant, error) {
-	participantCount := d.GetTotalParticipantCountByDiscussionID(ctx, *orig.DiscussionID)
-	now := time.Now()
-	copiedObj := orig
-	copiedObj.ID = util.UUIDv4()
-	copiedObj.CreatedAt = now
-	copiedObj.UpdatedAt = now
+func (d *delphisBackend) UpdateParticipant(ctx context.Context, participants UserDiscussionParticipants, currentParticipantID string, input model.UpdateParticipantInput) (*model.Participant, error) {
+	var currentParticipantObj *model.Participant
+	var otherParticipantObj *model.Participant
+	if participants.Anon != nil && participants.Anon.ID == currentParticipantID {
+		currentParticipantObj = participants.Anon
+		otherParticipantObj = participants.NonAnon
+	} else if participants.NonAnon != nil && participants.NonAnon.ID == currentParticipantID {
+		currentParticipantObj = participants.NonAnon
+		otherParticipantObj = participants.Anon
+	}
+
+	if currentParticipantObj == nil {
+		return nil, fmt.Errorf("Failed to find participant with ID %s", currentParticipantID)
+	}
+
+	if input.IsAnonymous != nil && *input.IsAnonymous != currentParticipantObj.IsAnonymous {
+		// We are changing the participant here. Potentially creating a new one.
+		if otherParticipantObj == nil {
+			// We have to create a new one.
+			participantCount := d.GetTotalParticipantCountByDiscussionID(ctx, *currentParticipantObj.DiscussionID)
+			now := time.Now()
+			copiedObj := *currentParticipantObj
+			copiedObj.ParticipantID = participantCount
+			copiedObj.ID = util.UUIDv4()
+			copiedObj.CreatedAt = now
+			copiedObj.UpdatedAt = now
+			copiedObj.IsAnonymous = *input.IsAnonymous
+			currentParticipantObj = &copiedObj
+		} else {
+			// In this case we can use the other participant object.
+			currentParticipantObj = otherParticipantObj
+		}
+	}
 	if input.GradientColor != nil || (input.IsUnsetGradient != nil && *input.IsUnsetGradient) {
-		copiedObj.GradientColor = input.GradientColor
+		currentParticipantObj.GradientColor = input.GradientColor
 	}
 	if input.FlairID != nil || (input.IsUnsetFlairID != nil && *input.IsUnsetFlairID) {
-		copiedObj.FlairID = input.FlairID
-	}
-	if input.IsAnonymous != nil {
-		copiedObj.IsAnonymous = *input.IsAnonymous
+		currentParticipantObj.FlairID = input.FlairID
 	}
 	if input.HasJoined != nil {
-		copiedObj.HasJoined = *input.HasJoined
+		currentParticipantObj.HasJoined = *input.HasJoined
 	}
-	copiedObj.ParticipantID = participantCount
 
-	return d.db.PutParticipant(ctx, copiedObj)
+	return d.db.UpsertParticipant(ctx, *currentParticipantObj)
 }

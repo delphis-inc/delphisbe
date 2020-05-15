@@ -20,6 +20,9 @@ type Discussion {
 
     # Will return information based on the logged in user
     meParticipant: Participant
+
+    # Will return available participants for `me`
+    meAvailableParticipants: [Participant!]
 }
 
 # type DiscussionsConnection {

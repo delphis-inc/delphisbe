@@ -252,29 +252,6 @@ func (_m *Datastore) GetModeratorByID(ctx context.Context, id string) (*model.Mo
 	return r0, r1
 }
 
-// GetParticipantByDiscussionIDUserID provides a mock function with given fields: ctx, discussionID, userID
-func (_m *Datastore) GetParticipantByDiscussionIDUserID(ctx context.Context, discussionID string, userID string) (*model.Participant, error) {
-	ret := _m.Called(ctx, discussionID, userID)
-
-	var r0 *model.Participant
-	if rf, ok := ret.Get(0).(func(context.Context, string, string) *model.Participant); ok {
-		r0 = rf(ctx, discussionID, userID)
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*model.Participant)
-		}
-	}
-
-	var r1 error
-	if rf, ok := ret.Get(1).(func(context.Context, string, string) error); ok {
-		r1 = rf(ctx, discussionID, userID)
-	} else {
-		r1 = ret.Error(1)
-	}
-
-	return r0, r1
-}
-
 // GetParticipantByID provides a mock function with given fields: ctx, participantID
 func (_m *Datastore) GetParticipantByID(ctx context.Context, participantID string) (*model.Participant, error) {
 	ret := _m.Called(ctx, participantID)
@@ -314,6 +291,29 @@ func (_m *Datastore) GetParticipantsByDiscussionID(ctx context.Context, id strin
 	var r1 error
 	if rf, ok := ret.Get(1).(func(context.Context, string) error); ok {
 		r1 = rf(ctx, id)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// GetParticipantsByDiscussionIDUserID provides a mock function with given fields: ctx, discussionID, userID
+func (_m *Datastore) GetParticipantsByDiscussionIDUserID(ctx context.Context, discussionID string, userID string) ([]model.Participant, error) {
+	ret := _m.Called(ctx, discussionID, userID)
+
+	var r0 []model.Participant
+	if rf, ok := ret.Get(0).(func(context.Context, string, string) []model.Participant); ok {
+		r0 = rf(ctx, discussionID, userID)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]model.Participant)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(context.Context, string, string) error); ok {
+		r1 = rf(ctx, discussionID, userID)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -565,29 +565,6 @@ func (_m *Datastore) ListFlairTemplates(ctx context.Context, query *string) ([]*
 	return r0, r1
 }
 
-// PutParticipant provides a mock function with given fields: ctx, participant
-func (_m *Datastore) PutParticipant(ctx context.Context, participant model.Participant) (*model.Participant, error) {
-	ret := _m.Called(ctx, participant)
-
-	var r0 *model.Participant
-	if rf, ok := ret.Get(0).(func(context.Context, model.Participant) *model.Participant); ok {
-		r0 = rf(ctx, participant)
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*model.Participant)
-		}
-	}
-
-	var r1 error
-	if rf, ok := ret.Get(1).(func(context.Context, model.Participant) error); ok {
-		r1 = rf(ctx, participant)
-	} else {
-		r1 = ret.Error(1)
-	}
-
-	return r0, r1
-}
-
 // PutPost provides a mock function with given fields: ctx, post
 func (_m *Datastore) PutPost(ctx context.Context, post model.Post) (*model.Post, error) {
 	ret := _m.Called(ctx, post)
@@ -719,6 +696,29 @@ func (_m *Datastore) UpsertFlairTemplate(ctx context.Context, flairTemplate mode
 	var r1 error
 	if rf, ok := ret.Get(1).(func(context.Context, model.FlairTemplate) error); ok {
 		r1 = rf(ctx, flairTemplate)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// UpsertParticipant provides a mock function with given fields: ctx, participant
+func (_m *Datastore) UpsertParticipant(ctx context.Context, participant model.Participant) (*model.Participant, error) {
+	ret := _m.Called(ctx, participant)
+
+	var r0 *model.Participant
+	if rf, ok := ret.Get(0).(func(context.Context, model.Participant) *model.Participant); ok {
+		r0 = rf(ctx, participant)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*model.Participant)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(context.Context, model.Participant) error); ok {
+		r1 = rf(ctx, participant)
 	} else {
 		r1 = ret.Error(1)
 	}

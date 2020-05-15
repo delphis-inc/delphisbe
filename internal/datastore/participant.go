@@ -2,6 +2,7 @@ package datastore
 
 import (
 	"context"
+	"time"
 
 	"github.com/jinzhu/gorm"
 	"github.com/nedrocks/delphisbe/graph/model"
@@ -34,27 +35,44 @@ func (d *delphisDB) GetParticipantsByDiscussionID(ctx context.Context, id string
 	return participants, nil
 }
 
-func (d *delphisDB) GetParticipantByDiscussionIDUserID(ctx context.Context, discussionID string, userID string) (*model.Participant, error) {
+func (d *delphisDB) GetParticipantsByDiscussionIDUserID(ctx context.Context, discussionID string, userID string) ([]model.Participant, error) {
 	logrus.Debugf("GetParticipantByDiscussionIDUserID::SQL Query")
-	participant := model.Participant{}
-	if err := d.sql.Where(&model.Participant{DiscussionID: &discussionID, UserID: &userID}).Order("participant_id desc").First(&participant).Error; err != nil {
+	participants := []model.Participant{}
+	if err := d.sql.Where(&model.Participant{DiscussionID: &discussionID, UserID: &userID}).Order("participant_id desc").Limit(2).Find(&participants).Error; err != nil {
 		if gorm.IsRecordNotFoundError(err) {
 			return nil, nil
 		}
 		logrus.WithError(err).Errorf("GetParticipantByDiscussionIDUserID::Failed to get participant by discussion ID and user ID")
 		return nil, err
 	}
-	return &participant, nil
+	return participants, nil
 }
 
-func (d *delphisDB) PutParticipant(ctx context.Context, participant model.Participant) (*model.Participant, error) {
-	logrus.Debug("PutParticipant::SQL Create")
+func (d *delphisDB) UpsertParticipant(ctx context.Context, participant model.Participant) (*model.Participant, error) {
+	logrus.Debug("UpsertParticipant::SQL Create")
 	found := model.Participant{}
-	if err := d.sql.Create(&participant).First(&found, model.Participant{ID: participant.ID}).Error; err != nil {
-		logrus.WithError(err).Errorf("PutParticipant::Faield to put Participant")
-		return nil, err
+	if err := d.sql.First(&found, model.Participant{ID: participant.ID}).Error; err != nil {
+		if gorm.IsRecordNotFoundError(err) {
+			if err := d.sql.Create(&participant).First(&found, model.Participant{ID: participant.ID}).Error; err != nil {
+				logrus.WithError(err).Errorf("UpsertParticipant::Failed to put Participant")
+				return nil, err
+			}
+		} else {
+			logrus.WithError(err).Errorf("UpsertParticipant::Failed checking for Participant object")
+			return nil, err
+		}
+	} else {
+		if err := d.sql.Model(&participant).Updates(model.Participant{
+			FlairID:       participant.FlairID,
+			IsAnonymous:   participant.IsAnonymous,
+			UpdatedAt:     time.Now(),
+			GradientColor: participant.GradientColor,
+			HasJoined:     participant.HasJoined,
+		}).First(&found).Error; err != nil {
+			logrus.WithError(err).Errorf("UpsertParticipant::Failed updating Participant object")
+			return nil, err
+		}
 	}
-
 	return &found, nil
 }
 
