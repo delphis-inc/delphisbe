@@ -75,6 +75,16 @@ type delphisDB struct {
 	readyMu sync.RWMutex
 }
 
+// Prepared Statements
+type dbPrepStmts struct {
+	// Post
+	putPostStmt                *sql2.Stmt
+	getPostsByDiscussionIDStmt *sql2.Stmt
+
+	// PostContents
+	putPostContentsStmt *sql2.Stmt
+}
+
 type PostIter interface {
 	Next(post *model.Post) bool
 	Close() error
@@ -158,7 +168,22 @@ func (d *delphisDB) initializeStatements(ctx context.Context) (err error) {
 	}
 
 	// POSTS
-	if d.prepStmts.putPostStmt, err = d.pg.PrepareContext(ctx, putPostString); err != nil {
+	if d.prepStmts.putPostStmt, err = d.pg.PrepareContext(ctx, `
+		INSERT INTO posts (
+			id,
+			discussion_id,
+			participant_id,
+			post_content_id,
+			quoted_post_id
+		) VALUES ($1, $2, $3, $4, $5)
+		RETURNING
+			id,
+			created_at,
+			updated_at,
+			discussion_id,
+			participant_id,
+			post_content_id,
+			quoted_post_id;`); err != nil {
 		logrus.WithError(err).Error("failed to prepare putPostStmt")
 		return errors.Wrap(err, "failed to prepare putPostStmt")
 	}

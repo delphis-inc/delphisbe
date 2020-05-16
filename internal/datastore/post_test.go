@@ -1,19 +1,7 @@
 package datastore
 
 import (
-	"context"
-	"regexp"
 	"testing"
-	"time"
-
-	"github.com/sirupsen/logrus"
-
-	"github.com/DATA-DOG/go-sqlmock"
-	"github.com/jinzhu/gorm"
-	"github.com/nedrocks/delphisbe/graph/model"
-	"github.com/nedrocks/delphisbe/internal/config"
-	. "github.com/smartystreets/goconvey/convey"
-	"github.com/stretchr/testify/assert"
 )
 
 func TestGetPostsByDiscussionID(t *testing.T) {
@@ -65,7 +53,7 @@ func TestGetPostsByDiscussionID(t *testing.T) {
 	//		So(err, ShouldBeNil)
 	//		So(resp, ShouldNotBeNil)
 	//		So(resp, ShouldResemble, []model.Post{postObject})
-			//So(mock.ExpectationsWereMet(), ShouldBeNil)
-		})
-	})
+	//So(mock.ExpectationsWereMet(), ShouldBeNil)
+	//	})
+	//})
 }
