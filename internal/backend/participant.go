@@ -167,7 +167,10 @@ func (d *delphisBackend) UpdateParticipant(ctx context.Context, participants Use
 		currentParticipantObj.FlairID = input.FlairID
 	}
 	if input.HasJoined != nil {
-		currentParticipantObj.HasJoined = *input.HasJoined
+		// Cannot unjoin a conversation.
+		if !currentParticipantObj.HasJoined {
+			currentParticipantObj.HasJoined = *input.HasJoined
+		}
 	}
 
 	return d.db.UpsertParticipant(ctx, *currentParticipantObj)
