@@ -59,6 +59,7 @@ type Datastore interface {
 	GetViewersByIDs(ctx context.Context, viewerIDs []string) (map[string]*model.Viewer, error)
 	UpsertViewer(ctx context.Context, viewer model.Viewer) (*model.Viewer, error)
 	GetPostByID(ctx context.Context, postID string) (*model.Post, error)
+	CreateTestTables(ctx context.Context, data TestData) (func() error, error)
 }
 
 type delphisDB struct {
@@ -73,16 +74,6 @@ type delphisDB struct {
 	// Check if prepared statements are initialized
 	ready   bool
 	readyMu sync.RWMutex
-}
-
-// Prepared Statements
-type dbPrepStmts struct {
-	// Post
-	putPostStmt                *sql2.Stmt
-	getPostsByDiscussionIDStmt *sql2.Stmt
-
-	// PostContents
-	putPostContentsStmt *sql2.Stmt
 }
 
 type PostIter interface {
@@ -168,53 +159,18 @@ func (d *delphisDB) initializeStatements(ctx context.Context) (err error) {
 	}
 
 	// POSTS
-	if d.prepStmts.putPostStmt, err = d.pg.PrepareContext(ctx, `
-		INSERT INTO posts (
-			id,
-			discussion_id,
-			participant_id,
-			post_content_id,
-			quoted_post_id
-		) VALUES ($1, $2, $3, $4, $5)
-		RETURNING
-			id,
-			created_at,
-			updated_at,
-			discussion_id,
-			participant_id,
-			post_content_id,
-			quoted_post_id;`); err != nil {
+	if d.prepStmts.putPostStmt, err = d.pg.PrepareContext(ctx, putPostString); err != nil {
 		logrus.WithError(err).Error("failed to prepare putPostStmt")
 		return errors.Wrap(err, "failed to prepare putPostStmt")
 	}
 
-	if d.prepStmts.getPostsByDiscussionIDStmt, err = d.pg.PrepareContext(ctx, `
-		SELECT p.id,
-			p.created_at,
-			p.updated_at,
-			p.deleted_at,
-			p.deleted_reason_code,
-			p.discussion_id,
-			p.participant_id,
-			p.quoted_post_id,
-			pc.id,
-			pc.content
-		FROM posts p
-		INNER JOIN post_contents pc
-		ON p.post_content_id = pc.id
-		WHERE p.discussion_id = $1;
-	`); err != nil {
+	if d.prepStmts.getPostsByDiscussionIDStmt, err = d.pg.PrepareContext(ctx, getPostsByDiscussionIDString); err != nil {
 		logrus.WithError(err).Error("failed to prepare getPostsByDiscussionIDStmt")
 		return errors.Wrap(err, "failed to prepare getPostsByDiscussionIDStmt")
 	}
 
 	// POST CONTENTS
-	if d.prepStmts.putPostContentsStmt, err = d.pg.PrepareContext(ctx, `
-		INSERT INTO post_contents (
-			id,
-			content
-		) VALUES ($1, $2);
-	`); err != nil {
+	if d.prepStmts.putPostContentsStmt, err = d.pg.PrepareContext(ctx, putPostContentsString); err != nil {
 		logrus.WithError(err).Error("failed to prepare putPostContentsStmt")
 		return errors.Wrap(err, "failed to prepare putPostContentsStmt")
 	}
