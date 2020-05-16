@@ -26,8 +26,11 @@ func TestGetPostsByDiscussionID(t *testing.T) {
 		UpdatedAt:     now,
 		DiscussionID:  &discussionID,
 		ParticipantID: &participantID,
-		PostContentID: &postID,
-		QuotedPostID:  &postID,
+		PostContent: &model.PostContent{
+			ID:      postID,
+			Content: "test",
+		},
+		QuotedPostID: &postID,
 	}
 
 	Convey("GetPostsByDiscussionID", t, func() {
@@ -55,7 +58,7 @@ func TestGetPostsByDiscussionID(t *testing.T) {
 			rs := sqlmock.NewRows([]string{"id", "created_at", "updated_at", "discussion_id", "participant_id", "post_content_id", "quoted_post_id"}).
 				AddRow(postObject.ID, postObject.CreatedAt, postObject.UpdatedAt, postObject.DiscussionID, postObject.ParticipantID, postObject.PostContentID, postObject.QuotedPostID)
 
-			mock.ExpectQuery(regexp.QuoteMeta(putPostString)).WithArgs(postObject.ID, postObject.DiscussionID, postObject.ParticipantID, postObject.PostContentID, postObject.QuotedPostID).WillReturnRows(rs)
+			mock.ExpectQuery(regexp.QuoteMeta(putPostString)).WithArgs(postObject.ID, postObject.DiscussionID, postObject.ParticipantID, postObject.PostContent.ID, postObject.QuotedPostID).WillReturnRows(rs)
 
 			resp, err := mockDatastore.PutPost(ctx, postObject)
 
