@@ -2,6 +2,7 @@ package datastore
 
 import (
 	"context"
+	"database/sql"
 
 	"github.com/jinzhu/gorm"
 	"github.com/nedrocks/delphisbe/graph/model"
@@ -10,13 +11,59 @@ import (
 
 func (d *delphisDB) PutPost(ctx context.Context, post model.Post) (*model.Post, error) {
 	logrus.Debug("PutPost::SQL Create")
-	found := model.Post{}
-	if err := d.sql.Create(&post).First(&found, model.Post{ID: post.ID}).Error; err != nil {
-		logrus.WithError(err).Errorf("Failed to create a post")
+	if err := d.initializeStatements(ctx); err != nil {
+		logrus.WithError(err).Error("PutPost::failed to initialize statements")
 		return nil, err
 	}
 
-	return &found, nil
+	err := d.prepStmts.putPostStmt.QueryRowContext(
+		ctx,
+		post.ID,
+		post.DiscussionID,
+		post.ParticipantID,
+		post.PostContentID,
+		post.QuotedPostID,
+	).Scan(
+		&post.ID,
+		&post.CreatedAt,
+		&post.UpdatedAt,
+		&post.DiscussionID,
+		&post.ParticipantID,
+		&post.PostContentID,
+		&post.QuotedPostID,
+	)
+	if err != nil {
+		logrus.WithError(err).Error("failed to execute putPostStmt")
+		return nil, err
+	}
+
+	logrus.Infof("Post: %v\n", post)
+
+	// Do we want to query for the post or just return the post?
+	return &post, nil
+}
+
+// TODO: Add created_at and limit
+func (d *delphisDB) GetPostsByDiscussionIDIter(ctx context.Context, discussionID string) PostIter {
+	logrus.Debug("GetPostsByDiscussionID::SQL Query")
+	if err := d.initializeStatements(ctx); err != nil {
+		logrus.WithError(err).Error("GetPostsByDiscussionIDIter::failed to initialize statements")
+		return &postIter{err: err}
+	}
+
+	rows, err := d.prepStmts.getPostsByDiscussionIDStmt.QueryContext(
+		ctx,
+		discussionID,
+	)
+	if err != nil {
+		logrus.WithError(err).Error("failed to query GetPostsByDiscussionID")
+		return &postIter{err: err}
+	}
+
+	return &postIter{
+		ctx:  ctx,
+		rows: rows,
+	}
 }
 
 func (d *delphisDB) GetPostsByDiscussionID(ctx context.Context, discussionID string) ([]*model.Post, error) {
@@ -38,7 +85,7 @@ func (d *delphisDB) GetPostsByDiscussionID(ctx context.Context, discussionID str
 	for i := range posts {
 		if posts[i].QuotedPostID != nil {
 			var err error
-			posts[i].QuotedPost, err = d.getPostByID(ctx, *posts[i].QuotedPostID)
+			posts[i].QuotedPost, err = d.GetPostByID(ctx, *posts[i].QuotedPostID)
 			if err != nil {
 				// Do we want to fail the whole discussion if we can't get a quote?
 				return nil, err
@@ -51,7 +98,8 @@ func (d *delphisDB) GetPostsByDiscussionID(ctx context.Context, discussionID str
 	return returnedPosts, nil
 }
 
-func (d *delphisDB) getPostByID(ctx context.Context, postID string) (*model.Post, error) {
+// TODO: rewrite for single posts
+func (d *delphisDB) GetPostByID(ctx context.Context, postID string) (*model.Post, error) {
 	logrus.Debug("GetPostByID::SQL Query")
 	post := model.Post{}
 	// TODO: Clean up for single queries
@@ -64,6 +112,62 @@ func (d *delphisDB) getPostByID(ctx context.Context, postID string) (*model.Post
 	}
 
 	return &post, nil
+}
+
+type postIter struct {
+	err  error
+	ctx  context.Context
+	rows *sql.Rows
+}
+
+func (iter *postIter) Next(post *model.Post) bool {
+	if iter.err != nil {
+		logrus.WithError(iter.err).Error("iterator error")
+		return false
+	}
+
+	if iter.err = iter.ctx.Err(); iter.err != nil {
+		logrus.WithError(iter.err).Error("iterator context error")
+		return false
+	}
+
+	if !iter.rows.Next() {
+		return false
+	}
+	postContent := model.PostContent{}
+
+	if iter.err = iter.rows.Scan(
+		&post.ID,
+		&post.CreatedAt,
+		&post.UpdatedAt,
+		&post.DeletedAt,
+		&post.DeletedReasonCode,
+		&post.DiscussionID,
+		&post.ParticipantID,
+		&post.QuotedPostID,
+		&postContent.ID,
+		&postContent.Content,
+	); iter.err != nil {
+		logrus.WithError(iter.err).Error("iterator failed to scan row")
+		return false
+	}
+
+	post.PostContent = &postContent
+
+	return true
+
+}
+
+func (iter *postIter) Close() error {
+	if err := iter.err; err != nil {
+		logrus.WithError(err).Error("iter error on close")
+		return err
+	}
+	if err := iter.rows.Close(); err != nil {
+		logrus.WithError(err).Error("iter rows close on close")
+	}
+
+	return nil
 }
 
 ///////////////
@@ -99,21 +203,4 @@ func (d *delphisDB) getPostByID(ctx context.Context, postID string) (*model.Post
 // 				S: aws.String(discussionID),
 // 			},
 // 		},
-// 		KeyConditionExpression: aws.String("DiscussionID = :did"),
-// 	})
-
-// 	if err != nil {
-// 		logrus.WithError(err).Errorf("GetPostsByDiscussionID: Failed to query dynamo for discussionID: %s", discussionID)
-// 		return nil, err
-// 	}
-
-// 	postObjs := []*model.Post{}
-// 	err = dynamodbattribute.UnmarshalListOfMaps(res.Items, &postObjs)
-
-// 	if err != nil {
-// 		logrus.WithError(err).Errorf("Failed to unmarshal response values: %+v", res.Items)
-// 		return nil, err
-// 	}
-
-// 	return postObjs, nil
-// }
+// 		KeyConditionExpression: a

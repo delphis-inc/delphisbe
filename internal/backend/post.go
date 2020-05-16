@@ -3,7 +3,10 @@ package backend
 import (
 	"context"
 	"fmt"
+	"io"
 	"time"
+
+	"github.com/nedrocks/delphisbe/internal/datastore"
 
 	"github.com/nedrocks/delphisbe/graph/model"
 	"github.com/nedrocks/delphisbe/internal/util"
@@ -11,6 +14,7 @@ import (
 )
 
 func (d *delphisBackend) CreatePost(ctx context.Context, discussionID string, participantID string, input model.PostContentInput) (*model.Post, error) {
+
 	postContent := model.PostContent{
 		ID:      util.UUIDv4(),
 		Content: input.PostText,
@@ -24,18 +28,22 @@ func (d *delphisBackend) CreatePost(ctx context.Context, discussionID string, pa
 		ParticipantID: &participantID,
 		PostContentID: &postContent.ID,
 		PostContent:   &postContent,
+		QuotedPostID:  input.QuotedPostID,
 	}
 
-	// Weird logic to have quoted_post_id actually set to nil as opposed to a blank space
-	if input.QuotedPostID != nil {
-		post.QuotedPostID = input.QuotedPostID
+	// TODO: Wrap into a transaction here
+	// Put post contents and post
+	if err := d.db.PutPostContent(ctx, postContent); err != nil {
+		logrus.WithError(err).Error("failed to PutPostContent")
+		return nil, err
 	}
 
 	postObj, err := d.db.PutPost(ctx, post)
-
 	if err != nil {
+		logrus.WithError(err).Error("failed to PutPost")
 		return nil, err
 	}
+	// End transaction
 
 	discussion, err := d.db.GetDiscussionByID(ctx, discussionID)
 	if err != nil {
@@ -79,5 +87,39 @@ func (d *delphisBackend) NotifySubscribersOfCreatedPost(ctx context.Context, pos
 }
 
 func (d *delphisBackend) GetPostsByDiscussionID(ctx context.Context, discussionID string) ([]*model.Post, error) {
-	return d.db.GetPostsByDiscussionID(ctx, discussionID)
+	iter := d.db.GetPostsByDiscussionIDIter(ctx, discussionID)
+	return d.iterToPosts(ctx, iter)
+	//return d.db.GetPostsByDiscussionID(ctx, discussionID)
+}
+
+// Testing function to keep functionality
+func (d *delphisBackend) iterToPosts(ctx context.Context, iter datastore.PostIter) ([]*model.Post, error) {
+	var posts []*model.Post
+	post := model.Post{}
+
+	defer iter.Close()
+
+	for iter.Next(&post) {
+		tempPost := post
+
+		// Check if there is a quotedPostID. Fetch if so
+		if tempPost.QuotedPostID != nil {
+			var err error
+			// TODO: potentially optimize into joins
+			tempPost.QuotedPost, err = d.db.GetPostByID(ctx, *tempPost.QuotedPostID)
+			if err != nil {
+				// Do we want to fail the whole discussion if we can't get a quote?
+				return nil, err
+			}
+		}
+
+		posts = append(posts, &tempPost)
+	}
+
+	if err := iter.Close(); err != nil && err != io.EOF {
+		logrus.WithError(err).Error("failed to close iter")
+		return nil, err
+	}
+
+	return posts, nil
 }
