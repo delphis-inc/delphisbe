@@ -2,7 +2,6 @@ package datastore
 
 import (
 	"testing"
-	//. "github.com/smartystreets/goconvey/convey"
 )
 
 func TestGetPostsByDiscussionID(t *testing.T) {
@@ -27,26 +26,34 @@ func TestGetPostsByDiscussionID(t *testing.T) {
 	//
 	//	gormDB, _ := gorm.Open("postgres", db)
 	//	mockDatastore := &delphisDB{
-	//		dbConfig: config.TablesConfig{},
-	//		sql:      gormDB,
-	//		dynamo:   nil,
-	//		encoder:  nil,
+	//		dbConfig:  config.TablesConfig{},
+	//		sql:       gormDB,
+	//		pg:        db,
+	//		prepStmts: &dbPrepStmts{},
+	//		dynamo:    nil,
+	//		encoder:   nil,
 	//	}
 	//	defer db.Close()
 	//
-	//	expectedQueryStr := `SELECT * FROM "posts" WHERE "posts"."deleted_at" IS NULL AND (("posts"."discussion_id" = $1))`
-	//
 	//	Convey("when the objects are found", func() {
-	//		mock.ExpectQuery(regexp.QuoteMeta(expectedQueryStr)).WithArgs(discussionID).WillReturnRows(
-	//			sqlmock.NewRows([]string{"id", "created_at", "updated_at", "deleted_at", "deleted_reason_code", "discussion_id", "participant_id", "post_content_id"}).
-	//				AddRow(postObject.ID, postObject.CreatedAt, postObject.UpdatedAt, postObject.DeletedAt, postObject.DeletedReasonCode, postObject.DiscussionID, postObject.ParticipantID, postObject.PostContentID))
+	//		if err := mockDatastore.initializeStatements(ctx); err != nil {
+	//			logrus.WithError(err).Error(":faield")
+	//		}
 	//
-	//		resp, err := mockDatastore.GetPostsByDiscussionID(ctx, discussionID)
+	//		mock.ExpectPrepare(regexp.QuoteMeta(putPostString))
+	//
+	//		mock.ExpectExec("INSERT into posts").WithArgs(2, 3, 4, 5, 6, 7, 8).WillReturnResult(sqlmock.NewResult(1, 1))
+	//		//mock.ExpectPrepare(string(mockDatastore.putPostStmt))
+	//		//mock.ExpectExec(regexp.QuoteMeta(mockDatastore.putPostStmt)).WithArgs(discussionID).WillReturnRows(
+	//		//	sqlmock.NewRows([]string{"id", "created_at", "updated_at", "deleted_at", "deleted_reason_code", "discussion_id", "participant_id", "post_content_id"}).
+	//		//		AddRow(postObject.ID, postObject.CreatedAt, postObject.UpdatedAt, postObject.DeletedAt, postObject.DeletedReasonCode, postObject.DiscussionID, postObject.ParticipantID, postObject.PostContentID))
+	//
+	//		resp, err := mockDatastore.PutPost(ctx, postObject)
 	//
 	//		So(err, ShouldBeNil)
 	//		So(resp, ShouldNotBeNil)
 	//		So(resp, ShouldResemble, []model.Post{postObject})
-	//		//So(mock.ExpectationsWereMet(), ShouldBeNil)
+	//So(mock.ExpectationsWereMet(), ShouldBeNil)
 	//	})
 	//})
 }
