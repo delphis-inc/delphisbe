@@ -59,6 +59,7 @@ type Datastore interface {
 	GetViewersByIDs(ctx context.Context, viewerIDs []string) (map[string]*model.Viewer, error)
 	UpsertViewer(ctx context.Context, viewer model.Viewer) (*model.Viewer, error)
 	GetPostByID(ctx context.Context, postID string) (*model.Post, error)
+	CreateTestTables(ctx context.Context, data TestData) (func() error, error)
 }
 
 type delphisDB struct {

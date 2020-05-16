@@ -21,7 +21,7 @@ func (d *delphisDB) PutPost(ctx context.Context, post model.Post) (*model.Post, 
 		post.ID,
 		post.DiscussionID,
 		post.ParticipantID,
-		post.PostContentID,
+		post.PostContent.ID,
 		post.QuotedPostID,
 	).Scan(
 		&post.ID,
