@@ -195,7 +195,6 @@ type ComplexityRoot struct {
 		FlairTemplates  func(childComplexity int, query *string) int
 		ListDiscussions func(childComplexity int) int
 		Me              func(childComplexity int) int
-		TestQuery       func(childComplexity int, id string) int
 		User            func(childComplexity int, id string) int
 	}
 
@@ -328,7 +327,6 @@ type QueryResolver interface {
 	FlairTemplates(ctx context.Context, query *string) ([]*model.FlairTemplate, error)
 	User(ctx context.Context, id string) (*model.User, error)
 	Me(ctx context.Context) (*model.User, error)
-	TestQuery(ctx context.Context, id string) (model.Entity, error)
 }
 type SubscriptionResolver interface {
 	PostAdded(ctx context.Context, discussionID string) (<-chan *model.Post, error)
@@ -1011,18 +1009,6 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Query.Me(childComplexity), true
 
-	case "Query.testQuery":
-		if e.complexity.Query.TestQuery == nil {
-			break
-		}
-
-		args, err := ec.field_Query_testQuery_args(context.TODO(), rawArgs)
-		if err != nil {
-			return 0, false
-		}
-
-		return e.complexity.Query.TestQuery(childComplexity, args["id"].(string)), true
-
 	case "Query.user":
 		if e.complexity.Query.User == nil {
 			break
@@ -1544,7 +1530,6 @@ type Query {
   # Need to add verification that the caller is the user.
   user(id: ID!): User!
   me: User!
-  testQuery(id: ID!): Entity!
 }
 
 input UpdateParticipantInput {
@@ -2017,20 +2002,6 @@ func (ec *executionContext) field_Query_flairTemplates_args(ctx context.Context,
 		}
 	}
 	args["query"] = arg0
-	return args, nil
-}
-
-func (ec *executionContext) field_Query_testQuery_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
-	var err error
-	args := map[string]interface{}{}
-	var arg0 string
-	if tmp, ok := rawArgs["id"]; ok {
-		arg0, err = ec.unmarshalNID2string(ctx, tmp)
-		if err != nil {
-			return nil, err
-		}
-	}
-	args["id"] = arg0
 	return args, nil
 }
 
@@ -4917,47 +4888,6 @@ func (ec *executionContext) _Query_me(ctx context.Context, field graphql.Collect
 	res := resTmp.(*model.User)
 	fc.Result = res
 	return ec.marshalNUser2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐUser(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) _Query_testQuery(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:   "Query",
-		Field:    field,
-		Args:     nil,
-		IsMethod: true,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	rawArgs := field.ArgumentMap(ec.Variables)
-	args, err := ec.field_Query_testQuery_args(ctx, rawArgs)
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	fc.Args = args
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().TestQuery(rctx, args["id"].(string))
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(model.Entity)
-	fc.Result = res
-	return ec.marshalNEntity2githubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐEntity(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Query___type(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -8353,20 +8283,6 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 					}
 				}()
 				res = ec._Query_me(ctx, field)
-				if res == graphql.Null {
-					atomic.AddUint32(&invalids, 1)
-				}
-				return res
-			})
-		case "testQuery":
-			field := field
-			out.Concurrently(i, func() (res graphql.Marshaler) {
-				defer func() {
-					if r := recover(); r != nil {
-						ec.Error(ctx, ec.Recover(ctx, r))
-					}
-				}()
-				res = ec._Query_testQuery(ctx, field)
 				if res == graphql.Null {
 					atomic.AddUint32(&invalids, 1)
 				}

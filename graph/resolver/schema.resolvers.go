@@ -6,7 +6,6 @@ package resolver
 import (
 	"context"
 	"fmt"
-	"strings"
 
 	"github.com/nedrocks/delphisbe/graph/generated"
 	"github.com/nedrocks/delphisbe/graph/model"
@@ -326,28 +325,6 @@ func (r *queryResolver) Me(ctx context.Context) (*model.User, error) {
 	}
 
 	return creatingUser.User, nil
-}
-
-func (r *queryResolver) TestQuery(ctx context.Context, id string) (model.Entity, error) {
-	logrus.Infof("Entity: %v\n", id)
-	s := strings.Split(id, ":")
-	logrus.Infof("S: %+v\n", s)
-	var entity model.Entity
-	if s[0] == "participant" {
-		res, err := r.DAOManager.GetParticipantByID(ctx, s[1])
-		if err != nil {
-			return nil, err
-		}
-		entity = res
-	} else if s[0] == "discussion" {
-		res, err := r.DAOManager.GetDiscussionByID(ctx, s[1])
-		if err != nil {
-			return nil, err
-		}
-		entity = res
-	}
-
-	return entity, nil
 }
 
 func (r *subscriptionResolver) PostAdded(ctx context.Context, discussionID string) (<-chan *model.Post, error) {
