@@ -30,6 +30,7 @@ require (
 	github.com/vektah/gqlparser v1.3.1
 	github.com/vektah/gqlparser/v2 v2.0.1
 	github.com/vektra/mockery v1.1.1 // indirect
+	go.uber.org/multierr v1.1.0
 	golang.org/x/oauth2 v0.0.0-20180821212333-d2e6202438be
 	golang.org/x/tools v0.0.0-20200513015045-05c28aabb48e // indirect
 	google.golang.org/appengine v1.4.0 // indirect

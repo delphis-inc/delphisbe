@@ -2,6 +2,7 @@ package datastore
 
 import (
 	"context"
+	"database/sql"
 
 	"github.com/pkg/errors"
 
@@ -10,13 +11,13 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func (d *delphisDB) PutPostContent(ctx context.Context, postContent model.PostContent) error {
+func (d *delphisDB) PutPostContent(ctx context.Context, tx *sql.Tx, postContent model.PostContent) error {
 	if err := d.initializeStatements(ctx); err != nil {
 		logrus.WithError(err).Error("PutPost::failed to initialize statements")
 		return err
 	}
 
-	_, err := d.prepStmts.putPostContentsStmt.ExecContext(
+	_, err := tx.StmtContext(ctx, d.prepStmts.putPostContentsStmt).ExecContext(
 		ctx,
 		postContent.ID,
 		postContent.Content,

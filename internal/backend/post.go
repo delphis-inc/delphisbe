@@ -6,9 +6,10 @@ import (
 	"io"
 	"time"
 
-	"github.com/nedrocks/delphisbe/internal/datastore"
+	"go.uber.org/multierr"
 
 	"github.com/nedrocks/delphisbe/graph/model"
+	"github.com/nedrocks/delphisbe/internal/datastore"
 	"github.com/nedrocks/delphisbe/internal/util"
 	"github.com/sirupsen/logrus"
 )
@@ -31,19 +32,42 @@ func (d *delphisBackend) CreatePost(ctx context.Context, discussionID string, pa
 		QuotedPostID:  input.QuotedPostID,
 	}
 
-	// TODO: Wrap into a transaction here
-	// Put post contents and post
-	if err := d.db.PutPostContent(ctx, postContent); err != nil {
+	// Begin tx
+	tx, err := d.db.BeginTx(ctx)
+	if err != nil {
+		logrus.WithError(err).Error("failed to begin tx")
+		return nil, err
+	}
+	// Put post contents
+	if err := d.db.PutPostContent(ctx, tx, postContent); err != nil {
 		logrus.WithError(err).Error("failed to PutPostContent")
+
+		// Rollback on errors
+		if txErr := d.db.RollbackTx(ctx, tx); txErr != nil {
+			logrus.WithError(txErr).Error("failed to rollback tx")
+			return nil, multierr.Append(err, txErr)
+		}
 		return nil, err
 	}
 
-	postObj, err := d.db.PutPost(ctx, post)
+	// Put post
+	postObj, err := d.db.PutPost(ctx, tx, post)
 	if err != nil {
 		logrus.WithError(err).Error("failed to PutPost")
+
+		// Rollback on errors
+		if txErr := d.db.RollbackTx(ctx, tx); txErr != nil {
+			logrus.WithError(txErr).Error("failed to rollback tx")
+			return nil, multierr.Append(err, txErr)
+		}
 		return nil, err
 	}
-	// End transaction
+
+	// Commit transaction
+	if err := d.db.CommitTx(ctx, tx); err != nil {
+		logrus.WithError(err).Error("failed to commit post tx")
+		return nil, err
+	}
 
 	discussion, err := d.db.GetDiscussionByID(ctx, discussionID)
 	if err != nil {

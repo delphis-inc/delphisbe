@@ -9,14 +9,14 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func (d *delphisDB) PutPost(ctx context.Context, post model.Post) (*model.Post, error) {
+func (d *delphisDB) PutPost(ctx context.Context, tx *sql.Tx, post model.Post) (*model.Post, error) {
 	logrus.Debug("PutPost::SQL Create")
 	if err := d.initializeStatements(ctx); err != nil {
 		logrus.WithError(err).Error("PutPost::failed to initialize statements")
 		return nil, err
 	}
 
-	err := d.prepStmts.putPostStmt.QueryRowContext(
+	err := tx.StmtContext(ctx, d.prepStmts.putPostStmt).QueryRowContext(
 		ctx,
 		post.ID,
 		post.DiscussionID,

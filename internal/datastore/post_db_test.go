@@ -51,14 +51,17 @@ func TestPostDatastore(t *testing.T) {
 			scenario: "insert new post",
 			data:     postTestData{post: postObj},
 			test: func(ctx context.Context, t *testing.T, db Datastore, data postTestData) {
-				// TODO: Wrap in a transaction
-				if err := db.PutPostContent(ctx, *data.post.PostContent); err != nil {
+				tx, _ := db.BeginTx(ctx)
+
+				if err := db.PutPostContent(ctx, tx, *data.post.PostContent); err != nil {
 					t.Fatal(err)
 				}
-				resp, err := db.PutPost(ctx, data.post)
+				resp, err := db.PutPost(ctx, tx, data.post)
 				assert.NoError(t, err)
 				assert.Equal(t, postObj.ID, resp.ID)
 
+				// Keep db clean
+				db.RollbackTx(ctx, tx)
 			},
 		},
 	}

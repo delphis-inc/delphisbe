@@ -3,6 +3,8 @@ package datastore
 import (
 	"context"
 
+	"go.uber.org/multierr"
+
 	"github.com/nedrocks/delphisbe/graph/model"
 
 	"github.com/sirupsen/logrus"
@@ -144,19 +146,37 @@ func (d *delphisDB) writeParticipants(ctx context.Context, testParticipants []mo
 }
 
 func (d *delphisDB) writePostsAndContents(ctx context.Context, testPosts []model.Post) error {
+	tx, err := d.BeginTx(ctx)
+	if err != nil {
+		logrus.WithError(err).Error("failed to create tx")
+		return err
+	}
 	for _, post := range testPosts {
 		logrus.Infof("In here for posts: %+v\n", post)
-		if err := d.PutPostContent(ctx, *post.PostContent); err != nil {
+		if err := d.PutPostContent(ctx, tx, *post.PostContent); err != nil {
 			logrus.WithError(err).Error("failed to put test post contents")
+
+			// Rollback on errors
+			if txErr := d.RollbackTx(ctx, tx); txErr != nil {
+				logrus.WithError(txErr).Error("failed to rollback tx")
+				return multierr.Append(err, txErr)
+			}
 			return err
 		}
 
-		if _, err := d.PutPost(ctx, post); err != nil {
+		if _, err := d.PutPost(ctx, tx, post); err != nil {
 			logrus.WithError(err).Error("failed to put test post")
+
+			// Rollback on errors
+			if txErr := d.RollbackTx(ctx, tx); txErr != nil {
+				logrus.WithError(txErr).Error("failed to rollback tx")
+				return multierr.Append(err, txErr)
+			}
 			return err
 		}
 	}
-	return nil
+
+	return d.CommitTx(ctx, tx)
 }
 
 func (d *delphisDB) close() error {

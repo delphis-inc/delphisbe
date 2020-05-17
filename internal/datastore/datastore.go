@@ -45,8 +45,8 @@ type Datastore interface {
 	GetPostsByDiscussionID(ctx context.Context, discussionID string) ([]*model.Post, error)
 	GetPostsByDiscussionIDIter(ctx context.Context, discussionID string) PostIter
 	GetPostContentByID(ctx context.Context, id string) (*model.PostContent, error)
-	PutPost(ctx context.Context, post model.Post) (*model.Post, error)
-	PutPostContent(ctx context.Context, postContent model.PostContent) error
+	PutPost(ctx context.Context, tx *sql2.Tx, post model.Post) (*model.Post, error)
+	PutPostContent(ctx context.Context, tx *sql2.Tx, postContent model.PostContent) error
 	GetUserProfileByID(ctx context.Context, id string) (*model.UserProfile, error)
 	GetUserProfileByUserID(ctx context.Context, userID string) (*model.UserProfile, error)
 	GetSocialInfosByUserProfileID(ctx context.Context, userProfileID string) ([]model.SocialInfo, error)
@@ -60,6 +60,11 @@ type Datastore interface {
 	UpsertViewer(ctx context.Context, viewer model.Viewer) (*model.Viewer, error)
 	GetPostByID(ctx context.Context, postID string) (*model.Post, error)
 	CreateTestTables(ctx context.Context, data TestData) (func() error, error)
+
+	// TXN
+	BeginTx(ctx context.Context) (*sql2.Tx, error)
+	RollbackTx(ctx context.Context, tx *sql2.Tx) error
+	CommitTx(ctx context.Context, tx *sql2.Tx) error
 }
 
 type delphisDB struct {
