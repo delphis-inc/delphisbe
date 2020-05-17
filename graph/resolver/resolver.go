@@ -11,7 +11,8 @@ import (
 )
 
 type Resolver struct {
-	DAOManager backend.DelphisBackend
+	participant map[string]model.Participant
+	DAOManager  backend.DelphisBackend
 }
 
 func (r *Resolver) resolveDiscussionByID(ctx context.Context, id string) (*model.Discussion, error) {

@@ -1,6 +1,7 @@
+package resolver
+
 // This file will be automatically regenerated based on the schema, any resolver implementations
 // will be copied through when generating and any unknown code will be moved to the end.
-package resolver
 
 import (
 	"context"
@@ -23,6 +24,7 @@ func (r *userDeviceResolver) Platform(ctx context.Context, obj *model.UserDevice
 	}
 }
 
+// UserDevice returns generated.UserDeviceResolver implementation.
 func (r *Resolver) UserDevice() generated.UserDeviceResolver { return &userDeviceResolver{r} }
 
 type userDeviceResolver struct{ *Resolver }

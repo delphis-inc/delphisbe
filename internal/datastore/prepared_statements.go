@@ -48,5 +48,6 @@ const getPostsByDiscussionIDString = `
 const putPostContentsString = `
 		INSERT INTO post_contents (
 			id,
-			content
-		) VALUES ($1, $2);`
+			content,
+			mentioned_entities
+		) VALUES ($1, $2, $3);`

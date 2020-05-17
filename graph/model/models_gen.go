@@ -13,6 +13,10 @@ type DiscussionNotificationPreferences interface {
 	IsDiscussionNotificationPreferences()
 }
 
+type Entity interface {
+	IsEntity()
+}
+
 type AddDiscussionParticipantInput struct {
 	GradientColor *GradientColor `json:"gradientColor"`
 	FlairID       *string        `json:"flairID"`
@@ -47,12 +51,12 @@ type PollInput struct {
 }
 
 type PostContentInput struct {
-	PostText         string      `json:"postText"`
-	PostType         PostType    `json:"postType"`
-	MentionedUserIDs []string    `json:"mentionedUserIDs"`
-	QuotedPostID     *string     `json:"quotedPostID"`
-	Media            *MediaInput `json:"media"`
-	Poll             *PollInput  `json:"poll"`
+	PostText          string      `json:"postText"`
+	PostType          PostType    `json:"postType"`
+	MentionedEntities []string    `json:"mentionedEntities"`
+	QuotedPostID      *string     `json:"quotedPostID"`
+	Media             *MediaInput `json:"media"`
+	Poll              *PollInput  `json:"poll"`
 }
 
 type URL struct {

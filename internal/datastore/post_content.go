@@ -7,6 +7,7 @@ import (
 	"github.com/pkg/errors"
 
 	"github.com/jinzhu/gorm"
+	"github.com/lib/pq"
 	"github.com/nedrocks/delphisbe/graph/model"
 	"github.com/sirupsen/logrus"
 )
@@ -21,6 +22,7 @@ func (d *delphisDB) PutPostContent(ctx context.Context, tx *sql.Tx, postContent 
 		ctx,
 		postContent.ID,
 		postContent.Content,
+		pq.Array(postContent.MentionedEntities),
 	)
 	if err != nil {
 		logrus.WithError(err).Error("failed to execute putPostContentsStmt")

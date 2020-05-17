@@ -3,7 +3,7 @@ module github.com/nedrocks/delphisbe
 go 1.13
 
 require (
-	github.com/99designs/gqlgen v0.11.1
+	github.com/99designs/gqlgen v0.11.3
 	github.com/DATA-DOG/go-sqlmock v1.4.1
 	github.com/Timothylock/go-signin-with-apple v0.0.0-20200221193809-1a722422658e // indirect
 	github.com/aws/aws-sdk-go v1.29.19
@@ -17,7 +17,7 @@ require (
 	github.com/gorilla/websocket v1.4.0
 	github.com/jinzhu/gorm v1.9.13-0.20200305064831-7ea143b5484f
 	github.com/jinzhu/now v1.1.1 // indirect
-	github.com/lib/pq v1.3.0 // indirect
+	github.com/lib/pq v1.3.0
 	github.com/mattn/go-sqlite3 v2.0.3+incompatible // indirect
 	github.com/patrickmn/go-cache v2.1.0+incompatible
 	github.com/pkg/errors v0.9.1
@@ -27,6 +27,7 @@ require (
 	github.com/spf13/viper v1.6.2
 	github.com/stretchr/objx v0.2.0 // indirect
 	github.com/stretchr/testify v1.5.1
+	github.com/urfave/cli v1.20.0 // indirect
 	github.com/vektah/gqlparser v1.3.1
 	github.com/vektah/gqlparser/v2 v2.0.1
 	github.com/vektra/mockery v1.1.1 // indirect

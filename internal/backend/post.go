@@ -17,9 +17,12 @@ import (
 func (d *delphisBackend) CreatePost(ctx context.Context, discussionID string, participantID string, input model.PostContentInput) (*model.Post, error) {
 
 	postContent := model.PostContent{
-		ID:      util.UUIDv4(),
-		Content: input.PostText,
+		ID:                util.UUIDv4(),
+		Content:           input.PostText,
+		MentionedEntities: input.MentionedEntities,
 	}
+
+	logrus.Infof("PostContent: %+v\n", postContent)
 
 	post := model.Post{
 		ID:            util.UUIDv4(),
@@ -68,6 +71,8 @@ func (d *delphisBackend) CreatePost(ctx context.Context, discussionID string, pa
 		logrus.WithError(err).Error("failed to commit post tx")
 		return nil, err
 	}
+
+	logrus.Infof("Post: %+v\n", postObj)
 
 	discussion, err := d.db.GetDiscussionByID(ctx, discussionID)
 	if err != nil {

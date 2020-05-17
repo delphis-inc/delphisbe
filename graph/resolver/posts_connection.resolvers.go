@@ -1,6 +1,7 @@
+package resolver
+
 // This file will be automatically regenerated based on the schema, any resolver implementations
 // will be copied through when generating and any unknown code will be moved to the end.
-package resolver
 
 import (
 	"context"
@@ -14,6 +15,7 @@ func (r *postsConnectionResolver) Edges(ctx context.Context, obj *model.PostsCon
 	panic(fmt.Errorf("not implemented"))
 }
 
+// PostsConnection returns generated.PostsConnectionResolver implementation.
 func (r *Resolver) PostsConnection() generated.PostsConnectionResolver {
 	return &postsConnectionResolver{r}
 }

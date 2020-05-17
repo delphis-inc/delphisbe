@@ -155,6 +155,7 @@ type ComplexityRoot struct {
 		Discussion        func(childComplexity int) int
 		ID                func(childComplexity int) int
 		IsDeleted         func(childComplexity int) int
+		MentionedEntities func(childComplexity int) int
 		Participant       func(childComplexity int) int
 		QuotedPost        func(childComplexity int) int
 		UpdatedAt         func(childComplexity int) int
@@ -194,6 +195,7 @@ type ComplexityRoot struct {
 		FlairTemplates  func(childComplexity int, query *string) int
 		ListDiscussions func(childComplexity int) int
 		Me              func(childComplexity int) int
+		TestQuery       func(childComplexity int, id string) int
 		User            func(childComplexity int, id string) int
 	}
 
@@ -307,6 +309,8 @@ type PostResolver interface {
 	Participant(ctx context.Context, obj *model.Post) (*model.Participant, error)
 	CreatedAt(ctx context.Context, obj *model.Post) (string, error)
 	UpdatedAt(ctx context.Context, obj *model.Post) (string, error)
+
+	MentionedEntities(ctx context.Context, obj *model.Post) ([]model.Entity, error)
 }
 type PostBookmarkResolver interface {
 	Discussion(ctx context.Context, obj *model.PostBookmark) (*model.Discussion, error)
@@ -324,6 +328,7 @@ type QueryResolver interface {
 	FlairTemplates(ctx context.Context, query *string) ([]*model.FlairTemplate, error)
 	User(ctx context.Context, id string) (*model.User, error)
 	Me(ctx context.Context) (*model.User, error)
+	TestQuery(ctx context.Context, id string) (model.Entity, error)
 }
 type SubscriptionResolver interface {
 	PostAdded(ctx context.Context, discussionID string) (<-chan *model.Post, error)
@@ -842,6 +847,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Post.IsDeleted(childComplexity), true
 
+	case "Post.mentionedEntities":
+		if e.complexity.Post.MentionedEntities == nil {
+			break
+		}
+
+		return e.complexity.Post.MentionedEntities(childComplexity), true
+
 	case "Post.participant":
 		if e.complexity.Post.Participant == nil {
 			break
@@ -998,6 +1010,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Query.Me(childComplexity), true
+
+	case "Query.testQuery":
+		if e.complexity.Query.TestQuery == nil {
+			break
+		}
+
+		args, err := ec.field_Query_testQuery_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.TestQuery(childComplexity, args["id"].(string)), true
 
 	case "Query.user":
 		if e.complexity.Query.User == nil {
@@ -1307,7 +1331,7 @@ func (ec *executionContext) introspectType(name string) (*introspection.Type, er
 }
 
 var sources = []*ast.Source{
-	&ast.Source{Name: "graph/types/discussion.graphqls", Input: `type Discussion {
+	&ast.Source{Name: "graph/types/discussion.graphqls", Input: `type Discussion implements Entity {
     # Unique id for this discussion
     id: ID!
     # We do not link to the user themselves, only the moderator view of a user.
@@ -1425,7 +1449,7 @@ enum PostType {
     endCursor: ID
     hasNextPage: Boolean!
 }`, BuiltIn: false},
-	&ast.Source{Name: "graph/types/participant.graphqls", Input: `type Participant {
+	&ast.Source{Name: "graph/types/participant.graphqls", Input: `type Participant implements Entity{
     # The UUID for this participant.
     id: ID!
     # Fetching a participant directly is okay because we have no link back to who the user is.
@@ -1446,7 +1470,10 @@ enum PostType {
 
     hasJoined: Boolean!
 }
-`, BuiltIn: false},
+
+interface Entity {
+    id: ID!
+}`, BuiltIn: false},
 	&ast.Source{Name: "graph/types/participant_notification_preferences.graphqls", Input: `type ParticipantNotificationPreferences {
     id: ID!
 }`, BuiltIn: false},
@@ -1464,8 +1491,8 @@ enum PostType {
     cursor: ID!
     node: Participant
 }`, BuiltIn: false},
-	&ast.Source{Name: "graph/types/post.graphqls", Input: `type Post {
-    id: ID!    
+	&ast.Source{Name: "graph/types/post.graphqls", Input: `type Post{
+    id: ID!
     isDeleted: Boolean!
     deletedReasonCode: PostDeletedReason
     content: String!
@@ -1474,6 +1501,7 @@ enum PostType {
     createdAt: String!
     updatedAt: String!
     quotedPost: Post
+    mentionedEntities: [Entity!]
 }`, BuiltIn: false},
 	&ast.Source{Name: "graph/types/post_bookmark.graphqls", Input: `# Defines a bookmark for a post. Built this way because I
 # assume we will have other types of bookmarks down the road
@@ -1516,6 +1544,7 @@ type Query {
   # Need to add verification that the caller is the user.
   user(id: ID!): User!
   me: User!
+  testQuery(id: ID!): Entity!
 }
 
 input UpdateParticipantInput {
@@ -1553,7 +1582,7 @@ input PollInput {
 input PostContentInput {
   postText: String!,
   postType: PostType!,
-  mentionedUserIDs:[ID!],
+  mentionedEntities:[String!],
   quotedPostID: ID
   media: MediaInput,
   poll: PollInput
@@ -1988,6 +2017,20 @@ func (ec *executionContext) field_Query_flairTemplates_args(ctx context.Context,
 		}
 	}
 	args["query"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_testQuery_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 string
+	if tmp, ok := rawArgs["id"]; ok {
+		arg0, err = ec.unmarshalNID2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["id"] = arg0
 	return args, nil
 }
 
@@ -4205,6 +4248,37 @@ func (ec *executionContext) _Post_quotedPost(ctx context.Context, field graphql.
 	return ec.marshalOPost2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐPost(ctx, field.Selections, res)
 }
 
+func (ec *executionContext) _Post_mentionedEntities(ctx context.Context, field graphql.CollectedField, obj *model.Post) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "Post",
+		Field:    field,
+		Args:     nil,
+		IsMethod: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Post().MentionedEntities(rctx, obj)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.([]model.Entity)
+	fc.Result = res
+	return ec.marshalOEntity2ᚕgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐEntityᚄ(ctx, field.Selections, res)
+}
+
 func (ec *executionContext) _PostBookmark_id(ctx context.Context, field graphql.CollectedField, obj *model.PostBookmark) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -4843,6 +4917,47 @@ func (ec *executionContext) _Query_me(ctx context.Context, field graphql.Collect
 	res := resTmp.(*model.User)
 	fc.Result = res
 	return ec.marshalNUser2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐUser(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Query_testQuery(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "Query",
+		Field:    field,
+		Args:     nil,
+		IsMethod: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Query_testQuery_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().TestQuery(rctx, args["id"].(string))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(model.Entity)
+	fc.Result = res
+	return ec.marshalNEntity2githubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐEntity(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Query___type(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -7096,9 +7211,9 @@ func (ec *executionContext) unmarshalInputPostContentInput(ctx context.Context, 
 			if err != nil {
 				return it, err
 			}
-		case "mentionedUserIDs":
+		case "mentionedEntities":
 			var err error
-			it.MentionedUserIDs, err = ec.unmarshalOID2ᚕstringᚄ(ctx, v)
+			it.MentionedEntities, err = ec.unmarshalOString2ᚕstringᚄ(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -7201,11 +7316,34 @@ func (ec *executionContext) _DiscussionNotificationPreferences(ctx context.Conte
 	}
 }
 
+func (ec *executionContext) _Entity(ctx context.Context, sel ast.SelectionSet, obj model.Entity) graphql.Marshaler {
+	switch obj := (obj).(type) {
+	case nil:
+		return graphql.Null
+	case model.Discussion:
+		return ec._Discussion(ctx, sel, &obj)
+	case *model.Discussion:
+		if obj == nil {
+			return graphql.Null
+		}
+		return ec._Discussion(ctx, sel, obj)
+	case model.Participant:
+		return ec._Participant(ctx, sel, &obj)
+	case *model.Participant:
+		if obj == nil {
+			return graphql.Null
+		}
+		return ec._Participant(ctx, sel, obj)
+	default:
+		panic(fmt.Errorf("unexpected type %T", obj))
+	}
+}
+
 // endregion ************************** interface.gotpl ***************************
 
 // region    **************************** object.gotpl ****************************
 
-var discussionImplementors = []string{"Discussion"}
+var discussionImplementors = []string{"Discussion", "Entity"}
 
 func (ec *executionContext) _Discussion(ctx context.Context, sel ast.SelectionSet, obj *model.Discussion) graphql.Marshaler {
 	fields := graphql.CollectFields(ec.OperationContext, sel, discussionImplementors)
@@ -7591,7 +7729,7 @@ func (ec *executionContext) _PageInfo(ctx context.Context, sel ast.SelectionSet,
 	return out
 }
 
-var participantImplementors = []string{"Participant"}
+var participantImplementors = []string{"Participant", "Entity"}
 
 func (ec *executionContext) _Participant(ctx context.Context, sel ast.SelectionSet, obj *model.Participant) graphql.Marshaler {
 	fields := graphql.CollectFields(ec.OperationContext, sel, participantImplementors)
@@ -7924,6 +8062,17 @@ func (ec *executionContext) _Post(ctx context.Context, sel ast.SelectionSet, obj
 			})
 		case "quotedPost":
 			out.Values[i] = ec._Post_quotedPost(ctx, field, obj)
+		case "mentionedEntities":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Post_mentionedEntities(ctx, field, obj)
+				return res
+			})
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -8204,6 +8353,20 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 					}
 				}()
 				res = ec._Query_me(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
+		case "testQuery":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_testQuery(ctx, field)
 				if res == graphql.Null {
 					atomic.AddUint32(&invalids, 1)
 				}
@@ -8936,6 +9099,16 @@ func (ec *executionContext) marshalNDiscussionNotificationPreferences2githubᚗc
 	return ec._DiscussionNotificationPreferences(ctx, sel, v)
 }
 
+func (ec *executionContext) marshalNEntity2githubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐEntity(ctx context.Context, sel ast.SelectionSet, v model.Entity) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	return ec._Entity(ctx, sel, v)
+}
+
 func (ec *executionContext) marshalNFlair2githubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐFlair(ctx context.Context, sel ast.SelectionSet, v model.Flair) graphql.Marshaler {
 	return ec._Flair(ctx, sel, &v)
 }
@@ -9522,6 +9695,46 @@ func (ec *executionContext) marshalODiscussion2ᚖgithubᚗcomᚋnedrocksᚋdelp
 	return ec._Discussion(ctx, sel, v)
 }
 
+func (ec *executionContext) marshalOEntity2ᚕgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐEntityᚄ(ctx context.Context, sel ast.SelectionSet, v []model.Entity) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNEntity2githubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐEntity(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+	return ret
+}
+
 func (ec *executionContext) marshalOFlair2githubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐFlair(ctx context.Context, sel ast.SelectionSet, v model.Flair) graphql.Marshaler {
 	return ec._Flair(ctx, sel, &v)
 }
@@ -9643,38 +9856,6 @@ func (ec *executionContext) unmarshalOID2string(ctx context.Context, v interface
 
 func (ec *executionContext) marshalOID2string(ctx context.Context, sel ast.SelectionSet, v string) graphql.Marshaler {
 	return graphql.MarshalID(v)
-}
-
-func (ec *executionContext) unmarshalOID2ᚕstringᚄ(ctx context.Context, v interface{}) ([]string, error) {
-	var vSlice []interface{}
-	if v != nil {
-		if tmp1, ok := v.([]interface{}); ok {
-			vSlice = tmp1
-		} else {
-			vSlice = []interface{}{v}
-		}
-	}
-	var err error
-	res := make([]string, len(vSlice))
-	for i := range vSlice {
-		res[i], err = ec.unmarshalNID2string(ctx, vSlice[i])
-		if err != nil {
-			return nil, err
-		}
-	}
-	return res, nil
-}
-
-func (ec *executionContext) marshalOID2ᚕstringᚄ(ctx context.Context, sel ast.SelectionSet, v []string) graphql.Marshaler {
-	if v == nil {
-		return graphql.Null
-	}
-	ret := make(graphql.Array, len(v))
-	for i := range v {
-		ret[i] = ec.marshalNID2string(ctx, sel, v[i])
-	}
-
-	return ret
 }
 
 func (ec *executionContext) unmarshalOID2ᚖstring(ctx context.Context, v interface{}) (*string, error) {
@@ -10027,6 +10208,38 @@ func (ec *executionContext) unmarshalOString2string(ctx context.Context, v inter
 
 func (ec *executionContext) marshalOString2string(ctx context.Context, sel ast.SelectionSet, v string) graphql.Marshaler {
 	return graphql.MarshalString(v)
+}
+
+func (ec *executionContext) unmarshalOString2ᚕstringᚄ(ctx context.Context, v interface{}) ([]string, error) {
+	var vSlice []interface{}
+	if v != nil {
+		if tmp1, ok := v.([]interface{}); ok {
+			vSlice = tmp1
+		} else {
+			vSlice = []interface{}{v}
+		}
+	}
+	var err error
+	res := make([]string, len(vSlice))
+	for i := range vSlice {
+		res[i], err = ec.unmarshalNString2string(ctx, vSlice[i])
+		if err != nil {
+			return nil, err
+		}
+	}
+	return res, nil
+}
+
+func (ec *executionContext) marshalOString2ᚕstringᚄ(ctx context.Context, sel ast.SelectionSet, v []string) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	ret := make(graphql.Array, len(v))
+	for i := range v {
+		ret[i] = ec.marshalNString2string(ctx, sel, v[i])
+	}
+
+	return ret
 }
 
 func (ec *executionContext) unmarshalOString2ᚖstring(ctx context.Context, v interface{}) (*string, error) {

@@ -1,6 +1,7 @@
+package resolver
+
 // This file will be automatically regenerated based on the schema, any resolver implementations
 // will be copied through when generating and any unknown code will be moved to the end.
-package resolver
 
 import (
 	"context"
@@ -20,6 +21,7 @@ func (r *userProfileResolver) ProfileImageURL(ctx context.Context, obj *model.Us
 	return obj.SocialInfos[0].ProfileImageURL, nil
 }
 
+// UserProfile returns generated.UserProfileResolver implementation.
 func (r *Resolver) UserProfile() generated.UserProfileResolver { return &userProfileResolver{r} }
 
 type userProfileResolver struct{ *Resolver }

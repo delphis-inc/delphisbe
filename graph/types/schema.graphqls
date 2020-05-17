@@ -12,6 +12,7 @@ type Query {
   # Need to add verification that the caller is the user.
   user(id: ID!): User!
   me: User!
+  testQuery(id: ID!): Entity!
 }
 
 input UpdateParticipantInput {
@@ -49,7 +50,7 @@ input PollInput {
 input PostContentInput {
   postText: String!,
   postType: PostType!,
-  mentionedUserIDs:[ID!],
+  mentionedEntities:[String!],
   quotedPostID: ID
   media: MediaInput,
   poll: PollInput

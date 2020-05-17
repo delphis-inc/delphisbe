@@ -19,6 +19,8 @@ type Post struct {
 	QuotedPost   *Post
 }
 
+func (p *Post) IsEntity() {}
+
 type PostsEdge struct {
 	Cursor string `json:"cursor"`
 	Node   *Post  `json:"node"`
