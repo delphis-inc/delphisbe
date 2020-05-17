@@ -23,7 +23,6 @@ gql/schema/bindata.go
 
 #terraform
 # Compiled files
-*.tfstate
 *.tfstate.backup
 .terraform.tfstate.lock.info
 # Module directory
