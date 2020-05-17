@@ -62,6 +62,8 @@ type DelphisBackend interface {
 	ValidateRefreshToken(ctx context.Context, token string) (*auth.DelphisRefreshTokenUser, error)
 
 	SendNotificationsToSubscribers(ctx context.Context, discussion *model.Discussion, post *model.Post) (*SendNotificationResponse, error)
+	
+	GetMedia(ctx context.Context, mediaID string, mediaType )
 }
 
 type delphisBackend struct {

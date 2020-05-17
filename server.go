@@ -124,6 +124,8 @@ func main() {
 
 	http.Handle("/twitter/login", twitter.LoginHandler(config, nil))
 	http.Handle("/twitter/callback", twitter.CallbackHandler(config, successfulLogin(*conf, delphisBackend), nil))
+	http.Handle("/upload_image", allowCors(uploadImage(delphisBackend)))
+	http.Handle("/image/", allowCors(getImage(delphisBackend)))
 	http.Handle("/health", healthCheck())
 	log.Printf("connect on port %s for GraphQL playground", port)
 	log.Fatal(http.ListenAndServe(":"+port, nil))
@@ -250,5 +252,28 @@ func successfulLogin(conf config.Config, delphisBackend backend.DelphisBackend) 
 		redirectURL.RawQuery = query.Encode()
 		http.Redirect(w, req, redirectURL.String(), 302)
 	}
+	return http.HandlerFunc(fn)
+}
+
+func getImage(delphisBackend backend.DelphisBackend) http.Handler {
+	fn := func(w http.ResponseWriter, r *http.Request) {
+		imageID := r.URL.Path[len("/image/"):]
+		logrus.Debugf("In here: %v\n", imageID)
+		if len(imageID) == 0 {
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+		return
+	}
+
+	return http.HandlerFunc(fn)
+}
+
+func uploadImage(delphisBackend backend.DelphisBackend) http.Handler {
+	fn := func(w http.ResponseWriter, r *http.Request) {
+		logrus.Debugf("In here\n")
+		return
+	}
+
 	return http.HandlerFunc(fn)
 }
