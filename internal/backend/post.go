@@ -66,13 +66,21 @@ func (d *delphisBackend) CreatePost(ctx context.Context, discussionID string, pa
 		return nil, err
 	}
 
+	// Put Mentions
+	if err := d.db.PutMention(ctx, tx, postObj); err != nil {
+		logrus.WithError(err).Error("failed to PutMention")
+
+		// We don't want to rollback the whole transaction if we mess up the recording of mentions.
+		// Ideally we'd push it to a queue to be re-ran later
+	}
+
 	// Commit transaction
 	if err := d.db.CommitTx(ctx, tx); err != nil {
 		logrus.WithError(err).Error("failed to commit post tx")
 		return nil, err
 	}
 
-	logrus.Infof("Post: %+v\n", postObj)
+	logrus.Infof("Post: %+v\n", postObj.PostContent)
 
 	discussion, err := d.db.GetDiscussionByID(ctx, discussionID)
 	if err != nil {

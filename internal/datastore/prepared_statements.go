@@ -10,6 +10,9 @@ type dbPrepStmts struct {
 
 	// PostContents
 	putPostContentsStmt *sql2.Stmt
+
+	// Mentions
+	putMentionStmt *sql2.Stmt
 }
 
 const putPostString = `
@@ -51,3 +54,11 @@ const putPostContentsString = `
 			content,
 			mentioned_entities
 		) VALUES ($1, $2, $3);`
+
+const putMentionString = `
+		INSERT INTO mentions (
+			participant_id,
+			post_content_id,
+			entity_id,
+			entity_type
+		) VALUES ($1, $2, $3, $4);`

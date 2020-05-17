@@ -59,6 +59,7 @@ type Datastore interface {
 	GetViewersByIDs(ctx context.Context, viewerIDs []string) (map[string]*model.Viewer, error)
 	UpsertViewer(ctx context.Context, viewer model.Viewer) (*model.Viewer, error)
 	GetPostByID(ctx context.Context, postID string) (*model.Post, error)
+	PutMention(ctx context.Context, tx *sql2.Tx, post *model.Post) error
 	CreateTestTables(ctx context.Context, data TestData) (func() error, error)
 
 	// TXN
@@ -178,6 +179,12 @@ func (d *delphisDB) initializeStatements(ctx context.Context) (err error) {
 	if d.prepStmts.putPostContentsStmt, err = d.pg.PrepareContext(ctx, putPostContentsString); err != nil {
 		logrus.WithError(err).Error("failed to prepare putPostContentsStmt")
 		return errors.Wrap(err, "failed to prepare putPostContentsStmt")
+	}
+
+	// MENTIONS
+	if d.prepStmts.putMentionStmt, err = d.pg.PrepareContext(ctx, putMentionString); err != nil {
+		logrus.WithError(err).Error("failed to prepare putMentionStmt")
+		return errors.Wrap(err, "failed to prepare putMentionStmt")
 	}
 
 	d.ready = true

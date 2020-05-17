@@ -71,13 +71,13 @@ func (r *postResolver) MentionedEntities(ctx context.Context, obj *model.Post) (
 	for _, entityID := range obj.PostContent.MentionedEntities {
 		s := strings.Split(entityID, ":")
 		var entity model.Entity
-		if s[0] == ParticipantPrefix {
+		if s[0] == model.ParticipantPrefix {
 			res, err := r.DAOManager.GetParticipantByID(ctx, s[1])
 			if err != nil {
 				return nil, err
 			}
 			entity = res
-		} else if s[0] == DiscussionPrefix {
+		} else if s[0] == model.DiscussionPrefix {
 			res, err := r.DAOManager.GetDiscussionByID(ctx, s[1])
 			if err != nil {
 				return nil, err
@@ -97,14 +97,3 @@ func (r *postResolver) MentionedEntities(ctx context.Context, obj *model.Post) (
 func (r *Resolver) Post() generated.PostResolver { return &postResolver{r} }
 
 type postResolver struct{ *Resolver }
-
-// !!! WARNING !!!
-// The code below was going to be deleted when updating resolvers. It has been copied here so you have
-// one last chance to move it out of harms way if you want. There are two reasons this happens:
-//  - When renaming or deleting a resolver the old code will be put in here. You can safely delete
-//    it when you're done.
-//  - You have helper methods in this file. Move them out to keep these resolver files clean.
-const (
-	ParticipantPrefix = "participant"
-	DiscussionPrefix  = "discussion"
-)
