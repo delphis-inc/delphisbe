@@ -3,10 +3,31 @@ package datastore
 import (
 	"context"
 
+	"github.com/pkg/errors"
+
 	"github.com/jinzhu/gorm"
 	"github.com/nedrocks/delphisbe/graph/model"
 	"github.com/sirupsen/logrus"
 )
+
+func (d *delphisDB) PutPostContent(ctx context.Context, postContent model.PostContent) error {
+	if err := d.initializeStatements(ctx); err != nil {
+		logrus.WithError(err).Error("PutPost::failed to initialize statements")
+		return err
+	}
+
+	_, err := d.prepStmts.putPostContentsStmt.ExecContext(
+		ctx,
+		postContent.ID,
+		postContent.Content,
+	)
+	if err != nil {
+		logrus.WithError(err).Error("failed to execute putPostContentsStmt")
+		return errors.Wrap(err, "failed to put postContents")
+	}
+
+	return nil
+}
 
 func (d *delphisDB) GetPostContentByID(ctx context.Context, id string) (*model.PostContent, error) {
 	logrus.Debug("GetPostContentByID::SQL Query")

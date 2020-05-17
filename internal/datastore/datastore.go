@@ -2,9 +2,12 @@ package datastore
 
 import (
 	"context"
+	sql2 "database/sql"
 	"fmt"
+	"sync"
 
 	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbiface"
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 
 	"github.com/aws/aws-sdk-go/aws/session"
@@ -40,8 +43,10 @@ type Datastore interface {
 	GetParticipantsByDiscussionIDUserID(ctx context.Context, discussionID string, userID string) ([]model.Participant, error)
 	UpsertParticipant(ctx context.Context, participant model.Participant) (*model.Participant, error)
 	GetPostsByDiscussionID(ctx context.Context, discussionID string) ([]*model.Post, error)
+	GetPostsByDiscussionIDIter(ctx context.Context, discussionID string) PostIter
 	GetPostContentByID(ctx context.Context, id string) (*model.PostContent, error)
 	PutPost(ctx context.Context, post model.Post) (*model.Post, error)
+	PutPostContent(ctx context.Context, postContent model.PostContent) error
 	GetUserProfileByID(ctx context.Context, id string) (*model.UserProfile, error)
 	GetUserProfileByUserID(ctx context.Context, userID string) (*model.UserProfile, error)
 	GetSocialInfosByUserProfileID(ctx context.Context, userProfileID string) ([]model.SocialInfo, error)
@@ -53,13 +58,27 @@ type Datastore interface {
 	UpsertUserDevice(ctx context.Context, userDevice model.UserDevice) (*model.UserDevice, error)
 	GetViewersByIDs(ctx context.Context, viewerIDs []string) (map[string]*model.Viewer, error)
 	UpsertViewer(ctx context.Context, viewer model.Viewer) (*model.Viewer, error)
+	GetPostByID(ctx context.Context, postID string) (*model.Post, error)
+	CreateTestTables(ctx context.Context, data TestData) (func() error, error)
 }
 
 type delphisDB struct {
 	dynamo   dynamodbiface.DynamoDBAPI
 	sql      *gorm.DB
+	pg       *sql2.DB
 	dbConfig config.TablesConfig
 	encoder  *dynamodbattribute.Encoder
+
+	prepStmts *dbPrepStmts
+
+	// Check if prepared statements are initialized
+	ready   bool
+	readyMu sync.RWMutex
+}
+
+type PostIter interface {
+	Next(post *model.Post) bool
+	Close() error
 }
 
 //MarshalMap wraps the dynamodbattribute.MarshalMap with a defined encoder.
@@ -80,10 +99,13 @@ func NewDatastore(config config.Config, awsSession *session.Session) Datastore {
 		logrus.Debugf("endpoint: %v", *mySession.Config.Endpoint)
 	}
 	dbSvc := dynamodb.New(mySession)
+	gormDB, db := NewSQLDatastore(config.SQLDBConfig, awsSession)
 	return &delphisDB{
-		dbConfig: dbConfig.TablesConfig,
-		sql:      NewSQLDatastore(config.SQLDBConfig, awsSession),
-		dynamo:   dbSvc,
+		dbConfig:  dbConfig.TablesConfig,
+		sql:       gormDB,
+		pg:        db,
+		dynamo:    dbSvc,
+		prepStmts: &dbPrepStmts{},
 		encoder: &dynamodbattribute.Encoder{
 			MarshalOptions: dynamodbattribute.MarshalOptions{
 				SupportJSONTags: false,
@@ -93,21 +115,66 @@ func NewDatastore(config config.Config, awsSession *session.Session) Datastore {
 	}
 }
 
-func NewSQLDatastore(sqlDbConfig config.SQLDBConfig, awsSession *session.Session) *gorm.DB {
+func NewSQLDatastore(sqlDbConfig config.SQLDBConfig, awsSession *session.Session) (*gorm.DB, *sql2.DB) {
 	dbURI := fmt.Sprintf("host=%s port=%d user=%s dbname=%s sslmode=disable password=%s", sqlDbConfig.Host, sqlDbConfig.Port, sqlDbConfig.Username, sqlDbConfig.DBName, sqlDbConfig.Password)
-	logrus.Debugf("About to open connection to DB")
-	db, err := gorm.Open("postgres", dbURI)
+	logrus.Debugf("About to open connection to DB - gorm")
+	gormDB, err := gorm.Open("postgres", dbURI)
 	if err != nil {
-		logrus.WithError(err).Fatalf("Failed to open db")
-		return nil
+		logrus.WithError(err).Fatalf("Failed to open gormDB - gorm")
+		return nil, nil
 	}
-	logrus.Debugf("Opened connection to DB!")
+	logrus.Debugf("Opened connection to DB! - gorm")
+
+	// Open DB Connection for raw sql queries. We will currently support both as we slowly migrate
+	logrus.Debugf("About to open connection to DB - pg")
+	db, err := sql2.Open("postgres", dbURI)
+	if err != nil {
+		logrus.WithError(err).Fatalf("Failed to open gormDB - pg")
+		return nil, nil
+	}
+	logrus.Debugf("Opened connection to DB! - pg")
 
 	// Set autoload
-	//db = db.Set("gorm:auto_preload", true)
-	//db = db.LogMode(true)
-	// need to defer closing the db.
-	//db.AutoMigrate(model.DatabaseModels...)
+	//gormDB = gormDB.Set("gorm:auto_preload", true)
+	//gormDB = gormDB.LogMode(true)
+	// need to defer closing the gormDB.
+	//gormDB.AutoMigrate(model.DatabaseModels...)
 
-	return db
+	return gormDB, db
+}
+
+func (d *delphisDB) initializeStatements(ctx context.Context) (err error) {
+	d.readyMu.RLock()
+	ready := d.ready
+	d.readyMu.RUnlock()
+
+	if ready {
+		return nil
+	}
+
+	d.readyMu.Lock()
+	defer d.readyMu.Unlock()
+	if d.ready {
+		return nil
+	}
+
+	// POSTS
+	if d.prepStmts.putPostStmt, err = d.pg.PrepareContext(ctx, putPostString); err != nil {
+		logrus.WithError(err).Error("failed to prepare putPostStmt")
+		return errors.Wrap(err, "failed to prepare putPostStmt")
+	}
+
+	if d.prepStmts.getPostsByDiscussionIDStmt, err = d.pg.PrepareContext(ctx, getPostsByDiscussionIDString); err != nil {
+		logrus.WithError(err).Error("failed to prepare getPostsByDiscussionIDStmt")
+		return errors.Wrap(err, "failed to prepare getPostsByDiscussionIDStmt")
+	}
+
+	// POST CONTENTS
+	if d.prepStmts.putPostContentsStmt, err = d.pg.PrepareContext(ctx, putPostContentsString); err != nil {
+		logrus.WithError(err).Error("failed to prepare putPostContentsStmt")
+		return errors.Wrap(err, "failed to prepare putPostContentsStmt")
+	}
+
+	d.ready = true
+	return
 }

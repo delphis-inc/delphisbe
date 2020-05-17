@@ -588,6 +588,20 @@ func (_m *Datastore) PutPost(ctx context.Context, post model.Post) (*model.Post,
 	return r0, r1
 }
 
+// PutPostContent provides a mock function with given fields: ctx, postContent
+func (_m *Datastore) PutPostContent(ctx context.Context, postContent model.PostContent) error {
+	ret := _m.Called(ctx, postContent)
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, model.PostContent) error); ok {
+		r0 = rf(ctx, postContent)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
 // RemoveFlair provides a mock function with given fields: ctx, flair
 func (_m *Datastore) RemoveFlair(ctx context.Context, flair model.Flair) (*model.Flair, error) {
 	ret := _m.Called(ctx, flair)
