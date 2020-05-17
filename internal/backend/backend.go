@@ -36,6 +36,7 @@ type DelphisBackend interface {
 	GetParticipantsByDiscussionIDUserID(ctx context.Context, discussionID string, userID string) (*UserDiscussionParticipants, error)
 	GetParticipantsByDiscussionID(ctx context.Context, id string) ([]model.Participant, error)
 	GetParticipantByID(ctx context.Context, id string) (*model.Participant, error)
+	GetParticipantsByIDs(ctx context.Context, ids []string) ([]*model.Participant, error)
 	GetTotalParticipantCountByDiscussionID(ctx context.Context, discussionID string) int
 	UpdateParticipant(ctx context.Context, participants UserDiscussionParticipants, currentParticipantID string, input model.UpdateParticipantInput) (*model.Participant, error)
 	CreatePost(ctx context.Context, discussionID string, participantID string, input model.PostContentInput) (*model.Post, error)
@@ -55,7 +56,7 @@ type DelphisBackend interface {
 	CreateViewerForDiscussion(ctx context.Context, discussionID string, userID string) (*model.Viewer, error)
 	GetSocialInfosByUserProfileID(ctx context.Context, userProfileID string) ([]model.SocialInfo, error)
 	UpsertSocialInfo(ctx context.Context, socialInfo model.SocialInfo) (*model.SocialInfo, error)
-
+	GetMentionedEntities(ctx context.Context, entityIDs []string) ([]model.Entity, error)
 	NewAccessToken(ctx context.Context, userID string) (*auth.DelphisAccessToken, error)
 	ValidateAccessToken(ctx context.Context, token string) (*auth.DelphisAuthedUser, error)
 	ValidateRefreshToken(ctx context.Context, token string) (*auth.DelphisRefreshTokenUser, error)

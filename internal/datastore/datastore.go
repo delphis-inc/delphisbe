@@ -39,6 +39,7 @@ type Datastore interface {
 	RemoveFlairTemplate(ctx context.Context, flairTemplate model.FlairTemplate) (*model.FlairTemplate, error)
 	GetTotalParticipantCountByDiscussionID(ctx context.Context, discussionID string) int
 	GetParticipantByID(ctx context.Context, participantID string) (*model.Participant, error)
+	GetParticipantsByIDs(ctx context.Context, ids []string) ([]*model.Participant, error)
 	GetParticipantsByDiscussionID(ctx context.Context, id string) ([]model.Participant, error)
 	GetParticipantsByDiscussionIDUserID(ctx context.Context, discussionID string, userID string) ([]model.Participant, error)
 	UpsertParticipant(ctx context.Context, participant model.Participant) (*model.Participant, error)
@@ -59,7 +60,7 @@ type Datastore interface {
 	GetViewersByIDs(ctx context.Context, viewerIDs []string) (map[string]*model.Viewer, error)
 	UpsertViewer(ctx context.Context, viewer model.Viewer) (*model.Viewer, error)
 	GetPostByID(ctx context.Context, postID string) (*model.Post, error)
-	PutMention(ctx context.Context, tx *sql2.Tx, post *model.Post) error
+	PutActivity(ctx context.Context, tx *sql2.Tx, post *model.Post) error
 	CreateTestTables(ctx context.Context, data TestData) (func() error, error)
 
 	// TXN
@@ -182,9 +183,9 @@ func (d *delphisDB) initializeStatements(ctx context.Context) (err error) {
 	}
 
 	// MENTIONS
-	if d.prepStmts.putMentionStmt, err = d.pg.PrepareContext(ctx, putMentionString); err != nil {
-		logrus.WithError(err).Error("failed to prepare putMentionStmt")
-		return errors.Wrap(err, "failed to prepare putMentionStmt")
+	if d.prepStmts.putActivityStmt, err = d.pg.PrepareContext(ctx, putActivityString); err != nil {
+		logrus.WithError(err).Error("failed to prepare putActivityStmt")
+		return errors.Wrap(err, "failed to prepare putActivityStmt")
 	}
 
 	d.ready = true

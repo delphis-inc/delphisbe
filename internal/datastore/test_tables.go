@@ -124,7 +124,7 @@ func (d *delphisDB) populateTestTables(ctx context.Context, data TestData) error
 func (d *delphisDB) writeDiscussions(ctx context.Context, testDiscussions []model.Discussion) error {
 	// Iterate over test data to create test records
 	for _, discussion := range testDiscussions {
-		logrus.Infof("In here for Disc: %+v\n", discussion)
+		logrus.Debugf("In here for Disc: %+v\n", discussion)
 		if _, err := d.UpsertDiscussion(ctx, discussion); err != nil {
 			logrus.WithError(err).Error("failed to upsert test discussion")
 			return err
@@ -136,7 +136,7 @@ func (d *delphisDB) writeDiscussions(ctx context.Context, testDiscussions []mode
 
 func (d *delphisDB) writeParticipants(ctx context.Context, testParticipants []model.Participant) error {
 	for _, participant := range testParticipants {
-		logrus.Infof("In here for participant: %+v\n", participant)
+		logrus.Debugf("In here for participant: %+v\n", participant)
 		if _, err := d.UpsertParticipant(ctx, participant); err != nil {
 			logrus.WithError(err).Error("failed to upsert test participant")
 			return err
@@ -152,7 +152,7 @@ func (d *delphisDB) writePostsAndContents(ctx context.Context, testPosts []model
 		return err
 	}
 	for _, post := range testPosts {
-		logrus.Infof("In here for posts: %+v\n", post)
+		logrus.Debugf("In here for posts: %+v\n", post)
 		if err := d.PutPostContent(ctx, tx, *post.PostContent); err != nil {
 			logrus.WithError(err).Error("failed to put test post contents")
 

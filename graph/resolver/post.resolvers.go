@@ -5,7 +5,6 @@ package resolver
 
 import (
 	"context"
-	"strings"
 	"time"
 
 	"github.com/nedrocks/delphisbe/graph/generated"
@@ -67,30 +66,7 @@ func (r *postResolver) UpdatedAt(ctx context.Context, obj *model.Post) (string, 
 }
 
 func (r *postResolver) MentionedEntities(ctx context.Context, obj *model.Post) ([]model.Entity, error) {
-	var entities []model.Entity
-	for _, entityID := range obj.PostContent.MentionedEntities {
-		s := strings.Split(entityID, ":")
-		var entity model.Entity
-		if s[0] == model.ParticipantPrefix {
-			res, err := r.DAOManager.GetParticipantByID(ctx, s[1])
-			if err != nil {
-				return nil, err
-			}
-			entity = res
-		} else if s[0] == model.DiscussionPrefix {
-			res, err := r.DAOManager.GetDiscussionByID(ctx, s[1])
-			if err != nil {
-				return nil, err
-			}
-			entity = res
-		} else {
-			continue
-		}
-
-		entities = append(entities, entity)
-	}
-
-	return entities, nil
+	return r.DAOManager.GetMentionedEntities(ctx, obj.PostContent.MentionedEntities)
 }
 
 // Post returns generated.PostResolver implementation.

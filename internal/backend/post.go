@@ -2,8 +2,11 @@ package backend
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
+	"regexp"
+	"strings"
 	"time"
 
 	"go.uber.org/multierr"
@@ -15,14 +18,19 @@ import (
 )
 
 func (d *delphisBackend) CreatePost(ctx context.Context, discussionID string, participantID string, input model.PostContentInput) (*model.Post, error) {
+	// Validate input string if there are mentioned entities
+	if input.MentionedEntities != nil {
+		if err := validateMentionedEntities(ctx, input.PostText, input.MentionedEntities); err != nil {
+			logrus.WithError(err).Error("unequal amount of tokens and mentions")
+			return nil, err
+		}
+	}
 
 	postContent := model.PostContent{
 		ID:                util.UUIDv4(),
 		Content:           input.PostText,
 		MentionedEntities: input.MentionedEntities,
 	}
-
-	logrus.Infof("PostContent: %+v\n", postContent)
 
 	post := model.Post{
 		ID:            util.UUIDv4(),
@@ -67,8 +75,8 @@ func (d *delphisBackend) CreatePost(ctx context.Context, discussionID string, pa
 	}
 
 	// Put Mentions
-	if err := d.db.PutMention(ctx, tx, postObj); err != nil {
-		logrus.WithError(err).Error("failed to PutMention")
+	if err := d.db.PutActivity(ctx, tx, postObj); err != nil {
+		logrus.WithError(err).Error("failed to PutActivity")
 
 		// We don't want to rollback the whole transaction if we mess up the recording of mentions.
 		// Ideally we'd push it to a queue to be re-ran later
@@ -80,7 +88,7 @@ func (d *delphisBackend) CreatePost(ctx context.Context, discussionID string, pa
 		return nil, err
 	}
 
-	logrus.Infof("Post: %+v\n", postObj.PostContent)
+	logrus.Debugf("Post: %+v\n", postObj.PostContent)
 
 	discussion, err := d.db.GetDiscussionByID(ctx, discussionID)
 	if err != nil {
@@ -129,6 +137,46 @@ func (d *delphisBackend) GetPostsByDiscussionID(ctx context.Context, discussionI
 	//return d.db.GetPostsByDiscussionID(ctx, discussionID)
 }
 
+func (d *delphisBackend) GetMentionedEntities(ctx context.Context, entityIDs []string) ([]model.Entity, error) {
+	var entities []model.Entity
+	var participantIDs []string
+	var discussionIDs []string
+
+	// Iterate over mentioned entities and divide into participants and discussions
+	for _, entityID := range entityIDs {
+		s := strings.Split(entityID, ":")
+		if s[0] == model.ParticipantPrefix {
+			participantIDs = append(participantIDs, s[1])
+		} else if s[0] == model.DiscussionPrefix {
+			discussionIDs = append(discussionIDs, s[1])
+
+		} else {
+			continue
+		}
+	}
+	participants, err := d.GetParticipantsByIDs(ctx, participantIDs)
+	if err != nil {
+		logrus.WithError(err).Error("failed to GetParticipantsWithIDs")
+		return nil, err
+	}
+
+	discussionsMap, err := d.GetDiscussionsByIDs(ctx, discussionIDs)
+	if err != nil {
+		logrus.WithError(err).Error("failed to GetDiscussionsByIDs")
+		return nil, err
+	}
+
+	for _, v := range participants {
+		entities = append(entities, v)
+	}
+
+	for _, v := range discussionsMap {
+		entities = append(entities, v)
+	}
+
+	return entities, nil
+}
+
 // Testing function to keep functionality
 func (d *delphisBackend) iterToPosts(ctx context.Context, iter datastore.PostIter) ([]*model.Post, error) {
 	var posts []*model.Post
@@ -159,4 +207,12 @@ func (d *delphisBackend) iterToPosts(ctx context.Context, iter datastore.PostIte
 	}
 
 	return posts, nil
+}
+
+func validateMentionedEntities(ctx context.Context, inputText string, entities []string) error {
+	tokens := regexp.MustCompile(`\<(.*?)\>`).FindAllStringSubmatch(inputText, -1)
+	if len(tokens) != len(entities) {
+		return errors.New("tokens did not match entities")
+	}
+	return nil
 }
