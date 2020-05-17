@@ -11,7 +11,7 @@ type dbPrepStmts struct {
 	// PostContents
 	putPostContentsStmt *sql2.Stmt
 
-	// Mentions
+	// Activity
 	putActivityStmt *sql2.Stmt
 }
 

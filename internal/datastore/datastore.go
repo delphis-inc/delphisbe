@@ -182,7 +182,7 @@ func (d *delphisDB) initializeStatements(ctx context.Context) (err error) {
 		return errors.Wrap(err, "failed to prepare putPostContentsStmt")
 	}
 
-	// MENTIONS
+	// ACTIVITY
 	if d.prepStmts.putActivityStmt, err = d.pg.PrepareContext(ctx, putActivityString); err != nil {
 		logrus.WithError(err).Error("failed to prepare putActivityStmt")
 		return errors.Wrap(err, "failed to prepare putActivityStmt")

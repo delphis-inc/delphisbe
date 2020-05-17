@@ -74,7 +74,7 @@ func (d *delphisBackend) CreatePost(ctx context.Context, discussionID string, pa
 		return nil, err
 	}
 
-	// Put Mentions
+	// Put Activity
 	if err := d.db.PutActivity(ctx, tx, postObj); err != nil {
 		logrus.WithError(err).Error("failed to PutActivity")
 
