@@ -95,19 +95,3 @@ func (m *mediaDB) getFileInfo(filename string, mimeType string) (fileInfo, error
 	}, nil
 
 }
-
-//func (m *mediaDB) getFileLocation(mediaID string, mediaType MediaType) string {
-//	var keyPrefix string
-//
-//	switch mediaType {
-//	case GifMedia:
-//		keyPrefix = m.s3BucketConfig.GifKeyPrefix
-//	case ImageMedia:
-//		keyPrefix = m.s3BucketConfig.ImageKeyPrefix
-//	case VideoMedia:
-//		keyPrefix = m.s3BucketConfig.VideoKeyPrefix
-//	default:
-//		return ""
-//	}
-//	return strings.Join([]string{m.s3BucketConfig.BaseKey, keyPrefix})
-//}
