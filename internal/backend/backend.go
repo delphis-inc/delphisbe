@@ -67,8 +67,8 @@ type DelphisBackend interface {
 	SendNotificationsToSubscribers(ctx context.Context, discussion *model.Discussion, post *model.Post) (*SendNotificationResponse, error)
 
 	// TODO: Finish this
-	//GetMedia(ctx context.Context, mediaID string, mediaType string) error
-	UploadMedia(ctx context.Context, ext string, media multipart.File) error
+	GetMedia(ctx context.Context, mediaID string, mediaType string) ([]byte, error)
+	UploadMedia(ctx context.Context, ext string, media multipart.File) (string, string, error)
 }
 
 type delphisBackend struct {

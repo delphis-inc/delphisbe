@@ -6,6 +6,8 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/aws/aws-sdk-go/service/s3"
+
 	"github.com/aws/aws-sdk-go/aws"
 
 	"github.com/sirupsen/logrus"
@@ -14,15 +16,48 @@ import (
 )
 
 type fileInfo struct {
-	mediaType MediaType
-	key       string
-	mimeType  string
+	key      string
+	mimeType string
 }
 
-func (m *mediaDB) UploadMedia(ctx context.Context, filename string, media []byte) (MediaType, error) {
-	fileInfo, err := m.getFileInfo(filename, media[:512])
+var mimeTypeToExtension = map[string]string{
+	"image/jpeg":      "jpeg",
+	"image/png":       "png",
+	"image/gif":       "gif",
+	"video/x-msvideo": "avi",
+}
+
+func (m *mediaDB) GetMedia(ctx context.Context, fileID, mimeType string) ([]byte, error) {
+	// Get file extension from mimeType. Append to fileID to fetch from s3
+	ext := mimeTypeToExtension[mimeType]
+	fileName := strings.Join([]string{fileID, ext}, ".")
+
+	fileInfo, err := m.getFileInfo(fileName, mimeType)
 	if err != nil {
-		logrus.WithError(err).Error("failed to get bucket and key")
+		logrus.WithError(err).Error("failed to get file info for s3")
+		return nil, err
+	}
+
+	logrus.Debugf("FileInfo: %+v\n", fileInfo)
+
+	buff := &aws.WriteAtBuffer{}
+	if _, err := m.downloader.Download(buff, &s3.GetObjectInput{
+		Bucket: aws.String(m.s3BucketConfig.MediaBucket),
+		Key:    aws.String(fileInfo.key),
+	}); err != nil {
+		logrus.WithError(err).Error("failed to download image from s3")
+		return nil, err
+	}
+
+	return buff.Bytes(), nil
+}
+
+func (m *mediaDB) UploadMedia(ctx context.Context, filename string, media []byte) (string, error) {
+	mimeType := http.DetectContentType(media[:512])
+
+	fileInfo, err := m.getFileInfo(filename, mimeType)
+	if err != nil {
+		logrus.WithError(err).Error("failed to get file info for s3")
 		return "", err
 	}
 	logrus.Debugf("FileInfo: %v\n", fileInfo)
@@ -37,33 +72,42 @@ func (m *mediaDB) UploadMedia(ctx context.Context, filename string, media []byte
 		logrus.WithError(err).Error("failed to upload image to s3")
 	}
 
-	return fileInfo.mediaType, nil
+	return fileInfo.mimeType, nil
 }
 
-func (m *mediaDB) getFileInfo(filename string, partialMedia []byte) (fileInfo, error) {
+func (m *mediaDB) getFileInfo(filename string, mimeType string) (fileInfo, error) {
 	var mediaPrefix string
-	var mediaType MediaType
 
-	// Function return MIME Types
-	mimeType := http.DetectContentType(partialMedia)
-
+	// Place gifs, images, and videos in different buckets
 	s := strings.Split(mimeType, "/")
 	if s[0] == "image" {
 		if s[1] == "gif" {
 			mediaPrefix = m.s3BucketConfig.GifKeyPrefix
-			mediaType = GifMedia
 		}
 		mediaPrefix = m.s3BucketConfig.ImageKeyPrefix
-		mediaType = ImageMedia
 	} else if s[0] == "video" {
 		mediaPrefix = m.s3BucketConfig.VideoKeyPrefix
-		mediaType = VideoMedia
 	}
 
 	return fileInfo{
-		mediaType: mediaType,
-		key:       strings.Join([]string{m.s3BucketConfig.BaseKey, mediaPrefix, filename}, "/"),
-		mimeType:  mimeType,
+		key:      strings.Join([]string{m.s3BucketConfig.BaseKey, mediaPrefix, filename}, "/"),
+		mimeType: mimeType,
 	}, nil
 
 }
+
+//func (m *mediaDB) getFileLocation(mediaID string, mediaType MediaType) string {
+//	var keyPrefix string
+//
+//	switch mediaType {
+//	case GifMedia:
+//		keyPrefix = m.s3BucketConfig.GifKeyPrefix
+//	case ImageMedia:
+//		keyPrefix = m.s3BucketConfig.ImageKeyPrefix
+//	case VideoMedia:
+//		keyPrefix = m.s3BucketConfig.VideoKeyPrefix
+//	default:
+//		return ""
+//	}
+//	return strings.Join([]string{m.s3BucketConfig.BaseKey, keyPrefix})
+//}

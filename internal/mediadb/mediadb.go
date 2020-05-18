@@ -17,7 +17,8 @@ const (
 )
 
 type MediaDB interface {
-	UploadMedia(ctx context.Context, filename string, media []byte) (MediaType, error)
+	GetMedia(ctx context.Context, fileID, mimeType string) ([]byte, error)
+	UploadMedia(ctx context.Context, filename string, media []byte) (string, error)
 }
 
 type mediaDB struct {

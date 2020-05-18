@@ -6,8 +6,6 @@ import (
 	"mime/multipart"
 	"strings"
 
-	"github.com/nedrocks/delphisbe/internal/mediadb"
-
 	"go.uber.org/multierr"
 
 	"github.com/nedrocks/delphisbe/graph/model"
@@ -17,38 +15,42 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func (d *delphisBackend) UploadMedia(ctx context.Context, ext string, media multipart.File) error {
+func (d *delphisBackend) GetMedia(ctx context.Context, mediaID string, mediaType string) ([]byte, error) {
+	return d.mediadb.GetMedia(ctx, mediaID, mediaType)
+}
+
+func (d *delphisBackend) UploadMedia(ctx context.Context, ext string, media multipart.File) (string, string, error) {
 	uuid := util.UUIDv4()
 	filename := strings.Join([]string{uuid, ext}, "")
 
 	mediaBytes, err := ioutil.ReadAll(media)
 	if err != nil {
 		logrus.WithError(err).Error("failed to read all media bytes")
-		return err
+		return "", "", err
 	}
 
 	// Pass in size into s3
-	mediaType, err := d.mediadb.UploadMedia(ctx, filename, mediaBytes)
+	mimeType, err := d.mediadb.UploadMedia(ctx, filename, mediaBytes)
 	if err != nil {
 		logrus.WithError(err).Error("failed to upload media to s3")
-		return err
+		return "", "", err
 	}
 
-	mediaSize := getMediaSize(ctx, mediaType, mediaBytes)
+	mediaSize := getMediaSize(ctx, mimeType, mediaBytes)
 
 	// Create record within Media table
 	mediaObj := model.Media{
 		ID:   uuid,
-		Type: string(mediaType),
+		Type: mimeType,
 		Size: &mediaSize,
 	}
 
 	if err := d.writeMediaRecord(ctx, mediaObj); err != nil {
 		logrus.WithError(err).Error("failed to put media record in db")
-		return err
+		return "", "", err
 	}
 
-	return nil
+	return uuid, mimeType, nil
 }
 
 func (d *delphisBackend) writeMediaRecord(ctx context.Context, mediaObj model.Media) error {
@@ -77,16 +79,16 @@ func (d *delphisBackend) writeMediaRecord(ctx context.Context, mediaObj model.Me
 	return nil
 }
 
-func getMediaSize(ctx context.Context, mediaType mediadb.MediaType, media []byte) model.MediaSize {
+func getMediaSize(ctx context.Context, mimeType string, media []byte) model.MediaSize {
 	fileSize := len(media)
 
 	// Get dimensions of image
 	// Does this matter?
-	switch mediaType {
-	case mediadb.ImageMedia:
-		//image, _, err := image2.DecodeConfig()
-
-	}
+	//switch mediaType {
+	//case mediadb.ImageMedia:
+	//	//image, _, err := image2.DecodeConfig()
+	//
+	//}
 
 	return model.MediaSize{
 		Height:  0,
