@@ -1,7 +1,7 @@
 CREATE TABLE IF NOT EXISTS media (
     id varchar(36) not null PRIMARY KEY,
     created_at timestamp with time zone default current_timestamp not null,
-    deleted_at timestamp with time zone default current_timestamp not null,
+    deleted_at timestamp with time zone,
     deleted_reason_code varchar(16),
     media_type varchar(16),
     media_size json not null

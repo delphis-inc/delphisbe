@@ -24,9 +24,24 @@ type AddDiscussionParticipantInput struct {
 	IsAnonymous   bool           `json:"isAnonymous"`
 }
 
+type Media struct {
+	ID                string             `json:"id"`
+	CreatedAt         string             `json:"createdAt"`
+	IsDeleted         bool               `json:"isDeleted"`
+	DeletedReasonCode *PostDeletedReason `json:"deletedReasonCode"`
+	Type              string             `json:"type"`
+	Size              *MediaSize         `json:"size"`
+}
+
 type MediaInput struct {
 	Type    string `json:"type"`
 	MediaID string `json:"mediaID"`
+}
+
+type MediaSize struct {
+	Height  int `json:"height"`
+	Width   int `json:"width"`
+	Storage int `json:"storage"`
 }
 
 type ParticipantNotificationPreferences struct {

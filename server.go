@@ -2,12 +2,14 @@ package main
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"log"
 	"math/rand"
 	"net/http"
 	"net/url"
 	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -271,8 +273,61 @@ func getImage(delphisBackend backend.DelphisBackend) http.Handler {
 
 func uploadImage(delphisBackend backend.DelphisBackend) http.Handler {
 	fn := func(w http.ResponseWriter, r *http.Request) {
-		logrus.Debugf("In here\n")
-		return
+		if r.Method != "POST" {
+			logrus.WithError(errors.New("non-POST request was sent to uploadImage"))
+			w.WriteHeader(http.StatusBadRequest)
+		}
+
+		// Limit to 10MB
+		if err := r.ParseMultipartForm(10 << 20); err != nil {
+			logrus.WithError(err).Error("uploaded image was over 10MB")
+			w.WriteHeader(http.StatusBadRequest)
+			if _, err := w.Write([]byte("File was over 10MB")); err != nil {
+				return
+			}
+			return
+		}
+
+		// Retrieve image file
+		file, header, err := r.FormFile("image")
+		if err != nil {
+			logrus.WithError(err).Error("failed getting image from form file")
+			w.WriteHeader(http.StatusInternalServerError)
+			if _, err := w.Write([]byte(fmt.Sprintf("500 - Something bad happened!: %+v", err))); err != nil {
+				return
+			}
+			return
+		}
+
+		// Check for an empty file
+		if header.Size == 0 {
+			w.WriteHeader(http.StatusBadRequest)
+			if _, err := w.Write([]byte("400 - File was empty!")); err != nil {
+				return
+			}
+			return
+		}
+
+		// Get file extension
+		// The client should always send a properly formed media file
+		ext := filepath.Ext(header.Filename)
+		if len(ext) == 0 {
+			w.WriteHeader(http.StatusBadRequest)
+			if _, err := w.Write([]byte("400 - No extension on media file")); err != nil {
+				return
+			}
+			return
+		}
+
+		// Upload image
+		if err := delphisBackend.UploadMedia(r.Context(), ext, file); err != nil {
+			logrus.WithError(err).Error("failed to upload media")
+			w.WriteHeader(http.StatusInternalServerError)
+			if _, err := w.Write([]byte(fmt.Sprintf("500 - Something bad happened!: %+v", err))); err != nil {
+				return
+			}
+			return
+		}
 	}
 
 	return http.HandlerFunc(fn)

@@ -13,6 +13,9 @@ type dbPrepStmts struct {
 
 	// Activity
 	putActivityStmt *sql2.Stmt
+
+	// Media
+	putMediaStmt *sql2.Stmt
 }
 
 const putPostString = `
@@ -62,3 +65,10 @@ const putActivityString = `
 			entity_id,
 			entity_type
 		) VALUES ($1, $2, $3, $4);`
+
+const putMediaString = `
+		INSERT INTO media (
+			id,
+			media_type,
+			media_size
+		) VALUES ($1, $2, $3);`

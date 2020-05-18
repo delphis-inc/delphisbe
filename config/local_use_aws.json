@@ -44,5 +44,12 @@
     "twitter": {
         "callback": "http://local.delphishq.com:8080/twitter/callback",
         "redirect": "http://local.delphishq.com:8000"
+    },
+    "s3_bucket": {
+        "media_bucket": "static.chatham.ai",
+        "base_key": "media",
+        "image_prefix": "images",
+        "gif_prefix": "gifs",
+        "video_prefix": "videos"
     }
 }

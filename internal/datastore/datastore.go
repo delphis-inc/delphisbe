@@ -62,6 +62,7 @@ type Datastore interface {
 	GetPostByID(ctx context.Context, postID string) (*model.Post, error)
 	PutActivity(ctx context.Context, tx *sql2.Tx, post *model.Post) error
 	CreateTestTables(ctx context.Context, data TestData) (func() error, error)
+	PutMedia(ctx context.Context, tx *sql2.Tx, media model.Media) error
 
 	// TXN
 	BeginTx(ctx context.Context) (*sql2.Tx, error)
@@ -186,6 +187,12 @@ func (d *delphisDB) initializeStatements(ctx context.Context) (err error) {
 	if d.prepStmts.putActivityStmt, err = d.pg.PrepareContext(ctx, putActivityString); err != nil {
 		logrus.WithError(err).Error("failed to prepare putActivityStmt")
 		return errors.Wrap(err, "failed to prepare putActivityStmt")
+	}
+
+	// MEDIA
+	if d.prepStmts.putMediaStmt, err = d.pg.PrepareContext(ctx, putMediaString); err != nil {
+		logrus.WithError(err).Error("failed to prepare putMediaStmt")
+		return errors.Wrap(err, "failed to prepare putMediaStmt")
 	}
 
 	d.ready = true

@@ -45,5 +45,12 @@
     "twitter": {
         "callback": "https://staging.delphishq.com/twitter/callback",
         "redirect": "https://app-staging.delphishq.com/"
+    },
+    "s3_bucket": {
+        "media_bucket": "static.chatham.ai",
+        "base_key": "media",
+        "image_prefix": "images",
+        "gif_prefix": "gifs",
+        "video_prefix": "videos"
     }
 }
