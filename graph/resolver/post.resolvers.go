@@ -66,7 +66,26 @@ func (r *postResolver) UpdatedAt(ctx context.Context, obj *model.Post) (string, 
 }
 
 func (r *postResolver) MentionedEntities(ctx context.Context, obj *model.Post) ([]model.Entity, error) {
-	return r.DAOManager.GetMentionedEntities(ctx, obj.PostContent.MentionedEntities)
+	if len(obj.PostContent.MentionedEntities) == 0 {
+		return nil, nil
+	}
+
+	mentionedEntities, err := r.DAOManager.GetMentionedEntities(ctx, obj.PostContent.MentionedEntities)
+	if err != nil {
+		return nil, err
+	}
+
+	// Iterate over IDs to return mentionedEntities in the proper order
+	var entities []model.Entity
+	for _, entityID := range obj.PostContent.MentionedEntities {
+		if _, ok := mentionedEntities[entityID]; !ok {
+			entities = append(entities, &model.Participant{})
+		} else {
+			entities = append(entities, mentionedEntities[entityID])
+		}
+	}
+
+	return entities, nil
 }
 
 // Post returns generated.PostResolver implementation.

@@ -115,7 +115,7 @@ func (d *delphisBackend) GetParticipantByID(ctx context.Context, id string) (*mo
 	return participant, nil
 }
 
-func (d *delphisBackend) GetParticipantsByIDs(ctx context.Context, ids []string) ([]*model.Participant, error) {
+func (d *delphisBackend) GetParticipantsByIDs(ctx context.Context, ids []string) (map[string]*model.Participant, error) {
 	return d.db.GetParticipantsByIDs(ctx, ids)
 }
 

@@ -137,20 +137,24 @@ func (d *delphisBackend) GetPostsByDiscussionID(ctx context.Context, discussionI
 	//return d.db.GetPostsByDiscussionID(ctx, discussionID)
 }
 
-func (d *delphisBackend) GetMentionedEntities(ctx context.Context, entityIDs []string) ([]model.Entity, error) {
-	var entities []model.Entity
+func (d *delphisBackend) GetMentionedEntities(ctx context.Context, entityIDs []string) (map[string]model.Entity, error) {
+	entities := map[string]model.Entity{}
 	var participantIDs []string
 	var discussionIDs []string
 
 	// Iterate over mentioned entities and divide into participants and discussions
 	for _, entityID := range entityIDs {
-		s := strings.Split(entityID, ":")
-		if s[0] == model.ParticipantPrefix {
-			participantIDs = append(participantIDs, s[1])
-		} else if s[0] == model.DiscussionPrefix {
-			discussionIDs = append(discussionIDs, s[1])
-
+		entity, err := util.ReturnParsedEntityID(entityID)
+		if err != nil {
+			logrus.WithError(err).Error("failed to parse entityID")
+		}
+		if entity.Type == model.ParticipantPrefix {
+			participantIDs = append(participantIDs, entity.ID)
+		} else if entity.Type == model.DiscussionPrefix {
+			discussionIDs = append(discussionIDs, entity.ID)
 		} else {
+			// TODO: Log to cloudwatch
+			logrus.Debugf("MentionedEntity using an unsupported type: %v\n", entityID)
 			continue
 		}
 	}
@@ -160,18 +164,24 @@ func (d *delphisBackend) GetMentionedEntities(ctx context.Context, entityIDs []s
 		return nil, err
 	}
 
-	discussionsMap, err := d.GetDiscussionsByIDs(ctx, discussionIDs)
+	discussions, err := d.GetDiscussionsByIDs(ctx, discussionIDs)
 	if err != nil {
 		logrus.WithError(err).Error("failed to GetDiscussionsByIDs")
 		return nil, err
 	}
 
-	for _, v := range participants {
-		entities = append(entities, v)
+	for k, v := range participants {
+		if v != nil {
+			key := strings.Join([]string{model.ParticipantPrefix, k}, ":")
+			entities[key] = v
+		}
 	}
 
-	for _, v := range discussionsMap {
-		entities = append(entities, v)
+	for k, v := range discussions {
+		if v != nil {
+			key := strings.Join([]string{model.DiscussionPrefix, k}, ":")
+			entities[key] = v
+		}
 	}
 
 	return entities, nil
@@ -210,7 +220,7 @@ func (d *delphisBackend) iterToPosts(ctx context.Context, iter datastore.PostIte
 }
 
 func validateMentionedEntities(ctx context.Context, inputText string, entities []string) error {
-	tokens := regexp.MustCompile(`\<(.*?)\>`).FindAllStringSubmatch(inputText, -1)
+	tokens := regexp.MustCompile(`\<(\d+)\>`).FindAllStringSubmatch(inputText, -1)
 	if len(tokens) != len(entities) {
 		return errors.New("tokens did not match entities")
 	}

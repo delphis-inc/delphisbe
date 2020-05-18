@@ -12,7 +12,7 @@ import (
 )
 
 func (d *delphisDB) PutActivity(ctx context.Context, tx *sql.Tx, post *model.Post) error {
-	logrus.Infof("PutActivity::SQL Create")
+	logrus.Debugf("PutActivity::SQL Create")
 	if err := d.initializeStatements(ctx); err != nil {
 		logrus.WithError(err).Error("PutActivity::failed to initialize statements")
 		return err

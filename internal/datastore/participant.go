@@ -16,10 +16,10 @@ func (d *delphisDB) GetParticipantByID(ctx context.Context, id string) (*model.P
 		return nil, err
 	}
 
-	return participants[0], nil
+	return participants[id], nil
 }
 
-func (d *delphisDB) GetParticipantsByIDs(ctx context.Context, ids []string) ([]*model.Participant, error) {
+func (d *delphisDB) GetParticipantsByIDs(ctx context.Context, ids []string) (map[string]*model.Participant, error) {
 	logrus.Debugf("GetParticipantsByIDs::SQL Query")
 	participants := []model.Participant{}
 	if err := d.sql.Where(ids).Find(&participants).Error; err != nil {
@@ -30,10 +30,11 @@ func (d *delphisDB) GetParticipantsByIDs(ctx context.Context, ids []string) ([]*
 		return nil, err
 	}
 
-	var retVal []*model.Participant
+	retVal := map[string]*model.Participant{}
 	for _, p := range participants {
-		retVal = append(retVal, &p)
+		retVal[p.ID] = &p
 	}
+
 	return retVal, nil
 }
 
