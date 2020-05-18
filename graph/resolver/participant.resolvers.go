@@ -1,6 +1,7 @@
+package resolver
+
 // This file will be automatically regenerated based on the schema, any resolver implementations
 // will be copied through when generating and any unknown code will be moved to the end.
-package resolver
 
 import (
 	"context"
@@ -68,6 +69,7 @@ func (r *participantResolver) Flair(ctx context.Context, obj *model.Participant)
 	return obj.Flair, nil
 }
 
+// Participant returns generated.ParticipantResolver implementation.
 func (r *Resolver) Participant() generated.ParticipantResolver { return &participantResolver{r} }
 
 type participantResolver struct{ *Resolver }

@@ -1,4 +1,4 @@
-type Discussion {
+type Discussion implements Entity {
     # Unique id for this discussion
     id: ID!
     # We do not link to the user themselves, only the moderator view of a user.

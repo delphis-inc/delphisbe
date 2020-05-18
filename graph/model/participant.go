@@ -3,6 +3,7 @@ package model
 import "time"
 
 type Participant struct {
+	Entity
 	ID            string           `json:"id" gorm:"type:varchar(36);"`
 	ParticipantID int              `json:"participantID" dynamodbav:"ParticipantID"`
 	CreatedAt     time.Time        `json:"createdAt" gorm:"not null;default:CURRENT_TIMESTAMP;"`
@@ -23,6 +24,8 @@ type Participant struct {
 	HasJoined   bool `json:"hasJoined" gorm:"type:boolean;"`
 	IsAnonymous bool `json:"isAnonymous"`
 }
+
+func (Participant) IsEntity() {}
 
 type ParticipantsEdge struct {
 	Cursor string       `json:"cursor"`

@@ -49,7 +49,7 @@ input PollInput {
 input PostContentInput {
   postText: String!,
   postType: PostType!,
-  mentionedUserIDs:[ID!],
+  mentionedEntities:[String!],
   quotedPostID: ID
   media: MediaInput,
   poll: PollInput

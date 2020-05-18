@@ -10,6 +10,9 @@ type dbPrepStmts struct {
 
 	// PostContents
 	putPostContentsStmt *sql2.Stmt
+
+	// Activity
+	putActivityStmt *sql2.Stmt
 }
 
 const putPostString = `
@@ -48,5 +51,14 @@ const getPostsByDiscussionIDString = `
 const putPostContentsString = `
 		INSERT INTO post_contents (
 			id,
-			content
-		) VALUES ($1, $2);`
+			content,
+			mentioned_entities
+		) VALUES ($1, $2, $3);`
+
+const putActivityString = `
+		INSERT INTO activity (
+			participant_id,
+			post_content_id,
+			entity_id,
+			entity_type
+		) VALUES ($1, $2, $3, $4);`

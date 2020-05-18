@@ -1,6 +1,7 @@
+package resolver
+
 // This file will be automatically regenerated based on the schema, any resolver implementations
 // will be copied through when generating and any unknown code will be moved to the end.
-package resolver
 
 import (
 	"context"
@@ -30,6 +31,7 @@ func (r *viewerResolver) Bookmarks(ctx context.Context, obj *model.Viewer) ([]*m
 	panic(fmt.Errorf("not implemented"))
 }
 
+// Viewer returns generated.ViewerResolver implementation.
 func (r *Resolver) Viewer() generated.ViewerResolver { return &viewerResolver{r} }
 
 type viewerResolver struct{ *Resolver }

@@ -2,6 +2,11 @@ package model
 
 import "time"
 
+const (
+	ParticipantPrefix = "participant"
+	DiscussionPrefix  = "discussion"
+)
+
 type Post struct {
 	ID                string             `json:"id" dynamodbav:"ID" gorm:"type:varchar(36);"`
 	CreatedAt         time.Time          `json:"createdAt" gorm:"not null;default:CURRENT_TIMESTAMP;"`

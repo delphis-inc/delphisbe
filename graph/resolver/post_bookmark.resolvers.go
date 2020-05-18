@@ -1,6 +1,7 @@
+package resolver
+
 // This file will be automatically regenerated based on the schema, any resolver implementations
 // will be copied through when generating and any unknown code will be moved to the end.
-package resolver
 
 import (
 	"context"
@@ -18,6 +19,7 @@ func (r *postBookmarkResolver) Post(ctx context.Context, obj *model.PostBookmark
 	panic(fmt.Errorf("not implemented"))
 }
 
+// PostBookmark returns generated.PostBookmarkResolver implementation.
 func (r *Resolver) PostBookmark() generated.PostBookmarkResolver { return &postBookmarkResolver{r} }
 
 type postBookmarkResolver struct{ *Resolver }

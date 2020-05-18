@@ -39,14 +39,15 @@ type Datastore interface {
 	RemoveFlairTemplate(ctx context.Context, flairTemplate model.FlairTemplate) (*model.FlairTemplate, error)
 	GetTotalParticipantCountByDiscussionID(ctx context.Context, discussionID string) int
 	GetParticipantByID(ctx context.Context, participantID string) (*model.Participant, error)
+	GetParticipantsByIDs(ctx context.Context, ids []string) (map[string]*model.Participant, error)
 	GetParticipantsByDiscussionID(ctx context.Context, id string) ([]model.Participant, error)
 	GetParticipantsByDiscussionIDUserID(ctx context.Context, discussionID string, userID string) ([]model.Participant, error)
 	UpsertParticipant(ctx context.Context, participant model.Participant) (*model.Participant, error)
 	GetPostsByDiscussionID(ctx context.Context, discussionID string) ([]*model.Post, error)
 	GetPostsByDiscussionIDIter(ctx context.Context, discussionID string) PostIter
 	GetPostContentByID(ctx context.Context, id string) (*model.PostContent, error)
-	PutPost(ctx context.Context, post model.Post) (*model.Post, error)
-	PutPostContent(ctx context.Context, postContent model.PostContent) error
+	PutPost(ctx context.Context, tx *sql2.Tx, post model.Post) (*model.Post, error)
+	PutPostContent(ctx context.Context, tx *sql2.Tx, postContent model.PostContent) error
 	GetUserProfileByID(ctx context.Context, id string) (*model.UserProfile, error)
 	GetUserProfileByUserID(ctx context.Context, userID string) (*model.UserProfile, error)
 	GetSocialInfosByUserProfileID(ctx context.Context, userProfileID string) ([]model.SocialInfo, error)
@@ -59,7 +60,13 @@ type Datastore interface {
 	GetViewersByIDs(ctx context.Context, viewerIDs []string) (map[string]*model.Viewer, error)
 	UpsertViewer(ctx context.Context, viewer model.Viewer) (*model.Viewer, error)
 	GetPostByID(ctx context.Context, postID string) (*model.Post, error)
+	PutActivity(ctx context.Context, tx *sql2.Tx, post *model.Post) error
 	CreateTestTables(ctx context.Context, data TestData) (func() error, error)
+
+	// TXN
+	BeginTx(ctx context.Context) (*sql2.Tx, error)
+	RollbackTx(ctx context.Context, tx *sql2.Tx) error
+	CommitTx(ctx context.Context, tx *sql2.Tx) error
 }
 
 type delphisDB struct {
@@ -173,6 +180,12 @@ func (d *delphisDB) initializeStatements(ctx context.Context) (err error) {
 	if d.prepStmts.putPostContentsStmt, err = d.pg.PrepareContext(ctx, putPostContentsString); err != nil {
 		logrus.WithError(err).Error("failed to prepare putPostContentsStmt")
 		return errors.Wrap(err, "failed to prepare putPostContentsStmt")
+	}
+
+	// ACTIVITY
+	if d.prepStmts.putActivityStmt, err = d.pg.PrepareContext(ctx, putActivityString); err != nil {
+		logrus.WithError(err).Error("failed to prepare putActivityStmt")
+		return errors.Wrap(err, "failed to prepare putActivityStmt")
 	}
 
 	d.ready = true

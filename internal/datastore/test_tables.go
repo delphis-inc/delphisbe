@@ -3,6 +3,8 @@ package datastore
 import (
 	"context"
 
+	"go.uber.org/multierr"
+
 	"github.com/nedrocks/delphisbe/graph/model"
 
 	"github.com/sirupsen/logrus"
@@ -122,7 +124,7 @@ func (d *delphisDB) populateTestTables(ctx context.Context, data TestData) error
 func (d *delphisDB) writeDiscussions(ctx context.Context, testDiscussions []model.Discussion) error {
 	// Iterate over test data to create test records
 	for _, discussion := range testDiscussions {
-		logrus.Infof("In here for Disc: %+v\n", discussion)
+		logrus.Debugf("In here for Disc: %+v\n", discussion)
 		if _, err := d.UpsertDiscussion(ctx, discussion); err != nil {
 			logrus.WithError(err).Error("failed to upsert test discussion")
 			return err
@@ -134,7 +136,7 @@ func (d *delphisDB) writeDiscussions(ctx context.Context, testDiscussions []mode
 
 func (d *delphisDB) writeParticipants(ctx context.Context, testParticipants []model.Participant) error {
 	for _, participant := range testParticipants {
-		logrus.Infof("In here for participant: %+v\n", participant)
+		logrus.Debugf("In here for participant: %+v\n", participant)
 		if _, err := d.UpsertParticipant(ctx, participant); err != nil {
 			logrus.WithError(err).Error("failed to upsert test participant")
 			return err
@@ -144,19 +146,37 @@ func (d *delphisDB) writeParticipants(ctx context.Context, testParticipants []mo
 }
 
 func (d *delphisDB) writePostsAndContents(ctx context.Context, testPosts []model.Post) error {
+	tx, err := d.BeginTx(ctx)
+	if err != nil {
+		logrus.WithError(err).Error("failed to create tx")
+		return err
+	}
 	for _, post := range testPosts {
-		logrus.Infof("In here for posts: %+v\n", post)
-		if err := d.PutPostContent(ctx, *post.PostContent); err != nil {
+		logrus.Debugf("In here for posts: %+v\n", post)
+		if err := d.PutPostContent(ctx, tx, *post.PostContent); err != nil {
 			logrus.WithError(err).Error("failed to put test post contents")
+
+			// Rollback on errors
+			if txErr := d.RollbackTx(ctx, tx); txErr != nil {
+				logrus.WithError(txErr).Error("failed to rollback tx")
+				return multierr.Append(err, txErr)
+			}
 			return err
 		}
 
-		if _, err := d.PutPost(ctx, post); err != nil {
+		if _, err := d.PutPost(ctx, tx, post); err != nil {
 			logrus.WithError(err).Error("failed to put test post")
+
+			// Rollback on errors
+			if txErr := d.RollbackTx(ctx, tx); txErr != nil {
+				logrus.WithError(txErr).Error("failed to rollback tx")
+				return multierr.Append(err, txErr)
+			}
 			return err
 		}
 	}
-	return nil
+
+	return d.CommitTx(ctx, tx)
 }
 
 func (d *delphisDB) close() error {

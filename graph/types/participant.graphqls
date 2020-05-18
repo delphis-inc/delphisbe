@@ -1,4 +1,4 @@
-type Participant {
+type Participant implements Entity{
     # The UUID for this participant.
     id: ID!
     # Fetching a participant directly is okay because we have no link back to who the user is.
@@ -18,4 +18,8 @@ type Participant {
     flair: Flair
 
     hasJoined: Boolean!
+}
+
+interface Entity {
+    id: ID!
 }

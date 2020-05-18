@@ -3,6 +3,7 @@ package model
 import "time"
 
 type Discussion struct {
+	Entity
 	ID              string           `json:"id" dynamodbav:"ID" gorm:"type:varchar(36);"`
 	CreatedAt       time.Time        `json:"createdAt" gorm:"not null;default:CURRENT_TIMESTAMP;"`
 	UpdatedAt       time.Time        `json:"updatedAt" gorm:"not null;default:CURRENT_TIMESTAMP ONUPDATE CURRENT_TIMESTAMP;"`
@@ -15,3 +16,5 @@ type Discussion struct {
 	PostConnections *PostsConnection `json:"posts" dynamodbav:"-" gorm:"-"`
 	Participants    []*Participant   `json:"participants" dynamodbav:"-" gorm:"foreignKey:DiscussionID;"`
 }
+
+func (Discussion) IsEntity() {}

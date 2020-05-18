@@ -115,6 +115,10 @@ func (d *delphisBackend) GetParticipantByID(ctx context.Context, id string) (*mo
 	return participant, nil
 }
 
+func (d *delphisBackend) GetParticipantsByIDs(ctx context.Context, ids []string) (map[string]*model.Participant, error) {
+	return d.db.GetParticipantsByIDs(ctx, ids)
+}
+
 func (d *delphisBackend) AssignFlair(ctx context.Context, participant model.Participant, flairID string) (*model.Participant, error) {
 	return d.db.AssignFlair(ctx, participant, &flairID)
 }

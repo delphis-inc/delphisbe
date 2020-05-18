@@ -11,15 +11,31 @@ import (
 
 func (d *delphisDB) GetParticipantByID(ctx context.Context, id string) (*model.Participant, error) {
 	logrus.Debugf("GetParticipantByID::SQL Query")
-	participant := model.Participant{}
-	if err := d.sql.Where(&model.Participant{ID: id}).First(&participant).Error; err != nil {
+	participants, err := d.GetParticipantsByIDs(ctx, []string{id})
+	if err != nil {
+		return nil, err
+	}
+
+	return participants[id], nil
+}
+
+func (d *delphisDB) GetParticipantsByIDs(ctx context.Context, ids []string) (map[string]*model.Participant, error) {
+	logrus.Debugf("GetParticipantsByIDs::SQL Query")
+	participants := []model.Participant{}
+	if err := d.sql.Where(ids).Find(&participants).Error; err != nil {
 		if gorm.IsRecordNotFoundError(err) {
 			return nil, nil
 		}
 		logrus.WithError(err).Errorf("GetParticipantByID::Failed to query participant by ID")
 		return nil, err
 	}
-	return &participant, nil
+
+	retVal := map[string]*model.Participant{}
+	for _, p := range participants {
+		retVal[p.ID] = &p
+	}
+
+	return retVal, nil
 }
 
 func (d *delphisDB) GetParticipantsByDiscussionID(ctx context.Context, id string) ([]model.Participant, error) {

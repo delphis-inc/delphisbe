@@ -1,6 +1,7 @@
+package resolver
+
 // This file will be automatically regenerated based on the schema, any resolver implementations
 // will be copied through when generating and any unknown code will be moved to the end.
-package resolver
 
 import (
 	"context"
@@ -64,6 +65,30 @@ func (r *postResolver) UpdatedAt(ctx context.Context, obj *model.Post) (string, 
 	return obj.UpdatedAt.Format(time.RFC3339), nil
 }
 
+func (r *postResolver) MentionedEntities(ctx context.Context, obj *model.Post) ([]model.Entity, error) {
+	if len(obj.PostContent.MentionedEntities) == 0 {
+		return nil, nil
+	}
+
+	mentionedEntities, err := r.DAOManager.GetMentionedEntities(ctx, obj.PostContent.MentionedEntities)
+	if err != nil {
+		return nil, err
+	}
+
+	// Iterate over IDs to return mentionedEntities in the proper order
+	var entities []model.Entity
+	for _, entityID := range obj.PostContent.MentionedEntities {
+		if _, ok := mentionedEntities[entityID]; !ok {
+			entities = append(entities, &model.Participant{})
+		} else {
+			entities = append(entities, mentionedEntities[entityID])
+		}
+	}
+
+	return entities, nil
+}
+
+// Post returns generated.PostResolver implementation.
 func (r *Resolver) Post() generated.PostResolver { return &postResolver{r} }
 
 type postResolver struct{ *Resolver }
