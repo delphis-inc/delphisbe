@@ -128,7 +128,6 @@ func main() {
 	http.Handle("/twitter/login", twitter.LoginHandler(config, nil))
 	http.Handle("/twitter/callback", twitter.CallbackHandler(config, successfulLogin(*conf, delphisBackend), nil))
 	http.Handle("/upload_image", allowCors(uploadImage(delphisBackend)))
-	http.Handle("/get_image", allowCors(getImage(delphisBackend)))
 	http.Handle("/health", healthCheck())
 	log.Printf("connect on port %s for GraphQL playground", port)
 	log.Fatal(http.ListenAndServe(":"+port, nil))
@@ -255,56 +254,6 @@ func successfulLogin(conf config.Config, delphisBackend backend.DelphisBackend) 
 		redirectURL.RawQuery = query.Encode()
 		http.Redirect(w, req, redirectURL.String(), 302)
 	}
-	return http.HandlerFunc(fn)
-}
-
-func getImage(delphisBackend backend.DelphisBackend) http.Handler {
-	fn := func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != "POST" {
-			logrus.WithError(errors.New("non-POST request was sent to getImage"))
-			w.WriteHeader(http.StatusBadRequest)
-		}
-
-		body := map[string]string{}
-		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-			logrus.WithError(err).Error("failed to decode request body for getImage")
-			w.WriteHeader(http.StatusInternalServerError)
-			if _, err := w.Write([]byte(fmt.Sprintf("500 - Failed to decode request body!"))); err != nil {
-				return
-			}
-			return
-		}
-		logrus.Debugf("Body: %v\n", body)
-		if _, ok := body["media_id"]; !ok {
-			w.WriteHeader(http.StatusBadRequest)
-		}
-
-		if _, ok := body["media_type"]; !ok {
-			w.WriteHeader(http.StatusBadRequest)
-		}
-
-		mediaBytes, err := delphisBackend.GetMedia(r.Context(), body["media_id"], body["media_type"])
-		if err != nil {
-			logrus.WithError(err).Error("failed to get image")
-			w.WriteHeader(http.StatusInternalServerError)
-			if _, err := w.Write([]byte(fmt.Sprintf("500 - Failed to get image!"))); err != nil {
-				return
-			}
-			return
-		}
-
-		w.Header().Add("Content-Type", "application/octet-stream")
-		if _, err := w.Write(mediaBytes); err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
-			if _, err := w.Write([]byte(fmt.Sprintf("500 - Something bad happened!: %+v", err))); err != nil {
-				return
-			}
-			return
-		}
-
-		return
-	}
-
 	return http.HandlerFunc(fn)
 }
 

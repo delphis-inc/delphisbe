@@ -6,8 +6,6 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/aws/aws-sdk-go/service/s3"
-
 	"github.com/aws/aws-sdk-go/aws"
 
 	"github.com/sirupsen/logrus"
@@ -18,38 +16,6 @@ import (
 type fileInfo struct {
 	key      string
 	mimeType string
-}
-
-var mimeTypeToExtension = map[string]string{
-	"image/jpeg":      "jpeg",
-	"image/png":       "png",
-	"image/gif":       "gif",
-	"video/x-msvideo": "avi",
-}
-
-func (m *mediaDB) GetMedia(ctx context.Context, fileID, mimeType string) ([]byte, error) {
-	// Get file extension from mimeType. Append to fileID to fetch from s3
-	ext := mimeTypeToExtension[mimeType]
-	fileName := strings.Join([]string{fileID, ext}, ".")
-
-	fileInfo, err := m.getFileInfo(fileName, mimeType)
-	if err != nil {
-		logrus.WithError(err).Error("failed to get file info for s3")
-		return nil, err
-	}
-
-	logrus.Debugf("FileInfo: %+v\n", fileInfo)
-
-	buff := &aws.WriteAtBuffer{}
-	if _, err := m.downloader.Download(buff, &s3.GetObjectInput{
-		Bucket: aws.String(m.s3BucketConfig.MediaBucket),
-		Key:    aws.String(fileInfo.key),
-	}); err != nil {
-		logrus.WithError(err).Error("failed to download image from s3")
-		return nil, err
-	}
-
-	return buff.Bytes(), nil
 }
 
 func (m *mediaDB) UploadMedia(ctx context.Context, filename string, media []byte) (string, error) {

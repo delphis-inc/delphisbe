@@ -15,10 +15,6 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func (d *delphisBackend) GetMedia(ctx context.Context, mediaID string, mediaType string) ([]byte, error) {
-	return d.mediadb.GetMedia(ctx, mediaID, mediaType)
-}
-
 func (d *delphisBackend) UploadMedia(ctx context.Context, ext string, media multipart.File) (string, string, error) {
 	uuid := util.UUIDv4()
 	filename := strings.Join([]string{uuid, ext}, "")
