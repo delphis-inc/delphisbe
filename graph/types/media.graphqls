@@ -5,8 +5,8 @@ type Media {
     createdAt: String!
     isDeleted: Boolean!
     deletedReasonCode: PostDeletedReason
-    type: String!
-    size: MediaSize!
+    mediaType: String!
+    mediaSize: MediaSize!
 }
 
 type MediaSize {

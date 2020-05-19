@@ -3,8 +3,6 @@ package config
 import (
 	"os"
 
-	"github.com/sirupsen/logrus"
-
 	"github.com/spf13/viper"
 )
 
@@ -126,6 +124,5 @@ func ReadConfig() (*Config, error) {
 		config.ReadEnvAndUpdate()
 	}
 
-	logrus.Debugf("Config: %+v\n", config)
 	return &config, nil
 }

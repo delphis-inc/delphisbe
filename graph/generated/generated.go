@@ -93,8 +93,8 @@ type ComplexityRoot struct {
 		DeletedReasonCode func(childComplexity int) int
 		ID                func(childComplexity int) int
 		IsDeleted         func(childComplexity int) int
-		Size              func(childComplexity int) int
-		Type              func(childComplexity int) int
+		MediaSize         func(childComplexity int) int
+		MediaType         func(childComplexity int) int
 	}
 
 	MediaSize struct {
@@ -539,19 +539,19 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Media.IsDeleted(childComplexity), true
 
-	case "Media.size":
-		if e.complexity.Media.Size == nil {
+	case "Media.mediaSize":
+		if e.complexity.Media.MediaSize == nil {
 			break
 		}
 
-		return e.complexity.Media.Size(childComplexity), true
+		return e.complexity.Media.MediaSize(childComplexity), true
 
-	case "Media.type":
-		if e.complexity.Media.Type == nil {
+	case "Media.mediaType":
+		if e.complexity.Media.MediaType == nil {
 			break
 		}
 
-		return e.complexity.Media.Type(childComplexity), true
+		return e.complexity.Media.MediaType(childComplexity), true
 
 	case "MediaSize.height":
 		if e.complexity.MediaSize.Height == nil {
@@ -1508,8 +1508,8 @@ type Media {
     createdAt: String!
     isDeleted: Boolean!
     deletedReasonCode: PostDeletedReason
-    type: String!
-    size: MediaSize!
+    mediaType: String!
+    mediaSize: MediaSize!
 }
 
 type MediaSize {
@@ -2884,7 +2884,7 @@ func (ec *executionContext) _Media_deletedReasonCode(ctx context.Context, field 
 	return ec.marshalOPostDeletedReason2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐPostDeletedReason(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Media_type(ctx context.Context, field graphql.CollectedField, obj *model.Media) (ret graphql.Marshaler) {
+func (ec *executionContext) _Media_mediaType(ctx context.Context, field graphql.CollectedField, obj *model.Media) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -2901,7 +2901,7 @@ func (ec *executionContext) _Media_type(ctx context.Context, field graphql.Colle
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.Type, nil
+		return obj.MediaType, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -2918,7 +2918,7 @@ func (ec *executionContext) _Media_type(ctx context.Context, field graphql.Colle
 	return ec.marshalNString2string(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Media_size(ctx context.Context, field graphql.CollectedField, obj *model.Media) (ret graphql.Marshaler) {
+func (ec *executionContext) _Media_mediaSize(ctx context.Context, field graphql.CollectedField, obj *model.Media) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -2935,7 +2935,7 @@ func (ec *executionContext) _Media_size(ctx context.Context, field graphql.Colle
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.Size, nil
+		return obj.MediaSize, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -7920,13 +7920,13 @@ func (ec *executionContext) _Media(ctx context.Context, sel ast.SelectionSet, ob
 			}
 		case "deletedReasonCode":
 			out.Values[i] = ec._Media_deletedReasonCode(ctx, field, obj)
-		case "type":
-			out.Values[i] = ec._Media_type(ctx, field, obj)
+		case "mediaType":
+			out.Values[i] = ec._Media_mediaType(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
-		case "size":
-			out.Values[i] = ec._Media_size(ctx, field, obj)
+		case "mediaSize":
+			out.Values[i] = ec._Media_mediaSize(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}

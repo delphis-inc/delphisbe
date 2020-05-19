@@ -19,7 +19,7 @@ func (d *delphisDB) PutMedia(ctx context.Context, tx *sql2.Tx, media model.Media
 		return err
 	}
 
-	sizeJson, err := json.Marshal(media.Size)
+	sizeJson, err := json.Marshal(media.MediaSize)
 	if err != nil {
 		logrus.WithError(err).Error("failed to marshal size json")
 		return err
@@ -28,7 +28,7 @@ func (d *delphisDB) PutMedia(ctx context.Context, tx *sql2.Tx, media model.Media
 	_, err = tx.StmtContext(ctx, d.prepStmts.putMediaStmt).ExecContext(
 		ctx,
 		media.ID,
-		media.Type,
+		media.MediaType,
 		sizeJson,
 	)
 	if err != nil {

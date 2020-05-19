@@ -15,8 +15,8 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func (d *delphisBackend) UploadMedia(ctx context.Context, ext string, media multipart.File) (string, string, error) {
-	uuid := util.UUIDv4()
+func (d *delphisBackend) UploadMedia(ctx context.Context, ext string, media multipart.File) (uuid string, mimeType string, err error) {
+	uuid = util.UUIDv4()
 	filename := strings.Join([]string{uuid, ext}, "")
 
 	mediaBytes, err := ioutil.ReadAll(media)
@@ -26,7 +26,7 @@ func (d *delphisBackend) UploadMedia(ctx context.Context, ext string, media mult
 	}
 
 	// Pass in size into s3
-	mimeType, err := d.mediadb.UploadMedia(ctx, filename, mediaBytes)
+	mimeType, err = d.mediadb.UploadMedia(ctx, filename, mediaBytes)
 	if err != nil {
 		logrus.WithError(err).Error("failed to upload media to s3")
 		return "", "", err
@@ -36,9 +36,9 @@ func (d *delphisBackend) UploadMedia(ctx context.Context, ext string, media mult
 
 	// Create record within Media table
 	mediaObj := model.Media{
-		ID:   uuid,
-		Type: mimeType,
-		Size: &mediaSize,
+		ID:        uuid,
+		MediaType: mimeType,
+		MediaSize: &mediaSize,
 	}
 
 	if err := d.writeMediaRecord(ctx, mediaObj); err != nil {
@@ -78,8 +78,7 @@ func (d *delphisBackend) writeMediaRecord(ctx context.Context, mediaObj model.Me
 func getMediaSize(ctx context.Context, mimeType string, media []byte) model.MediaSize {
 	fileSize := len(media)
 
-	// Get dimensions of image
-	// Does this matter?
+	// TODO: Get dimensions of image
 	//switch mediaType {
 	//case mediadb.ImageMedia:
 	//	//image, _, err := image2.DecodeConfig()
