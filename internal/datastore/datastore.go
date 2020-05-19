@@ -62,7 +62,8 @@ type Datastore interface {
 	GetPostByID(ctx context.Context, postID string) (*model.Post, error)
 	PutActivity(ctx context.Context, tx *sql2.Tx, post *model.Post) error
 	CreateTestTables(ctx context.Context, data TestData) (func() error, error)
-	PutMedia(ctx context.Context, tx *sql2.Tx, media model.Media) error
+	PutMediaRecord(ctx context.Context, tx *sql2.Tx, media model.Media) error
+	GetMediaRecordByID(ctx context.Context, mediaID string) (*model.Media, error)
 
 	// TXN
 	BeginTx(ctx context.Context) (*sql2.Tx, error)
@@ -190,9 +191,14 @@ func (d *delphisDB) initializeStatements(ctx context.Context) (err error) {
 	}
 
 	// MEDIA
-	if d.prepStmts.putMediaStmt, err = d.pg.PrepareContext(ctx, putMediaString); err != nil {
-		logrus.WithError(err).Error("failed to prepare putMediaStmt")
-		return errors.Wrap(err, "failed to prepare putMediaStmt")
+	if d.prepStmts.putMediaRecordStmt, err = d.pg.PrepareContext(ctx, putMediaRecordString); err != nil {
+		logrus.WithError(err).Error("failed to prepare putMediaRecordStmt")
+		return errors.Wrap(err, "failed to prepare putMediaRecordStmt")
+	}
+
+	if d.prepStmts.getMediaRecordStmt, err = d.pg.PrepareContext(ctx, getMediaRecordString); err != nil {
+		logrus.WithError(err).Error("failed to prepare getMediaRecordStmt")
+		return errors.Wrap(err, "failed to prepare getMediaRecordStmt")
 	}
 
 	d.ready = true

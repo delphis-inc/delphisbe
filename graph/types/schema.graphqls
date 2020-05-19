@@ -52,6 +52,7 @@ input PostContentInput {
   mentionedEntities:[String!],
   quotedPostID: ID
   media: MediaInput,
+  mediaID: ID,
   poll: PollInput
 }
 

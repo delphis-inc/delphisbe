@@ -15,7 +15,8 @@ type dbPrepStmts struct {
 	putActivityStmt *sql2.Stmt
 
 	// Media
-	putMediaStmt *sql2.Stmt
+	putMediaRecordStmt *sql2.Stmt
+	getMediaRecordStmt *sql2.Stmt
 }
 
 const putPostString = `
@@ -24,8 +25,9 @@ const putPostString = `
 			discussion_id,
 			participant_id,
 			post_content_id,
-			quoted_post_id
-		) VALUES ($1, $2, $3, $4, $5)
+			quoted_post_id,
+			media_id
+		) VALUES ($1, $2, $3, $4, $5, $6)
 		RETURNING
 			id,
 			created_at,
@@ -33,7 +35,8 @@ const putPostString = `
 			discussion_id,
 			participant_id,
 			post_content_id,
-			quoted_post_id;`
+			quoted_post_id,
+			media_id;`
 
 const getPostsByDiscussionIDString = `
 		SELECT p.id,
@@ -44,6 +47,7 @@ const getPostsByDiscussionIDString = `
 			p.discussion_id,
 			p.participant_id,
 			p.quoted_post_id,
+			p.media_id,
 			pc.id,
 			pc.content
 		FROM posts p
@@ -66,9 +70,19 @@ const putActivityString = `
 			entity_type
 		) VALUES ($1, $2, $3, $4);`
 
-const putMediaString = `
+const putMediaRecordString = `
 		INSERT INTO media (
 			id,
 			media_type,
 			media_size
 		) VALUES ($1, $2, $3);`
+
+const getMediaRecordString = `
+		SELECT id,
+			created_at,
+			deleted_at,
+			deleted_reason_code,
+			media_type,
+			media_size
+		FROM media
+		WHERE id = $1;`

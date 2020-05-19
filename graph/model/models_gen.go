@@ -31,6 +31,7 @@ type Media struct {
 	DeletedReasonCode *PostDeletedReason `json:"deletedReasonCode"`
 	MediaType         string             `json:"mediaType"`
 	MediaSize         *MediaSize         `json:"mediaSize"`
+	AssetLocation     string             `json:"assetLocation"`
 }
 
 type MediaInput struct {
@@ -71,6 +72,7 @@ type PostContentInput struct {
 	MentionedEntities []string    `json:"mentionedEntities"`
 	QuotedPostID      *string     `json:"quotedPostID"`
 	Media             *MediaInput `json:"media"`
+	MediaID           *string     `json:"mediaID"`
 	Poll              *PollInput  `json:"poll"`
 }
 

@@ -82,6 +82,7 @@ type TablesConfig struct {
 
 type S3BucketConfig struct {
 	MediaBucket    string `json:"media_bucket" mapstructure:"media_bucket"`
+	CloudFrontURL  string `json:"cloudfront_url" mapstructure:"cloudfront_url"`
 	BaseKey        string `json:"base_key" mapstructure:"base_key"`
 	ImageKeyPrefix string `json:"image_prefix" mapstructure:"image_prefix"`
 	GifKeyPrefix   string `json:"gif_prefix" mapstructure:"gif_prefix"`

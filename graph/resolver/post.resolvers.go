@@ -88,6 +88,13 @@ func (r *postResolver) MentionedEntities(ctx context.Context, obj *model.Post) (
 	return entities, nil
 }
 
+func (r *postResolver) Media(ctx context.Context, obj *model.Post) (*model.Media, error) {
+	if obj.MediaID != nil {
+		return r.DAOManager.GetMediaRecord(ctx, *obj.MediaID)
+	}
+	return nil, nil
+}
+
 // Post returns generated.PostResolver implementation.
 func (r *Resolver) Post() generated.PostResolver { return &postResolver{r} }
 

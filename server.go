@@ -10,7 +10,6 @@ import (
 	"net/http"
 	"net/url"
 	"os"
-	"path/filepath"
 	"strings"
 	"time"
 
@@ -294,19 +293,8 @@ func uploadImage(delphisBackend backend.DelphisBackend) http.Handler {
 			return
 		}
 
-		// Get file extension
-		// The client should always send a properly formed media file
-		ext := filepath.Ext(header.Filename)
-		if len(ext) == 0 {
-			w.WriteHeader(http.StatusBadRequest)
-			if _, err := w.Write([]byte("400 - No extension on media file")); err != nil {
-				return
-			}
-			return
-		}
-
 		// Upload image
-		mediaID, mimeType, err := delphisBackend.UploadMedia(r.Context(), ext, file)
+		mediaID, mimeType, err := delphisBackend.UploadMedia(r.Context(), file)
 		if err != nil {
 			logrus.WithError(err).Error("failed to upload media")
 			w.WriteHeader(http.StatusInternalServerError)

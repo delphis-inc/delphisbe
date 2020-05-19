@@ -17,6 +17,7 @@ const (
 )
 
 type MediaDB interface {
+	GetAssetLocation(ctx context.Context, mediaID, mimeType string) (string, error)
 	UploadMedia(ctx context.Context, filename string, media []byte) (string, error)
 }
 

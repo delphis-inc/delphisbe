@@ -4,7 +4,6 @@ import (
 	"context"
 	"io/ioutil"
 	"mime/multipart"
-	"strings"
 
 	"go.uber.org/multierr"
 
@@ -15,9 +14,24 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func (d *delphisBackend) UploadMedia(ctx context.Context, ext string, media multipart.File) (uuid string, mimeType string, err error) {
+func (d *delphisBackend) GetMediaRecord(ctx context.Context, mediaID string) (*model.Media, error) {
+	mediaRecord, err := d.db.GetMediaRecordByID(ctx, mediaID)
+	if err != nil {
+		logrus.WithError(err).Error("failed to get MediaRecord from db")
+		return nil, err
+	}
+
+	// TODO: Generate asset URL from media package
+	mediaRecord.AssetLocation, err = d.mediadb.GetAssetLocation(ctx, mediaRecord.ID, mediaRecord.MediaType)
+	if err != nil {
+		logrus.WithError(err).Error("failed to get asset location")
+		return nil, err
+	}
+	return mediaRecord, nil
+}
+
+func (d *delphisBackend) UploadMedia(ctx context.Context, media multipart.File) (uuid string, mimeType string, err error) {
 	uuid = util.UUIDv4()
-	filename := strings.Join([]string{uuid, ext}, "")
 
 	mediaBytes, err := ioutil.ReadAll(media)
 	if err != nil {
@@ -26,7 +40,7 @@ func (d *delphisBackend) UploadMedia(ctx context.Context, ext string, media mult
 	}
 
 	// Pass in size into s3
-	mimeType, err = d.mediadb.UploadMedia(ctx, filename, mediaBytes)
+	mimeType, err = d.mediadb.UploadMedia(ctx, uuid, mediaBytes)
 	if err != nil {
 		logrus.WithError(err).Error("failed to upload media to s3")
 		return "", "", err
@@ -57,7 +71,7 @@ func (d *delphisBackend) writeMediaRecord(ctx context.Context, mediaObj model.Me
 		return err
 	}
 
-	if err := d.db.PutMedia(ctx, tx, mediaObj); err != nil {
+	if err := d.db.PutMediaRecord(ctx, tx, mediaObj); err != nil {
 		// Rollback on errors
 		if txErr := d.db.RollbackTx(ctx, tx); txErr != nil {
 			logrus.WithError(txErr).Error("failed to rollback tx")

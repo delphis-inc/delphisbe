@@ -18,6 +18,16 @@ type fileInfo struct {
 	mimeType string
 }
 
+func (m *mediaDB) GetAssetLocation(ctx context.Context, mediaID, mimeType string) (string, error) {
+	fileInfo, err := m.getFileInfo(mediaID, mimeType)
+	if err != nil {
+		logrus.WithError(err).Error("failed to get file info for cloudfront")
+		return "", err
+	}
+
+	return strings.Join([]string{m.s3BucketConfig.CloudFrontURL, fileInfo.key}, "/"), nil
+}
+
 func (m *mediaDB) UploadMedia(ctx context.Context, filename string, media []byte) (string, error) {
 	mimeType := http.DetectContentType(media[:512])
 

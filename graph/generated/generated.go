@@ -89,6 +89,7 @@ type ComplexityRoot struct {
 	}
 
 	Media struct {
+		AssetLocation     func(childComplexity int) int
 		CreatedAt         func(childComplexity int) int
 		DeletedReasonCode func(childComplexity int) int
 		ID                func(childComplexity int) int
@@ -170,6 +171,7 @@ type ComplexityRoot struct {
 		Discussion        func(childComplexity int) int
 		ID                func(childComplexity int) int
 		IsDeleted         func(childComplexity int) int
+		Media             func(childComplexity int) int
 		MentionedEntities func(childComplexity int) int
 		Participant       func(childComplexity int) int
 		QuotedPost        func(childComplexity int) int
@@ -325,6 +327,7 @@ type PostResolver interface {
 	UpdatedAt(ctx context.Context, obj *model.Post) (string, error)
 
 	MentionedEntities(ctx context.Context, obj *model.Post) ([]model.Entity, error)
+	Media(ctx context.Context, obj *model.Post) (*model.Media, error)
 }
 type PostBookmarkResolver interface {
 	Discussion(ctx context.Context, obj *model.PostBookmark) (*model.Discussion, error)
@@ -510,6 +513,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.FlairTemplate.Source(childComplexity), true
+
+	case "Media.assetLocation":
+		if e.complexity.Media.AssetLocation == nil {
+			break
+		}
+
+		return e.complexity.Media.AssetLocation(childComplexity), true
 
 	case "Media.createdAt":
 		if e.complexity.Media.CreatedAt == nil {
@@ -922,6 +932,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Post.IsDeleted(childComplexity), true
+
+	case "Post.media":
+		if e.complexity.Post.Media == nil {
+			break
+		}
+
+		return e.complexity.Post.Media(childComplexity), true
 
 	case "Post.mentionedEntities":
 		if e.complexity.Post.MentionedEntities == nil {
@@ -1510,6 +1527,7 @@ type Media {
     deletedReasonCode: PostDeletedReason
     mediaType: String!
     mediaSize: MediaSize!
+    assetLocation: String!
 }
 
 type MediaSize {
@@ -1582,6 +1600,7 @@ interface Entity {
     updatedAt: String!
     quotedPost: Post
     mentionedEntities: [Entity!]
+    media: Media
 }`, BuiltIn: false},
 	&ast.Source{Name: "graph/types/post_bookmark.graphqls", Input: `# Defines a bookmark for a post. Built this way because I
 # assume we will have other types of bookmarks down the road
@@ -1664,6 +1683,7 @@ input PostContentInput {
   mentionedEntities:[String!],
   quotedPostID: ID
   media: MediaInput,
+  mediaID: ID,
   poll: PollInput
 }
 
@@ -2950,6 +2970,40 @@ func (ec *executionContext) _Media_mediaSize(ctx context.Context, field graphql.
 	res := resTmp.(*model.MediaSize)
 	fc.Result = res
 	return ec.marshalNMediaSize2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐMediaSize(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Media_assetLocation(ctx context.Context, field graphql.CollectedField, obj *model.Media) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "Media",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.AssetLocation, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _MediaSize_height(ctx context.Context, field graphql.CollectedField, obj *model.MediaSize) (ret graphql.Marshaler) {
@@ -4645,6 +4699,37 @@ func (ec *executionContext) _Post_mentionedEntities(ctx context.Context, field g
 	res := resTmp.([]model.Entity)
 	fc.Result = res
 	return ec.marshalOEntity2ᚕgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐEntityᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Post_media(ctx context.Context, field graphql.CollectedField, obj *model.Post) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "Post",
+		Field:    field,
+		Args:     nil,
+		IsMethod: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Post().Media(rctx, obj)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*model.Media)
+	fc.Result = res
+	return ec.marshalOMedia2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐMedia(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _PostBookmark_id(ctx context.Context, field graphql.CollectedField, obj *model.PostBookmark) (ret graphql.Marshaler) {
@@ -7556,6 +7641,12 @@ func (ec *executionContext) unmarshalInputPostContentInput(ctx context.Context, 
 			if err != nil {
 				return it, err
 			}
+		case "mediaID":
+			var err error
+			it.MediaID, err = ec.unmarshalOID2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
 		case "poll":
 			var err error
 			it.Poll, err = ec.unmarshalOPollInput2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐPollInput(ctx, v)
@@ -7927,6 +8018,11 @@ func (ec *executionContext) _Media(ctx context.Context, sel ast.SelectionSet, ob
 			}
 		case "mediaSize":
 			out.Values[i] = ec._Media_mediaSize(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "assetLocation":
+			out.Values[i] = ec._Media_assetLocation(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
@@ -8484,6 +8580,17 @@ func (ec *executionContext) _Post(ctx context.Context, sel ast.SelectionSet, obj
 					}
 				}()
 				res = ec._Post_mentionedEntities(ctx, field, obj)
+				return res
+			})
+		case "media":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Post_media(ctx, field, obj)
 				return res
 			})
 		default:
@@ -10292,6 +10399,17 @@ func (ec *executionContext) unmarshalOInt2int(ctx context.Context, v interface{}
 
 func (ec *executionContext) marshalOInt2int(ctx context.Context, sel ast.SelectionSet, v int) graphql.Marshaler {
 	return graphql.MarshalInt(v)
+}
+
+func (ec *executionContext) marshalOMedia2githubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐMedia(ctx context.Context, sel ast.SelectionSet, v model.Media) graphql.Marshaler {
+	return ec._Media(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalOMedia2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐMedia(ctx context.Context, sel ast.SelectionSet, v *model.Media) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._Media(ctx, sel, v)
 }
 
 func (ec *executionContext) unmarshalOMediaInput2githubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐMediaInput(ctx context.Context, v interface{}) (model.MediaInput, error) {
