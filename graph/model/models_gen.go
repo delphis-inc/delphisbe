@@ -81,6 +81,12 @@ type URL struct {
 	URL         string `json:"url"`
 }
 
+type UnknownEntity struct {
+	ID string `json:"id"`
+}
+
+func (UnknownEntity) IsEntity() {}
+
 type UpdateParticipantInput struct {
 	GradientColor   *GradientColor `json:"gradientColor"`
 	IsUnsetGradient *bool          `json:"isUnsetGradient"`

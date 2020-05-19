@@ -20,6 +20,3 @@ type Participant implements Entity{
     hasJoined: Boolean!
 }
 
-interface Entity {
-    id: ID!
-}

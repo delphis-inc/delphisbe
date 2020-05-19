@@ -79,7 +79,7 @@ func (r *postResolver) MentionedEntities(ctx context.Context, obj *model.Post) (
 	var entities []model.Entity
 	for _, entityID := range obj.PostContent.MentionedEntities {
 		if _, ok := mentionedEntities[entityID]; !ok {
-			entities = append(entities, &model.Participant{})
+			entities = append(entities, &model.UnknownEntity{})
 		} else {
 			entities = append(entities, mentionedEntities[entityID])
 		}

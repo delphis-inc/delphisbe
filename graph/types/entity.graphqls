@@ -1,0 +1,7 @@
+interface Entity {
+    id: ID!
+}
+
+type UnknownEntity implements Entity{
+    id: ID!
+}
