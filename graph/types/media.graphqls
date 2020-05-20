@@ -13,5 +13,5 @@ type Media {
 type MediaSize {
     height: Int!
     width: Int!
-    storage: Int! # Should this be in bytes, kbs, something else?
+    sizeKb: Float! # Should this be in bytes, kbs, something else?
 }

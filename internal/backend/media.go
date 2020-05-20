@@ -21,7 +21,7 @@ func (d *delphisBackend) GetMediaRecord(ctx context.Context, mediaID string) (*m
 		return nil, err
 	}
 
-	// TODO: Generate asset URL from media package
+	// Generate asset URL from media package
 	mediaRecord.AssetLocation, err = d.mediadb.GetAssetLocation(ctx, mediaRecord.ID, mediaRecord.MediaType)
 	if err != nil {
 		logrus.WithError(err).Error("failed to get asset location")
@@ -100,9 +100,9 @@ func getMediaSize(ctx context.Context, mimeType string, media []byte) model.Medi
 	//}
 
 	return model.MediaSize{
-		Height:  0,
-		Width:   0,
-		Storage: fileSize,
+		Height: 0,
+		Width:  0,
+		SizeKb: float64(fileSize) / 1024.0,
 	}
 
 }

@@ -34,15 +34,10 @@ type Media struct {
 	AssetLocation     string             `json:"assetLocation"`
 }
 
-type MediaInput struct {
-	Type    string `json:"type"`
-	MediaID string `json:"mediaID"`
-}
-
 type MediaSize struct {
-	Height  int `json:"height"`
-	Width   int `json:"width"`
-	Storage int `json:"storage"`
+	Height int     `json:"height"`
+	Width  int     `json:"width"`
+	SizeKb float64 `json:"sizeKb"`
 }
 
 type ParticipantNotificationPreferences struct {
@@ -67,13 +62,12 @@ type PollInput struct {
 }
 
 type PostContentInput struct {
-	PostText          string      `json:"postText"`
-	PostType          PostType    `json:"postType"`
-	MentionedEntities []string    `json:"mentionedEntities"`
-	QuotedPostID      *string     `json:"quotedPostID"`
-	Media             *MediaInput `json:"media"`
-	MediaID           *string     `json:"mediaID"`
-	Poll              *PollInput  `json:"poll"`
+	PostText          string     `json:"postText"`
+	PostType          PostType   `json:"postType"`
+	MentionedEntities []string   `json:"mentionedEntities"`
+	QuotedPostID      *string    `json:"quotedPostID"`
+	MediaID           *string    `json:"mediaID"`
+	Poll              *PollInput `json:"poll"`
 }
 
 type URL struct {

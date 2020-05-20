@@ -31,12 +31,6 @@ input AddDiscussionParticipantInput {
 }
 
 # TODO: implement
-input MediaInput {
-  type: String!,
-  mediaID: ID!
-}
-
-# TODO: implement
 input PollInput {
   pollText: String!,
   endTime: Time!,
@@ -51,7 +45,6 @@ input PostContentInput {
   postType: PostType!,
   mentionedEntities:[String!],
   quotedPostID: ID
-  media: MediaInput,
   mediaID: ID,
   poll: PollInput
 }

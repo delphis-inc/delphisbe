@@ -3,6 +3,7 @@ package mediadb
 import (
 	"bytes"
 	"context"
+	"errors"
 	"net/http"
 	"strings"
 
@@ -29,6 +30,12 @@ func (m *mediaDB) GetAssetLocation(ctx context.Context, mediaID, mimeType string
 }
 
 func (m *mediaDB) UploadMedia(ctx context.Context, filename string, media []byte) (string, error) {
+	if len(media) < 512 {
+		err := errors.New("media file size is too small to detect")
+		logrus.WithError(err)
+		return "", err
+	}
+
 	mimeType := http.DetectContentType(media[:512])
 
 	fileInfo, err := m.getFileInfo(filename, mimeType)

@@ -99,9 +99,9 @@ type ComplexityRoot struct {
 	}
 
 	MediaSize struct {
-		Height  func(childComplexity int) int
-		Storage func(childComplexity int) int
-		Width   func(childComplexity int) int
+		Height func(childComplexity int) int
+		SizeKb func(childComplexity int) int
+		Width  func(childComplexity int) int
 	}
 
 	Moderator struct {
@@ -574,12 +574,12 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.MediaSize.Height(childComplexity), true
 
-	case "MediaSize.storage":
-		if e.complexity.MediaSize.Storage == nil {
+	case "MediaSize.sizeKb":
+		if e.complexity.MediaSize.SizeKb == nil {
 			break
 		}
 
-		return e.complexity.MediaSize.Storage(childComplexity), true
+		return e.complexity.MediaSize.SizeKb(childComplexity), true
 
 	case "MediaSize.width":
 		if e.complexity.MediaSize.Width == nil {
@@ -1551,7 +1551,7 @@ type Media {
 type MediaSize {
     height: Int!
     width: Int!
-    storage: Int! # Should this be in bytes, kbs, something else?
+    sizeKb: Float! # Should this be in bytes, kbs, something else?
 }`, BuiltIn: false},
 	&ast.Source{Name: "graph/types/moderator.graphqls", Input: `type Moderator {
     id: ID!
@@ -1678,12 +1678,6 @@ input AddDiscussionParticipantInput {
 }
 
 # TODO: implement
-input MediaInput {
-  type: String!,
-  mediaID: ID!
-}
-
-# TODO: implement
 input PollInput {
   pollText: String!,
   endTime: Time!,
@@ -1698,7 +1692,6 @@ input PostContentInput {
   postType: PostType!,
   mentionedEntities:[String!],
   quotedPostID: ID
-  media: MediaInput,
   mediaID: ID,
   poll: PollInput
 }
@@ -3090,7 +3083,7 @@ func (ec *executionContext) _MediaSize_width(ctx context.Context, field graphql.
 	return ec.marshalNInt2int(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _MediaSize_storage(ctx context.Context, field graphql.CollectedField, obj *model.MediaSize) (ret graphql.Marshaler) {
+func (ec *executionContext) _MediaSize_sizeKb(ctx context.Context, field graphql.CollectedField, obj *model.MediaSize) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -3107,7 +3100,7 @@ func (ec *executionContext) _MediaSize_storage(ctx context.Context, field graphq
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.Storage, nil
+		return obj.SizeKb, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -3119,9 +3112,9 @@ func (ec *executionContext) _MediaSize_storage(ctx context.Context, field graphq
 		}
 		return graphql.Null
 	}
-	res := resTmp.(int)
+	res := resTmp.(float64)
 	fc.Result = res
-	return ec.marshalNInt2int(ctx, field.Selections, res)
+	return ec.marshalNFloat2float64(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Moderator_id(ctx context.Context, field graphql.CollectedField, obj *model.Moderator) (ret graphql.Marshaler) {
@@ -7583,30 +7576,6 @@ func (ec *executionContext) unmarshalInputAddDiscussionParticipantInput(ctx cont
 	return it, nil
 }
 
-func (ec *executionContext) unmarshalInputMediaInput(ctx context.Context, obj interface{}) (model.MediaInput, error) {
-	var it model.MediaInput
-	var asMap = obj.(map[string]interface{})
-
-	for k, v := range asMap {
-		switch k {
-		case "type":
-			var err error
-			it.Type, err = ec.unmarshalNString2string(ctx, v)
-			if err != nil {
-				return it, err
-			}
-		case "mediaID":
-			var err error
-			it.MediaID, err = ec.unmarshalNID2string(ctx, v)
-			if err != nil {
-				return it, err
-			}
-		}
-	}
-
-	return it, nil
-}
-
 func (ec *executionContext) unmarshalInputPollInput(ctx context.Context, obj interface{}) (model.PollInput, error) {
 	var it model.PollInput
 	var asMap = obj.(map[string]interface{})
@@ -7682,12 +7651,6 @@ func (ec *executionContext) unmarshalInputPostContentInput(ctx context.Context, 
 		case "quotedPostID":
 			var err error
 			it.QuotedPostID, err = ec.unmarshalOID2ᚖstring(ctx, v)
-			if err != nil {
-				return it, err
-			}
-		case "media":
-			var err error
-			it.Media, err = ec.unmarshalOMediaInput2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐMediaInput(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -8115,8 +8078,8 @@ func (ec *executionContext) _MediaSize(ctx context.Context, sel ast.SelectionSet
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
-		case "storage":
-			out.Values[i] = ec._MediaSize_storage(ctx, field, obj)
+		case "sizeKb":
+			out.Values[i] = ec._MediaSize_sizeKb(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
@@ -9727,6 +9690,20 @@ func (ec *executionContext) marshalNFlairTemplate2ᚖgithubᚗcomᚋnedrocksᚋd
 	return ec._FlairTemplate(ctx, sel, v)
 }
 
+func (ec *executionContext) unmarshalNFloat2float64(ctx context.Context, v interface{}) (float64, error) {
+	return graphql.UnmarshalFloat(v)
+}
+
+func (ec *executionContext) marshalNFloat2float64(ctx context.Context, sel ast.SelectionSet, v float64) graphql.Marshaler {
+	res := graphql.MarshalFloat(v)
+	if res == graphql.Null {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "must not be null")
+		}
+	}
+	return res
+}
+
 func (ec *executionContext) unmarshalNID2string(ctx context.Context, v interface{}) (string, error) {
 	return graphql.UnmarshalID(v)
 }
@@ -10494,18 +10471,6 @@ func (ec *executionContext) marshalOMedia2ᚖgithubᚗcomᚋnedrocksᚋdelphisbe
 		return graphql.Null
 	}
 	return ec._Media(ctx, sel, v)
-}
-
-func (ec *executionContext) unmarshalOMediaInput2githubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐMediaInput(ctx context.Context, v interface{}) (model.MediaInput, error) {
-	return ec.unmarshalInputMediaInput(ctx, v)
-}
-
-func (ec *executionContext) unmarshalOMediaInput2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐMediaInput(ctx context.Context, v interface{}) (*model.MediaInput, error) {
-	if v == nil {
-		return nil, nil
-	}
-	res, err := ec.unmarshalOMediaInput2githubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐMediaInput(ctx, v)
-	return &res, err
 }
 
 func (ec *executionContext) marshalOParticipant2githubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐParticipant(ctx context.Context, sel ast.SelectionSet, v model.Participant) graphql.Marshaler {
