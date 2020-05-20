@@ -22,11 +22,13 @@ func (d *delphisBackend) GetMediaRecord(ctx context.Context, mediaID string) (*m
 	}
 
 	// Generate asset URL from media package
-	mediaRecord.AssetLocation, err = d.mediadb.GetAssetLocation(ctx, mediaRecord.ID, mediaRecord.MediaType)
+	assetLoc, err := d.mediadb.GetAssetLocation(ctx, mediaRecord.ID, *mediaRecord.MediaType)
 	if err != nil {
 		logrus.WithError(err).Error("failed to get asset location")
 		return nil, err
 	}
+
+	mediaRecord.AssetLocation = &assetLoc
 	return mediaRecord, nil
 }
 
@@ -51,7 +53,7 @@ func (d *delphisBackend) UploadMedia(ctx context.Context, media multipart.File) 
 	// Create record within Media table
 	mediaObj := model.Media{
 		ID:        uuid,
-		MediaType: mimeType,
+		MediaType: &mimeType,
 		MediaSize: &mediaSize,
 	}
 

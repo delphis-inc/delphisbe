@@ -29,9 +29,9 @@ type Media struct {
 	CreatedAt         string             `json:"createdAt"`
 	IsDeleted         bool               `json:"isDeleted"`
 	DeletedReasonCode *PostDeletedReason `json:"deletedReasonCode"`
-	MediaType         string             `json:"mediaType"`
+	MediaType         *string            `json:"mediaType"`
 	MediaSize         *MediaSize         `json:"mediaSize"`
-	AssetLocation     string             `json:"assetLocation"`
+	AssetLocation     *string            `json:"assetLocation"`
 }
 
 type MediaSize struct {

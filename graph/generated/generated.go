@@ -1543,9 +1543,9 @@ type Media {
     createdAt: String!
     isDeleted: Boolean!
     deletedReasonCode: PostDeletedReason
-    mediaType: String!
-    mediaSize: MediaSize!
-    assetLocation: String!
+    mediaType: String
+    mediaSize: MediaSize
+    assetLocation: String
 }
 
 type MediaSize {
@@ -2937,14 +2937,11 @@ func (ec *executionContext) _Media_mediaType(ctx context.Context, field graphql.
 		return graphql.Null
 	}
 	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
 		return graphql.Null
 	}
-	res := resTmp.(string)
+	res := resTmp.(*string)
 	fc.Result = res
-	return ec.marshalNString2string(ctx, field.Selections, res)
+	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Media_mediaSize(ctx context.Context, field graphql.CollectedField, obj *model.Media) (ret graphql.Marshaler) {
@@ -2971,14 +2968,11 @@ func (ec *executionContext) _Media_mediaSize(ctx context.Context, field graphql.
 		return graphql.Null
 	}
 	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
 		return graphql.Null
 	}
 	res := resTmp.(*model.MediaSize)
 	fc.Result = res
-	return ec.marshalNMediaSize2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐMediaSize(ctx, field.Selections, res)
+	return ec.marshalOMediaSize2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐMediaSize(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Media_assetLocation(ctx context.Context, field graphql.CollectedField, obj *model.Media) (ret graphql.Marshaler) {
@@ -3005,14 +2999,11 @@ func (ec *executionContext) _Media_assetLocation(ctx context.Context, field grap
 		return graphql.Null
 	}
 	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
 		return graphql.Null
 	}
-	res := resTmp.(string)
+	res := resTmp.(*string)
 	fc.Result = res
-	return ec.marshalNString2string(ctx, field.Selections, res)
+	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _MediaSize_height(ctx context.Context, field graphql.CollectedField, obj *model.MediaSize) (ret graphql.Marshaler) {
@@ -8033,19 +8024,10 @@ func (ec *executionContext) _Media(ctx context.Context, sel ast.SelectionSet, ob
 			out.Values[i] = ec._Media_deletedReasonCode(ctx, field, obj)
 		case "mediaType":
 			out.Values[i] = ec._Media_mediaType(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
 		case "mediaSize":
 			out.Values[i] = ec._Media_mediaSize(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
 		case "assetLocation":
 			out.Values[i] = ec._Media_assetLocation(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -9732,20 +9714,6 @@ func (ec *executionContext) marshalNInt2int(ctx context.Context, sel ast.Selecti
 	return res
 }
 
-func (ec *executionContext) marshalNMediaSize2githubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐMediaSize(ctx context.Context, sel ast.SelectionSet, v model.MediaSize) graphql.Marshaler {
-	return ec._MediaSize(ctx, sel, &v)
-}
-
-func (ec *executionContext) marshalNMediaSize2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐMediaSize(ctx context.Context, sel ast.SelectionSet, v *model.MediaSize) graphql.Marshaler {
-	if v == nil {
-		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	return ec._MediaSize(ctx, sel, v)
-}
-
 func (ec *executionContext) marshalNModerator2githubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐModerator(ctx context.Context, sel ast.SelectionSet, v model.Moderator) graphql.Marshaler {
 	return ec._Moderator(ctx, sel, &v)
 }
@@ -10471,6 +10439,17 @@ func (ec *executionContext) marshalOMedia2ᚖgithubᚗcomᚋnedrocksᚋdelphisbe
 		return graphql.Null
 	}
 	return ec._Media(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalOMediaSize2githubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐMediaSize(ctx context.Context, sel ast.SelectionSet, v model.MediaSize) graphql.Marshaler {
+	return ec._MediaSize(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalOMediaSize2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐMediaSize(ctx context.Context, sel ast.SelectionSet, v *model.MediaSize) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._MediaSize(ctx, sel, v)
 }
 
 func (ec *executionContext) marshalOParticipant2githubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐParticipant(ctx context.Context, sel ast.SelectionSet, v model.Participant) graphql.Marshaler {
