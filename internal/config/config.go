@@ -7,13 +7,14 @@ import (
 )
 
 type Config struct {
-	Environment string        `json:"env" mapstructure:"env"`
-	DBConfig    DBConfig      `json:"db" mapstructure:"db"`
-	SQLDBConfig SQLDBConfig   `json:"sqldb" mapstructure:"sqldb"`
-	Twitter     TwitterConfig `json:"twitter" mapstructure:"twitter"`
-	Auth        AuthConfig    `json:"auth" mapstructure:"auth"`
-	AWS         AWSConfig     `json:"aws" mapstructure:"aws"`
-	AblyConfig  AblyConfig    `json:"ably" mapstructure:"ably"`
+	Environment    string         `json:"env" mapstructure:"env"`
+	DBConfig       DBConfig       `json:"db" mapstructure:"db"`
+	SQLDBConfig    SQLDBConfig    `json:"sqldb" mapstructure:"sqldb"`
+	Twitter        TwitterConfig  `json:"twitter" mapstructure:"twitter"`
+	Auth           AuthConfig     `json:"auth" mapstructure:"auth"`
+	AWS            AWSConfig      `json:"aws" mapstructure:"aws"`
+	AblyConfig     AblyConfig     `json:"ably" mapstructure:"ably"`
+	S3BucketConfig S3BucketConfig `json:"s3_bucket" mapstructure:"s3_bucket"`
 }
 
 func (c *Config) ReadEnvAndUpdate() {
@@ -77,6 +78,15 @@ type TablesConfig struct {
 	Users         TableConfig `json:"users" mapstructure:"users"`
 	UserProfiles  TableConfig `json:"user_profiles" mapstructure:"user_profiles"`
 	Viewers       TableConfig `json:"viewers" mapstructure:"viewers"`
+}
+
+type S3BucketConfig struct {
+	MediaBucket    string `json:"media_bucket" mapstructure:"media_bucket"`
+	CloudFrontURL  string `json:"cloudfront_url" mapstructure:"cloudfront_url"`
+	BaseKey        string `json:"base_key" mapstructure:"base_key"`
+	ImageKeyPrefix string `json:"image_prefix" mapstructure:"image_prefix"`
+	GifKeyPrefix   string `json:"gif_prefix" mapstructure:"gif_prefix"`
+	VideoKeyPrefix string `json:"video_prefix" mapstructure:"video_prefix"`
 }
 
 type TableConfig struct {

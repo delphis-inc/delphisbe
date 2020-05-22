@@ -24,9 +24,20 @@ type AddDiscussionParticipantInput struct {
 	IsAnonymous   bool           `json:"isAnonymous"`
 }
 
-type MediaInput struct {
-	Type    string `json:"type"`
-	MediaID string `json:"mediaID"`
+type Media struct {
+	ID                string             `json:"id"`
+	CreatedAt         string             `json:"createdAt"`
+	IsDeleted         bool               `json:"isDeleted"`
+	DeletedReasonCode *PostDeletedReason `json:"deletedReasonCode"`
+	MediaType         *string            `json:"mediaType"`
+	MediaSize         *MediaSize         `json:"mediaSize"`
+	AssetLocation     *string            `json:"assetLocation"`
+}
+
+type MediaSize struct {
+	Height int     `json:"height"`
+	Width  int     `json:"width"`
+	SizeKb float64 `json:"sizeKb"`
 }
 
 type ParticipantNotificationPreferences struct {
@@ -51,18 +62,24 @@ type PollInput struct {
 }
 
 type PostContentInput struct {
-	PostText          string      `json:"postText"`
-	PostType          PostType    `json:"postType"`
-	MentionedEntities []string    `json:"mentionedEntities"`
-	QuotedPostID      *string     `json:"quotedPostID"`
-	Media             *MediaInput `json:"media"`
-	Poll              *PollInput  `json:"poll"`
+	PostText          string     `json:"postText"`
+	PostType          PostType   `json:"postType"`
+	MentionedEntities []string   `json:"mentionedEntities"`
+	QuotedPostID      *string    `json:"quotedPostID"`
+	MediaID           *string    `json:"mediaID"`
+	Poll              *PollInput `json:"poll"`
 }
 
 type URL struct {
 	DisplayText string `json:"displayText"`
 	URL         string `json:"url"`
 }
+
+type UnknownEntity struct {
+	ID string `json:"id"`
+}
+
+func (UnknownEntity) IsEntity() {}
 
 type UpdateParticipantInput struct {
 	GradientColor   *GradientColor `json:"gradientColor"`

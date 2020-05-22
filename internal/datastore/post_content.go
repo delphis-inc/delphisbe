@@ -13,6 +13,7 @@ import (
 )
 
 func (d *delphisDB) PutPostContent(ctx context.Context, tx *sql.Tx, postContent model.PostContent) error {
+	logrus.Debug("PutPostContent::SQL Create")
 	if err := d.initializeStatements(ctx); err != nil {
 		logrus.WithError(err).Error("PutPostContent::failed to initialize statements")
 		return err

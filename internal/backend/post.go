@@ -41,6 +41,7 @@ func (d *delphisBackend) CreatePost(ctx context.Context, discussionID string, pa
 		PostContentID: &postContent.ID,
 		PostContent:   &postContent,
 		QuotedPostID:  input.QuotedPostID,
+		MediaID:       input.MediaID,
 	}
 
 	// Begin tx

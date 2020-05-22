@@ -2,6 +2,8 @@ package main
 
 import (
 	"bytes"
+	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 	"math/rand"
@@ -124,6 +126,7 @@ func main() {
 
 	http.Handle("/twitter/login", twitter.LoginHandler(config, nil))
 	http.Handle("/twitter/callback", twitter.CallbackHandler(config, successfulLogin(*conf, delphisBackend), nil))
+	http.Handle("/upload_image", allowCors(uploadImage(delphisBackend)))
 	http.Handle("/health", healthCheck())
 	log.Printf("connect on port %s for GraphQL playground", port)
 	log.Fatal(http.ListenAndServe(":"+port, nil))
@@ -250,5 +253,63 @@ func successfulLogin(conf config.Config, delphisBackend backend.DelphisBackend) 
 		redirectURL.RawQuery = query.Encode()
 		http.Redirect(w, req, redirectURL.String(), 302)
 	}
+	return http.HandlerFunc(fn)
+}
+
+func uploadImage(delphisBackend backend.DelphisBackend) http.Handler {
+	fn := func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != "POST" {
+			logrus.WithError(errors.New("non-POST request was sent to uploadImage"))
+			w.WriteHeader(http.StatusBadRequest)
+		}
+
+		// Limit to 10MB
+		if err := r.ParseMultipartForm(10 << 20); err != nil {
+			logrus.WithError(err).Error("uploaded image was over 10MB")
+			w.WriteHeader(http.StatusBadRequest)
+			if _, err := w.Write([]byte("File was over 10MB")); err != nil {
+				return
+			}
+			return
+		}
+
+		// Retrieve image file
+		file, header, err := r.FormFile("image")
+		if err != nil {
+			logrus.WithError(err).Error("failed getting image from form file")
+			w.WriteHeader(http.StatusInternalServerError)
+			if _, err := w.Write([]byte(fmt.Sprintf("500 - Something bad happened!"))); err != nil {
+				return
+			}
+			return
+		}
+
+		// Check for an empty file
+		if header.Size == 0 {
+			w.WriteHeader(http.StatusBadRequest)
+			if _, err := w.Write([]byte("400 - File was empty!")); err != nil {
+				return
+			}
+			return
+		}
+
+		// Upload image
+		mediaID, mimeType, err := delphisBackend.UploadMedia(r.Context(), file)
+		if err != nil {
+			logrus.WithError(err).Error("failed to upload media")
+			w.WriteHeader(http.StatusInternalServerError)
+			if _, err := w.Write([]byte(fmt.Sprintf("500 - Something bad happened!"))); err != nil {
+				return
+			}
+			return
+		}
+
+		w.Header().Set("Content-type", " application/json")
+
+		// TODO: Create a struct if we decide to return more than the ID
+		resp := map[string]string{"media_id": mediaID, "media_type": mimeType}
+		json.NewEncoder(w).Encode(resp)
+	}
+
 	return http.HandlerFunc(fn)
 }

@@ -2,7 +2,10 @@ package backend
 
 import (
 	"context"
+	"mime/multipart"
 	"sync"
+
+	"github.com/nedrocks/delphisbe/internal/mediadb"
 
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/nedrocks/delphisbe/graph/model"
@@ -62,6 +65,9 @@ type DelphisBackend interface {
 	ValidateRefreshToken(ctx context.Context, token string) (*auth.DelphisRefreshTokenUser, error)
 
 	SendNotificationsToSubscribers(ctx context.Context, discussion *model.Discussion, post *model.Post) (*SendNotificationResponse, error)
+
+	GetMediaRecord(ctx context.Context, mediaID string) (*model.Media, error)
+	UploadMedia(ctx context.Context, media multipart.File) (string, string, error)
 }
 
 type delphisBackend struct {
@@ -71,6 +77,7 @@ type delphisBackend struct {
 	discussionMutex sync.Mutex
 	config          config.Config
 	timeProvider    util.TimeProvider
+	mediadb         mediadb.MediaDB
 }
 
 func NewDelphisBackend(conf config.Config, awsSession *session.Session) DelphisBackend {
@@ -82,5 +89,6 @@ func NewDelphisBackend(conf config.Config, awsSession *session.Session) DelphisB
 		discussionMutex: sync.Mutex{},
 		config:          conf,
 		timeProvider:    &util.RealTime{},
+		mediadb:         mediadb.NewMediaDB(conf, awsSession),
 	}
 }

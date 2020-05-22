@@ -1,0 +1,17 @@
+# Maybe make a basePost interface and extend
+# Media can also just be data on a post
+type Media {
+    id: ID!
+    createdAt: String!
+    isDeleted: Boolean!
+    deletedReasonCode: PostDeletedReason
+    mediaType: String
+    mediaSize: MediaSize
+    assetLocation: String
+}
+
+type MediaSize {
+    height: Int!
+    width: Int!
+    sizeKb: Float! # Should this be in bytes, kbs, something else?
+}

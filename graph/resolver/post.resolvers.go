@@ -79,13 +79,20 @@ func (r *postResolver) MentionedEntities(ctx context.Context, obj *model.Post) (
 	var entities []model.Entity
 	for _, entityID := range obj.PostContent.MentionedEntities {
 		if _, ok := mentionedEntities[entityID]; !ok {
-			entities = append(entities, &model.Participant{})
+			entities = append(entities, &model.UnknownEntity{})
 		} else {
 			entities = append(entities, mentionedEntities[entityID])
 		}
 	}
 
 	return entities, nil
+}
+
+func (r *postResolver) Media(ctx context.Context, obj *model.Post) (*model.Media, error) {
+	if obj.MediaID != nil {
+		return r.DAOManager.GetMediaRecord(ctx, *obj.MediaID)
+	}
+	return nil, nil
 }
 
 // Post returns generated.PostResolver implementation.

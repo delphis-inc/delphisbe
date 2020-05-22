@@ -23,6 +23,7 @@ func (d *delphisDB) PutPost(ctx context.Context, tx *sql.Tx, post model.Post) (*
 		post.ParticipantID,
 		post.PostContent.ID,
 		post.QuotedPostID,
+		post.MediaID,
 	).Scan(
 		&post.ID,
 		&post.CreatedAt,
@@ -31,6 +32,7 @@ func (d *delphisDB) PutPost(ctx context.Context, tx *sql.Tx, post model.Post) (*
 		&post.ParticipantID,
 		&post.PostContentID,
 		&post.QuotedPostID,
+		&post.MediaID,
 	)
 	if err != nil {
 		logrus.WithError(err).Error("failed to execute putPostStmt")
@@ -145,6 +147,7 @@ func (iter *postIter) Next(post *model.Post) bool {
 		&post.DiscussionID,
 		&post.ParticipantID,
 		&post.QuotedPostID,
+		&post.MediaID,
 		&postContent.ID,
 		&postContent.Content,
 	); iter.err != nil {
