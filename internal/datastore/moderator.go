@@ -2,6 +2,7 @@ package datastore
 
 import (
 	"context"
+	"database/sql"
 
 	"github.com/jinzhu/gorm"
 	"github.com/nedrocks/delphisbe/graph/model"
@@ -29,4 +30,32 @@ func (d *delphisDB) CreateModerator(ctx context.Context, moderator model.Moderat
 		return nil, err
 	}
 	return &found, nil
+}
+
+func (d *delphisDB) GetModeratorByUserID(ctx context.Context, id string) (*model.Moderator, error) {
+	logrus.Debug("GetModeratorByUserID::SQL Query")
+	if err := d.initializeStatements(ctx); err != nil {
+		logrus.WithError(err).Error("GetModeratorByUserID failed to initialize statements")
+		return nil, err
+	}
+
+	moderator := model.Moderator{}
+	if err := d.prepStmts.getModeratorByUserIDStmt.QueryRowContext(
+		ctx,
+		id,
+	).Scan(
+		&moderator.ID,
+		&moderator.CreatedAt,
+		&moderator.UpdatedAt,
+		&moderator.DeletedAt,
+		&moderator.UserProfileID,
+	); err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		logrus.WithError(err).Error("failed to execute getModeratorByUserIDStmt")
+		return nil, err
+	}
+
+	return &moderator, nil
 }

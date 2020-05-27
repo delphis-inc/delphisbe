@@ -17,6 +17,9 @@ type dbPrepStmts struct {
 	// Media
 	putMediaRecordStmt *sql2.Stmt
 	getMediaRecordStmt *sql2.Stmt
+
+	// Moderator
+	getModeratorByUserIDStmt *sql2.Stmt
 }
 
 const putPostString = `
@@ -86,3 +89,15 @@ const getMediaRecordString = `
 			media_size
 		FROM media
 		WHERE id = $1;`
+
+// Currently only care if you are a mod, not checking on discussion mods
+const getModeratorByUserIDString = `
+		SELECT m.id,
+			m.created_at,
+			m.updated_at,
+			m.deleted_at,
+			m.user_profile_id
+		FROM moderators m
+		INNER JOIN user_profiles u
+		ON m.user_profile_id = u.id
+		WHERE u.user_id = $1 LIMIT 1;`

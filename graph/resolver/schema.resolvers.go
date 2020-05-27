@@ -13,10 +13,13 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func (r *mutationResolver) AddDiscussionParticipant(ctx context.Context, discussionID string, userID string, discussionParticipantInput model.AddDiscussionParticipantInput) (*model.Participant, error) {
-	participantObj, err := r.DAOManager.CreateParticipantForDiscussion(ctx, discussionID, userID, discussionParticipantInput)
+func (r *mutationResolver) AddDiscussionParticipant(ctx context.Context, discussionID string, discussionParticipantInput model.AddDiscussionParticipantInput) (*model.Participant, error) {
+	authedUser := auth.GetAuthedUser(ctx)
+	if authedUser == nil {
+		return nil, fmt.Errorf("Need auth")
+	}
 
-	// TODO: Only the current user can join the conversation
+	participantObj, err := r.DAOManager.CreateParticipantForDiscussion(ctx, discussionID, authedUser.UserID, discussionParticipantInput)
 	if err != nil {
 		return nil, err
 	}
@@ -28,14 +31,6 @@ func (r *mutationResolver) AddPost(ctx context.Context, discussionID string, par
 	creatingUser := auth.GetAuthedUser(ctx)
 	if creatingUser == nil {
 		return nil, fmt.Errorf("Need auth")
-	}
-
-	if creatingUser.User == nil {
-		user, err := r.DAOManager.GetUserByID(ctx, creatingUser.UserID)
-		if err != nil {
-			return nil, fmt.Errorf("Error finding user with ID: %s", creatingUser.UserID)
-		}
-		creatingUser.User = user
 	}
 
 	// Note: This is here mainly to ensure the discussion is not (soft) deleted
@@ -50,6 +45,11 @@ func (r *mutationResolver) AddPost(ctx context.Context, discussionID string, par
 		return nil, err
 	} else if participant == nil {
 		return nil, fmt.Errorf("Could not find Participant with ID %s", participantID)
+	}
+
+	// Verify that the posting participant belongs to the logged-in user
+	if *participant.UserID != creatingUser.UserID {
+		return nil, fmt.Errorf("Unauthorized")
 	}
 
 	createdPost, err := r.DAOManager.CreatePost(ctx, discussionID, participant.ID, postContent)
@@ -96,17 +96,26 @@ func (r *mutationResolver) CreateDiscussion(ctx context.Context, anonymityType m
 }
 
 func (r *mutationResolver) CreateFlair(ctx context.Context, userID string, templateID string) (*model.Flair, error) {
+	if userID == "" || templateID == "" {
+		return nil, fmt.Errorf("parameters cannot be empty")
+	}
+
 	currentUser := auth.GetAuthedUser(ctx)
 	if currentUser == nil {
 		return nil, fmt.Errorf("Need auth")
 	}
-	// TODO: This only allows the requesting user to create flair for
-	// themselves. But this API takes in userID so that an admin or moderator
-	// could potentially create flair on behalf of another user. To add this
-	// functionality remove the following line and add authorization/permission
-	// logic.
+
+	// This API takes in userID so that an admin or moderator
+	// could potentially create flair on behalf of another user.
 	if currentUser.UserID != userID {
-		return nil, fmt.Errorf("Unauthorized")
+		// Check if a moderator is trying to addFlair
+		mod, err := r.DAOManager.GetModeratorByUserID(ctx, currentUser.UserID)
+		if err != nil {
+			return nil, fmt.Errorf("failed to fetch moderator")
+		}
+		if mod == nil {
+			return nil, fmt.Errorf("Unauthorized")
+		}
 	}
 
 	// TODO: Add validation and verification mechanisms.
@@ -145,12 +154,17 @@ func (r *mutationResolver) RemoveFlair(ctx context.Context, id string) (*model.F
 		return nil, fmt.Errorf("Already removed")
 	}
 
-	// TODO: This only allows the requesting user to remove flair for
-	// themselves. But an admin or moderator could potentially remove flair on
-	// behalf of another user. To add this functionality remove the following
-	// line and add authorization/permission logic.
+	// An admin or moderator could potentially remove flair on
+	// behalf of another user.
 	if currentUser.UserID != flair.UserID {
-		return nil, fmt.Errorf("Unauthorized")
+		// Check if a moderator is trying to removeFlair
+		mod, err := r.DAOManager.GetModeratorByUserID(ctx, currentUser.UserID)
+		if err != nil {
+			return nil, fmt.Errorf("failed to fetch moderator")
+		}
+		if mod == nil {
+			return nil, fmt.Errorf("Unauthorized")
+		}
 	}
 
 	return r.DAOManager.RemoveFlair(ctx, *flair)
@@ -183,13 +197,17 @@ func (r *mutationResolver) AssignFlair(ctx context.Context, participantID string
 		return nil, fmt.Errorf("Unathorized")
 	}
 
-	// TODO: This only allows the requesting user to assign flair to their own
-	// participant. But this API takes in userID so that an admin or moderator
-	// could potentially assign flair on behalf of another participant. To add
-	// this functionality remove the following line and add
-	// authorization/permission logic.
+	// This API takes in userID so that an admin or moderator
+	// could potentially assign flair on behalf of another participant.
 	if currentUser.UserID != *participant.UserID {
-		return nil, fmt.Errorf("Unauthorized")
+		// Check if a moderator is trying to assignFlair
+		mod, err := r.DAOManager.GetModeratorByUserID(ctx, currentUser.UserID)
+		if err != nil {
+			return nil, fmt.Errorf("failed to fetch moderator")
+		}
+		if mod == nil {
+			return nil, fmt.Errorf("Unauthorized")
+		}
 	}
 
 	return r.DAOManager.AssignFlair(ctx, *participant, flairID)
@@ -208,13 +226,18 @@ func (r *mutationResolver) UnassignFlair(ctx context.Context, participantID stri
 		return nil, fmt.Errorf("Error fetching participant with ID (%s)", participantID)
 	}
 
-	// TODO: This only allows the requesting user to unassign flair from their
-	// own participant. But this API takes in userID so that an admin or
+	// This API takes in userID so that an admin or
 	// moderator could potentially unassign flair on behalf of another
-	// participant. To add this functionality remove the following line and
-	// add authorization/permission logic.
+	// participant.
 	if currentUser.UserID != *participant.UserID {
-		return nil, fmt.Errorf("Unauthorized")
+		// Check if a moderator is trying to assignFlair
+		mod, err := r.DAOManager.GetModeratorByUserID(ctx, currentUser.UserID)
+		if err != nil {
+			return nil, fmt.Errorf("failed to fetch moderator")
+		}
+		if mod == nil {
+			return nil, fmt.Errorf("Unauthorized")
+		}
 	}
 
 	return r.DAOManager.UnassignFlair(ctx, *participant)
@@ -252,7 +275,6 @@ func (r *mutationResolver) UpdateParticipant(ctx context.Context, discussionID s
 	if currentUser == nil {
 		return nil, fmt.Errorf("Need auth")
 	}
-	// TODO: Check Authz here.
 
 	participantResponse, err := r.DAOManager.GetParticipantsByDiscussionIDUserID(ctx, discussionID, currentUser.UserID)
 	if err != nil {
@@ -260,6 +282,18 @@ func (r *mutationResolver) UpdateParticipant(ctx context.Context, discussionID s
 	}
 	if participantResponse == nil {
 		return nil, fmt.Errorf("Failed to find participant with ID %s", participantID)
+	}
+
+	// Verify that the updating participant belongs to the logged-in user
+	var nonAnonUserID, anonUserID string
+	if participantResponse.NonAnon != nil && participantResponse.NonAnon.ID == participantID {
+		nonAnonUserID = *participantResponse.NonAnon.UserID
+	}
+	if participantResponse.Anon != nil && participantResponse.Anon.ID == participantID {
+		anonUserID = *participantResponse.Anon.UserID
+	}
+	if currentUser.UserID != nonAnonUserID && currentUser.UserID != anonUserID {
+		return nil, fmt.Errorf("Unauthorized")
 	}
 
 	res, err := r.DAOManager.UpdateParticipant(ctx, *participantResponse, participantID, updateInput)
@@ -270,8 +304,23 @@ func (r *mutationResolver) UpdateParticipant(ctx context.Context, discussionID s
 }
 
 func (r *mutationResolver) UpsertUserDevice(ctx context.Context, userID *string, platform model.Platform, deviceID string, token *string) (*model.UserDevice, error) {
-	// TODO: Check authz
-	resp, err := r.DAOManager.UpsertUserDevice(ctx, deviceID, userID, platform.String(), token)
+	currentUser := auth.GetAuthedUser(ctx)
+	if currentUser == nil {
+		return nil, fmt.Errorf("Need auth")
+	}
+
+	userDevice, err := r.DAOManager.GetUserDeviceByUserIDPlatform(ctx, *userID, platform.String())
+	if err != nil {
+		return nil, fmt.Errorf("failed to get user debice by userID and platform")
+	}
+
+	if userDevice != nil {
+		if userDevice.ID != deviceID || currentUser.UserID != *userID {
+			return nil, fmt.Errorf("Unauthorized")
+		}
+	}
+
+	resp, err := r.DAOManager.UpsertUserDevice(ctx, deviceID, &currentUser.UserID, platform.String(), token)
 	if err != nil {
 		return nil, err
 	}

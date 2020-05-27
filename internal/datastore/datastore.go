@@ -26,6 +26,7 @@ type Datastore interface {
 	GetDiscussionByModeratorID(ctx context.Context, moderatorID string) (*model.Discussion, error)
 	CreateModerator(ctx context.Context, moderator model.Moderator) (*model.Moderator, error)
 	GetModeratorByID(ctx context.Context, id string) (*model.Moderator, error)
+	GetModeratorByUserID(ctx context.Context, id string) (*model.Moderator, error)
 	ListDiscussions(ctx context.Context) (*model.DiscussionsConnection, error)
 	UpsertDiscussion(ctx context.Context, discussion model.Discussion) (*model.Discussion, error)
 	AssignFlair(ctx context.Context, participant model.Participant, flairID *string) (*model.Participant, error)
@@ -199,6 +200,12 @@ func (d *delphisDB) initializeStatements(ctx context.Context) (err error) {
 	if d.prepStmts.getMediaRecordStmt, err = d.pg.PrepareContext(ctx, getMediaRecordString); err != nil {
 		logrus.WithError(err).Error("failed to prepare getMediaRecordStmt")
 		return errors.Wrap(err, "failed to prepare getMediaRecordStmt")
+	}
+
+	// MODERATOR
+	if d.prepStmts.getModeratorByUserIDStmt, err = d.pg.PrepareContext(ctx, getModeratorByUserIDString); err != nil {
+		logrus.WithError(err).Error("failed to prepare getModeratorByUserProfileID")
+		return errors.Wrap(err, "failed to prepare getModeratorByUserProfileID")
 	}
 
 	d.ready = true
