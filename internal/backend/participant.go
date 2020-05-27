@@ -18,7 +18,7 @@ type UserDiscussionParticipants struct {
 }
 
 // TODO: Should this be gated to only allow two participants from the same UserID (one anonymous and the other not)?
-// Where are we gating whether a user can be a participant?
+// Where are we gating whether a user can add another participant?
 func (d *delphisBackend) CreateParticipantForDiscussion(ctx context.Context, discussionID string, userID string, discussionParticipantInput model.AddDiscussionParticipantInput) (*model.Participant, error) {
 	userObj, err := d.GetUserByID(ctx, userID)
 	if err != nil || userObj == nil {

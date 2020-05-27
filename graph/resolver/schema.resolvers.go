@@ -309,6 +309,7 @@ func (r *mutationResolver) UpsertUserDevice(ctx context.Context, userID *string,
 		return nil, fmt.Errorf("Need auth")
 	}
 
+	// Check if the user already has a device registered
 	userDevice, err := r.DAOManager.GetUserDeviceByUserIDPlatform(ctx, *userID, platform.String())
 	if err != nil {
 		return nil, fmt.Errorf("failed to get user debice by userID and platform")
