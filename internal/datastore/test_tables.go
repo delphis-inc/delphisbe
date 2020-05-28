@@ -44,14 +44,16 @@ func (d *delphisDB) createTestTables(ctx context.Context) error {
 			discussion_id varchar(36),
 			participant_id varchar(36),
 			post_content_id varchar(36) not null,
-			quoted_post_id varchar(36)
+			quoted_post_id varchar(36),
+			media_id varchar(36)
 		);`,
 
 		`CREATE TABLE IF NOT EXISTS post_contents (
 			id varchar(36) PRIMARY KEY,
 			content text,
 			created_at timestamp with time zone default current_timestamp not null,
-			updated_at timestamp with time zone default current_timestamp not null
+			updated_at timestamp with time zone default current_timestamp not null,
+			mentioned_entities varchar(50)[]
 		);`,
 
 		`CREATE TABLE IF NOT EXISTS discussions (
@@ -79,11 +81,49 @@ func (d *delphisDB) createTestTables(ctx context.Context) error {
 			has_joined boolean NOT NULL DEFAULT FALSE
 		);`,
 
+		`CREATE TABLE IF NOT EXISTS media (
+			id varchar(36) not null PRIMARY KEY,
+			created_at timestamp with time zone default current_timestamp not null,
+			deleted_at timestamp with time zone,
+			deleted_reason_code varchar(16),
+			media_type varchar(16),
+			media_size json not null
+		);`,
+
+		`CREATE TABLE IF NOT EXISTS activity (
+			participant_id varchar(36) not null,
+			post_content_id varchar(36) not null,
+			entity_id varchar(36) not null,
+			entity_type varchar(36) not null,
+			created_at timestamp with time zone default current_timestamp not null,
+			PRIMARY KEY(participant_id, entity_id, created_at)
+		);`,
+
+		`CREATE TABLE IF NOT EXISTS moderators (
+			id varchar(36) PRIMARY KEY,
+			created_at timestamp with time zone not null,
+			updated_at timestamp with time zone not null,
+			deleted_at timestamp with time zone,
+			user_profile_id varchar(36) not null
+		);`,
+
+		`CREATE TABLE IF NOT EXISTS user_profiles (
+			id varchar(36) PRIMARY KEY,
+			created_at timestamp with time zone not null,
+			updated_at timestamp with time zone not null,
+			deleted_at timestamp with time zone,
+			display_name varchar(128) not null,
+			user_id varchar(36),
+			twitter_handle varchar(36)
+		);`,
+
 		// Add foreign keys
-		`ALTER TABLE posts ADD CONSTRAINT posts_discussions_fk_c34cae6d6fc5 FOREIGN KEY (discussion_id) REFERENCES discussions (id) MATCH FULL,
+		`ALTER TABLE posts
+			ADD CONSTRAINT posts_discussions_fk_c34cae6d6fc5 FOREIGN KEY (discussion_id) REFERENCES discussions (id) MATCH FULL,
 			ADD CONSTRAINT posts_participants_fk_c94a4fb2438b FOREIGN KEY (participant_id) REFERENCES participants (id) MATCH FULL,
 			ADD CONSTRAINT posts_post_contents_fk_777ecc8c7969 FOREIGN KEY (post_content_id) REFERENCES post_contents (id) MATCH FULL,
-			ADD CONSTRAINT posts_quoted_post_id_eaa15cd7531b FOREIGN KEY (quoted_post_id) REFERENCES posts (id) MATCH FULL;`,
+			ADD CONSTRAINT posts_quoted_post_id_eaa15cd7531b FOREIGN KEY (quoted_post_id) REFERENCES posts (id) MATCH FULL,
+			ADD CONSTRAINT posts_media_fk_b783eacfac89 FOREIGN KEY (media_id) REFERENCES media (id) MATCH FULL;`,
 	}
 
 	tx, err := d.pg.BeginTx(ctx, nil)
