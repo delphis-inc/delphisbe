@@ -51,7 +51,7 @@ input PostContentInput {
 
 
 type Mutation {
-  addDiscussionParticipant(discussionID: String!, discussionParticipantInput: AddDiscussionParticipantInput!): Participant!
+  addDiscussionParticipant(discussionID: String!, userID: String!, discussionParticipantInput: AddDiscussionParticipantInput!): Participant!
   addPost(discussionID: ID!, participantID: ID!, postContent: PostContentInput!): Post!
   createDiscussion(anonymityType: AnonymityType!, title: String!): Discussion!
 
