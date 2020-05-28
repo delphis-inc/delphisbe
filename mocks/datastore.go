@@ -292,8 +292,54 @@ func (_m *Datastore) GetFlairsByUserID(ctx context.Context, userID string) ([]*m
 	return r0, r1
 }
 
+// GetMediaRecordByID provides a mock function with given fields: ctx, mediaID
+func (_m *Datastore) GetMediaRecordByID(ctx context.Context, mediaID string) (*model.Media, error) {
+	ret := _m.Called(ctx, mediaID)
+
+	var r0 *model.Media
+	if rf, ok := ret.Get(0).(func(context.Context, string) *model.Media); ok {
+		r0 = rf(ctx, mediaID)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*model.Media)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(context.Context, string) error); ok {
+		r1 = rf(ctx, mediaID)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // GetModeratorByID provides a mock function with given fields: ctx, id
 func (_m *Datastore) GetModeratorByID(ctx context.Context, id string) (*model.Moderator, error) {
+	ret := _m.Called(ctx, id)
+
+	var r0 *model.Moderator
+	if rf, ok := ret.Get(0).(func(context.Context, string) *model.Moderator); ok {
+		r0 = rf(ctx, id)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*model.Moderator)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(context.Context, string) error); ok {
+		r1 = rf(ctx, id)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// GetModeratorByUserID provides a mock function with given fields: ctx, id
+func (_m *Datastore) GetModeratorByUserID(ctx context.Context, id string) (*model.Moderator, error) {
 	ret := _m.Called(ctx, id)
 
 	var r0 *model.Moderator
@@ -377,6 +423,29 @@ func (_m *Datastore) GetParticipantsByDiscussionIDUserID(ctx context.Context, di
 	var r1 error
 	if rf, ok := ret.Get(1).(func(context.Context, string, string) error); ok {
 		r1 = rf(ctx, discussionID, userID)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// GetParticipantsByIDs provides a mock function with given fields: ctx, ids
+func (_m *Datastore) GetParticipantsByIDs(ctx context.Context, ids []string) (map[string]*model.Participant, error) {
+	ret := _m.Called(ctx, ids)
+
+	var r0 map[string]*model.Participant
+	if rf, ok := ret.Get(0).(func(context.Context, []string) map[string]*model.Participant); ok {
+		r0 = rf(ctx, ids)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(map[string]*model.Participant)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(context.Context, []string) error); ok {
+		r1 = rf(ctx, ids)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -665,6 +734,34 @@ func (_m *Datastore) ListFlairTemplates(ctx context.Context, query *string) ([]*
 	}
 
 	return r0, r1
+}
+
+// PutActivity provides a mock function with given fields: ctx, tx, post
+func (_m *Datastore) PutActivity(ctx context.Context, tx *sql.Tx, post *model.Post) error {
+	ret := _m.Called(ctx, tx, post)
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, *sql.Tx, *model.Post) error); ok {
+		r0 = rf(ctx, tx, post)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// PutMediaRecord provides a mock function with given fields: ctx, tx, media
+func (_m *Datastore) PutMediaRecord(ctx context.Context, tx *sql.Tx, media model.Media) error {
+	ret := _m.Called(ctx, tx, media)
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, *sql.Tx, model.Media) error); ok {
+		r0 = rf(ctx, tx, media)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
 }
 
 // PutPost provides a mock function with given fields: ctx, tx, post

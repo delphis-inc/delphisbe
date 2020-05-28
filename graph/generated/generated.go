@@ -65,6 +65,7 @@ type ComplexityRoot struct {
 		AnonymityType           func(childComplexity int) int
 		CreatedAt               func(childComplexity int) int
 		ID                      func(childComplexity int) int
+		IconURL                 func(childComplexity int) int
 		MeAvailableParticipants func(childComplexity int) int
 		MeParticipant           func(childComplexity int) int
 		Moderator               func(childComplexity int) int
@@ -281,6 +282,7 @@ type DiscussionResolver interface {
 	Moderator(ctx context.Context, obj *model.Discussion) (*model.Moderator, error)
 
 	Posts(ctx context.Context, obj *model.Discussion) ([]*model.Post, error)
+	IconURL(ctx context.Context, obj *model.Discussion) (*string, error)
 	Participants(ctx context.Context, obj *model.Discussion) ([]*model.Participant, error)
 
 	CreatedAt(ctx context.Context, obj *model.Discussion) (string, error)
@@ -412,6 +414,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Discussion.ID(childComplexity), true
+
+	case "Discussion.iconURL":
+		if e.complexity.Discussion.IconURL == nil {
+			break
+		}
+
+		return e.complexity.Discussion.IconURL(childComplexity), true
 
 	case "Discussion.meAvailableParticipants":
 		if e.complexity.Discussion.MeAvailableParticipants == nil {
@@ -1435,6 +1444,8 @@ var sources = []*ast.Source{
     # A link to all posts in the discussion, ordered chronologically.
     posts: [Post!]
 
+    iconURL: String
+
     # Participants
     participants: [Participant!]
 
@@ -2323,6 +2334,37 @@ func (ec *executionContext) _Discussion_posts(ctx context.Context, field graphql
 	res := resTmp.([]*model.Post)
 	fc.Result = res
 	return ec.marshalOPost2ᚕᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐPostᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Discussion_iconURL(ctx context.Context, field graphql.CollectedField, obj *model.Discussion) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "Discussion",
+		Field:    field,
+		Args:     nil,
+		IsMethod: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Discussion().IconURL(rctx, obj)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*string)
+	fc.Result = res
+	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Discussion_participants(ctx context.Context, field graphql.CollectedField, obj *model.Discussion) (ret graphql.Marshaler) {
@@ -7816,6 +7858,17 @@ func (ec *executionContext) _Discussion(ctx context.Context, sel ast.SelectionSe
 					}
 				}()
 				res = ec._Discussion_posts(ctx, field, obj)
+				return res
+			})
+		case "iconURL":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Discussion_iconURL(ctx, field, obj)
 				return res
 			})
 		case "participants":

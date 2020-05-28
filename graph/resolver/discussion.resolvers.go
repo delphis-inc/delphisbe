@@ -5,6 +5,7 @@ package resolver
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/nedrocks/delphisbe/graph/generated"
@@ -31,6 +32,10 @@ func (r *discussionResolver) Posts(ctx context.Context, obj *model.Discussion) (
 	}
 
 	return posts, nil
+}
+
+func (r *discussionResolver) IconURL(ctx context.Context, obj *model.Discussion) (*string, error) {
+	panic(fmt.Errorf("not implemented"))
 }
 
 func (r *discussionResolver) Participants(ctx context.Context, obj *model.Discussion) ([]*model.Participant, error) {
