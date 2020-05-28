@@ -111,7 +111,7 @@ type ComplexityRoot struct {
 	}
 
 	Mutation struct {
-		AddDiscussionParticipant func(childComplexity int, discussionID string, discussionParticipantInput model.AddDiscussionParticipantInput) int
+		AddDiscussionParticipant func(childComplexity int, discussionID string, userID string, discussionParticipantInput model.AddDiscussionParticipantInput) int
 		AddPost                  func(childComplexity int, discussionID string, participantID string, postContent model.PostContentInput) int
 		AssignFlair              func(childComplexity int, participantID string, flairID string) int
 		CreateDiscussion         func(childComplexity int, anonymityType model.AnonymityType, title string) int
@@ -298,7 +298,7 @@ type ModeratorResolver interface {
 	UserProfile(ctx context.Context, obj *model.Moderator) (*model.UserProfile, error)
 }
 type MutationResolver interface {
-	AddDiscussionParticipant(ctx context.Context, discussionID string, discussionParticipantInput model.AddDiscussionParticipantInput) (*model.Participant, error)
+	AddDiscussionParticipant(ctx context.Context, discussionID string, userID string, discussionParticipantInput model.AddDiscussionParticipantInput) (*model.Participant, error)
 	AddPost(ctx context.Context, discussionID string, participantID string, postContent model.PostContentInput) (*model.Post, error)
 	CreateDiscussion(ctx context.Context, anonymityType model.AnonymityType, title string) (*model.Discussion, error)
 	CreateFlair(ctx context.Context, userID string, templateID string) (*model.Flair, error)
@@ -619,7 +619,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Mutation.AddDiscussionParticipant(childComplexity, args["discussionID"].(string), args["discussionParticipantInput"].(model.AddDiscussionParticipantInput)), true
+		return e.complexity.Mutation.AddDiscussionParticipant(childComplexity, args["discussionID"].(string), args["userID"].(string), args["discussionParticipantInput"].(model.AddDiscussionParticipantInput)), true
 
 	case "Mutation.addPost":
 		if e.complexity.Mutation.AddPost == nil {
@@ -1698,7 +1698,7 @@ input PostContentInput {
 
 
 type Mutation {
-  addDiscussionParticipant(discussionID: String!, discussionParticipantInput: AddDiscussionParticipantInput!): Participant!
+  addDiscussionParticipant(discussionID: String!, userID: String!, discussionParticipantInput: AddDiscussionParticipantInput!): Participant!
   addPost(discussionID: ID!, participantID: ID!, postContent: PostContentInput!): Post!
   createDiscussion(anonymityType: AnonymityType!, title: String!): Discussion!
 
@@ -1831,14 +1831,22 @@ func (ec *executionContext) field_Mutation_addDiscussionParticipant_args(ctx con
 		}
 	}
 	args["discussionID"] = arg0
-	var arg1 model.AddDiscussionParticipantInput
-	if tmp, ok := rawArgs["discussionParticipantInput"]; ok {
-		arg1, err = ec.unmarshalNAddDiscussionParticipantInput2githubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐAddDiscussionParticipantInput(ctx, tmp)
+	var arg1 string
+	if tmp, ok := rawArgs["userID"]; ok {
+		arg1, err = ec.unmarshalNString2string(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
 	}
-	args["discussionParticipantInput"] = arg1
+	args["userID"] = arg1
+	var arg2 model.AddDiscussionParticipantInput
+	if tmp, ok := rawArgs["discussionParticipantInput"]; ok {
+		arg2, err = ec.unmarshalNAddDiscussionParticipantInput2githubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐAddDiscussionParticipantInput(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["discussionParticipantInput"] = arg2
 	return args, nil
 }
 
@@ -3223,7 +3231,7 @@ func (ec *executionContext) _Mutation_addDiscussionParticipant(ctx context.Conte
 	fc.Args = args
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().AddDiscussionParticipant(rctx, args["discussionID"].(string), args["discussionParticipantInput"].(model.AddDiscussionParticipantInput))
+		return ec.resolvers.Mutation().AddDiscussionParticipant(rctx, args["discussionID"].(string), args["userID"].(string), args["discussionParticipantInput"].(model.AddDiscussionParticipantInput))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
