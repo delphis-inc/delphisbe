@@ -282,7 +282,7 @@ type DiscussionResolver interface {
 	Moderator(ctx context.Context, obj *model.Discussion) (*model.Moderator, error)
 
 	Posts(ctx context.Context, obj *model.Discussion) ([]*model.Post, error)
-	IconURL(ctx context.Context, obj *model.Discussion) (*string, error)
+
 	Participants(ctx context.Context, obj *model.Discussion) ([]*model.Participant, error)
 
 	CreatedAt(ctx context.Context, obj *model.Discussion) (string, error)
@@ -2347,13 +2347,13 @@ func (ec *executionContext) _Discussion_iconURL(ctx context.Context, field graph
 		Object:   "Discussion",
 		Field:    field,
 		Args:     nil,
-		IsMethod: true,
+		IsMethod: false,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Discussion().IconURL(rctx, obj)
+		return obj.IconURL, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -7861,16 +7861,7 @@ func (ec *executionContext) _Discussion(ctx context.Context, sel ast.SelectionSe
 				return res
 			})
 		case "iconURL":
-			field := field
-			out.Concurrently(i, func() (res graphql.Marshaler) {
-				defer func() {
-					if r := recover(); r != nil {
-						ec.Error(ctx, ec.Recover(ctx, r))
-					}
-				}()
-				res = ec._Discussion_iconURL(ctx, field, obj)
-				return res
-			})
+			out.Values[i] = ec._Discussion_iconURL(ctx, field, obj)
 		case "participants":
 			field := field
 			out.Concurrently(i, func() (res graphql.Marshaler) {
