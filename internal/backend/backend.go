@@ -26,6 +26,7 @@ type DelphisBackend interface {
 	ListDiscussions(ctx context.Context) (*model.DiscussionsConnection, error)
 	GetModeratorByID(ctx context.Context, id string) (*model.Moderator, error)
 	GetModeratorByUserID(ctx context.Context, userID string) (*model.Moderator, error)
+	CheckIfModerator(ctx context.Context, userID string) (bool, error)
 	AssignFlair(ctx context.Context, participant model.Participant, flairID string) (*model.Participant, error)
 	CreateFlair(ctx context.Context, userID string, templateID string) (*model.Flair, error)
 	GetFlairByID(ctx context.Context, id string) (*model.Flair, error)
