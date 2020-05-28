@@ -6,6 +6,8 @@ import (
 	"math/rand"
 	"time"
 
+	"github.com/sirupsen/logrus"
+
 	"github.com/nedrocks/delphisbe/graph/model"
 	"github.com/nedrocks/delphisbe/internal/util"
 )
@@ -15,6 +17,8 @@ type UserDiscussionParticipants struct {
 	NonAnon *model.Participant
 }
 
+// TODO: Should this be gated to only allow two participants from the same UserID (one anonymous and the other not)?
+// Where are we gating whether a user can add another participant?
 func (d *delphisBackend) CreateParticipantForDiscussion(ctx context.Context, discussionID string, userID string, discussionParticipantInput model.AddDiscussionParticipantInput) (*model.Participant, error) {
 	userObj, err := d.GetUserByID(ctx, userID)
 	if err != nil || userObj == nil {
@@ -34,6 +38,8 @@ func (d *delphisBackend) CreateParticipantForDiscussion(ctx context.Context, dis
 		DiscussionID:  &discussionID,
 		UserID:        &userID,
 	}
+
+	logrus.Debugf("PariticipantObj: %+v\n", participantObj)
 
 	if discussionParticipantInput.GradientColor != nil {
 		participantObj.GradientColor = discussionParticipantInput.GradientColor
@@ -94,7 +100,9 @@ func (d *delphisBackend) GetParticipantsByDiscussionIDUserID(ctx context.Context
 
 	participantResponse := &UserDiscussionParticipants{}
 
+	logrus.Debugf("Participants: %+v\n", participants)
 	for i, participant := range participants {
+
 		if participant.IsAnonymous && participantResponse.Anon == nil {
 			participantResponse.Anon = &participants[i]
 		}
