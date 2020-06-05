@@ -15,6 +15,7 @@ type Config struct {
 	AWS            AWSConfig      `json:"aws" mapstructure:"aws"`
 	AblyConfig     AblyConfig     `json:"ably" mapstructure:"ably"`
 	S3BucketConfig S3BucketConfig `json:"s3_bucket" mapstructure:"s3_bucket"`
+	SQSConfig      SQSConfig      `json:"sqs" mapstructure:"sqs"`
 }
 
 func (c *Config) ReadEnvAndUpdate() {
@@ -87,6 +88,11 @@ type S3BucketConfig struct {
 	ImageKeyPrefix string `json:"image_prefix" mapstructure:"image_prefix"`
 	GifKeyPrefix   string `json:"gif_prefix" mapstructure:"gif_prefix"`
 	VideoKeyPrefix string `json:"video_prefix" mapstructure:"video_prefix"`
+}
+
+type SQSConfig struct {
+	DripURL    string `json:"drip_url" mapstructure:"drip_url"`
+	MaxWorkers int    `json:"max_workers" mapstructure:"max_workers"`
 }
 
 type TableConfig struct {

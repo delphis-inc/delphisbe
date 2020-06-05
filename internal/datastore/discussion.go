@@ -2,6 +2,7 @@ package datastore
 
 import (
 	"context"
+	"database/sql"
 
 	"github.com/jinzhu/gorm"
 	"github.com/nedrocks/delphisbe/graph/model"
@@ -52,6 +53,27 @@ func (d *delphisDB) GetDiscussionByModeratorID(ctx context.Context, moderatorID 
 	}
 
 	return &discussion, nil
+}
+
+func (d *delphisDB) GetDiscussionsAutoPost(ctx context.Context) DiscussionIter {
+	logrus.Debug("GetDiscussionsAutoPost::SQL Query")
+	if err := d.initializeStatements(ctx); err != nil {
+		logrus.WithError(err).Error("GetDiscussionsAutoPost::failed to initialize statements")
+		return &discussionIter{err: err}
+	}
+
+	rows, err := d.prepStmts.getDiscussionsForAutoPostStmt.QueryContext(
+		ctx,
+	)
+	if err != nil {
+		logrus.WithError(err).Error("failed to query GetDiscussionsAutoPost")
+		return &discussionIter{err: err}
+	}
+
+	return &discussionIter{
+		ctx:  ctx,
+		rows: rows,
+	}
 }
 
 func (d *delphisDB) ListDiscussions(ctx context.Context) (*model.DiscussionsConnection, error) {
@@ -105,103 +127,118 @@ func (d *delphisDB) UpsertDiscussion(ctx context.Context, discussion model.Discu
 	return &found, nil
 }
 
-//////////
-//Dynamo functions
-//////////
-// func (d *delphisDB) PutDiscussionDynamo(ctx context.Context, discussion model.Discussion) (*model.Discussion, error) {
-// 	logrus.Debug("PutDiscussion::Dynamo PutItem")
-// 	av, err := d.marshalMap(discussion)
-// 	if err != nil {
-// 		logrus.WithError(err).Errorf("PutDiscussion: Failed to marshal discussion object: %+v", discussion)
-// 		return nil, err
-// 	}
-// 	_, err = d.dynamo.PutItem(&dynamodb.PutItemInput{
-// 		TableName: aws.String(d.dbConfig.Discussions.TableName),
-// 		Item:      av,
-// 	})
+func (d *delphisDB) GetDiscussionTags(ctx context.Context, id string) TagIter {
+	logrus.Debug("GetDiscussionTags::SQL Query")
+	if err := d.initializeStatements(ctx); err != nil {
+		logrus.WithError(err).Error("GetDiscussionTags::failed to initialize statements")
+		return &tagIter{err: err}
+	}
 
-// 	if err != nil {
-// 		logrus.WithError(err).Errorf("PutDiscussion: Failed to put discussion object: %+v", av)
-// 		return nil, err
-// 	}
-// 	return &discussion, nil
-// }
+	rows, err := d.prepStmts.getDiscussionTagsStmt.QueryContext(
+		ctx,
+		id,
+	)
+	if err != nil {
+		logrus.WithError(err).Error("failed to query GetDiscussionTags")
+		return &tagIter{err: err}
+	}
 
-// func (d *delphisDB) ListDiscussionsDynamo(ctx context.Context) (*model.DiscussionsConnection, error) {
-// 	logrus.Debug("ListDiscussions::Dynamo Scan")
-// 	res, err := d.dynamo.Scan(&dynamodb.ScanInput{
-// 		TableName: aws.String(d.dbConfig.Discussions.TableName),
-// 	})
+	return &tagIter{
+		ctx:  ctx,
+		rows: rows,
+	}
+}
 
-// 	if err != nil {
-// 		logrus.WithError(err).Errorf("ListDiscussions: Failed listing discussions")
-// 		return nil, err
-// 	}
+func (d *delphisDB) PutDiscussionTags(ctx context.Context, tx *sql.Tx, tag model.Tag) (*model.Tag, error) {
+	logrus.Debug("PutDiscussionTags::SQL Create")
+	if err := d.initializeStatements(ctx); err != nil {
+		logrus.WithError(err).Error("PutDiscussionTags::failed to initialize statements")
+		return nil, err
+	}
 
-// 	if res.Count == nil || res.Items == nil {
-// 		logrus.Errorf("ListDiscussions: Returned item set is nil")
-// 	}
+	if err := tx.StmtContext(ctx, d.prepStmts.putDiscussionTagsStmt).QueryRowContext(
+		ctx,
+		tag.ID,
+		tag.Tag,
+	).Scan(
+		&tag.ID,
+		&tag.Tag,
+		&tag.CreatedAt,
+	); err != nil {
+		if err == sql.ErrNoRows {
+			return &model.Tag{}, nil
+		}
+		logrus.WithError(err).Error("failed to execute putDiscussionTagsStmt")
+		return nil, err
+	}
 
-// 	ids := make([]string, 0)
-// 	edges := make([]*model.DiscussionsEdge, 0)
-// 	for _, elem := range res.Items {
-// 		discussionObj := model.Discussion{}
-// 		err := dynamodbattribute.UnmarshalMap(elem, &discussionObj)
-// 		if err != nil {
-// 			logrus.WithError(err).Warnf("ListDiscussion: Failed unmarshaling discussion: %+v", elem)
-// 			continue
-// 		}
-// 		edges = append(edges, &model.DiscussionsEdge{
-// 			Node: &discussionObj,
-// 		})
-// 		ids = append(ids, discussionObj.ID)
-// 	}
+	return &tag, nil
+}
 
-// 	return &model.DiscussionsConnection{
-// 		IDs:   ids,
-// 		Edges: edges,
-// 	}, nil
-// }
+func (d *delphisDB) DeleteDiscussionTags(ctx context.Context, tx *sql.Tx, tag model.Tag) (*model.Tag, error) {
+	logrus.Debug("DeleteDiscussionTags::SQL Delete")
+	if err := d.initializeStatements(ctx); err != nil {
+		logrus.WithError(err).Error("DeleteDiscussionTags::failed to initialize statements")
+		return nil, err
+	}
 
-// func (d *delphisDB) GetDiscussionsByIDsDynamo(ctx context.Context, ids []string) (map[string]*model.Discussion, error) {
-// 	logrus.Debug("GetDiscussionsByIDs: Dynamo BatchGetItem")
-// 	keys := make([]map[string]*dynamodb.AttributeValue, 0)
-// 	for _, id := range ids {
-// 		keys = append(keys, map[string]*dynamodb.AttributeValue{
-// 			"ID": {
-// 				S: aws.String(id),
-// 			},
-// 		})
-// 	}
-// 	// NOTE: This has to be BatchGet because query will not work unless we specify partition key.
-// 	res, err := d.dynamo.BatchGetItem(&dynamodb.BatchGetItemInput{
-// 		RequestItems: map[string]*dynamodb.KeysAndAttributes{
-// 			d.dbConfig.Discussions.TableName: {
-// 				Keys: keys,
-// 			},
-// 		},
-// 	})
+	if err := tx.StmtContext(ctx, d.prepStmts.deleteDiscussionTagsStmt).QueryRowContext(
+		ctx,
+		tag.ID,
+		tag.Tag,
+	).Scan(
+		&tag.ID,
+		&tag.Tag,
+		&tag.CreatedAt,
+		&tag.DeletedAt,
+	); err != nil {
+		logrus.WithError(err).Error("failed to execute deleteDiscussionTags")
+		return nil, err
+	}
 
-// 	if err != nil {
-// 		logrus.WithError(err).Errorf("GetDiscussionsByIDs: Failed to retrive discussions with ids: %+v", ids)
-// 		return nil, err
-// 	}
+	return &tag, nil
+}
 
-// 	discussionMap := map[string]*model.Discussion{}
-// 	for _, id := range ids {
-// 		discussionMap[id] = nil
-// 	}
-// 	elems := res.Responses[d.dbConfig.Discussions.TableName]
-// 	for _, elem := range elems {
-// 		discussionObj := model.Discussion{}
-// 		err = dynamodbattribute.UnmarshalMap(elem, &discussionObj)
-// 		if err != nil {
-// 			logrus.WithError(err).Warnf("GetDiscussionsByIDs: Failed to unmarshal discussion object: %+v", elem)
-// 			continue
-// 		}
+type discussionIter struct {
+	err  error
+	ctx  context.Context
+	rows *sql.Rows
+}
 
-// 		discussionMap[discussionObj.ID] = &discussionObj
-// 	}
+func (iter *discussionIter) Next(discussion *model.DiscussionAutoPost) bool {
+	if iter.err != nil {
+		logrus.WithError(iter.err).Error("iterator error")
+		return false
+	}
 
-// 	return discussionMap, nil
-// }
+	if iter.err = iter.ctx.Err(); iter.err != nil {
+		logrus.WithError(iter.err).Error("iterator context error")
+		return false
+	}
+
+	if !iter.rows.Next() {
+		return false
+	}
+
+	if iter.err = iter.rows.Scan(
+		&discussion.ID,
+		&discussion.IdleMinutes,
+	); iter.err != nil {
+		logrus.WithError(iter.err).Error("iterator failed to scan row")
+		return false
+	}
+
+	return true
+}
+
+func (iter *discussionIter) Close() error {
+	if err := iter.err; err != nil {
+		logrus.WithError(err).Error("iter error on close")
+		return err
+	}
+	if err := iter.rows.Close(); err != nil {
+		logrus.WithError(err).Error("iter rows close on close")
+	}
+
+	return nil
+}

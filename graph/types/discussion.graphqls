@@ -25,6 +25,18 @@ type Discussion implements Entity {
 
     # Will return available participants for `me`
     meAvailableParticipants: [Participant!]
+
+    autoPost: Boolean!
+    idleMinutes: Int!
+    tags: [Tag!]
+    upcomingContent: [ImportedContent!]
+}
+
+type Tag {
+    id: ID!
+    createdAt: String!
+    tag: String!
+    isDeleted: Boolean!
 }
 
 # type DiscussionsConnection {

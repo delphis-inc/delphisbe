@@ -6,6 +6,7 @@ package resolver
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/nedrocks/delphisbe/graph/generated"
 	"github.com/nedrocks/delphisbe/graph/model"
@@ -21,7 +22,7 @@ func (r *mutationResolver) AddDiscussionParticipant(ctx context.Context, discuss
 
 	if authedUser.UserID != userID {
 		// Check if moderator is trying to add discussion participant
-		modCheck, err := r.DAOManager.CheckIfModerator(ctx, authedUser.UserID)
+		modCheck, err := r.DAOManager.CheckIfModeratorForDiscussion(ctx, authedUser.UserID, discussionID)
 		if err != nil || !modCheck {
 			return nil, fmt.Errorf("unauthorized")
 		}
@@ -72,6 +73,49 @@ func (r *mutationResolver) AddPost(ctx context.Context, discussionID string, par
 	}
 
 	return createdPost, nil
+}
+
+func (r *mutationResolver) PostImportedContent(ctx context.Context, discussionID string, participantID string, contentID string) (*model.Post, error) {
+	authedUser := auth.GetAuthedUser(ctx)
+	if authedUser == nil {
+		return nil, fmt.Errorf("Need auth")
+	}
+
+	// Only allow the mod to manual post imported content from the drip
+	modCheck, err := r.DAOManager.CheckIfModeratorForDiscussion(ctx, authedUser.UserID, discussionID)
+	if err != nil || !modCheck {
+		return nil, fmt.Errorf("unauthorized")
+	}
+
+	participant, err := r.DAOManager.GetParticipantByID(ctx, participantID)
+	if err != nil {
+		return nil, err
+	} else if participant == nil {
+		return nil, fmt.Errorf("Could not find Participant with ID %s", participantID)
+	}
+
+	// Verify that the posting participant belongs to the logged-in user
+	if *participant.UserID != authedUser.UserID {
+		return nil, fmt.Errorf("Unauthorized")
+	}
+
+	now := time.Now()
+	return r.DAOManager.PostImportedContent(ctx, participantID, discussionID, contentID, &now, nil, false)
+}
+
+func (r *mutationResolver) ScheduleImportedContent(ctx context.Context, discussionID string, contentID string) (*model.ContentQueueRecord, error) {
+	authedUser := auth.GetAuthedUser(ctx)
+	if authedUser == nil {
+		return nil, fmt.Errorf("Need auth")
+	}
+
+	// Only allow the mod to manual post imported content from the drip
+	modCheck, err := r.DAOManager.CheckIfModeratorForDiscussion(ctx, authedUser.UserID, discussionID)
+	if err != nil || !modCheck {
+		return nil, fmt.Errorf("unauthorized")
+	}
+
+	return r.DAOManager.PutImportedContentQueue(ctx, discussionID, contentID, nil, nil, false)
 }
 
 func (r *mutationResolver) CreateDiscussion(ctx context.Context, anonymityType model.AnonymityType, title string) (*model.Discussion, error) {
@@ -318,6 +362,51 @@ func (r *mutationResolver) UpsertUserDevice(ctx context.Context, userID *string,
 		return nil, err
 	}
 	return resp, nil
+}
+
+func (r *mutationResolver) UpdateDiscussion(ctx context.Context, discussionID string, input model.DiscussionInput) (*model.Discussion, error) {
+	authedUser := auth.GetAuthedUser(ctx)
+	if authedUser == nil {
+		return nil, fmt.Errorf("Need auth")
+	}
+
+	// Only allow the mod to update discussion
+	modCheck, err := r.DAOManager.CheckIfModeratorForDiscussion(ctx, authedUser.UserID, discussionID)
+	if err != nil || !modCheck {
+		return nil, fmt.Errorf("unauthorized")
+	}
+
+	return r.DAOManager.UpdateDiscussion(ctx, discussionID, input)
+}
+
+func (r *mutationResolver) AddDiscussionTags(ctx context.Context, discussionID string, tags []string) ([]*model.Tag, error) {
+	authedUser := auth.GetAuthedUser(ctx)
+	if authedUser == nil {
+		return nil, fmt.Errorf("Need auth")
+	}
+
+	// Only allow the mod to add discussion tags
+	modCheck, err := r.DAOManager.CheckIfModeratorForDiscussion(ctx, authedUser.UserID, discussionID)
+	if err != nil || !modCheck {
+		return nil, fmt.Errorf("unauthorized")
+	}
+
+	return r.DAOManager.PutDiscussionTags(ctx, discussionID, tags)
+}
+
+func (r *mutationResolver) DeleteDiscussionTags(ctx context.Context, discussionID string, tags []string) ([]*model.Tag, error) {
+	authedUser := auth.GetAuthedUser(ctx)
+	if authedUser == nil {
+		return nil, fmt.Errorf("Need auth")
+	}
+
+	// Only allow the mod to delete discussion tags
+	modCheck, err := r.DAOManager.CheckIfModeratorForDiscussion(ctx, authedUser.UserID, discussionID)
+	if err != nil || !modCheck {
+		return nil, fmt.Errorf("unauthorized")
+	}
+
+	return r.DAOManager.DeleteDiscussionTags(ctx, discussionID, tags)
 }
 
 func (r *queryResolver) Discussion(ctx context.Context, id string) (*model.Discussion, error) {

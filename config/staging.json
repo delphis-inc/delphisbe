@@ -53,5 +53,9 @@
         "image_prefix": "images",
         "gif_prefix": "gifs",
         "video_prefix": "videos"
+    },
+    "sqs": {
+        "drip_url": "https://sqs.us-west-2.amazonaws.com/033236388136/non_terraform_zapier_queue",
+        "max_workers": 2
     }
 }
