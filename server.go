@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -12,6 +13,10 @@ import (
 	"os"
 	"strings"
 	"time"
+
+	"github.com/robfig/cron/v3"
+
+	"github.com/nedrocks/delphisbe/internal/worker"
 
 	"github.com/aws/aws-sdk-go/aws/credentials/endpointcreds"
 	"github.com/gorilla/websocket"
@@ -46,6 +51,7 @@ func main() {
 	logrus.SetLevel(logrus.DebugLevel)
 	logrus.Debugf("Starting")
 
+	ctx := context.Background()
 	rand.Seed(time.Now().Unix())
 
 	port := os.Getenv("PORT")
@@ -113,6 +119,23 @@ func main() {
 			},
 		},
 	})
+
+	// Kickoff sqs workers
+	dripWorker := worker.NewDripWorker(*conf, delphisBackend, awsSession)
+	go func() {
+		logrus.Debugf("Kicking off drip sqs")
+		for {
+			if err := dripWorker.Start(ctx); err != nil {
+				logrus.WithError(err).Error("failed to start drip worker")
+				time.Sleep(1 * time.Second)
+			}
+		}
+	}()
+
+	// Kickoff cron job
+	c := cron.New()
+	c.AddFunc("@every 10s", delphisBackend.AutoPostContent)
+	c.Start()
 
 	http.Handle("/", allowCors(healthCheck()))
 	http.Handle("/graphiql", allowCors(playground.Handler("GraphQL playground", "/query")))

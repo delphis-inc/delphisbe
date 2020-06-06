@@ -47,12 +47,23 @@ input PostContentInput {
   quotedPostID: ID
   mediaID: ID,
   poll: PollInput
+  importedContentID: ID
 }
+
+input DiscussionInput {
+  anonymityType: AnonymityType
+  title: String
+  autoPost: Boolean
+  idleMinutes: Int
+}
+
 
 
 type Mutation {
   addDiscussionParticipant(discussionID: String!, userID: String!, discussionParticipantInput: AddDiscussionParticipantInput!): Participant!
   addPost(discussionID: ID!, participantID: ID!, postContent: PostContentInput!): Post!
+  postImportedContent(discussionID: ID!, participantID: ID!, contentID: ID!): Post! # TODO: Need clarity on UX for this. Keeping it simple for now
+  scheduleImportedContent(discussionID: ID!, contentID: ID!): ContentQueueRecord!
   createDiscussion(anonymityType: AnonymityType!, title: String!): Discussion!
 
   # Creates a User Flair from a Flair template, accessible via available flair
@@ -76,6 +87,11 @@ type Mutation {
 
   # Upsert user device
   upsertUserDevice(userID: ID, platform: Platform!, deviceID: String!, token: String): UserDevice!
+
+  updateDiscussion(discussionID: ID!, input: DiscussionInput!): Discussion!
+
+  addDiscussionTags(discussionID: ID!, tags:[String!]): [Tag!]
+  deleteDiscussionTags(discussionID: ID!, tags:[String!]): [Tag!]
 }
 
 type Subscription {

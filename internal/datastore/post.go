@@ -24,6 +24,7 @@ func (d *delphisDB) PutPost(ctx context.Context, tx *sql.Tx, post model.Post) (*
 		post.PostContent.ID,
 		post.QuotedPostID,
 		post.MediaID,
+		post.ImportedContentID,
 	).Scan(
 		&post.ID,
 		&post.CreatedAt,
@@ -33,6 +34,7 @@ func (d *delphisDB) PutPost(ctx context.Context, tx *sql.Tx, post model.Post) (*
 		&post.PostContentID,
 		&post.QuotedPostID,
 		&post.MediaID,
+		&post.ImportedContentID,
 	)
 	if err != nil {
 		logrus.WithError(err).Error("failed to execute putPostStmt")
@@ -66,6 +68,45 @@ func (d *delphisDB) GetPostsByDiscussionIDIter(ctx context.Context, discussionID
 		ctx:  ctx,
 		rows: rows,
 	}
+}
+
+func (d *delphisDB) GetLastPostByDiscussionID(ctx context.Context, discussionID string, minutes int) (*model.Post, error) {
+	logrus.Debug("GetLastPostByDiscussionID::SQL Query")
+	if err := d.initializeStatements(ctx); err != nil {
+		logrus.WithError(err).Error("GetLastPostByDiscussionID::failed to initialize statements")
+		return nil, err
+	}
+
+	post := model.Post{}
+	postContent := model.PostContent{}
+	if err := d.prepStmts.getLastPostByDiscussionIDStmt.QueryRowContext(
+		ctx,
+		discussionID,
+		minutes,
+	).Scan(
+		&post.ID,
+		&post.CreatedAt,
+		&post.UpdatedAt,
+		&post.DeletedAt,
+		&post.DeletedReasonCode,
+		&post.DiscussionID,
+		&post.ParticipantID,
+		&post.QuotedPostID,
+		&post.MediaID,
+		&post.ImportedContentID,
+		&postContent.ID,
+		&postContent.Content,
+	); err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		logrus.WithError(err).Error("failed to get last post")
+		return nil, err
+	}
+
+	post.PostContent = &postContent
+
+	return &post, nil
 }
 
 func (d *delphisDB) GetPostsByDiscussionID(ctx context.Context, discussionID string) ([]*model.Post, error) {
@@ -148,6 +189,7 @@ func (iter *postIter) Next(post *model.Post) bool {
 		&post.ParticipantID,
 		&post.QuotedPostID,
 		&post.MediaID,
+		&post.ImportedContentID,
 		&postContent.ID,
 		&postContent.Content,
 	); iter.err != nil {

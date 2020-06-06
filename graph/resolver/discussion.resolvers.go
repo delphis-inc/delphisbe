@@ -115,7 +115,40 @@ func (r *discussionResolver) MeAvailableParticipants(ctx context.Context, obj *m
 	return participantArr, nil
 }
 
+func (r *discussionResolver) Tags(ctx context.Context, obj *model.Discussion) ([]*model.Tag, error) {
+	return r.DAOManager.GetDiscussionTags(ctx, obj.ID)
+}
+
+func (r *discussionResolver) UpcomingContent(ctx context.Context, obj *model.Discussion) ([]*model.ImportedContent, error) {
+	// TODO: Determine UX. Should this be merged with the data that has already been scheduled?
+	// At one point is data too stale and should no longer be shown?
+	authedUser := auth.GetAuthedUser(ctx)
+	if authedUser == nil {
+		return nil, fmt.Errorf("Need auth")
+	}
+
+	// Only allow the mod to view possible imported content
+	modCheck, err := r.DAOManager.CheckIfModeratorForDiscussion(ctx, authedUser.UserID, obj.ID)
+	if err != nil || !modCheck {
+		return nil, fmt.Errorf("unauthorized")
+	}
+
+	return r.DAOManager.GetUpcomingImportedContentByDiscussionID(ctx, obj.ID)
+}
+
+func (r *tagResolver) CreatedAt(ctx context.Context, obj *model.Tag) (string, error) {
+	return obj.CreatedAt.Format(time.RFC3339), nil
+}
+
+func (r *tagResolver) IsDeleted(ctx context.Context, obj *model.Tag) (bool, error) {
+	return obj.DeletedAt != nil, nil
+}
+
 // Discussion returns generated.DiscussionResolver implementation.
 func (r *Resolver) Discussion() generated.DiscussionResolver { return &discussionResolver{r} }
 
+// Tag returns generated.TagResolver implementation.
+func (r *Resolver) Tag() generated.TagResolver { return &tagResolver{r} }
+
 type discussionResolver struct{ *Resolver }
+type tagResolver struct{ *Resolver }
