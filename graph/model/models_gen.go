@@ -24,6 +24,13 @@ type AddDiscussionParticipantInput struct {
 	IsAnonymous   bool           `json:"isAnonymous"`
 }
 
+type DiscussionInput struct {
+	AnonymityType *AnonymityType `json:"anonymityType"`
+	Title         *string        `json:"title"`
+	AutoPost      *bool          `json:"autoPost"`
+	IdleMinutes   *int           `json:"idleMinutes"`
+}
+
 type Media struct {
 	ID                string             `json:"id"`
 	CreatedAt         string             `json:"createdAt"`
@@ -68,6 +75,7 @@ type PostContentInput struct {
 	QuotedPostID      *string    `json:"quotedPostID"`
 	MediaID           *string    `json:"mediaID"`
 	Poll              *PollInput `json:"poll"`
+	ImportedContentID *string    `json:"importedContentID"`
 }
 
 type URL struct {
@@ -303,20 +311,22 @@ func (e PostDeletedReason) MarshalGQL(w io.Writer) {
 type PostType string
 
 const (
-	PostTypeText  PostType = "TEXT"
-	PostTypeMedia PostType = "MEDIA"
-	PostTypePoll  PostType = "POLL"
+	PostTypeText            PostType = "TEXT"
+	PostTypeMedia           PostType = "MEDIA"
+	PostTypePoll            PostType = "POLL"
+	PostTypeImportedContent PostType = "IMPORTED_CONTENT"
 )
 
 var AllPostType = []PostType{
 	PostTypeText,
 	PostTypeMedia,
 	PostTypePoll,
+	PostTypeImportedContent,
 }
 
 func (e PostType) IsValid() bool {
 	switch e {
-	case PostTypeText, PostTypeMedia, PostTypePoll:
+	case PostTypeText, PostTypeMedia, PostTypePoll, PostTypeImportedContent:
 		return true
 	}
 	return false

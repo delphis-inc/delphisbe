@@ -45,7 +45,8 @@ func (d *delphisDB) createTestTables(ctx context.Context) error {
 			participant_id varchar(36),
 			post_content_id varchar(36) not null,
 			quoted_post_id varchar(36),
-			media_id varchar(36)
+			media_id varchar(36),
+			imported_content_id varchar(36)
 		);`,
 
 		`CREATE TABLE IF NOT EXISTS post_contents (
@@ -63,7 +64,9 @@ func (d *delphisDB) createTestTables(ctx context.Context) error {
 			deleted_at timestamp with time zone,
 			title varchar(256) not null,
 			anonymity_type varchar(36) not null,
-			moderator_id varchar(36)
+			moderator_id varchar(36),
+			auto_post boolean default true not null,
+			idle_minutes int default 300 not null
 		);`,
 
 		`CREATE TABLE IF NOT EXISTS participants (
@@ -115,6 +118,42 @@ func (d *delphisDB) createTestTables(ctx context.Context) error {
 			display_name varchar(128) not null,
 			user_id varchar(36),
 			twitter_handle varchar(36)
+		);`,
+
+		`CREATE TABLE IF NOT EXISTS imported_contents (
+			id varchar(36) PRIMARY KEY,
+			created_at timestamp with time zone default current_timestamp not null,
+			content_name text not null,
+			content_type text not null,
+			link text not null,
+			overview text not null,
+			source text not null
+		);`,
+
+		`CREATE TABLE IF NOT EXISTS discussion_tags (
+			discussion_id varchar(36) not null,
+			deleted_at timestamp with time zone,
+			tag varchar(40) not null,
+			created_at timestamp with time zone default current_timestamp not null,
+			PRIMARY KEY(discussion_id, tag)
+		);`,
+
+		`CREATE TABLE IF NOT EXISTS imported_content_tags (
+			imported_content_id varchar(36) not null,
+			deleted_at timestamp with time zone,
+			tag varchar(40) not null,
+			created_at timestamp with time zone default current_timestamp not null,
+			PRIMARY KEY(imported_content_id, tag)
+		);`,
+
+		`CREATE TABLE IF NOT EXISTS discussion_ic_queue (
+			discussion_id varchar(36) not null,
+			imported_content_id varchar(36) not null,
+			created_at timestamp with time zone default current_timestamp not null,
+			updated_at timestamp with time zone default current_timestamp not null,
+			deleted_at timestamp with time zone,
+			posted_at timestamp with time zone,
+			matching_tags varchar(40)[]
 		);`,
 
 		// Add foreign keys

@@ -33,15 +33,16 @@ func (d *delphisBackend) CreatePost(ctx context.Context, discussionID string, pa
 	}
 
 	post := model.Post{
-		ID:            util.UUIDv4(),
-		CreatedAt:     time.Now(),
-		UpdatedAt:     time.Now(),
-		DiscussionID:  &discussionID,
-		ParticipantID: &participantID,
-		PostContentID: &postContent.ID,
-		PostContent:   &postContent,
-		QuotedPostID:  input.QuotedPostID,
-		MediaID:       input.MediaID,
+		ID:                util.UUIDv4(),
+		CreatedAt:         time.Now(),
+		UpdatedAt:         time.Now(),
+		DiscussionID:      &discussionID,
+		ParticipantID:     &participantID,
+		PostContentID:     &postContent.ID,
+		PostContent:       &postContent,
+		QuotedPostID:      input.QuotedPostID,
+		MediaID:           input.MediaID,
+		ImportedContentID: input.ImportedContentID,
 	}
 
 	// Begin tx
@@ -104,6 +105,73 @@ func (d *delphisBackend) CreatePost(ctx context.Context, discussionID string, pa
 	return postObj, nil
 }
 
+// PostImportedContent puts a record in the queue and posts the content
+func (d *delphisBackend) PostImportedContent(ctx context.Context, participantID, discussionID, contentID string, postedAt *time.Time, matchingTags []string, autoPost bool) (*model.Post, error) {
+	// Fetch content from importedContents Table
+	// Do we want to block mods from posting the same article?
+	content, err := d.db.GetImportedContentByID(ctx, contentID)
+	if err != nil {
+		logrus.WithError(err).Error("failed to get imported content by id")
+		return nil, err
+	}
+
+	// Build post - discuss with Ned how we want this to be posted in the app
+	input := model.PostContentInput{
+		PostText:          "Check this out!!", // Make a random caption bot
+		PostType:          model.PostTypeImportedContent,
+		ImportedContentID: &content.ID,
+	}
+
+	// Call create post
+	postObj, err := d.CreatePost(ctx, discussionID, participantID, input)
+	if err != nil {
+		logrus.WithError(err).Error("failed to put imported contents post")
+		return nil, err
+	}
+
+	if _, err := d.PutImportedContentQueue(ctx, discussionID, contentID, postedAt, matchingTags, autoPost); err != nil {
+		logrus.WithError(err).Error("failed to put importedContentQueue")
+		return nil, err
+	}
+
+	return postObj, nil
+}
+
+// PutImportedContentQueue creates a record in the queue which is used for archiving and posting
+func (d *delphisBackend) PutImportedContentQueue(ctx context.Context, discussionID, contentID string, postedAt *time.Time, matchingTags []string, autoPost bool) (*model.ContentQueueRecord, error) {
+	// Get matching tags if none have been passed in
+	if len(matchingTags) == 0 {
+		var err error
+		matchingTags, err = d.db.GetMatchingTags(ctx, discussionID, contentID)
+		if err != nil {
+			logrus.WithError(err).Error("failed to get matching tags")
+			return nil, err
+		}
+	}
+
+	// Add post into the archive table
+	// If auto-posted, update record within queue
+	// If not, create new record. This allows mods to post an article as many times as they want
+	icObj := &model.ContentQueueRecord{}
+	if autoPost {
+		var err error
+		icObj, err = d.db.UpdateImportedContentDiscussionQueue(ctx, discussionID, contentID)
+		if err != nil {
+			logrus.WithError(err).Error("failed to update imported content into the queue")
+			return nil, err
+		}
+	} else {
+		var err error
+		icObj, err = d.db.PutImportedContentDiscussionQueue(ctx, discussionID, contentID, postedAt, matchingTags)
+		if err != nil {
+			logrus.WithError(err).Error("failed to post imported content into the queue")
+			return nil, err
+		}
+	}
+
+	return icObj, nil
+}
+
 func (d *delphisBackend) NotifySubscribersOfCreatedPost(ctx context.Context, post *model.Post, discussionID string) error {
 	cacheKey := fmt.Sprintf(discussionSubscriberKey, discussionID)
 	d.discussionMutex.Lock()
@@ -136,6 +204,10 @@ func (d *delphisBackend) GetPostsByDiscussionID(ctx context.Context, discussionI
 	iter := d.db.GetPostsByDiscussionIDIter(ctx, discussionID)
 	return d.iterToPosts(ctx, iter)
 	//return d.db.GetPostsByDiscussionID(ctx, discussionID)
+}
+
+func (d *delphisBackend) GetLastPostByDiscussionID(ctx context.Context, discussionID string, minutes int) (*model.Post, error) {
+	return d.db.GetLastPostByDiscussionID(ctx, discussionID, minutes)
 }
 
 func (d *delphisBackend) GetMentionedEntities(ctx context.Context, entityIDs []string) (map[string]model.Entity, error) {

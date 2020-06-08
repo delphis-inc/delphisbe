@@ -4,6 +4,7 @@ import (
 	"context"
 	"mime/multipart"
 	"sync"
+	"time"
 
 	"github.com/nedrocks/delphisbe/internal/mediadb"
 
@@ -18,8 +19,10 @@ import (
 
 type DelphisBackend interface {
 	CreateNewDiscussion(ctx context.Context, creatingUser *model.User, anonymityType model.AnonymityType, title string) (*model.Discussion, error)
+	UpdateDiscussion(ctx context.Context, id string, input model.DiscussionInput) (*model.Discussion, error)
 	GetDiscussionByID(ctx context.Context, id string) (*model.Discussion, error)
 	GetDiscussionsByIDs(ctx context.Context, ids []string) (map[string]*model.Discussion, error)
+	GetDiscussionsForAutoPost(ctx context.Context) ([]*model.DiscussionAutoPost, error)
 	GetDiscussionByModeratorID(ctx context.Context, moderatorID string) (*model.Discussion, error)
 	SubscribeToDiscussion(ctx context.Context, subscriberUserID string, postChannel chan *model.Post, discussionID string) error
 	UnSubscribeFromDiscussion(ctx context.Context, subscriberUserID string, discussionID string) error
@@ -27,6 +30,7 @@ type DelphisBackend interface {
 	GetModeratorByID(ctx context.Context, id string) (*model.Moderator, error)
 	GetModeratorByUserID(ctx context.Context, userID string) (*model.Moderator, error)
 	CheckIfModerator(ctx context.Context, userID string) (bool, error)
+	CheckIfModeratorForDiscussion(ctx context.Context, userID string, discussionID string) (bool, error)
 	AssignFlair(ctx context.Context, participant model.Participant, flairID string) (*model.Participant, error)
 	CreateFlair(ctx context.Context, userID string, templateID string) (*model.Flair, error)
 	GetFlairByID(ctx context.Context, id string) (*model.Flair, error)
@@ -45,8 +49,11 @@ type DelphisBackend interface {
 	GetTotalParticipantCountByDiscussionID(ctx context.Context, discussionID string) int
 	UpdateParticipant(ctx context.Context, participants UserDiscussionParticipants, currentParticipantID string, input model.UpdateParticipantInput) (*model.Participant, error)
 	CreatePost(ctx context.Context, discussionID string, participantID string, input model.PostContentInput) (*model.Post, error)
+	PostImportedContent(ctx context.Context, participantID, discussionID, contentID string, postedAt *time.Time, matchingTags []string, autoPost bool) (*model.Post, error)
+	PutImportedContentQueue(ctx context.Context, discussionID, contentID string, postedAt *time.Time, matchingTags []string, autoPost bool) (*model.ContentQueueRecord, error)
 	NotifySubscribersOfCreatedPost(ctx context.Context, post *model.Post, discussionID string) error
 	GetPostsByDiscussionID(ctx context.Context, discussionID string) ([]*model.Post, error)
+	GetLastPostByDiscussionID(ctx context.Context, discussionID string, minutes int) (*model.Post, error)
 	GetPostContentByID(ctx context.Context, id string) (*model.PostContent, error)
 	GetUserProfileByID(ctx context.Context, id string) (*model.UserProfile, error)
 	GetUserProfileByUserID(ctx context.Context, userID string) (*model.UserProfile, error)
@@ -65,9 +72,14 @@ type DelphisBackend interface {
 	NewAccessToken(ctx context.Context, userID string) (*auth.DelphisAccessToken, error)
 	ValidateAccessToken(ctx context.Context, token string) (*auth.DelphisAuthedUser, error)
 	ValidateRefreshToken(ctx context.Context, token string) (*auth.DelphisRefreshTokenUser, error)
-
+	PutImportedContentAndTags(ctx context.Context, input model.ImportedContentInput) (*model.ImportedContent, error)
+	GetDiscussionTags(ctx context.Context, id string) ([]*model.Tag, error)
+	PutDiscussionTags(ctx context.Context, discussionID string, tags []string) ([]*model.Tag, error)
+	DeleteDiscussionTags(ctx context.Context, discussionID string, tags []string) ([]*model.Tag, error)
+	GetImportedContentByID(ctx context.Context, id string) (*model.ImportedContent, error)
+	GetUpcomingImportedContentByDiscussionID(ctx context.Context, discussionID string) ([]*model.ImportedContent, error)
 	SendNotificationsToSubscribers(ctx context.Context, discussion *model.Discussion, post *model.Post) (*SendNotificationResponse, error)
-
+	AutoPostContent()
 	GetMediaRecord(ctx context.Context, mediaID string) (*model.Media, error)
 	UploadMedia(ctx context.Context, media multipart.File) (string, string, error)
 }

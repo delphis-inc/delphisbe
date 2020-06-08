@@ -20,9 +20,10 @@ type Post struct {
 	PostContentID     *string            `json:"postContentID" gorm:"type:varchar(36);"`
 	PostContent       *PostContent       `json:"postContent" gorm:"foreignkey:PostContentID;"`
 	// TODO: Do we want to also log the post_content ID so that quoted text doesn't change?
-	QuotedPostID *string `json:"quotedPostID" gorm:"type:varchar(36);"`
-	QuotedPost   *Post
-	MediaID      *string
+	QuotedPostID      *string `json:"quotedPostID" gorm:"type:varchar(36);"`
+	QuotedPost        *Post
+	MediaID           *string
+	ImportedContentID *string
 }
 
 type PostsEdge struct {

@@ -41,5 +41,6 @@ enum Platform {
 enum PostType {
     TEXT,
     MEDIA,
-    POLL
+    POLL,
+    IMPORTED_CONTENT
 }

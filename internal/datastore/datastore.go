@@ -5,6 +5,7 @@ import (
 	sql2 "database/sql"
 	"fmt"
 	"sync"
+	"time"
 
 	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbiface"
 	"github.com/pkg/errors"
@@ -23,10 +24,12 @@ import (
 type Datastore interface {
 	GetDiscussionByID(ctx context.Context, id string) (*model.Discussion, error)
 	GetDiscussionsByIDs(ctx context.Context, ids []string) (map[string]*model.Discussion, error)
+	GetDiscussionsAutoPost(ctx context.Context) DiscussionIter
 	GetDiscussionByModeratorID(ctx context.Context, moderatorID string) (*model.Discussion, error)
 	CreateModerator(ctx context.Context, moderator model.Moderator) (*model.Moderator, error)
 	GetModeratorByID(ctx context.Context, id string) (*model.Moderator, error)
 	GetModeratorByUserID(ctx context.Context, id string) (*model.Moderator, error)
+	GetModeratorByUserIDAndDiscussionID(ctx context.Context, userID, discussionID string) (*model.Moderator, error)
 	ListDiscussions(ctx context.Context) (*model.DiscussionsConnection, error)
 	UpsertDiscussion(ctx context.Context, discussion model.Discussion) (*model.Discussion, error)
 	AssignFlair(ctx context.Context, participant model.Participant, flairID *string) (*model.Participant, error)
@@ -46,6 +49,7 @@ type Datastore interface {
 	UpsertParticipant(ctx context.Context, participant model.Participant) (*model.Participant, error)
 	GetPostsByDiscussionID(ctx context.Context, discussionID string) ([]*model.Post, error)
 	GetPostsByDiscussionIDIter(ctx context.Context, discussionID string) PostIter
+	GetLastPostByDiscussionID(ctx context.Context, discussionID string, minutes int) (*model.Post, error)
 	GetPostContentByID(ctx context.Context, id string) (*model.PostContent, error)
 	PutPost(ctx context.Context, tx *sql2.Tx, post model.Post) (*model.Post, error)
 	PutPostContent(ctx context.Context, tx *sql2.Tx, postContent model.PostContent) error
@@ -65,6 +69,18 @@ type Datastore interface {
 	CreateTestTables(ctx context.Context, data TestData) (func() error, error)
 	PutMediaRecord(ctx context.Context, tx *sql2.Tx, media model.Media) error
 	GetMediaRecordByID(ctx context.Context, mediaID string) (*model.Media, error)
+	GetImportedContentByID(ctx context.Context, id string) (*model.ImportedContent, error)
+	GetImportedContentTags(ctx context.Context, id string) TagIter
+	GetDiscussionTags(ctx context.Context, id string) TagIter
+	GetMatchingTags(ctx context.Context, discussionID, importedContentID string) ([]string, error)
+	PutImportedContent(ctx context.Context, tx *sql2.Tx, ic model.ImportedContent) (*model.ImportedContent, error)
+	PutImportedContentTags(ctx context.Context, tx *sql2.Tx, tag model.Tag) (*model.Tag, error)
+	PutDiscussionTags(ctx context.Context, tx *sql2.Tx, tag model.Tag) (*model.Tag, error)
+	DeleteDiscussionTags(ctx context.Context, tx *sql2.Tx, tag model.Tag) (*model.Tag, error)
+	GetImportedContentByDiscussionID(ctx context.Context, discussionID string, limit int) ContentIter
+	GetScheduledImportedContentByDiscussionID(ctx context.Context, discussionID string) ContentIter
+	PutImportedContentDiscussionQueue(ctx context.Context, discussionID, contentID string, postedAt *time.Time, matchingTags []string) (*model.ContentQueueRecord, error)
+	UpdateImportedContentDiscussionQueue(ctx context.Context, discussionID, contentID string) (*model.ContentQueueRecord, error)
 
 	// TXN
 	BeginTx(ctx context.Context) (*sql2.Tx, error)
@@ -88,6 +104,21 @@ type delphisDB struct {
 
 type PostIter interface {
 	Next(post *model.Post) bool
+	Close() error
+}
+
+type TagIter interface {
+	Next(tag *model.Tag) bool
+	Close() error
+}
+
+type ContentIter interface {
+	Next(content *model.ImportedContent) bool
+	Close() error
+}
+
+type DiscussionIter interface {
+	Next(discussion *model.DiscussionAutoPost) bool
 	Close() error
 }
 
@@ -169,14 +200,17 @@ func (d *delphisDB) initializeStatements(ctx context.Context) (err error) {
 	}
 
 	// POSTS
-	if d.prepStmts.putPostStmt, err = d.pg.PrepareContext(ctx, putPostString); err != nil {
-		logrus.WithError(err).Error("failed to prepare putPostStmt")
-		return errors.Wrap(err, "failed to prepare putPostStmt")
-	}
-
 	if d.prepStmts.getPostsByDiscussionIDStmt, err = d.pg.PrepareContext(ctx, getPostsByDiscussionIDString); err != nil {
 		logrus.WithError(err).Error("failed to prepare getPostsByDiscussionIDStmt")
 		return errors.Wrap(err, "failed to prepare getPostsByDiscussionIDStmt")
+	}
+	if d.prepStmts.getLastPostByDiscussionIDStmt, err = d.pg.PrepareContext(ctx, getLastPostByDiscussionIDStmt); err != nil {
+		logrus.WithError(err).Error("failed to prepare getLastPostByDiscussionIDStmt")
+		return errors.Wrap(err, "failed to prepare getLastPostByDiscussionIDStmt")
+	}
+	if d.prepStmts.putPostStmt, err = d.pg.PrepareContext(ctx, putPostString); err != nil {
+		logrus.WithError(err).Error("failed to prepare putPostStmt")
+		return errors.Wrap(err, "failed to prepare putPostStmt")
 	}
 
 	// POST CONTENTS
@@ -196,16 +230,77 @@ func (d *delphisDB) initializeStatements(ctx context.Context) (err error) {
 		logrus.WithError(err).Error("failed to prepare putMediaRecordStmt")
 		return errors.Wrap(err, "failed to prepare putMediaRecordStmt")
 	}
-
 	if d.prepStmts.getMediaRecordStmt, err = d.pg.PrepareContext(ctx, getMediaRecordString); err != nil {
 		logrus.WithError(err).Error("failed to prepare getMediaRecordStmt")
 		return errors.Wrap(err, "failed to prepare getMediaRecordStmt")
+	}
+
+	// DISCUSSION
+	if d.prepStmts.getDiscussionsForAutoPostStmt, err = d.pg.PrepareContext(ctx, getDiscussionsForAutoPostString); err != nil {
+		logrus.WithError(err).Error("failed to prepare getDiscussionsForAutoPostStmt")
+		return errors.Wrap(err, "failed to prepare getDiscussionsForAutoPostStmt")
 	}
 
 	// MODERATOR
 	if d.prepStmts.getModeratorByUserIDStmt, err = d.pg.PrepareContext(ctx, getModeratorByUserIDString); err != nil {
 		logrus.WithError(err).Error("failed to prepare getModeratorByUserProfileID")
 		return errors.Wrap(err, "failed to prepare getModeratorByUserProfileID")
+	}
+	if d.prepStmts.getModeratorByUserIDAndDiscussionIDStmt, err = d.pg.PrepareContext(ctx, getModeratorByUserIDAndDiscussionIDString); err != nil {
+		logrus.WithError(err).Error("failed to prepare getModeratorByUserIDAndDiscussionIDStmt")
+		return errors.Wrap(err, "failed to prepare getModeratorByUserIDAndDiscussionIDStmt")
+	}
+
+	// IMPORTED CONTENT
+	if d.prepStmts.getImportedContentByIDStmt, err = d.pg.PrepareContext(ctx, getImportedContentByIDString); err != nil {
+		logrus.WithError(err).Error("failed to prepare getImportedContentByIDStmt")
+		return errors.Wrap(err, "failed to prepare getImportedContentByIDStmt")
+	}
+	if d.prepStmts.getImportedContentForDiscussionStmt, err = d.pg.PrepareContext(ctx, getImportedContentForDiscussionString); err != nil {
+		logrus.WithError(err).Error("failed to prepare getImportedContentForDiscussionStmt")
+		return errors.Wrap(err, "failed to prepare getImportedContentForDiscussionStmt")
+	}
+	if d.prepStmts.getScheduledImportedContentByDiscussionIDStmt, err = d.pg.PrepareContext(ctx, getScheduledImportedContentByDiscussionIDString); err != nil {
+		logrus.WithError(err).Error("failed to prepare getScheduledImportedContentByDiscussionIDStmt")
+		return errors.Wrap(err, "failed to prepare getScheduledImportedContentByDiscussionIDStmt")
+	}
+	if d.prepStmts.putImportedContentStmt, err = d.pg.PrepareContext(ctx, putImportedContentString); err != nil {
+		logrus.WithError(err).Error("failed to prepare putImportedContentStmt")
+		return errors.Wrap(err, "failed to prepare putImportedContentStmt")
+	}
+	if d.prepStmts.putImportedContentDiscussionQueueStmt, err = d.pg.PrepareContext(ctx, putImportedContentDiscussionQueueString); err != nil {
+		logrus.WithError(err).Error("failed to prepare putImportedContentDiscussionQueueStmt")
+		return errors.Wrap(err, "failed to prepare putImportedContentDiscussionQueueStmt")
+	}
+	if d.prepStmts.updateImportedContentDiscussionQueueStmt, err = d.pg.PrepareContext(ctx, updateImportedContentDiscussionQueueString); err != nil {
+		logrus.WithError(err).Error("failed to prepare updateImportedContentDiscussionQueueStmt")
+		return errors.Wrap(err, "failed to prepare updateImportedContentDiscussionQueueStmt")
+	}
+
+	// TAGS
+	if d.prepStmts.getImportedContentTagsStmt, err = d.pg.PrepareContext(ctx, getImportedContentTagsString); err != nil {
+		logrus.WithError(err).Error("failed to prepare getImportedContentTagsStmt")
+		return errors.Wrap(err, "failed to prepare getImportedContentTagsStmt")
+	}
+	if d.prepStmts.getDiscussionTagsStmt, err = d.pg.PrepareContext(ctx, getDiscussionTagsString); err != nil {
+		logrus.WithError(err).Error("failed to prepare getDiscussionTagsStmt")
+		return errors.Wrap(err, "failed to prepare getDiscussionTagsStmt")
+	}
+	if d.prepStmts.getMatchingTagsStmt, err = d.pg.PrepareContext(ctx, getMatchingTagsString); err != nil {
+		logrus.WithError(err).Error("failed to prepare getMatchingTagsStmt")
+		return errors.Wrap(err, "failed to prepare getMatchingTagsStmt")
+	}
+	if d.prepStmts.putImportedContentTagsStmt, err = d.pg.PrepareContext(ctx, putImportedContentTagsString); err != nil {
+		logrus.WithError(err).Error("failed to prepare putImportedContentTagsStmt")
+		return errors.Wrap(err, "failed to prepare putImportedContentTagsStmt")
+	}
+	if d.prepStmts.putDiscussionTagsStmt, err = d.pg.PrepareContext(ctx, putDiscussionTagsString); err != nil {
+		logrus.WithError(err).Error("failed to prepare putDiscussionTagsStmt")
+		return errors.Wrap(err, "failed to prepare putDiscussionTagsStmt")
+	}
+	if d.prepStmts.deleteDiscussionTagsStmt, err = d.pg.PrepareContext(ctx, deleteDiscussionTagsString); err != nil {
+		logrus.WithError(err).Error("failed to prepare deleteDiscussionTagsStmt")
+		return errors.Wrap(err, "failed to prepare deleteDiscussionTagsStmt")
 	}
 
 	d.ready = true

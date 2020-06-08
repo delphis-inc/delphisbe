@@ -16,11 +16,26 @@ func (b *delphisBackend) GetModeratorByUserID(ctx context.Context, userID string
 	return b.db.GetModeratorByUserID(ctx, userID)
 }
 
+func (b *delphisBackend) GetModeratorByUserIDAndDiscussionID(ctx context.Context, userID, discussionID string) (*model.Moderator, error) {
+	return b.db.GetModeratorByUserIDAndDiscussionID(ctx, userID, discussionID)
+}
+
 func (b *delphisBackend) CheckIfModerator(ctx context.Context, userID string) (bool, error) {
 	mod, err := b.GetModeratorByUserID(ctx, userID)
 	if err != nil {
 		logrus.WithError(err).Error("failed to get moderator by userID")
 		return false, err
 	}
+
+	return mod != nil, nil
+}
+
+func (b *delphisBackend) CheckIfModeratorForDiscussion(ctx context.Context, userID string, discussionID string) (bool, error) {
+	mod, err := b.GetModeratorByUserIDAndDiscussionID(ctx, userID, discussionID)
+	if err != nil {
+		logrus.WithError(err).Error("failed to get moderator by userID")
+		return false, err
+	}
+
 	return mod != nil, nil
 }

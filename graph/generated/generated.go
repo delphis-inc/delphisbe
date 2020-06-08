@@ -38,8 +38,10 @@ type Config struct {
 }
 
 type ResolverRoot interface {
+	ContentQueueRecord() ContentQueueRecordResolver
 	Discussion() DiscussionResolver
 	Flair() FlairResolver
+	ImportedContent() ImportedContentResolver
 	Moderator() ModeratorResolver
 	Mutation() MutationResolver
 	Participant() ParticipantResolver
@@ -50,6 +52,7 @@ type ResolverRoot interface {
 	PostsConnection() PostsConnectionResolver
 	Query() QueryResolver
 	Subscription() SubscriptionResolver
+	Tag() TagResolver
 	User() UserResolver
 	UserDevice() UserDeviceResolver
 	UserProfile() UserProfileResolver
@@ -61,17 +64,31 @@ type DirectiveRoot struct {
 }
 
 type ComplexityRoot struct {
+	ContentQueueRecord struct {
+		CreatedAt         func(childComplexity int) int
+		DiscussionID      func(childComplexity int) int
+		HasPosted         func(childComplexity int) int
+		ImportedContentID func(childComplexity int) int
+		IsDeleted         func(childComplexity int) int
+		MatchingTags      func(childComplexity int) int
+		UpdatedAt         func(childComplexity int) int
+	}
+
 	Discussion struct {
 		AnonymityType           func(childComplexity int) int
+		AutoPost                func(childComplexity int) int
 		CreatedAt               func(childComplexity int) int
 		ID                      func(childComplexity int) int
 		IconURL                 func(childComplexity int) int
+		IdleMinutes             func(childComplexity int) int
 		MeAvailableParticipants func(childComplexity int) int
 		MeParticipant           func(childComplexity int) int
 		Moderator               func(childComplexity int) int
 		Participants            func(childComplexity int) int
 		Posts                   func(childComplexity int) int
+		Tags                    func(childComplexity int) int
 		Title                   func(childComplexity int) int
+		UpcomingContent         func(childComplexity int) int
 		UpdatedAt               func(childComplexity int) int
 	}
 
@@ -87,6 +104,17 @@ type ComplexityRoot struct {
 		ID          func(childComplexity int) int
 		ImageURL    func(childComplexity int) int
 		Source      func(childComplexity int) int
+	}
+
+	ImportedContent struct {
+		ContentName  func(childComplexity int) int
+		ContentType  func(childComplexity int) int
+		CreatedAt    func(childComplexity int) int
+		ID           func(childComplexity int) int
+		Link         func(childComplexity int) int
+		MatchingTags func(childComplexity int) int
+		Overview     func(childComplexity int) int
+		Source       func(childComplexity int) int
 	}
 
 	Media struct {
@@ -113,14 +141,19 @@ type ComplexityRoot struct {
 
 	Mutation struct {
 		AddDiscussionParticipant func(childComplexity int, discussionID string, userID string, discussionParticipantInput model.AddDiscussionParticipantInput) int
+		AddDiscussionTags        func(childComplexity int, discussionID string, tags []string) int
 		AddPost                  func(childComplexity int, discussionID string, participantID string, postContent model.PostContentInput) int
 		AssignFlair              func(childComplexity int, participantID string, flairID string) int
 		CreateDiscussion         func(childComplexity int, anonymityType model.AnonymityType, title string) int
 		CreateFlair              func(childComplexity int, userID string, templateID string) int
 		CreateFlairTemplate      func(childComplexity int, displayName *string, imageURL *string, source string) int
+		DeleteDiscussionTags     func(childComplexity int, discussionID string, tags []string) int
+		PostImportedContent      func(childComplexity int, discussionID string, participantID string, contentID string) int
 		RemoveFlair              func(childComplexity int, id string) int
 		RemoveFlairTemplate      func(childComplexity int, id string) int
+		ScheduleImportedContent  func(childComplexity int, discussionID string, contentID string) int
 		UnassignFlair            func(childComplexity int, participantID string) int
+		UpdateDiscussion         func(childComplexity int, discussionID string, input model.DiscussionInput) int
 		UpdateParticipant        func(childComplexity int, discussionID string, participantID string, updateInput model.UpdateParticipantInput) int
 		UpsertUserDevice         func(childComplexity int, userID *string, platform model.Platform, deviceID string, token *string) int
 	}
@@ -171,6 +204,7 @@ type ComplexityRoot struct {
 		DeletedReasonCode func(childComplexity int) int
 		Discussion        func(childComplexity int) int
 		ID                func(childComplexity int) int
+		ImportedContent   func(childComplexity int) int
 		IsDeleted         func(childComplexity int) int
 		Media             func(childComplexity int) int
 		MentionedEntities func(childComplexity int) int
@@ -218,6 +252,13 @@ type ComplexityRoot struct {
 
 	Subscription struct {
 		PostAdded func(childComplexity int, discussionID string) int
+	}
+
+	Tag struct {
+		CreatedAt func(childComplexity int) int
+		ID        func(childComplexity int) int
+		IsDeleted func(childComplexity int) int
+		Tag       func(childComplexity int) int
 	}
 
 	URL struct {
@@ -278,22 +319,36 @@ type ComplexityRoot struct {
 	}
 }
 
+type ContentQueueRecordResolver interface {
+	CreatedAt(ctx context.Context, obj *model.ContentQueueRecord) (string, error)
+	UpdatedAt(ctx context.Context, obj *model.ContentQueueRecord) (string, error)
+	IsDeleted(ctx context.Context, obj *model.ContentQueueRecord) (bool, error)
+	HasPosted(ctx context.Context, obj *model.ContentQueueRecord) (bool, error)
+}
 type DiscussionResolver interface {
 	Moderator(ctx context.Context, obj *model.Discussion) (*model.Moderator, error)
 
 	Posts(ctx context.Context, obj *model.Discussion) ([]*model.Post, error)
-
+	IconURL(ctx context.Context, obj *model.Discussion) (*string, error)
 	Participants(ctx context.Context, obj *model.Discussion) ([]*model.Participant, error)
 
 	CreatedAt(ctx context.Context, obj *model.Discussion) (string, error)
 	UpdatedAt(ctx context.Context, obj *model.Discussion) (string, error)
 	MeParticipant(ctx context.Context, obj *model.Discussion) (*model.Participant, error)
 	MeAvailableParticipants(ctx context.Context, obj *model.Discussion) ([]*model.Participant, error)
+
+	Tags(ctx context.Context, obj *model.Discussion) ([]*model.Tag, error)
+	UpcomingContent(ctx context.Context, obj *model.Discussion) ([]*model.ImportedContent, error)
 }
 type FlairResolver interface {
 	DisplayName(ctx context.Context, obj *model.Flair) (*string, error)
 	ImageURL(ctx context.Context, obj *model.Flair) (*string, error)
 	Source(ctx context.Context, obj *model.Flair) (string, error)
+}
+type ImportedContentResolver interface {
+	CreatedAt(ctx context.Context, obj *model.ImportedContent) (string, error)
+
+	MatchingTags(ctx context.Context, obj *model.ImportedContent) ([]string, error)
 }
 type ModeratorResolver interface {
 	Discussion(ctx context.Context, obj *model.Moderator) (*model.Discussion, error)
@@ -302,6 +357,8 @@ type ModeratorResolver interface {
 type MutationResolver interface {
 	AddDiscussionParticipant(ctx context.Context, discussionID string, userID string, discussionParticipantInput model.AddDiscussionParticipantInput) (*model.Participant, error)
 	AddPost(ctx context.Context, discussionID string, participantID string, postContent model.PostContentInput) (*model.Post, error)
+	PostImportedContent(ctx context.Context, discussionID string, participantID string, contentID string) (*model.Post, error)
+	ScheduleImportedContent(ctx context.Context, discussionID string, contentID string) (*model.ContentQueueRecord, error)
 	CreateDiscussion(ctx context.Context, anonymityType model.AnonymityType, title string) (*model.Discussion, error)
 	CreateFlair(ctx context.Context, userID string, templateID string) (*model.Flair, error)
 	RemoveFlair(ctx context.Context, id string) (*model.Flair, error)
@@ -311,6 +368,9 @@ type MutationResolver interface {
 	RemoveFlairTemplate(ctx context.Context, id string) (*model.FlairTemplate, error)
 	UpdateParticipant(ctx context.Context, discussionID string, participantID string, updateInput model.UpdateParticipantInput) (*model.Participant, error)
 	UpsertUserDevice(ctx context.Context, userID *string, platform model.Platform, deviceID string, token *string) (*model.UserDevice, error)
+	UpdateDiscussion(ctx context.Context, discussionID string, input model.DiscussionInput) (*model.Discussion, error)
+	AddDiscussionTags(ctx context.Context, discussionID string, tags []string) ([]*model.Tag, error)
+	DeleteDiscussionTags(ctx context.Context, discussionID string, tags []string) ([]*model.Tag, error)
 }
 type ParticipantResolver interface {
 	Discussion(ctx context.Context, obj *model.Participant) (*model.Discussion, error)
@@ -334,6 +394,7 @@ type PostResolver interface {
 
 	MentionedEntities(ctx context.Context, obj *model.Post) ([]model.Entity, error)
 	Media(ctx context.Context, obj *model.Post) (*model.Media, error)
+	ImportedContent(ctx context.Context, obj *model.Post) (*model.ImportedContent, error)
 }
 type PostBookmarkResolver interface {
 	Discussion(ctx context.Context, obj *model.PostBookmark) (*model.Discussion, error)
@@ -354,6 +415,11 @@ type QueryResolver interface {
 }
 type SubscriptionResolver interface {
 	PostAdded(ctx context.Context, discussionID string) (<-chan *model.Post, error)
+}
+type TagResolver interface {
+	CreatedAt(ctx context.Context, obj *model.Tag) (string, error)
+
+	IsDeleted(ctx context.Context, obj *model.Tag) (bool, error)
 }
 type UserResolver interface {
 	Participants(ctx context.Context, obj *model.User) ([]*model.Participant, error)
@@ -394,12 +460,68 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 	_ = ec
 	switch typeName + "." + field {
 
+	case "ContentQueueRecord.createdAt":
+		if e.complexity.ContentQueueRecord.CreatedAt == nil {
+			break
+		}
+
+		return e.complexity.ContentQueueRecord.CreatedAt(childComplexity), true
+
+	case "ContentQueueRecord.discussionID":
+		if e.complexity.ContentQueueRecord.DiscussionID == nil {
+			break
+		}
+
+		return e.complexity.ContentQueueRecord.DiscussionID(childComplexity), true
+
+	case "ContentQueueRecord.hasPosted":
+		if e.complexity.ContentQueueRecord.HasPosted == nil {
+			break
+		}
+
+		return e.complexity.ContentQueueRecord.HasPosted(childComplexity), true
+
+	case "ContentQueueRecord.importedContentID":
+		if e.complexity.ContentQueueRecord.ImportedContentID == nil {
+			break
+		}
+
+		return e.complexity.ContentQueueRecord.ImportedContentID(childComplexity), true
+
+	case "ContentQueueRecord.isDeleted":
+		if e.complexity.ContentQueueRecord.IsDeleted == nil {
+			break
+		}
+
+		return e.complexity.ContentQueueRecord.IsDeleted(childComplexity), true
+
+	case "ContentQueueRecord.matchingTags":
+		if e.complexity.ContentQueueRecord.MatchingTags == nil {
+			break
+		}
+
+		return e.complexity.ContentQueueRecord.MatchingTags(childComplexity), true
+
+	case "ContentQueueRecord.updatedAt":
+		if e.complexity.ContentQueueRecord.UpdatedAt == nil {
+			break
+		}
+
+		return e.complexity.ContentQueueRecord.UpdatedAt(childComplexity), true
+
 	case "Discussion.anonymityType":
 		if e.complexity.Discussion.AnonymityType == nil {
 			break
 		}
 
 		return e.complexity.Discussion.AnonymityType(childComplexity), true
+
+	case "Discussion.autoPost":
+		if e.complexity.Discussion.AutoPost == nil {
+			break
+		}
+
+		return e.complexity.Discussion.AutoPost(childComplexity), true
 
 	case "Discussion.createdAt":
 		if e.complexity.Discussion.CreatedAt == nil {
@@ -421,6 +543,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Discussion.IconURL(childComplexity), true
+
+	case "Discussion.idleMinutes":
+		if e.complexity.Discussion.IdleMinutes == nil {
+			break
+		}
+
+		return e.complexity.Discussion.IdleMinutes(childComplexity), true
 
 	case "Discussion.meAvailableParticipants":
 		if e.complexity.Discussion.MeAvailableParticipants == nil {
@@ -457,12 +586,26 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Discussion.Posts(childComplexity), true
 
+	case "Discussion.tags":
+		if e.complexity.Discussion.Tags == nil {
+			break
+		}
+
+		return e.complexity.Discussion.Tags(childComplexity), true
+
 	case "Discussion.title":
 		if e.complexity.Discussion.Title == nil {
 			break
 		}
 
 		return e.complexity.Discussion.Title(childComplexity), true
+
+	case "Discussion.upcomingContent":
+		if e.complexity.Discussion.UpcomingContent == nil {
+			break
+		}
+
+		return e.complexity.Discussion.UpcomingContent(childComplexity), true
 
 	case "Discussion.updatedAt":
 		if e.complexity.Discussion.UpdatedAt == nil {
@@ -526,6 +669,62 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.FlairTemplate.Source(childComplexity), true
+
+	case "ImportedContent.contentName":
+		if e.complexity.ImportedContent.ContentName == nil {
+			break
+		}
+
+		return e.complexity.ImportedContent.ContentName(childComplexity), true
+
+	case "ImportedContent.contentType":
+		if e.complexity.ImportedContent.ContentType == nil {
+			break
+		}
+
+		return e.complexity.ImportedContent.ContentType(childComplexity), true
+
+	case "ImportedContent.createdAt":
+		if e.complexity.ImportedContent.CreatedAt == nil {
+			break
+		}
+
+		return e.complexity.ImportedContent.CreatedAt(childComplexity), true
+
+	case "ImportedContent.id":
+		if e.complexity.ImportedContent.ID == nil {
+			break
+		}
+
+		return e.complexity.ImportedContent.ID(childComplexity), true
+
+	case "ImportedContent.link":
+		if e.complexity.ImportedContent.Link == nil {
+			break
+		}
+
+		return e.complexity.ImportedContent.Link(childComplexity), true
+
+	case "ImportedContent.matchingTags":
+		if e.complexity.ImportedContent.MatchingTags == nil {
+			break
+		}
+
+		return e.complexity.ImportedContent.MatchingTags(childComplexity), true
+
+	case "ImportedContent.overview":
+		if e.complexity.ImportedContent.Overview == nil {
+			break
+		}
+
+		return e.complexity.ImportedContent.Overview(childComplexity), true
+
+	case "ImportedContent.source":
+		if e.complexity.ImportedContent.Source == nil {
+			break
+		}
+
+		return e.complexity.ImportedContent.Source(childComplexity), true
 
 	case "Media.assetLocation":
 		if e.complexity.Media.AssetLocation == nil {
@@ -630,6 +829,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Mutation.AddDiscussionParticipant(childComplexity, args["discussionID"].(string), args["userID"].(string), args["discussionParticipantInput"].(model.AddDiscussionParticipantInput)), true
 
+	case "Mutation.addDiscussionTags":
+		if e.complexity.Mutation.AddDiscussionTags == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_addDiscussionTags_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.AddDiscussionTags(childComplexity, args["discussionID"].(string), args["tags"].([]string)), true
+
 	case "Mutation.addPost":
 		if e.complexity.Mutation.AddPost == nil {
 			break
@@ -690,6 +901,30 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Mutation.CreateFlairTemplate(childComplexity, args["displayName"].(*string), args["imageURL"].(*string), args["source"].(string)), true
 
+	case "Mutation.deleteDiscussionTags":
+		if e.complexity.Mutation.DeleteDiscussionTags == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_deleteDiscussionTags_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.DeleteDiscussionTags(childComplexity, args["discussionID"].(string), args["tags"].([]string)), true
+
+	case "Mutation.postImportedContent":
+		if e.complexity.Mutation.PostImportedContent == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_postImportedContent_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.PostImportedContent(childComplexity, args["discussionID"].(string), args["participantID"].(string), args["contentID"].(string)), true
+
 	case "Mutation.removeFlair":
 		if e.complexity.Mutation.RemoveFlair == nil {
 			break
@@ -714,6 +949,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Mutation.RemoveFlairTemplate(childComplexity, args["id"].(string)), true
 
+	case "Mutation.scheduleImportedContent":
+		if e.complexity.Mutation.ScheduleImportedContent == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_scheduleImportedContent_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.ScheduleImportedContent(childComplexity, args["discussionID"].(string), args["contentID"].(string)), true
+
 	case "Mutation.unassignFlair":
 		if e.complexity.Mutation.UnassignFlair == nil {
 			break
@@ -725,6 +972,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Mutation.UnassignFlair(childComplexity, args["participantID"].(string)), true
+
+	case "Mutation.updateDiscussion":
+		if e.complexity.Mutation.UpdateDiscussion == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_updateDiscussion_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.UpdateDiscussion(childComplexity, args["discussionID"].(string), args["input"].(model.DiscussionInput)), true
 
 	case "Mutation.updateParticipant":
 		if e.complexity.Mutation.UpdateParticipant == nil {
@@ -939,6 +1198,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Post.ID(childComplexity), true
 
+	case "Post.importedContent":
+		if e.complexity.Post.ImportedContent == nil {
+			break
+		}
+
+		return e.complexity.Post.ImportedContent(childComplexity), true
+
 	case "Post.isDeleted":
 		if e.complexity.Post.IsDeleted == nil {
 			break
@@ -1140,6 +1406,34 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Subscription.PostAdded(childComplexity, args["discussionID"].(string)), true
+
+	case "Tag.createdAt":
+		if e.complexity.Tag.CreatedAt == nil {
+			break
+		}
+
+		return e.complexity.Tag.CreatedAt(childComplexity), true
+
+	case "Tag.id":
+		if e.complexity.Tag.ID == nil {
+			break
+		}
+
+		return e.complexity.Tag.ID(childComplexity), true
+
+	case "Tag.isDeleted":
+		if e.complexity.Tag.IsDeleted == nil {
+			break
+		}
+
+		return e.complexity.Tag.IsDeleted(childComplexity), true
+
+	case "Tag.tag":
+		if e.complexity.Tag.Tag == nil {
+			break
+		}
+
+		return e.complexity.Tag.Tag(childComplexity), true
 
 	case "URL.displayText":
 		if e.complexity.URL.DisplayText == nil {
@@ -1459,6 +1753,18 @@ var sources = []*ast.Source{
 
     # Will return available participants for ` + "`" + `me` + "`" + `
     meAvailableParticipants: [Participant!]
+
+    autoPost: Boolean!
+    idleMinutes: Int!
+    tags: [Tag!]
+    upcomingContent: [ImportedContent!]
+}
+
+type Tag {
+    id: ID!
+    createdAt: String!
+    tag: String!
+    isDeleted: Boolean!
 }
 
 # type DiscussionsConnection {
@@ -1523,7 +1829,8 @@ enum Platform {
 enum PostType {
     TEXT,
     MEDIA,
-    POLL
+    POLL,
+    IMPORTED_CONTENT
 }`, BuiltIn: false},
 	&ast.Source{Name: "graph/types/flair.graphqls", Input: `type Flair {
     # The UUID for this flair
@@ -1547,6 +1854,26 @@ enum PostType {
     source: String!
 }
 `, BuiltIn: false},
+	&ast.Source{Name: "graph/types/imported_content.graphqls", Input: `type ImportedContent {
+    id: ID!
+    createdAt: String!
+    contentName: String!
+    contentType: String!
+    link: String!
+    overview: String!
+    source: String!
+    matchingTags: [String!]
+}
+
+type ContentQueueRecord {
+    discussionID: ID!
+    importedContentID: ID!
+    createdAt: String!
+    updatedAt: String!
+    isDeleted: Boolean!
+    hasPosted: Boolean!
+    matchingTags: [String!]
+}`, BuiltIn: false},
 	&ast.Source{Name: "graph/types/media.graphqls", Input: `# Maybe make a basePost interface and extend
 # Media can also just be data on a post
 type Media {
@@ -1628,6 +1955,7 @@ type MediaSize {
     quotedPost: Post
     mentionedEntities: [Entity!]
     media: Media
+    importedContent: ImportedContent
 }`, BuiltIn: false},
 	&ast.Source{Name: "graph/types/post_bookmark.graphqls", Input: `# Defines a bookmark for a post. Built this way because I
 # assume we will have other types of bookmarks down the road
@@ -1705,12 +2033,23 @@ input PostContentInput {
   quotedPostID: ID
   mediaID: ID,
   poll: PollInput
+  importedContentID: ID
 }
+
+input DiscussionInput {
+  anonymityType: AnonymityType
+  title: String
+  autoPost: Boolean
+  idleMinutes: Int
+}
+
 
 
 type Mutation {
   addDiscussionParticipant(discussionID: String!, userID: String!, discussionParticipantInput: AddDiscussionParticipantInput!): Participant!
   addPost(discussionID: ID!, participantID: ID!, postContent: PostContentInput!): Post!
+  postImportedContent(discussionID: ID!, participantID: ID!, contentID: ID!): Post! # TODO: Need clarity on UX for this. Keeping it simple for now
+  scheduleImportedContent(discussionID: ID!, contentID: ID!): ContentQueueRecord!
   createDiscussion(anonymityType: AnonymityType!, title: String!): Discussion!
 
   # Creates a User Flair from a Flair template, accessible via available flair
@@ -1734,6 +2073,11 @@ type Mutation {
 
   # Upsert user device
   upsertUserDevice(userID: ID, platform: Platform!, deviceID: String!, token: String): UserDevice!
+
+  updateDiscussion(discussionID: ID!, input: DiscussionInput!): Discussion!
+
+  addDiscussionTags(discussionID: ID!, tags:[String!]): [Tag!]
+  deleteDiscussionTags(discussionID: ID!, tags:[String!]): [Tag!]
 }
 
 type Subscription {
@@ -1858,6 +2202,28 @@ func (ec *executionContext) field_Mutation_addDiscussionParticipant_args(ctx con
 		}
 	}
 	args["discussionParticipantInput"] = arg2
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_addDiscussionTags_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 string
+	if tmp, ok := rawArgs["discussionID"]; ok {
+		arg0, err = ec.unmarshalNID2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["discussionID"] = arg0
+	var arg1 []string
+	if tmp, ok := rawArgs["tags"]; ok {
+		arg1, err = ec.unmarshalOString2ᚕstringᚄ(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["tags"] = arg1
 	return args, nil
 }
 
@@ -1987,6 +2353,58 @@ func (ec *executionContext) field_Mutation_createFlair_args(ctx context.Context,
 	return args, nil
 }
 
+func (ec *executionContext) field_Mutation_deleteDiscussionTags_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 string
+	if tmp, ok := rawArgs["discussionID"]; ok {
+		arg0, err = ec.unmarshalNID2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["discussionID"] = arg0
+	var arg1 []string
+	if tmp, ok := rawArgs["tags"]; ok {
+		arg1, err = ec.unmarshalOString2ᚕstringᚄ(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["tags"] = arg1
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_postImportedContent_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 string
+	if tmp, ok := rawArgs["discussionID"]; ok {
+		arg0, err = ec.unmarshalNID2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["discussionID"] = arg0
+	var arg1 string
+	if tmp, ok := rawArgs["participantID"]; ok {
+		arg1, err = ec.unmarshalNID2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["participantID"] = arg1
+	var arg2 string
+	if tmp, ok := rawArgs["contentID"]; ok {
+		arg2, err = ec.unmarshalNID2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["contentID"] = arg2
+	return args, nil
+}
+
 func (ec *executionContext) field_Mutation_removeFlairTemplate_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
@@ -2015,6 +2433,28 @@ func (ec *executionContext) field_Mutation_removeFlair_args(ctx context.Context,
 	return args, nil
 }
 
+func (ec *executionContext) field_Mutation_scheduleImportedContent_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 string
+	if tmp, ok := rawArgs["discussionID"]; ok {
+		arg0, err = ec.unmarshalNID2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["discussionID"] = arg0
+	var arg1 string
+	if tmp, ok := rawArgs["contentID"]; ok {
+		arg1, err = ec.unmarshalNID2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["contentID"] = arg1
+	return args, nil
+}
+
 func (ec *executionContext) field_Mutation_unassignFlair_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
@@ -2026,6 +2466,28 @@ func (ec *executionContext) field_Mutation_unassignFlair_args(ctx context.Contex
 		}
 	}
 	args["participantID"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_updateDiscussion_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 string
+	if tmp, ok := rawArgs["discussionID"]; ok {
+		arg0, err = ec.unmarshalNID2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["discussionID"] = arg0
+	var arg1 model.DiscussionInput
+	if tmp, ok := rawArgs["input"]; ok {
+		arg1, err = ec.unmarshalNDiscussionInput2githubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐDiscussionInput(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["input"] = arg1
 	return args, nil
 }
 
@@ -2203,6 +2665,241 @@ func (ec *executionContext) field___Type_fields_args(ctx context.Context, rawArg
 
 // region    **************************** field.gotpl *****************************
 
+func (ec *executionContext) _ContentQueueRecord_discussionID(ctx context.Context, field graphql.CollectedField, obj *model.ContentQueueRecord) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "ContentQueueRecord",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.DiscussionID, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNID2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _ContentQueueRecord_importedContentID(ctx context.Context, field graphql.CollectedField, obj *model.ContentQueueRecord) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "ContentQueueRecord",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.ImportedContentID, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNID2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _ContentQueueRecord_createdAt(ctx context.Context, field graphql.CollectedField, obj *model.ContentQueueRecord) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "ContentQueueRecord",
+		Field:    field,
+		Args:     nil,
+		IsMethod: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.ContentQueueRecord().CreatedAt(rctx, obj)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _ContentQueueRecord_updatedAt(ctx context.Context, field graphql.CollectedField, obj *model.ContentQueueRecord) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "ContentQueueRecord",
+		Field:    field,
+		Args:     nil,
+		IsMethod: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.ContentQueueRecord().UpdatedAt(rctx, obj)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _ContentQueueRecord_isDeleted(ctx context.Context, field graphql.CollectedField, obj *model.ContentQueueRecord) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "ContentQueueRecord",
+		Field:    field,
+		Args:     nil,
+		IsMethod: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.ContentQueueRecord().IsDeleted(rctx, obj)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(bool)
+	fc.Result = res
+	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _ContentQueueRecord_hasPosted(ctx context.Context, field graphql.CollectedField, obj *model.ContentQueueRecord) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "ContentQueueRecord",
+		Field:    field,
+		Args:     nil,
+		IsMethod: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.ContentQueueRecord().HasPosted(rctx, obj)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(bool)
+	fc.Result = res
+	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _ContentQueueRecord_matchingTags(ctx context.Context, field graphql.CollectedField, obj *model.ContentQueueRecord) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "ContentQueueRecord",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.MatchingTags, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.([]string)
+	fc.Result = res
+	return ec.marshalOString2ᚕstringᚄ(ctx, field.Selections, res)
+}
+
 func (ec *executionContext) _Discussion_id(ctx context.Context, field graphql.CollectedField, obj *model.Discussion) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -2347,13 +3044,13 @@ func (ec *executionContext) _Discussion_iconURL(ctx context.Context, field graph
 		Object:   "Discussion",
 		Field:    field,
 		Args:     nil,
-		IsMethod: false,
+		IsMethod: true,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.IconURL, nil
+		return ec.resolvers.Discussion().IconURL(rctx, obj)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -2560,6 +3257,136 @@ func (ec *executionContext) _Discussion_meAvailableParticipants(ctx context.Cont
 	res := resTmp.([]*model.Participant)
 	fc.Result = res
 	return ec.marshalOParticipant2ᚕᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐParticipantᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Discussion_autoPost(ctx context.Context, field graphql.CollectedField, obj *model.Discussion) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "Discussion",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.AutoPost, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(bool)
+	fc.Result = res
+	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Discussion_idleMinutes(ctx context.Context, field graphql.CollectedField, obj *model.Discussion) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "Discussion",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.IdleMinutes, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(int)
+	fc.Result = res
+	return ec.marshalNInt2int(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Discussion_tags(ctx context.Context, field graphql.CollectedField, obj *model.Discussion) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "Discussion",
+		Field:    field,
+		Args:     nil,
+		IsMethod: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Discussion().Tags(rctx, obj)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.([]*model.Tag)
+	fc.Result = res
+	return ec.marshalOTag2ᚕᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐTagᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Discussion_upcomingContent(ctx context.Context, field graphql.CollectedField, obj *model.Discussion) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "Discussion",
+		Field:    field,
+		Args:     nil,
+		IsMethod: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Discussion().UpcomingContent(rctx, obj)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.([]*model.ImportedContent)
+	fc.Result = res
+	return ec.marshalOImportedContent2ᚕᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐImportedContentᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Flair_id(ctx context.Context, field graphql.CollectedField, obj *model.Flair) (ret graphql.Marshaler) {
@@ -2820,6 +3647,275 @@ func (ec *executionContext) _FlairTemplate_source(ctx context.Context, field gra
 	res := resTmp.(string)
 	fc.Result = res
 	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _ImportedContent_id(ctx context.Context, field graphql.CollectedField, obj *model.ImportedContent) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "ImportedContent",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.ID, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNID2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _ImportedContent_createdAt(ctx context.Context, field graphql.CollectedField, obj *model.ImportedContent) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "ImportedContent",
+		Field:    field,
+		Args:     nil,
+		IsMethod: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.ImportedContent().CreatedAt(rctx, obj)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _ImportedContent_contentName(ctx context.Context, field graphql.CollectedField, obj *model.ImportedContent) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "ImportedContent",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.ContentName, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _ImportedContent_contentType(ctx context.Context, field graphql.CollectedField, obj *model.ImportedContent) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "ImportedContent",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.ContentType, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _ImportedContent_link(ctx context.Context, field graphql.CollectedField, obj *model.ImportedContent) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "ImportedContent",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Link, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _ImportedContent_overview(ctx context.Context, field graphql.CollectedField, obj *model.ImportedContent) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "ImportedContent",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Overview, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _ImportedContent_source(ctx context.Context, field graphql.CollectedField, obj *model.ImportedContent) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "ImportedContent",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Source, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _ImportedContent_matchingTags(ctx context.Context, field graphql.CollectedField, obj *model.ImportedContent) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "ImportedContent",
+		Field:    field,
+		Args:     nil,
+		IsMethod: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.ImportedContent().MatchingTags(rctx, obj)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.([]string)
+	fc.Result = res
+	return ec.marshalOString2ᚕstringᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Media_id(ctx context.Context, field graphql.CollectedField, obj *model.Media) (ret graphql.Marshaler) {
@@ -3331,6 +4427,88 @@ func (ec *executionContext) _Mutation_addPost(ctx context.Context, field graphql
 	return ec.marshalNPost2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐPost(ctx, field.Selections, res)
 }
 
+func (ec *executionContext) _Mutation_postImportedContent(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "Mutation",
+		Field:    field,
+		Args:     nil,
+		IsMethod: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Mutation_postImportedContent_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().PostImportedContent(rctx, args["discussionID"].(string), args["participantID"].(string), args["contentID"].(string))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.Post)
+	fc.Result = res
+	return ec.marshalNPost2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐPost(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Mutation_scheduleImportedContent(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "Mutation",
+		Field:    field,
+		Args:     nil,
+		IsMethod: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Mutation_scheduleImportedContent_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().ScheduleImportedContent(rctx, args["discussionID"].(string), args["contentID"].(string))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.ContentQueueRecord)
+	fc.Result = res
+	return ec.marshalNContentQueueRecord2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐContentQueueRecord(ctx, field.Selections, res)
+}
+
 func (ec *executionContext) _Mutation_createDiscussion(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -3698,6 +4876,123 @@ func (ec *executionContext) _Mutation_upsertUserDevice(ctx context.Context, fiel
 	res := resTmp.(*model.UserDevice)
 	fc.Result = res
 	return ec.marshalNUserDevice2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐUserDevice(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Mutation_updateDiscussion(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "Mutation",
+		Field:    field,
+		Args:     nil,
+		IsMethod: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Mutation_updateDiscussion_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().UpdateDiscussion(rctx, args["discussionID"].(string), args["input"].(model.DiscussionInput))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.Discussion)
+	fc.Result = res
+	return ec.marshalNDiscussion2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐDiscussion(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Mutation_addDiscussionTags(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "Mutation",
+		Field:    field,
+		Args:     nil,
+		IsMethod: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Mutation_addDiscussionTags_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().AddDiscussionTags(rctx, args["discussionID"].(string), args["tags"].([]string))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.([]*model.Tag)
+	fc.Result = res
+	return ec.marshalOTag2ᚕᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐTagᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Mutation_deleteDiscussionTags(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "Mutation",
+		Field:    field,
+		Args:     nil,
+		IsMethod: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Mutation_deleteDiscussionTags_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().DeleteDiscussionTags(rctx, args["discussionID"].(string), args["tags"].([]string))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.([]*model.Tag)
+	fc.Result = res
+	return ec.marshalOTag2ᚕᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐTagᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _PageInfo_startCursor(ctx context.Context, field graphql.CollectedField, obj *model.PageInfo) (ret graphql.Marshaler) {
@@ -4774,6 +6069,37 @@ func (ec *executionContext) _Post_media(ctx context.Context, field graphql.Colle
 	return ec.marshalOMedia2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐMedia(ctx, field.Selections, res)
 }
 
+func (ec *executionContext) _Post_importedContent(ctx context.Context, field graphql.CollectedField, obj *model.Post) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "Post",
+		Field:    field,
+		Args:     nil,
+		IsMethod: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Post().ImportedContent(rctx, obj)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*model.ImportedContent)
+	fc.Result = res
+	return ec.marshalOImportedContent2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐImportedContent(ctx, field.Selections, res)
+}
+
 func (ec *executionContext) _PostBookmark_id(ctx context.Context, field graphql.CollectedField, obj *model.PostBookmark) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -5529,6 +6855,142 @@ func (ec *executionContext) _Subscription_postAdded(ctx context.Context, field g
 			w.Write([]byte{'}'})
 		})
 	}
+}
+
+func (ec *executionContext) _Tag_id(ctx context.Context, field graphql.CollectedField, obj *model.Tag) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "Tag",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.ID, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNID2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Tag_createdAt(ctx context.Context, field graphql.CollectedField, obj *model.Tag) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "Tag",
+		Field:    field,
+		Args:     nil,
+		IsMethod: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Tag().CreatedAt(rctx, obj)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Tag_tag(ctx context.Context, field graphql.CollectedField, obj *model.Tag) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "Tag",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Tag, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Tag_isDeleted(ctx context.Context, field graphql.CollectedField, obj *model.Tag) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "Tag",
+		Field:    field,
+		Args:     nil,
+		IsMethod: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Tag().IsDeleted(rctx, obj)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(bool)
+	fc.Result = res
+	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _URL_displayText(ctx context.Context, field graphql.CollectedField, obj *model.URL) (ret graphql.Marshaler) {
@@ -7609,6 +9071,42 @@ func (ec *executionContext) unmarshalInputAddDiscussionParticipantInput(ctx cont
 	return it, nil
 }
 
+func (ec *executionContext) unmarshalInputDiscussionInput(ctx context.Context, obj interface{}) (model.DiscussionInput, error) {
+	var it model.DiscussionInput
+	var asMap = obj.(map[string]interface{})
+
+	for k, v := range asMap {
+		switch k {
+		case "anonymityType":
+			var err error
+			it.AnonymityType, err = ec.unmarshalOAnonymityType2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐAnonymityType(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "title":
+			var err error
+			it.Title, err = ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "autoPost":
+			var err error
+			it.AutoPost, err = ec.unmarshalOBoolean2ᚖbool(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "idleMinutes":
+			var err error
+			it.IdleMinutes, err = ec.unmarshalOInt2ᚖint(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		}
+	}
+
+	return it, nil
+}
+
 func (ec *executionContext) unmarshalInputPollInput(ctx context.Context, obj interface{}) (model.PollInput, error) {
 	var it model.PollInput
 	var asMap = obj.(map[string]interface{})
@@ -7696,6 +9194,12 @@ func (ec *executionContext) unmarshalInputPostContentInput(ctx context.Context, 
 		case "poll":
 			var err error
 			it.Poll, err = ec.unmarshalOPollInput2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐPollInput(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "importedContentID":
+			var err error
+			it.ImportedContentID, err = ec.unmarshalOID2ᚖstring(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -7814,6 +9318,96 @@ func (ec *executionContext) _Entity(ctx context.Context, sel ast.SelectionSet, o
 
 // region    **************************** object.gotpl ****************************
 
+var contentQueueRecordImplementors = []string{"ContentQueueRecord"}
+
+func (ec *executionContext) _ContentQueueRecord(ctx context.Context, sel ast.SelectionSet, obj *model.ContentQueueRecord) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, contentQueueRecordImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("ContentQueueRecord")
+		case "discussionID":
+			out.Values[i] = ec._ContentQueueRecord_discussionID(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&invalids, 1)
+			}
+		case "importedContentID":
+			out.Values[i] = ec._ContentQueueRecord_importedContentID(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&invalids, 1)
+			}
+		case "createdAt":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._ContentQueueRecord_createdAt(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
+		case "updatedAt":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._ContentQueueRecord_updatedAt(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
+		case "isDeleted":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._ContentQueueRecord_isDeleted(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
+		case "hasPosted":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._ContentQueueRecord_hasPosted(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
+		case "matchingTags":
+			out.Values[i] = ec._ContentQueueRecord_matchingTags(ctx, field, obj)
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
 var discussionImplementors = []string{"Discussion", "Entity"}
 
 func (ec *executionContext) _Discussion(ctx context.Context, sel ast.SelectionSet, obj *model.Discussion) graphql.Marshaler {
@@ -7861,7 +9455,16 @@ func (ec *executionContext) _Discussion(ctx context.Context, sel ast.SelectionSe
 				return res
 			})
 		case "iconURL":
-			out.Values[i] = ec._Discussion_iconURL(ctx, field, obj)
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Discussion_iconURL(ctx, field, obj)
+				return res
+			})
 		case "participants":
 			field := field
 			out.Concurrently(i, func() (res graphql.Marshaler) {
@@ -7926,6 +9529,38 @@ func (ec *executionContext) _Discussion(ctx context.Context, sel ast.SelectionSe
 					}
 				}()
 				res = ec._Discussion_meAvailableParticipants(ctx, field, obj)
+				return res
+			})
+		case "autoPost":
+			out.Values[i] = ec._Discussion_autoPost(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&invalids, 1)
+			}
+		case "idleMinutes":
+			out.Values[i] = ec._Discussion_idleMinutes(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&invalids, 1)
+			}
+		case "tags":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Discussion_tags(ctx, field, obj)
+				return res
+			})
+		case "upcomingContent":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Discussion_upcomingContent(ctx, field, obj)
 				return res
 			})
 		default:
@@ -8027,6 +9662,83 @@ func (ec *executionContext) _FlairTemplate(ctx context.Context, sel ast.Selectio
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
+var importedContentImplementors = []string{"ImportedContent"}
+
+func (ec *executionContext) _ImportedContent(ctx context.Context, sel ast.SelectionSet, obj *model.ImportedContent) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, importedContentImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("ImportedContent")
+		case "id":
+			out.Values[i] = ec._ImportedContent_id(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&invalids, 1)
+			}
+		case "createdAt":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._ImportedContent_createdAt(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
+		case "contentName":
+			out.Values[i] = ec._ImportedContent_contentName(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&invalids, 1)
+			}
+		case "contentType":
+			out.Values[i] = ec._ImportedContent_contentType(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&invalids, 1)
+			}
+		case "link":
+			out.Values[i] = ec._ImportedContent_link(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&invalids, 1)
+			}
+		case "overview":
+			out.Values[i] = ec._ImportedContent_overview(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&invalids, 1)
+			}
+		case "source":
+			out.Values[i] = ec._ImportedContent_source(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&invalids, 1)
+			}
+		case "matchingTags":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._ImportedContent_matchingTags(ctx, field, obj)
+				return res
+			})
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -8197,6 +9909,16 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
+		case "postImportedContent":
+			out.Values[i] = ec._Mutation_postImportedContent(ctx, field)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "scheduleImportedContent":
+			out.Values[i] = ec._Mutation_scheduleImportedContent(ctx, field)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
 		case "createDiscussion":
 			out.Values[i] = ec._Mutation_createDiscussion(ctx, field)
 			if out.Values[i] == graphql.Null {
@@ -8242,6 +9964,15 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
+		case "updateDiscussion":
+			out.Values[i] = ec._Mutation_updateDiscussion(ctx, field)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "addDiscussionTags":
+			out.Values[i] = ec._Mutation_addDiscussionTags(ctx, field)
+		case "deleteDiscussionTags":
+			out.Values[i] = ec._Mutation_deleteDiscussionTags(ctx, field)
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -8639,6 +10370,17 @@ func (ec *executionContext) _Post(ctx context.Context, sel ast.SelectionSet, obj
 				res = ec._Post_media(ctx, field, obj)
 				return res
 			})
+		case "importedContent":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Post_importedContent(ctx, field, obj)
+				return res
+			})
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -8957,6 +10699,66 @@ func (ec *executionContext) _Subscription(ctx context.Context, sel ast.Selection
 	default:
 		panic("unknown field " + strconv.Quote(fields[0].Name))
 	}
+}
+
+var tagImplementors = []string{"Tag"}
+
+func (ec *executionContext) _Tag(ctx context.Context, sel ast.SelectionSet, obj *model.Tag) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, tagImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("Tag")
+		case "id":
+			out.Values[i] = ec._Tag_id(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&invalids, 1)
+			}
+		case "createdAt":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Tag_createdAt(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
+		case "tag":
+			out.Values[i] = ec._Tag_tag(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&invalids, 1)
+			}
+		case "isDeleted":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Tag_isDeleted(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
 }
 
 var uRLImplementors = []string{"URL"}
@@ -9654,6 +11456,20 @@ func (ec *executionContext) marshalNBoolean2bool(ctx context.Context, sel ast.Se
 	return res
 }
 
+func (ec *executionContext) marshalNContentQueueRecord2githubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐContentQueueRecord(ctx context.Context, sel ast.SelectionSet, v model.ContentQueueRecord) graphql.Marshaler {
+	return ec._ContentQueueRecord(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNContentQueueRecord2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐContentQueueRecord(ctx context.Context, sel ast.SelectionSet, v *model.ContentQueueRecord) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	return ec._ContentQueueRecord(ctx, sel, v)
+}
+
 func (ec *executionContext) marshalNDiscussion2githubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐDiscussion(ctx context.Context, sel ast.SelectionSet, v model.Discussion) graphql.Marshaler {
 	return ec._Discussion(ctx, sel, &v)
 }
@@ -9666,6 +11482,10 @@ func (ec *executionContext) marshalNDiscussion2ᚖgithubᚗcomᚋnedrocksᚋdelp
 		return graphql.Null
 	}
 	return ec._Discussion(ctx, sel, v)
+}
+
+func (ec *executionContext) unmarshalNDiscussionInput2githubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐDiscussionInput(ctx context.Context, v interface{}) (model.DiscussionInput, error) {
+	return ec.unmarshalInputDiscussionInput(ctx, v)
 }
 
 func (ec *executionContext) marshalNDiscussionNotificationPreferences2githubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐDiscussionNotificationPreferences(ctx context.Context, sel ast.SelectionSet, v model.DiscussionNotificationPreferences) graphql.Marshaler {
@@ -9742,6 +11562,20 @@ func (ec *executionContext) marshalNID2string(ctx context.Context, sel ast.Selec
 		}
 	}
 	return res
+}
+
+func (ec *executionContext) marshalNImportedContent2githubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐImportedContent(ctx context.Context, sel ast.SelectionSet, v model.ImportedContent) graphql.Marshaler {
+	return ec._ImportedContent(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNImportedContent2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐImportedContent(ctx context.Context, sel ast.SelectionSet, v *model.ImportedContent) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	return ec._ImportedContent(ctx, sel, v)
 }
 
 func (ec *executionContext) unmarshalNInt2int(ctx context.Context, v interface{}) (int, error) {
@@ -9894,6 +11728,20 @@ func (ec *executionContext) marshalNString2string(ctx context.Context, sel ast.S
 		}
 	}
 	return res
+}
+
+func (ec *executionContext) marshalNTag2githubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐTag(ctx context.Context, sel ast.SelectionSet, v model.Tag) graphql.Marshaler {
+	return ec._Tag(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNTag2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐTag(ctx context.Context, sel ast.SelectionSet, v *model.Tag) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	return ec._Tag(ctx, sel, v)
 }
 
 func (ec *executionContext) unmarshalNTime2timeᚐTime(ctx context.Context, v interface{}) (time.Time, error) {
@@ -10214,6 +12062,30 @@ func (ec *executionContext) marshalN__TypeKind2string(ctx context.Context, sel a
 	return res
 }
 
+func (ec *executionContext) unmarshalOAnonymityType2githubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐAnonymityType(ctx context.Context, v interface{}) (model.AnonymityType, error) {
+	var res model.AnonymityType
+	return res, res.UnmarshalGQL(v)
+}
+
+func (ec *executionContext) marshalOAnonymityType2githubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐAnonymityType(ctx context.Context, sel ast.SelectionSet, v model.AnonymityType) graphql.Marshaler {
+	return v
+}
+
+func (ec *executionContext) unmarshalOAnonymityType2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐAnonymityType(ctx context.Context, v interface{}) (*model.AnonymityType, error) {
+	if v == nil {
+		return nil, nil
+	}
+	res, err := ec.unmarshalOAnonymityType2githubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐAnonymityType(ctx, v)
+	return &res, err
+}
+
+func (ec *executionContext) marshalOAnonymityType2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐAnonymityType(ctx context.Context, sel ast.SelectionSet, v *model.AnonymityType) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return v
+}
+
 func (ec *executionContext) unmarshalOBoolean2bool(ctx context.Context, v interface{}) (bool, error) {
 	return graphql.UnmarshalBoolean(v)
 }
@@ -10466,12 +12338,78 @@ func (ec *executionContext) marshalOID2ᚖstring(ctx context.Context, sel ast.Se
 	return ec.marshalOID2string(ctx, sel, *v)
 }
 
+func (ec *executionContext) marshalOImportedContent2githubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐImportedContent(ctx context.Context, sel ast.SelectionSet, v model.ImportedContent) graphql.Marshaler {
+	return ec._ImportedContent(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalOImportedContent2ᚕᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐImportedContentᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.ImportedContent) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNImportedContent2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐImportedContent(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+	return ret
+}
+
+func (ec *executionContext) marshalOImportedContent2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐImportedContent(ctx context.Context, sel ast.SelectionSet, v *model.ImportedContent) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._ImportedContent(ctx, sel, v)
+}
+
 func (ec *executionContext) unmarshalOInt2int(ctx context.Context, v interface{}) (int, error) {
 	return graphql.UnmarshalInt(v)
 }
 
 func (ec *executionContext) marshalOInt2int(ctx context.Context, sel ast.SelectionSet, v int) graphql.Marshaler {
 	return graphql.MarshalInt(v)
+}
+
+func (ec *executionContext) unmarshalOInt2ᚖint(ctx context.Context, v interface{}) (*int, error) {
+	if v == nil {
+		return nil, nil
+	}
+	res, err := ec.unmarshalOInt2int(ctx, v)
+	return &res, err
+}
+
+func (ec *executionContext) marshalOInt2ᚖint(ctx context.Context, sel ast.SelectionSet, v *int) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec.marshalOInt2int(ctx, sel, *v)
 }
 
 func (ec *executionContext) marshalOMedia2githubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐMedia(ctx context.Context, sel ast.SelectionSet, v model.Media) graphql.Marshaler {
@@ -10858,6 +12796,46 @@ func (ec *executionContext) marshalOString2ᚖstring(ctx context.Context, sel as
 		return graphql.Null
 	}
 	return ec.marshalOString2string(ctx, sel, *v)
+}
+
+func (ec *executionContext) marshalOTag2ᚕᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐTagᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.Tag) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNTag2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐTag(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+	return ret
 }
 
 func (ec *executionContext) unmarshalOTime2timeᚐTime(ctx context.Context, v interface{}) (time.Time, error) {

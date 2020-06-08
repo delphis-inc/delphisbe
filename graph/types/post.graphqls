@@ -10,4 +10,5 @@ type Post{
     quotedPost: Post
     mentionedEntities: [Entity!]
     media: Media
+    importedContent: ImportedContent
 }
