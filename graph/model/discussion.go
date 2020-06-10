@@ -17,6 +17,7 @@ type Discussion struct {
 	Participants    []*Participant   `json:"participants" dynamodbav:"-" gorm:"foreignKey:DiscussionID;"`
 	AutoPost        bool             `json:"auto_post"`
 	IdleMinutes     int              `json:"idle_minutes"`
+	IconURL         string           `json:"icon_url"`
 }
 
 func (Discussion) IsEntity() {}
