@@ -54,6 +54,7 @@ const getPostsByDiscussionIDString = `
 			p.quoted_post_id,
 			p.media_id,
 			p.imported_content_id,
+			p.post_type,
 			pc.id,
 			pc.content
 		FROM posts p
@@ -72,6 +73,7 @@ const getLastPostByDiscussionIDStmt = `
 			p.quoted_post_id,
 			p.media_id,
 			p.imported_content_id,
+			p.post_type,
 			pc.id,
 			pc.content
 		FROM posts p
@@ -90,8 +92,9 @@ const putPostString = `
 			post_content_id,
 			quoted_post_id,
 			media_id,
-			imported_content_id
-		) VALUES ($1, $2, $3, $4, $5, $6, $7)
+			imported_content_id,
+			post_type
+		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
 		RETURNING
 			id,
 			created_at,
@@ -101,7 +104,8 @@ const putPostString = `
 			post_content_id,
 			quoted_post_id,
 			media_id,
-			imported_content_id;`
+			imported_content_id,
+			post_type;`
 
 const putPostContentsString = `
 		INSERT INTO post_contents (
@@ -278,7 +282,7 @@ const putImportedContentDiscussionQueueString = `
 
 const updateImportedContentDiscussionQueueString = `
 		UPDATE discussion_ic_queue
-		SET posted_at = now()
+		SET posted_at = $3
 		WHERE discussion_id = $1
 			AND imported_content_id = $2
 			AND posted_at is null

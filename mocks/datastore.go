@@ -1151,7 +1151,7 @@ func (_m *Datastore) RollbackTx(ctx context.Context, tx *sql.Tx) error {
 }
 
 // UpdateImportedContentDiscussionQueue provides a mock function with given fields: ctx, discussionID, contentID
-func (_m *Datastore) UpdateImportedContentDiscussionQueue(ctx context.Context, discussionID string, contentID string) (*model.ContentQueueRecord, error) {
+func (_m *Datastore) UpdateImportedContentDiscussionQueue(ctx context.Context, discussionID, contentID string, postedAt *time.Time) (*model.ContentQueueRecord, error) {
 	ret := _m.Called(ctx, discussionID, contentID)
 
 	var r0 *model.ContentQueueRecord

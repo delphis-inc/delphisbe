@@ -5,6 +5,7 @@ package resolver
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/nedrocks/delphisbe/graph/generated"
@@ -101,6 +102,10 @@ func (r *postResolver) ImportedContent(ctx context.Context, obj *model.Post) (*m
 	}
 
 	return nil, nil
+}
+
+func (r *postResolver) PostType(ctx context.Context, obj *model.Post) (model.PostType, error) {
+	panic(fmt.Errorf("not implemented"))
 }
 
 // Post returns generated.PostResolver implementation.
