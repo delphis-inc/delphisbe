@@ -2,6 +2,7 @@ package backend
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/nedrocks/delphisbe/graph/model"
@@ -69,11 +70,21 @@ func (d *delphisBackend) postNextContent(ctx context.Context, discussionID strin
 		}
 	}
 
+	// Get concierge participant
+	resp, err := d.GetParticipantsByDiscussionIDUserID(ctx, discussionID, model.ConciergeUser)
+	if err != nil {
+		logrus.WithError(err).Error("failed to fetch concierge participant")
+		return err
+	}
+	if resp.NonAnon == nil {
+		return fmt.Errorf("discussion is missing a concierge participant")
+	}
+
 	// Call post function
 	// TODO: Create concierge participantID to handle posting
 	content := contents[0]
 	now := time.Now()
-	if _, err := d.PostImportedContent(ctx, "073e3c99-8b7e-4548-b94a-1fb94219fc05", discussionID, content.ID, &now, content.Tags, dripType); err != nil {
+	if _, err := d.PostImportedContent(ctx, resp.NonAnon.ID, discussionID, content.ID, &now, content.Tags, dripType); err != nil {
 		logrus.WithError(err).Error("failed to post imported content from autodrip")
 		return err
 	}

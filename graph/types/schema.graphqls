@@ -62,7 +62,7 @@ input DiscussionInput {
 type Mutation {
   addDiscussionParticipant(discussionID: String!, userID: String!, discussionParticipantInput: AddDiscussionParticipantInput!): Participant!
   addPost(discussionID: ID!, participantID: ID!, postContent: PostContentInput!): Post!
-  postImportedContent(discussionID: ID!, participantID: ID!, contentID: ID!): Post! # TODO: Need clarity on UX for this. Keeping it simple for now
+  postImportedContent(discussionID: ID!, contentID: ID!): Post! # TODO: Need clarity on UX for this. Keeping it simple for now
   scheduleImportedContent(discussionID: ID!, contentID: ID!): ContentQueueRecord!
   createDiscussion(anonymityType: AnonymityType!, title: String!): Discussion!
 

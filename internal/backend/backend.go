@@ -49,6 +49,7 @@ type DelphisBackend interface {
 	GetTotalParticipantCountByDiscussionID(ctx context.Context, discussionID string) int
 	UpdateParticipant(ctx context.Context, participants UserDiscussionParticipants, currentParticipantID string, input model.UpdateParticipantInput) (*model.Participant, error)
 	CreatePost(ctx context.Context, discussionID string, participantID string, input model.PostContentInput) (*model.Post, error)
+	CreateAlertPost(ctx context.Context, discussionID string, userObj *model.User, isAnonymous bool) (*model.Post, error)
 	PostImportedContent(ctx context.Context, participantID, discussionID, contentID string, postedAt *time.Time, matchingTags []string, dripType model.DripPostType) (*model.Post, error)
 	PutImportedContentQueue(ctx context.Context, discussionID, contentID string, postedAt *time.Time, matchingTags []string, dripType model.DripPostType) (*model.ContentQueueRecord, error)
 	NotifySubscribersOfCreatedPost(ctx context.Context, post *model.Post, discussionID string) error
