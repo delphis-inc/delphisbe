@@ -75,7 +75,7 @@ func (r *mutationResolver) AddPost(ctx context.Context, discussionID string, par
 	return createdPost, nil
 }
 
-func (r *mutationResolver) PostImportedContent(ctx context.Context, discussionID string, contentID string) (*model.Post, error) {
+func (r *mutationResolver) PostImportedContent(ctx context.Context, discussionID string, participantID string, contentID string) (*model.Post, error) {
 	authedUser := auth.GetAuthedUser(ctx)
 	if authedUser == nil {
 		return nil, fmt.Errorf("Need auth")
@@ -87,18 +87,20 @@ func (r *mutationResolver) PostImportedContent(ctx context.Context, discussionID
 		return nil, fmt.Errorf("unauthorized")
 	}
 
-	// Get concierge participant
-	resp, err := r.DAOManager.GetParticipantsByDiscussionIDUserID(ctx, discussionID, model.ConciergeUser)
+	participant, err := r.DAOManager.GetParticipantByID(ctx, participantID)
 	if err != nil {
-		logrus.WithError(err).Error("failed to fetch concierge participant")
 		return nil, err
+	} else if participant == nil {
+		return nil, fmt.Errorf("Could not find Participant with ID %s", participantID)
 	}
-	if resp.NonAnon == nil {
-		return nil, fmt.Errorf("discussion is missing a concierge participant")
+
+	// Verify that the posting participant belongs to the logged-in user
+	if *participant.UserID != authedUser.UserID {
+		return nil, fmt.Errorf("Unauthorized")
 	}
 
 	now := time.Now()
-	return r.DAOManager.PostImportedContent(ctx, resp.NonAnon.ID, discussionID, contentID, &now, nil, model.ManualDrip)
+	return r.DAOManager.PostImportedContent(ctx, participantID, discussionID, contentID, &now, nil, model.ManualDrip)
 }
 
 func (r *mutationResolver) ScheduleImportedContent(ctx context.Context, discussionID string, contentID string) (*model.ContentQueueRecord, error) {

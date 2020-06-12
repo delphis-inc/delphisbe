@@ -148,7 +148,7 @@ type ComplexityRoot struct {
 		CreateFlair              func(childComplexity int, userID string, templateID string) int
 		CreateFlairTemplate      func(childComplexity int, displayName *string, imageURL *string, source string) int
 		DeleteDiscussionTags     func(childComplexity int, discussionID string, tags []string) int
-		PostImportedContent      func(childComplexity int, discussionID string, contentID string) int
+		PostImportedContent      func(childComplexity int, discussionID string, participantID string, contentID string) int
 		RemoveFlair              func(childComplexity int, id string) int
 		RemoveFlairTemplate      func(childComplexity int, id string) int
 		ScheduleImportedContent  func(childComplexity int, discussionID string, contentID string) int
@@ -358,7 +358,7 @@ type ModeratorResolver interface {
 type MutationResolver interface {
 	AddDiscussionParticipant(ctx context.Context, discussionID string, userID string, discussionParticipantInput model.AddDiscussionParticipantInput) (*model.Participant, error)
 	AddPost(ctx context.Context, discussionID string, participantID string, postContent model.PostContentInput) (*model.Post, error)
-	PostImportedContent(ctx context.Context, discussionID string, contentID string) (*model.Post, error)
+	PostImportedContent(ctx context.Context, discussionID string, participantID string, contentID string) (*model.Post, error)
 	ScheduleImportedContent(ctx context.Context, discussionID string, contentID string) (*model.ContentQueueRecord, error)
 	CreateDiscussion(ctx context.Context, anonymityType model.AnonymityType, title string) (*model.Discussion, error)
 	CreateFlair(ctx context.Context, userID string, templateID string) (*model.Flair, error)
@@ -924,7 +924,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Mutation.PostImportedContent(childComplexity, args["discussionID"].(string), args["contentID"].(string)), true
+		return e.complexity.Mutation.PostImportedContent(childComplexity, args["discussionID"].(string), args["participantID"].(string), args["contentID"].(string)), true
 
 	case "Mutation.removeFlair":
 		if e.complexity.Mutation.RemoveFlair == nil {
@@ -2056,7 +2056,7 @@ input DiscussionInput {
 type Mutation {
   addDiscussionParticipant(discussionID: String!, userID: String!, discussionParticipantInput: AddDiscussionParticipantInput!): Participant!
   addPost(discussionID: ID!, participantID: ID!, postContent: PostContentInput!): Post!
-  postImportedContent(discussionID: ID!, contentID: ID!): Post! # TODO: Need clarity on UX for this. Keeping it simple for now
+  postImportedContent(discussionID: ID!, participantID: ID!, contentID: ID!): Post! # TODO: Need clarity on UX for this. Keeping it simple for now
   scheduleImportedContent(discussionID: ID!, contentID: ID!): ContentQueueRecord!
   createDiscussion(anonymityType: AnonymityType!, title: String!): Discussion!
 
@@ -2395,13 +2395,21 @@ func (ec *executionContext) field_Mutation_postImportedContent_args(ctx context.
 	}
 	args["discussionID"] = arg0
 	var arg1 string
-	if tmp, ok := rawArgs["contentID"]; ok {
+	if tmp, ok := rawArgs["participantID"]; ok {
 		arg1, err = ec.unmarshalNID2string(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
 	}
-	args["contentID"] = arg1
+	args["participantID"] = arg1
+	var arg2 string
+	if tmp, ok := rawArgs["contentID"]; ok {
+		arg2, err = ec.unmarshalNID2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["contentID"] = arg2
 	return args, nil
 }
 
@@ -4451,7 +4459,7 @@ func (ec *executionContext) _Mutation_postImportedContent(ctx context.Context, f
 	fc.Args = args
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().PostImportedContent(rctx, args["discussionID"].(string), args["contentID"].(string))
+		return ec.resolvers.Mutation().PostImportedContent(rctx, args["discussionID"].(string), args["participantID"].(string), args["contentID"].(string))
 	})
 	if err != nil {
 		ec.Error(ctx, err)

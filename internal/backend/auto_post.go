@@ -81,7 +81,6 @@ func (d *delphisBackend) postNextContent(ctx context.Context, discussionID strin
 	}
 
 	// Call post function
-	// TODO: Create concierge participantID to handle posting
 	content := contents[0]
 	now := time.Now()
 	if _, err := d.PostImportedContent(ctx, resp.NonAnon.ID, discussionID, content.ID, &now, content.Tags, dripType); err != nil {
