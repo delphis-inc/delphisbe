@@ -1150,13 +1150,13 @@ func (_m *Datastore) RollbackTx(ctx context.Context, tx *sql.Tx) error {
 	return r0
 }
 
-// UpdateImportedContentDiscussionQueue provides a mock function with given fields: ctx, discussionID, contentID
-func (_m *Datastore) UpdateImportedContentDiscussionQueue(ctx context.Context, discussionID, contentID string, postedAt *time.Time) (*model.ContentQueueRecord, error) {
-	ret := _m.Called(ctx, discussionID, contentID)
+// UpdateImportedContentDiscussionQueue provides a mock function with given fields: ctx, discussionID, contentID, postedAt
+func (_m *Datastore) UpdateImportedContentDiscussionQueue(ctx context.Context, discussionID string, contentID string, postedAt *time.Time) (*model.ContentQueueRecord, error) {
+	ret := _m.Called(ctx, discussionID, contentID, postedAt)
 
 	var r0 *model.ContentQueueRecord
-	if rf, ok := ret.Get(0).(func(context.Context, string, string) *model.ContentQueueRecord); ok {
-		r0 = rf(ctx, discussionID, contentID)
+	if rf, ok := ret.Get(0).(func(context.Context, string, string, *time.Time) *model.ContentQueueRecord); ok {
+		r0 = rf(ctx, discussionID, contentID, postedAt)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(*model.ContentQueueRecord)
@@ -1164,8 +1164,8 @@ func (_m *Datastore) UpdateImportedContentDiscussionQueue(ctx context.Context, d
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func(context.Context, string, string) error); ok {
-		r1 = rf(ctx, discussionID, contentID)
+	if rf, ok := ret.Get(1).(func(context.Context, string, string, *time.Time) error); ok {
+		r1 = rf(ctx, discussionID, contentID, postedAt)
 	} else {
 		r1 = ret.Error(1)
 	}
