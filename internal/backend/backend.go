@@ -97,7 +97,7 @@ type delphisBackend struct {
 func NewDelphisBackend(conf config.Config, awsSession *session.Session) DelphisBackend {
 	chathamCache := cache.NewInMemoryCache()
 	return &delphisBackend{
-		db:              nil,
+		db:              datastore.NewDatastore(conf, awsSession),
 		auth:            auth.NewDelphisAuth(&conf.Auth),
 		cache:           chathamCache,
 		discussionMutex: sync.Mutex{},

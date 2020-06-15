@@ -67,7 +67,7 @@ type SQLDBConfig struct {
 	Host     string `json:"host" mapstructure:"host"`
 	Port     int    `json:"port" mapstructure:"port"`
 	DBName   string `json:"db_name" mapstructure:"db_name"`
-	Username string `json:"db_user" mapstructure:"db_user"`
+	Username string
 	Password string
 }
 

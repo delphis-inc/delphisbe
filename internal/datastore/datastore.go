@@ -139,13 +139,13 @@ func NewDatastore(config config.Config, awsSession *session.Session) Datastore {
 		mySession = mySession.Copy(awsSession.Config.WithEndpoint(fmt.Sprintf("%s:%d", dbConfig.Host, dbConfig.Port)))
 		logrus.Debugf("endpoint: %v", *mySession.Config.Endpoint)
 	}
-	dbSvc := dynamodb.New(mySession)
+
 	gormDB, db := NewSQLDatastore(config.SQLDBConfig, awsSession)
 	return &delphisDB{
 		dbConfig:  dbConfig.TablesConfig,
 		sql:       gormDB,
 		pg:        db,
-		dynamo:    dbSvc,
+		dynamo:    nil,
 		prepStmts: &dbPrepStmts{},
 		encoder: &dynamodbattribute.Encoder{
 			MarshalOptions: dynamodbattribute.MarshalOptions{
@@ -159,6 +159,7 @@ func NewDatastore(config config.Config, awsSession *session.Session) Datastore {
 func NewSQLDatastore(sqlDbConfig config.SQLDBConfig, awsSession *session.Session) (*gorm.DB, *sql2.DB) {
 	dbURI := fmt.Sprintf("host=%s port=%d user=%s dbname=%s sslmode=disable password=%s", sqlDbConfig.Host, sqlDbConfig.Port, sqlDbConfig.Username, sqlDbConfig.DBName, sqlDbConfig.Password)
 	logrus.Debugf("About to open connection to DB - gorm")
+	logrus.Debugf(dbURI)
 	gormDB, err := gorm.Open("postgres", dbURI)
 	if err != nil {
 		logrus.WithError(err).Fatalf("Failed to open gormDB - gorm")
