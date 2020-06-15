@@ -56,6 +56,7 @@
     },
     "sqs": {
         "drip_url": "https://sqs.us-west-2.amazonaws.com/033236388136/non_terraform_zapier_queue",
-        "max_workers": 2
+        "max_workers": 2,
+        "enabled": true
     }
 }
