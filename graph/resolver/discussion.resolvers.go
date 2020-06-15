@@ -5,6 +5,7 @@ package resolver
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
@@ -32,6 +33,17 @@ func (r *discussionResolver) Posts(ctx context.Context, obj *model.Discussion) (
 	}
 
 	return posts, nil
+}
+
+func (r *discussionResolver) PostsConnection(ctx context.Context, obj *model.Discussion, after *string) (*model.PostsConnection, error) {
+	limit := 2
+	if after == nil {
+		futureTime := time.Now().AddDate(1, 0, 0).Format(time.RFC3339)
+		after = &futureTime
+	} else if _, err := time.Parse(time.RFC3339, *after); err != nil {
+		return nil, errors.New("The 'After' parameter is badly formatted: " + *after)
+	}
+	return r.DAOManager.GetPostsConnectionByDiscussionID(ctx, obj.ID, *after, limit)
 }
 
 func (r *discussionResolver) Participants(ctx context.Context, obj *model.Discussion) ([]*model.Participant, error) {

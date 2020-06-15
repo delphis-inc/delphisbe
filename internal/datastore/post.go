@@ -3,6 +3,8 @@ package datastore
 import (
 	"context"
 	"database/sql"
+	"io"
+	"time"
 
 	"github.com/jinzhu/gorm"
 	"github.com/nedrocks/delphisbe/graph/model"
@@ -47,7 +49,6 @@ func (d *delphisDB) PutPost(ctx context.Context, tx *sql.Tx, post model.Post) (*
 	return &post, nil
 }
 
-// TODO: Add created_at and limit
 func (d *delphisDB) GetPostsByDiscussionIDIter(ctx context.Context, discussionID string) PostIter {
 	logrus.Debug("GetPostsByDiscussionID::SQL Query")
 	if err := d.initializeStatements(ctx); err != nil {
@@ -68,6 +69,90 @@ func (d *delphisDB) GetPostsByDiscussionIDIter(ctx context.Context, discussionID
 		ctx:  ctx,
 		rows: rows,
 	}
+}
+
+/* Equivalent of GetPostsByDiscussionIDIter, but accepting a cursor and a limit for fetching. In our implementation,
+   the cursor indicates the creation timestamp of the posts, allowing to fetch contents up to a certain date and time. */
+func (d *delphisDB) GetPostsByDiscussionIDFromCursorIter(ctx context.Context, discussionID string, cursor string, limit int) PostIter {
+	logrus.Debug("GetPostsByDiscussionIDFromCursorIter::SQL Query")
+	if err := d.initializeStatements(ctx); err != nil {
+		logrus.WithError(err).Error("GetPostsByDiscussionIDFromCursorIter::failed to initialize statements")
+		return &postIter{err: err}
+	}
+
+	rows, err := d.prepStmts.getPostsByDiscussionIDFromCursorStmt.QueryContext(
+		ctx,
+		discussionID,
+		cursor,
+		limit,
+	)
+	if err != nil {
+		logrus.WithError(err).Error("failed to query GetPostsByDiscussionIDFromCursorIter")
+		return &postIter{err: err}
+	}
+
+	return &postIter{
+		ctx:  ctx,
+		rows: rows,
+	}
+}
+
+func (d *delphisDB) GetPostsConnectionByDiscussionID(ctx context.Context, discussionID string, cursor string, limit int) (*model.PostsConnection, error) {
+	logrus.Debug("GetPostsConnectionByDiscussionID::SQL Query")
+	if err := d.initializeStatements(ctx); err != nil {
+		logrus.WithError(err).Error("GetPostsConnectionByDiscussionID::failed to initialize statements")
+		return nil, err
+	}
+
+	/* Note: An additional item is fetched beyond the requested limit. This is required
+	   to determine if at least one next page is present after the current one. */
+	iter := d.GetPostsByDiscussionIDFromCursorIter(ctx, discussionID, cursor, limit+1)
+	postArr, err := d.PostIterCollect(ctx, iter)
+	if err != nil {
+		logrus.WithError(err).Error("GetPostsConnectionByDiscussionID::failed to initialize statements")
+		return nil, err
+	}
+
+	edges := make([]*model.PostsEdge, 0)
+	for _, elem := range postArr {
+		edges = append(edges, &model.PostsEdge{
+			Cursor: elem.CreatedAt.String(),
+			Node:   elem,
+		})
+	}
+
+	/* This represents the limit case: the are no posts for the given query.
+	   The case is legal, and simply returns an empty array of edges. Also,
+	   the start and end cursor both indicate the same value, which is the
+	   one provided by the query. */
+	if len(edges) == 0 {
+		return &model.PostsConnection{
+			Edges: edges,
+			PageInfo: model.PageInfo{
+				StartCursor: &cursor,
+				EndCursor:   &cursor,
+				HasNextPage: false,
+			},
+		}, nil
+	}
+
+	hasNextPage := len(postArr) == limit+1
+	startCursor := postArr[0].CreatedAt.Format(time.RFC3339)
+	endCursor := postArr[len(postArr)-1].CreatedAt.Format(time.RFC3339)
+	if hasNextPage {
+		endCursor = postArr[len(postArr)-2].CreatedAt.Format(time.RFC3339)
+		edges = edges[:len(edges)-1]
+	}
+	pageInfo := model.PageInfo{
+		StartCursor: &startCursor,
+		EndCursor:   &endCursor,
+		HasNextPage: hasNextPage,
+	}
+
+	return &model.PostsConnection{
+		Edges:    edges,
+		PageInfo: pageInfo,
+	}, nil
 }
 
 func (d *delphisDB) GetLastPostByDiscussionID(ctx context.Context, discussionID string, minutes int) (*model.Post, error) {
@@ -213,6 +298,38 @@ func (iter *postIter) Close() error {
 	}
 
 	return nil
+}
+
+// Testing function to keep functionality
+func (d *delphisDB) PostIterCollect(ctx context.Context, iter PostIter) ([]*model.Post, error) {
+	var posts []*model.Post
+	post := model.Post{}
+
+	defer iter.Close()
+
+	for iter.Next(&post) {
+		tempPost := post
+
+		// Check if there is a quotedPostID. Fetch if so
+		if tempPost.QuotedPostID != nil {
+			var err error
+			// TODO: potentially optimize into joins
+			tempPost.QuotedPost, err = d.GetPostByID(ctx, *tempPost.QuotedPostID)
+			if err != nil {
+				// Do we want to fail the whole discussion if we can't get a quote?
+				return nil, err
+			}
+		}
+
+		posts = append(posts, &tempPost)
+	}
+
+	if err := iter.Close(); err != nil && err != io.EOF {
+		logrus.WithError(err).Error("failed to close iter")
+		return nil, err
+	}
+
+	return posts, nil
 }
 
 ///////////////

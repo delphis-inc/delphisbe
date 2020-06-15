@@ -5,9 +5,10 @@ import sql2 "database/sql"
 // Prepared Statements
 type dbPrepStmts struct {
 	// Post
-	getPostsByDiscussionIDStmt    *sql2.Stmt
-	getLastPostByDiscussionIDStmt *sql2.Stmt
-	putPostStmt                   *sql2.Stmt
+	getPostsByDiscussionIDStmt           *sql2.Stmt
+	getLastPostByDiscussionIDStmt        *sql2.Stmt
+	getPostsByDiscussionIDFromCursorStmt *sql2.Stmt
+	putPostStmt                          *sql2.Stmt
 
 	// PostContents
 	putPostContentsStmt *sql2.Stmt
@@ -59,7 +60,30 @@ const getPostsByDiscussionIDString = `
 		FROM posts p
 		INNER JOIN post_contents pc
 		ON p.post_content_id = pc.id
-		WHERE p.discussion_id = $1;`
+		WHERE p.discussion_id = $1
+		;`
+
+const getPostsByDiscussionIDFromCursorString = `
+		SELECT p.id,
+			p.created_at,
+			p.updated_at,
+			p.deleted_at,
+			p.deleted_reason_code,
+			p.discussion_id,
+			p.participant_id,
+			p.quoted_post_id,
+			p.media_id,
+			p.imported_content_id,
+			pc.id,
+			pc.content
+		FROM posts p
+		INNER JOIN post_contents pc
+		ON p.post_content_id = pc.id
+		WHERE p.discussion_id = $1
+		AND p.created_at < $2
+		ORDER BY p.created_at desc
+		LIMIT $3
+		;`
 
 const getLastPostByDiscussionIDStmt = `
 		SELECT p.id,

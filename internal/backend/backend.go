@@ -53,6 +53,7 @@ type DelphisBackend interface {
 	PutImportedContentQueue(ctx context.Context, discussionID, contentID string, postedAt *time.Time, matchingTags []string, autoPost bool) (*model.ContentQueueRecord, error)
 	NotifySubscribersOfCreatedPost(ctx context.Context, post *model.Post, discussionID string) error
 	GetPostsByDiscussionID(ctx context.Context, discussionID string) ([]*model.Post, error)
+	GetPostsConnectionByDiscussionID(ctx context.Context, discussionID string, cursor string, limit int) (*model.PostsConnection, error)
 	GetLastPostByDiscussionID(ctx context.Context, discussionID string, minutes int) (*model.Post, error)
 	GetPostContentByID(ctx context.Context, id string) (*model.PostContent, error)
 	GetUserProfileByID(ctx context.Context, id string) (*model.UserProfile, error)

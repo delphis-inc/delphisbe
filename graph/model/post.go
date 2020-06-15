@@ -32,14 +32,11 @@ type PostsEdge struct {
 }
 
 type PostsConnection struct {
-	// from string
-	// to   string
+	Edges    []*PostsEdge `json:"edges"`
+	PageInfo PageInfo     `json:"pageInfo"`
 }
 
-func (p *PostsConnection) TotalCount() int {
-	return 0 //len(p.ids)
-}
-
+/*
 func (p *PostsConnection) PageInfo() PageInfo {
 	// 	from := EncodeCursor(p.from)
 	// 	to := EncodeCursor(p.to)
@@ -50,3 +47,4 @@ func (p *PostsConnection) PageInfo() PageInfo {
 	// 	}
 	return PageInfo{}
 }
+*/
