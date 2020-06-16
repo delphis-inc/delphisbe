@@ -15,6 +15,10 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+const (
+	PostPerPageLimit = 50
+)
+
 func (d *delphisBackend) CreatePost(ctx context.Context, discussionID string, participantID string, input model.PostContentInput) (*model.Post, error) {
 	// Validate input string if there are mentioned entities
 	if input.MentionedEntities != nil {
@@ -208,6 +212,9 @@ func (d *delphisBackend) GetLastPostByDiscussionID(ctx context.Context, discussi
 }
 
 func (d *delphisBackend) GetPostsConnectionByDiscussionID(ctx context.Context, discussionID string, cursor string, limit int) (*model.PostsConnection, error) {
+	if limit < 2 || limit > PostPerPageLimit {
+		return nil, errors.New("Values of 'limit' is illegal")
+	}
 	return d.db.GetPostsConnectionByDiscussionID(ctx, discussionID, cursor, limit)
 }
 

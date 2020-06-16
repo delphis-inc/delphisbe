@@ -12,6 +12,7 @@ import (
 	"github.com/nedrocks/delphisbe/graph/generated"
 	"github.com/nedrocks/delphisbe/graph/model"
 	"github.com/nedrocks/delphisbe/internal/auth"
+	"github.com/nedrocks/delphisbe/internal/backend"
 )
 
 func (r *discussionResolver) Moderator(ctx context.Context, obj *model.Discussion) (*model.Moderator, error) {
@@ -37,7 +38,7 @@ func (r *discussionResolver) Posts(ctx context.Context, obj *model.Discussion) (
 
 func (r *discussionResolver) PostsConnection(ctx context.Context, obj *model.Discussion, after *string) (*model.PostsConnection, error) {
 	/* Hardcode the number of posts per page. This can be changed to be settable by the client in the query. */
-	limit := 50
+	limit := backend.PostPerPageLimit
 
 	/* Sanity check. If no "after" parameter is specified, we set it to a time far into the future, for which
 	   no post can yet have been created (not even cosidering large clocks drift) */

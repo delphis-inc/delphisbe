@@ -3,6 +3,7 @@ package datastore
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"io"
 	"time"
 
@@ -98,6 +99,12 @@ func (d *delphisDB) GetPostsByDiscussionIDFromCursorIter(ctx context.Context, di
 }
 
 func (d *delphisDB) GetPostsConnectionByDiscussionID(ctx context.Context, discussionID string, cursor string, limit int) (*model.PostsConnection, error) {
+	if limit < 2 {
+		err := errors.New("Values of 'limit' is illegal")
+		logrus.WithError(err).Error("GetPostsConnectionByDiscussionID::illegal limit parameter")
+		return nil, err
+	}
+
 	logrus.Debug("GetPostsConnectionByDiscussionID::SQL Query")
 	if err := d.initializeStatements(ctx); err != nil {
 		logrus.WithError(err).Error("GetPostsConnectionByDiscussionID::failed to initialize statements")

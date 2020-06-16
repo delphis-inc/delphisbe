@@ -35,16 +35,3 @@ type PostsConnection struct {
 	Edges    []*PostsEdge `json:"edges"`
 	PageInfo PageInfo     `json:"pageInfo"`
 }
-
-/*
-func (p *PostsConnection) PageInfo() PageInfo {
-	// 	from := EncodeCursor(p.from)
-	// 	to := EncodeCursor(p.to)
-	// 	return PageInfo{
-	// 		StartCursor: &from,
-	// 		EndCursor:   &to,
-	// 		HasNextPage: p.to < len(p.ids),
-	// 	}
-	return PageInfo{}
-}
-*/
