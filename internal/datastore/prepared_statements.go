@@ -5,9 +5,10 @@ import sql2 "database/sql"
 // Prepared Statements
 type dbPrepStmts struct {
 	// Post
-	getPostsByDiscussionIDStmt    *sql2.Stmt
-	getLastPostByDiscussionIDStmt *sql2.Stmt
-	putPostStmt                   *sql2.Stmt
+	getPostsByDiscussionIDStmt           *sql2.Stmt
+	getLastPostByDiscussionIDStmt        *sql2.Stmt
+	getPostsByDiscussionIDFromCursorStmt *sql2.Stmt
+	putPostStmt                          *sql2.Stmt
 
 	// PostContents
 	putPostContentsStmt *sql2.Stmt
@@ -54,12 +55,36 @@ const getPostsByDiscussionIDString = `
 			p.quoted_post_id,
 			p.media_id,
 			p.imported_content_id,
+			p.post_type,
 			pc.id,
 			pc.content
 		FROM posts p
 		INNER JOIN post_contents pc
 		ON p.post_content_id = pc.id
-		WHERE p.discussion_id = $1;`
+		WHERE p.discussion_id = $1
+		;`
+
+const getPostsByDiscussionIDFromCursorString = `
+		SELECT p.id,
+			p.created_at,
+			p.updated_at,
+			p.deleted_at,
+			p.deleted_reason_code,
+			p.discussion_id,
+			p.participant_id,
+			p.quoted_post_id,
+			p.media_id,
+			p.imported_content_id,
+			pc.id,
+			pc.content
+		FROM posts p
+		INNER JOIN post_contents pc
+		ON p.post_content_id = pc.id
+		WHERE p.discussion_id = $1
+		AND p.created_at < $2
+		ORDER BY p.created_at desc
+		LIMIT $3
+		;`
 
 const getLastPostByDiscussionIDStmt = `
 		SELECT p.id,
@@ -72,6 +97,7 @@ const getLastPostByDiscussionIDStmt = `
 			p.quoted_post_id,
 			p.media_id,
 			p.imported_content_id,
+			p.post_type,
 			pc.id,
 			pc.content
 		FROM posts p
@@ -90,8 +116,9 @@ const putPostString = `
 			post_content_id,
 			quoted_post_id,
 			media_id,
-			imported_content_id
-		) VALUES ($1, $2, $3, $4, $5, $6, $7)
+			imported_content_id,
+			post_type
+		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
 		RETURNING
 			id,
 			created_at,
@@ -101,7 +128,8 @@ const putPostString = `
 			post_content_id,
 			quoted_post_id,
 			media_id,
-			imported_content_id;`
+			imported_content_id,
+			post_type;`
 
 const putPostContentsString = `
 		INSERT INTO post_contents (
@@ -278,7 +306,7 @@ const putImportedContentDiscussionQueueString = `
 
 const updateImportedContentDiscussionQueueString = `
 		UPDATE discussion_ic_queue
-		SET posted_at = now()
+		SET posted_at = $3
 		WHERE discussion_id = $1
 			AND imported_content_id = $2
 			AND posted_at is null

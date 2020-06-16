@@ -49,7 +49,6 @@ type ResolverRoot interface {
 	Post() PostResolver
 	PostBookmark() PostBookmarkResolver
 	PostBookmarksConnection() PostBookmarksConnectionResolver
-	PostsConnection() PostsConnectionResolver
 	Query() QueryResolver
 	Subscription() SubscriptionResolver
 	Tag() TagResolver
@@ -86,6 +85,7 @@ type ComplexityRoot struct {
 		Moderator               func(childComplexity int) int
 		Participants            func(childComplexity int) int
 		Posts                   func(childComplexity int) int
+		PostsConnection         func(childComplexity int, after *string) int
 		Tags                    func(childComplexity int) int
 		Title                   func(childComplexity int) int
 		UpcomingContent         func(childComplexity int) int
@@ -209,6 +209,7 @@ type ComplexityRoot struct {
 		Media             func(childComplexity int) int
 		MentionedEntities func(childComplexity int) int
 		Participant       func(childComplexity int) int
+		PostType          func(childComplexity int) int
 		QuotedPost        func(childComplexity int) int
 		UpdatedAt         func(childComplexity int) int
 	}
@@ -232,9 +233,8 @@ type ComplexityRoot struct {
 	}
 
 	PostsConnection struct {
-		Edges      func(childComplexity int) int
-		PageInfo   func(childComplexity int) int
-		TotalCount func(childComplexity int) int
+		Edges    func(childComplexity int) int
+		PageInfo func(childComplexity int) int
 	}
 
 	PostsEdge struct {
@@ -329,6 +329,7 @@ type DiscussionResolver interface {
 	Moderator(ctx context.Context, obj *model.Discussion) (*model.Moderator, error)
 
 	Posts(ctx context.Context, obj *model.Discussion) ([]*model.Post, error)
+	PostsConnection(ctx context.Context, obj *model.Discussion, after *string) (*model.PostsConnection, error)
 
 	Participants(ctx context.Context, obj *model.Discussion) ([]*model.Participant, error)
 
@@ -402,9 +403,6 @@ type PostBookmarkResolver interface {
 }
 type PostBookmarksConnectionResolver interface {
 	Edges(ctx context.Context, obj *model.PostBookmarksConnection) ([]*model.PostBookmarksEdge, error)
-}
-type PostsConnectionResolver interface {
-	Edges(ctx context.Context, obj *model.PostsConnection) ([]*model.PostsEdge, error)
 }
 type QueryResolver interface {
 	Discussion(ctx context.Context, id string) (*model.Discussion, error)
@@ -585,6 +583,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Discussion.Posts(childComplexity), true
+
+	case "Discussion.postsConnection":
+		if e.complexity.Discussion.PostsConnection == nil {
+			break
+		}
+
+		args, err := ec.field_Discussion_postsConnection_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Discussion.PostsConnection(childComplexity, args["after"].(*string)), true
 
 	case "Discussion.tags":
 		if e.complexity.Discussion.Tags == nil {
@@ -1233,6 +1243,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Post.Participant(childComplexity), true
 
+	case "Post.postType":
+		if e.complexity.Post.PostType == nil {
+			break
+		}
+
+		return e.complexity.Post.PostType(childComplexity), true
+
 	case "Post.quotedPost":
 		if e.complexity.Post.QuotedPost == nil {
 			break
@@ -1323,13 +1340,6 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.PostsConnection.PageInfo(childComplexity), true
-
-	case "PostsConnection.totalCount":
-		if e.complexity.PostsConnection.TotalCount == nil {
-			break
-		}
-
-		return e.complexity.PostsConnection.TotalCount(childComplexity), true
 
 	case "PostsEdge.cursor":
 		if e.complexity.PostsEdge.Cursor == nil {
@@ -1737,6 +1747,7 @@ var sources = []*ast.Source{
     
     # A link to all posts in the discussion, ordered chronologically.
     posts: [Post!]
+    postsConnection(after: ID): PostsConnection!
 
     iconURL: String
 
@@ -1827,10 +1838,9 @@ enum Platform {
 }
 
 enum PostType {
-    TEXT,
-    MEDIA,
-    POLL,
-    IMPORTED_CONTENT
+    STANDARD,
+    IMPORTED_CONTENT,
+    ALERT
 }`, BuiltIn: false},
 	&ast.Source{Name: "graph/types/flair.graphqls", Input: `type Flair {
     # The UUID for this flair
@@ -1956,6 +1966,7 @@ type MediaSize {
     mentionedEntities: [Entity!]
     media: Media
     importedContent: ImportedContent
+    postType: PostType!
 }`, BuiltIn: false},
 	&ast.Source{Name: "graph/types/post_bookmark.graphqls", Input: `# Defines a bookmark for a post. Built this way because I
 # assume we will have other types of bookmarks down the road
@@ -1976,7 +1987,6 @@ type PostBookmark {
     node: PostBookmark
 }`, BuiltIn: false},
 	&ast.Source{Name: "graph/types/posts_connection.graphqls", Input: `type PostsConnection {
-    totalCount: Int!
     edges: [PostsEdge!]
     pageInfo: PageInfo!
 }`, BuiltIn: false},
@@ -2174,6 +2184,20 @@ var parsedSchema = gqlparser.MustLoadSchema(sources...)
 // endregion ************************** generated!.gotpl **************************
 
 // region    ***************************** args.gotpl *****************************
+
+func (ec *executionContext) field_Discussion_postsConnection_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 *string
+	if tmp, ok := rawArgs["after"]; ok {
+		arg0, err = ec.unmarshalOID2ᚖstring(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["after"] = arg0
+	return args, nil
+}
 
 func (ec *executionContext) field_Mutation_addDiscussionParticipant_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
@@ -3031,6 +3055,47 @@ func (ec *executionContext) _Discussion_posts(ctx context.Context, field graphql
 	res := resTmp.([]*model.Post)
 	fc.Result = res
 	return ec.marshalOPost2ᚕᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐPostᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Discussion_postsConnection(ctx context.Context, field graphql.CollectedField, obj *model.Discussion) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "Discussion",
+		Field:    field,
+		Args:     nil,
+		IsMethod: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Discussion_postsConnection_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Discussion().PostsConnection(rctx, obj, args["after"].(*string))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.PostsConnection)
+	fc.Result = res
+	return ec.marshalNPostsConnection2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐPostsConnection(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Discussion_iconURL(ctx context.Context, field graphql.CollectedField, obj *model.Discussion) (ret graphql.Marshaler) {
@@ -6100,6 +6165,40 @@ func (ec *executionContext) _Post_importedContent(ctx context.Context, field gra
 	return ec.marshalOImportedContent2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐImportedContent(ctx, field.Selections, res)
 }
 
+func (ec *executionContext) _Post_postType(ctx context.Context, field graphql.CollectedField, obj *model.Post) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "Post",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.PostType, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(model.PostType)
+	fc.Result = res
+	return ec.marshalNPostType2githubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐPostType(ctx, field.Selections, res)
+}
+
 func (ec *executionContext) _PostBookmark_id(ctx context.Context, field graphql.CollectedField, obj *model.PostBookmark) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -6394,40 +6493,6 @@ func (ec *executionContext) _PostBookmarksEdge_node(ctx context.Context, field g
 	return ec.marshalOPostBookmark2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐPostBookmark(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _PostsConnection_totalCount(ctx context.Context, field graphql.CollectedField, obj *model.PostsConnection) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:   "PostsConnection",
-		Field:    field,
-		Args:     nil,
-		IsMethod: true,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.TotalCount(), nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(int)
-	fc.Result = res
-	return ec.marshalNInt2int(ctx, field.Selections, res)
-}
-
 func (ec *executionContext) _PostsConnection_edges(ctx context.Context, field graphql.CollectedField, obj *model.PostsConnection) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -6439,13 +6504,13 @@ func (ec *executionContext) _PostsConnection_edges(ctx context.Context, field gr
 		Object:   "PostsConnection",
 		Field:    field,
 		Args:     nil,
-		IsMethod: true,
+		IsMethod: false,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.PostsConnection().Edges(rctx, obj)
+		return obj.Edges, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -6470,13 +6535,13 @@ func (ec *executionContext) _PostsConnection_pageInfo(ctx context.Context, field
 		Object:   "PostsConnection",
 		Field:    field,
 		Args:     nil,
-		IsMethod: true,
+		IsMethod: false,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.PageInfo(), nil
+		return obj.PageInfo, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -9454,6 +9519,20 @@ func (ec *executionContext) _Discussion(ctx context.Context, sel ast.SelectionSe
 				res = ec._Discussion_posts(ctx, field, obj)
 				return res
 			})
+		case "postsConnection":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Discussion_postsConnection(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
 		case "iconURL":
 			out.Values[i] = ec._Discussion_iconURL(ctx, field, obj)
 		case "participants":
@@ -10372,6 +10451,11 @@ func (ec *executionContext) _Post(ctx context.Context, sel ast.SelectionSet, obj
 				res = ec._Post_importedContent(ctx, field, obj)
 				return res
 			})
+		case "postType":
+			out.Values[i] = ec._Post_postType(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&invalids, 1)
+			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -10520,26 +10604,12 @@ func (ec *executionContext) _PostsConnection(ctx context.Context, sel ast.Select
 		switch field.Name {
 		case "__typename":
 			out.Values[i] = graphql.MarshalString("PostsConnection")
-		case "totalCount":
-			out.Values[i] = ec._PostsConnection_totalCount(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				atomic.AddUint32(&invalids, 1)
-			}
 		case "edges":
-			field := field
-			out.Concurrently(i, func() (res graphql.Marshaler) {
-				defer func() {
-					if r := recover(); r != nil {
-						ec.Error(ctx, ec.Recover(ctx, r))
-					}
-				}()
-				res = ec._PostsConnection_edges(ctx, field, obj)
-				return res
-			})
+			out.Values[i] = ec._PostsConnection_edges(ctx, field, obj)
 		case "pageInfo":
 			out.Values[i] = ec._PostsConnection_pageInfo(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				atomic.AddUint32(&invalids, 1)
+				invalids++
 			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
@@ -11691,6 +11761,20 @@ func (ec *executionContext) unmarshalNPostType2githubᚗcomᚋnedrocksᚋdelphis
 
 func (ec *executionContext) marshalNPostType2githubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐPostType(ctx context.Context, sel ast.SelectionSet, v model.PostType) graphql.Marshaler {
 	return v
+}
+
+func (ec *executionContext) marshalNPostsConnection2githubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐPostsConnection(ctx context.Context, sel ast.SelectionSet, v model.PostsConnection) graphql.Marshaler {
+	return ec._PostsConnection(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNPostsConnection2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐPostsConnection(ctx context.Context, sel ast.SelectionSet, v *model.PostsConnection) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	return ec._PostsConnection(ctx, sel, v)
 }
 
 func (ec *executionContext) marshalNPostsEdge2githubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐPostsEdge(ctx context.Context, sel ast.SelectionSet, v model.PostsEdge) graphql.Marshaler {

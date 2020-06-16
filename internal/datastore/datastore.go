@@ -49,6 +49,8 @@ type Datastore interface {
 	UpsertParticipant(ctx context.Context, participant model.Participant) (*model.Participant, error)
 	GetPostsByDiscussionID(ctx context.Context, discussionID string) ([]*model.Post, error)
 	GetPostsByDiscussionIDIter(ctx context.Context, discussionID string) PostIter
+	GetPostsByDiscussionIDFromCursorIter(ctx context.Context, discussionID string, cursor string, limit int) PostIter
+	GetPostsConnectionByDiscussionID(ctx context.Context, discussionID string, cursor string, limit int) (*model.PostsConnection, error)
 	GetLastPostByDiscussionID(ctx context.Context, discussionID string, minutes int) (*model.Post, error)
 	GetPostContentByID(ctx context.Context, id string) (*model.PostContent, error)
 	PutPost(ctx context.Context, tx *sql2.Tx, post model.Post) (*model.Post, error)
@@ -80,7 +82,10 @@ type Datastore interface {
 	GetImportedContentByDiscussionID(ctx context.Context, discussionID string, limit int) ContentIter
 	GetScheduledImportedContentByDiscussionID(ctx context.Context, discussionID string) ContentIter
 	PutImportedContentDiscussionQueue(ctx context.Context, discussionID, contentID string, postedAt *time.Time, matchingTags []string) (*model.ContentQueueRecord, error)
-	UpdateImportedContentDiscussionQueue(ctx context.Context, discussionID, contentID string) (*model.ContentQueueRecord, error)
+	UpdateImportedContentDiscussionQueue(ctx context.Context, discussionID, contentID string, postedAt *time.Time) (*model.ContentQueueRecord, error)
+
+	// Helper functions
+	PostIterCollect(ctx context.Context, iter PostIter) ([]*model.Post, error)
 
 	// TXN
 	BeginTx(ctx context.Context) (*sql2.Tx, error)
@@ -139,13 +144,13 @@ func NewDatastore(config config.Config, awsSession *session.Session) Datastore {
 		mySession = mySession.Copy(awsSession.Config.WithEndpoint(fmt.Sprintf("%s:%d", dbConfig.Host, dbConfig.Port)))
 		logrus.Debugf("endpoint: %v", *mySession.Config.Endpoint)
 	}
-	dbSvc := dynamodb.New(mySession)
+
 	gormDB, db := NewSQLDatastore(config.SQLDBConfig, awsSession)
 	return &delphisDB{
 		dbConfig:  dbConfig.TablesConfig,
 		sql:       gormDB,
 		pg:        db,
-		dynamo:    dbSvc,
+		dynamo:    nil,
 		prepStmts: &dbPrepStmts{},
 		encoder: &dynamodbattribute.Encoder{
 			MarshalOptions: dynamodbattribute.MarshalOptions{
@@ -207,6 +212,10 @@ func (d *delphisDB) initializeStatements(ctx context.Context) (err error) {
 	if d.prepStmts.getLastPostByDiscussionIDStmt, err = d.pg.PrepareContext(ctx, getLastPostByDiscussionIDStmt); err != nil {
 		logrus.WithError(err).Error("failed to prepare getLastPostByDiscussionIDStmt")
 		return errors.Wrap(err, "failed to prepare getLastPostByDiscussionIDStmt")
+	}
+	if d.prepStmts.getPostsByDiscussionIDFromCursorStmt, err = d.pg.PrepareContext(ctx, getPostsByDiscussionIDFromCursorString); err != nil {
+		logrus.WithError(err).Error("failed to prepare getPostsByDiscussionIDFromCursorStmt")
+		return errors.Wrap(err, "failed to prepare getPostsByDiscussionIDFromCursorStmt")
 	}
 	if d.prepStmts.putPostStmt, err = d.pg.PrepareContext(ctx, putPostString); err != nil {
 		logrus.WithError(err).Error("failed to prepare putPostStmt")

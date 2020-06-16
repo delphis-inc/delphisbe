@@ -93,6 +93,7 @@ type S3BucketConfig struct {
 type SQSConfig struct {
 	DripURL    string `json:"drip_url" mapstructure:"drip_url"`
 	MaxWorkers int    `json:"max_workers" mapstructure:"max_workers"`
+	Enabled    bool   `json:"enabled" mapstructure:"enabled"`
 }
 
 type TableConfig struct {

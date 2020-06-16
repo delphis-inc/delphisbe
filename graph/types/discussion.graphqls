@@ -9,6 +9,7 @@ type Discussion implements Entity {
     
     # A link to all posts in the discussion, ordered chronologically.
     posts: [Post!]
+    postsConnection(after: ID): PostsConnection!
 
     iconURL: String
 

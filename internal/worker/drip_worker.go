@@ -36,8 +36,12 @@ type MessageIter interface {
 }
 
 func NewDripWorker(conf config.Config, backend backend.DelphisBackend, sess *session.Session) *Worker {
+	var client *sqs.SQS
+	if conf.SQSConfig.Enabled {
+		client = sqs.New(sess)
+	}
 	return &Worker{
-		client:     sqs.New(sess),
+		client:     client,
 		backend:    backend,
 		url:        conf.SQSConfig.DripURL,
 		maxWorkers: conf.SQSConfig.MaxWorkers,
@@ -45,6 +49,9 @@ func NewDripWorker(conf config.Config, backend backend.DelphisBackend, sess *ses
 }
 
 func (w *Worker) Start(ctx context.Context) error {
+	if w.client == nil {
+		return nil
+	}
 	iter := w.ReadMessages(ctx)
 	queue := make(chan Message, w.maxWorkers)
 	workers := sync.WaitGroup{}

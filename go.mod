@@ -5,7 +5,6 @@ go 1.13
 require (
 	github.com/99designs/gqlgen v0.11.3
 	github.com/DATA-DOG/go-sqlmock v1.4.1
-	github.com/Timothylock/go-signin-with-apple v0.0.0-20200221193809-1a722422658e // indirect
 	github.com/aws/aws-sdk-go v1.29.19
 	github.com/coreos/pkg v0.0.0-20180928190104-399ea9e2e55f
 	github.com/denisenkom/go-mssqldb v0.0.0-20200206145737-bbfc9a55622e // indirect
@@ -13,7 +12,6 @@ require (
 	github.com/dghubble/gologin v2.1.0+incompatible
 	github.com/dghubble/oauth1 v0.6.0
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
-	github.com/dgryski/trifles v0.0.0-20190318185328-a8d75aae118c
 	github.com/gorilla/websocket v1.4.0
 	github.com/jinzhu/gorm v1.9.13-0.20200305064831-7ea143b5484f
 	github.com/jinzhu/now v1.1.1 // indirect
@@ -28,13 +26,8 @@ require (
 	github.com/spf13/viper v1.6.2
 	github.com/stretchr/objx v0.2.0 // indirect
 	github.com/stretchr/testify v1.5.1
-	github.com/urfave/cli v1.20.0 // indirect
-	github.com/vektah/gqlparser v1.3.1
 	github.com/vektah/gqlparser/v2 v2.0.1
-	github.com/vektra/mockery v1.1.1 // indirect
 	go.uber.org/multierr v1.1.0
-	golang.org/x/oauth2 v0.0.0-20180821212333-d2e6202438be
-	golang.org/x/tools v0.0.0-20200513015045-05c28aabb48e // indirect
-	google.golang.org/appengine v1.4.0 // indirect
+	golang.org/x/net v0.0.0-20200226121028-0de0cce0169b // indirect
 	gopkg.in/yaml.v2 v2.3.0 // indirect
 )

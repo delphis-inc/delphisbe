@@ -5,12 +5,14 @@ package resolver
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
 	"github.com/nedrocks/delphisbe/graph/generated"
 	"github.com/nedrocks/delphisbe/graph/model"
 	"github.com/nedrocks/delphisbe/internal/auth"
+	"github.com/nedrocks/delphisbe/internal/backend"
 )
 
 func (r *discussionResolver) Moderator(ctx context.Context, obj *model.Discussion) (*model.Moderator, error) {
@@ -32,6 +34,22 @@ func (r *discussionResolver) Posts(ctx context.Context, obj *model.Discussion) (
 	}
 
 	return posts, nil
+}
+
+func (r *discussionResolver) PostsConnection(ctx context.Context, obj *model.Discussion, after *string) (*model.PostsConnection, error) {
+	/* Hardcode the number of posts per page. This can be changed to be settable by the client in the query. */
+	limit := backend.PostPerPageLimit
+
+	/* Sanity check. If no "after" parameter is specified, we set it to a time far into the future, for which
+	   no post can yet have been created (not even cosidering large clocks drift) */
+	if after == nil {
+		futureTime := time.Now().AddDate(1, 0, 0).Format(time.RFC3339)
+		after = &futureTime
+	} else if _, err := time.Parse(time.RFC3339, *after); err != nil {
+		return nil, errors.New("The 'After' parameter is badly formatted: " + *after)
+	}
+
+	return r.DAOManager.GetPostsConnectionByDiscussionID(ctx, obj.ID, *after, limit)
 }
 
 func (r *discussionResolver) Participants(ctx context.Context, obj *model.Discussion) ([]*model.Participant, error) {

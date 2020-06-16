@@ -100,7 +100,7 @@ func (r *mutationResolver) PostImportedContent(ctx context.Context, discussionID
 	}
 
 	now := time.Now()
-	return r.DAOManager.PostImportedContent(ctx, participantID, discussionID, contentID, &now, nil, false)
+	return r.DAOManager.PostImportedContent(ctx, participantID, discussionID, contentID, &now, nil, model.ManualDrip)
 }
 
 func (r *mutationResolver) ScheduleImportedContent(ctx context.Context, discussionID string, contentID string) (*model.ContentQueueRecord, error) {
@@ -115,7 +115,7 @@ func (r *mutationResolver) ScheduleImportedContent(ctx context.Context, discussi
 		return nil, fmt.Errorf("unauthorized")
 	}
 
-	return r.DAOManager.PutImportedContentQueue(ctx, discussionID, contentID, nil, nil, false)
+	return r.DAOManager.PutImportedContentQueue(ctx, discussionID, contentID, nil, nil, "")
 }
 
 func (r *mutationResolver) CreateDiscussion(ctx context.Context, anonymityType model.AnonymityType, title string) (*model.Discussion, error) {
