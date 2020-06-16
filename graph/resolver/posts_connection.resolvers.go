@@ -5,19 +5,12 @@ package resolver
 
 import (
 	"context"
-	"fmt"
 
-	"github.com/nedrocks/delphisbe/graph/generated"
 	"github.com/nedrocks/delphisbe/graph/model"
 )
 
 func (r *postsConnectionResolver) Edges(ctx context.Context, obj *model.PostsConnection) ([]*model.PostsEdge, error) {
-	panic(fmt.Errorf("not implemented"))
-}
-
-// PostsConnection returns generated.PostsConnectionResolver implementation.
-func (r *Resolver) PostsConnection() generated.PostsConnectionResolver {
-	return &postsConnectionResolver{r}
+	return obj.Edges, nil
 }
 
 type postsConnectionResolver struct{ *Resolver }

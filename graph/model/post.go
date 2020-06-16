@@ -41,21 +41,6 @@ type PostsEdge struct {
 }
 
 type PostsConnection struct {
-	// from string
-	// to   string
-}
-
-func (p *PostsConnection) TotalCount() int {
-	return 0 //len(p.ids)
-}
-
-func (p *PostsConnection) PageInfo() PageInfo {
-	// 	from := EncodeCursor(p.from)
-	// 	to := EncodeCursor(p.to)
-	// 	return PageInfo{
-	// 		StartCursor: &from,
-	// 		EndCursor:   &to,
-	// 		HasNextPage: p.to < len(p.ids),
-	// 	}
-	return PageInfo{}
+	Edges    []*PostsEdge `json:"edges"`
+	PageInfo PageInfo     `json:"pageInfo"`
 }

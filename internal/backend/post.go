@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"io"
 	"regexp"
 	"strings"
 	"time"
@@ -12,9 +11,12 @@ import (
 	"go.uber.org/multierr"
 
 	"github.com/nedrocks/delphisbe/graph/model"
-	"github.com/nedrocks/delphisbe/internal/datastore"
 	"github.com/nedrocks/delphisbe/internal/util"
 	"github.com/sirupsen/logrus"
+)
+
+const (
+	PostPerPageLimit = 50
 )
 
 func (d *delphisBackend) CreatePost(ctx context.Context, discussionID string, participantID string, input model.PostContentInput) (*model.Post, error) {
@@ -249,12 +251,18 @@ func (d *delphisBackend) NotifySubscribersOfCreatedPost(ctx context.Context, pos
 
 func (d *delphisBackend) GetPostsByDiscussionID(ctx context.Context, discussionID string) ([]*model.Post, error) {
 	iter := d.db.GetPostsByDiscussionIDIter(ctx, discussionID)
-	return d.iterToPosts(ctx, iter)
-	//return d.db.GetPostsByDiscussionID(ctx, discussionID)
+	return d.db.PostIterCollect(ctx, iter)
 }
 
 func (d *delphisBackend) GetLastPostByDiscussionID(ctx context.Context, discussionID string, minutes int) (*model.Post, error) {
 	return d.db.GetLastPostByDiscussionID(ctx, discussionID, minutes)
+}
+
+func (d *delphisBackend) GetPostsConnectionByDiscussionID(ctx context.Context, discussionID string, cursor string, limit int) (*model.PostsConnection, error) {
+	if limit < 2 || limit > PostPerPageLimit {
+		return nil, errors.New("Values of 'limit' is illegal")
+	}
+	return d.db.GetPostsConnectionByDiscussionID(ctx, discussionID, cursor, limit)
 }
 
 func (d *delphisBackend) GetMentionedEntities(ctx context.Context, entityIDs []string) (map[string]model.Entity, error) {
@@ -305,38 +313,6 @@ func (d *delphisBackend) GetMentionedEntities(ctx context.Context, entityIDs []s
 	}
 
 	return entities, nil
-}
-
-// Testing function to keep functionality
-func (d *delphisBackend) iterToPosts(ctx context.Context, iter datastore.PostIter) ([]*model.Post, error) {
-	var posts []*model.Post
-	post := model.Post{}
-
-	defer iter.Close()
-
-	for iter.Next(&post) {
-		tempPost := post
-
-		// Check if there is a quotedPostID. Fetch if so
-		if tempPost.QuotedPostID != nil {
-			var err error
-			// TODO: potentially optimize into joins
-			tempPost.QuotedPost, err = d.db.GetPostByID(ctx, *tempPost.QuotedPostID)
-			if err != nil {
-				// Do we want to fail the whole discussion if we can't get a quote?
-				return nil, err
-			}
-		}
-
-		posts = append(posts, &tempPost)
-	}
-
-	if err := iter.Close(); err != nil && err != io.EOF {
-		logrus.WithError(err).Error("failed to close iter")
-		return nil, err
-	}
-
-	return posts, nil
 }
 
 func validatePostParams(ctx context.Context, input model.PostContentInput) error {
