@@ -2,7 +2,10 @@ package backend
 
 import (
 	"context"
+	"fmt"
 	"time"
+
+	"github.com/nedrocks/delphisbe/graph/model"
 
 	"github.com/sirupsen/logrus"
 )
@@ -45,6 +48,7 @@ func (d *delphisBackend) checkIdleTime(ctx context.Context, discussionID string,
 }
 
 func (d *delphisBackend) postNextContent(ctx context.Context, discussionID string) error {
+	dripType := model.ScheduledDrip
 	// Fetch next article
 	iter := d.db.GetScheduledImportedContentByDiscussionID(ctx, discussionID)
 	contents, err := d.iterToContent(ctx, iter)
@@ -53,6 +57,7 @@ func (d *delphisBackend) postNextContent(ctx context.Context, discussionID strin
 		return err
 	}
 	if len(contents) == 0 {
+		dripType = model.AutoDrip
 		iter = d.db.GetImportedContentByDiscussionID(ctx, discussionID, 10)
 		contents, err = d.iterToContent(ctx, iter)
 		if err != nil {
@@ -65,11 +70,20 @@ func (d *delphisBackend) postNextContent(ctx context.Context, discussionID strin
 		}
 	}
 
+	// Get concierge participant
+	resp, err := d.GetParticipantsByDiscussionIDUserID(ctx, discussionID, model.ConciergeUser)
+	if err != nil {
+		logrus.WithError(err).Error("failed to fetch concierge participant")
+		return err
+	}
+	if resp.NonAnon == nil {
+		return fmt.Errorf("discussion is missing a concierge participant")
+	}
+
 	// Call post function
-	// TODO: Create concierge participantID to handle posting
 	content := contents[0]
 	now := time.Now()
-	if _, err := d.PostImportedContent(ctx, "073e3c99-8b7e-4548-b94a-1fb94219fc05", discussionID, content.ID, &now, content.Tags, true); err != nil {
+	if _, err := d.PostImportedContent(ctx, resp.NonAnon.ID, discussionID, content.ID, &now, content.Tags, dripType); err != nil {
 		logrus.WithError(err).Error("failed to post imported content from autodrip")
 		return err
 	}

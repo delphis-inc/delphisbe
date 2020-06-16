@@ -28,6 +28,7 @@ func (d *delphisDB) PutPost(ctx context.Context, tx *sql.Tx, post model.Post) (*
 		post.QuotedPostID,
 		post.MediaID,
 		post.ImportedContentID,
+		post.PostType,
 	).Scan(
 		&post.ID,
 		&post.CreatedAt,
@@ -38,6 +39,7 @@ func (d *delphisDB) PutPost(ctx context.Context, tx *sql.Tx, post model.Post) (*
 		&post.QuotedPostID,
 		&post.MediaID,
 		&post.ImportedContentID,
+		&post.PostType,
 	)
 	if err != nil {
 		logrus.WithError(err).Error("failed to execute putPostStmt")
@@ -46,7 +48,6 @@ func (d *delphisDB) PutPost(ctx context.Context, tx *sql.Tx, post model.Post) (*
 
 	logrus.Infof("Post: %v\n", post)
 
-	// Do we want to query for the post or just return the post?
 	return &post, nil
 }
 
@@ -186,6 +187,7 @@ func (d *delphisDB) GetLastPostByDiscussionID(ctx context.Context, discussionID 
 		&post.QuotedPostID,
 		&post.MediaID,
 		&post.ImportedContentID,
+		&post.PostType,
 		&postContent.ID,
 		&postContent.Content,
 	); err != nil {
@@ -282,6 +284,7 @@ func (iter *postIter) Next(post *model.Post) bool {
 		&post.QuotedPostID,
 		&post.MediaID,
 		&post.ImportedContentID,
+		&post.PostType,
 		&postContent.ID,
 		&postContent.Content,
 	); iter.err != nil {

@@ -82,7 +82,7 @@ type Datastore interface {
 	GetImportedContentByDiscussionID(ctx context.Context, discussionID string, limit int) ContentIter
 	GetScheduledImportedContentByDiscussionID(ctx context.Context, discussionID string) ContentIter
 	PutImportedContentDiscussionQueue(ctx context.Context, discussionID, contentID string, postedAt *time.Time, matchingTags []string) (*model.ContentQueueRecord, error)
-	UpdateImportedContentDiscussionQueue(ctx context.Context, discussionID, contentID string) (*model.ContentQueueRecord, error)
+	UpdateImportedContentDiscussionQueue(ctx context.Context, discussionID, contentID string, postedAt *time.Time) (*model.ContentQueueRecord, error)
 
 	// Helper functions
 	PostIterCollect(ctx context.Context, iter PostIter) ([]*model.Post, error)

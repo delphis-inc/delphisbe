@@ -2,6 +2,10 @@ package model
 
 import "time"
 
+const (
+	ConciergeUser = "88c8c5ae-41e9-49ef-b5ea-db2e08762693"
+)
+
 type User struct {
 	ID          string       `json:"id" dynamodbav:"ID" gorm:"type:varchar(36);"`
 	CreatedAt   time.Time    `json:"createdAt" gorm:"not null;default:CURRENT_TIMESTAMP;"`

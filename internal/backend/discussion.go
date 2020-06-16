@@ -39,8 +39,14 @@ func (d *delphisBackend) CreateNewDiscussion(ctx context.Context, creatingUser *
 	}
 
 	_, err = d.db.UpsertDiscussion(ctx, discussionObj)
-
 	if err != nil {
+		return nil, err
+	}
+
+	// Create concierge participant
+	trueObj := true
+	if _, err := d.CreateParticipantForDiscussion(ctx, discussionObj.ID, model.ConciergeUser, model.AddDiscussionParticipantInput{HasJoined: &trueObj}); err != nil {
+		logrus.WithError(err).Error("failed to create concierge user")
 		return nil, err
 	}
 

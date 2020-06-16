@@ -209,6 +209,7 @@ type ComplexityRoot struct {
 		Media             func(childComplexity int) int
 		MentionedEntities func(childComplexity int) int
 		Participant       func(childComplexity int) int
+		PostType          func(childComplexity int) int
 		QuotedPost        func(childComplexity int) int
 		UpdatedAt         func(childComplexity int) int
 	}
@@ -1242,6 +1243,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Post.Participant(childComplexity), true
 
+	case "Post.postType":
+		if e.complexity.Post.PostType == nil {
+			break
+		}
+
+		return e.complexity.Post.PostType(childComplexity), true
+
 	case "Post.quotedPost":
 		if e.complexity.Post.QuotedPost == nil {
 			break
@@ -1830,10 +1838,9 @@ enum Platform {
 }
 
 enum PostType {
-    TEXT,
-    MEDIA,
-    POLL,
-    IMPORTED_CONTENT
+    STANDARD,
+    IMPORTED_CONTENT,
+    ALERT
 }`, BuiltIn: false},
 	&ast.Source{Name: "graph/types/flair.graphqls", Input: `type Flair {
     # The UUID for this flair
@@ -1959,6 +1966,7 @@ type MediaSize {
     mentionedEntities: [Entity!]
     media: Media
     importedContent: ImportedContent
+    postType: PostType!
 }`, BuiltIn: false},
 	&ast.Source{Name: "graph/types/post_bookmark.graphqls", Input: `# Defines a bookmark for a post. Built this way because I
 # assume we will have other types of bookmarks down the road
@@ -6155,6 +6163,40 @@ func (ec *executionContext) _Post_importedContent(ctx context.Context, field gra
 	res := resTmp.(*model.ImportedContent)
 	fc.Result = res
 	return ec.marshalOImportedContent2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐImportedContent(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Post_postType(ctx context.Context, field graphql.CollectedField, obj *model.Post) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "Post",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.PostType, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(model.PostType)
+	fc.Result = res
+	return ec.marshalNPostType2githubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐPostType(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _PostBookmark_id(ctx context.Context, field graphql.CollectedField, obj *model.PostBookmark) (ret graphql.Marshaler) {
@@ -10409,6 +10451,11 @@ func (ec *executionContext) _Post(ctx context.Context, sel ast.SelectionSet, obj
 				res = ec._Post_importedContent(ctx, field, obj)
 				return res
 			})
+		case "postType":
+			out.Values[i] = ec._Post_postType(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&invalids, 1)
+			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}

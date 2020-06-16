@@ -80,9 +80,13 @@ func (d *delphisBackend) CreateParticipantForDiscussion(ctx context.Context, dis
 	participantObj.ViewerID = &viewerObj.ID
 
 	_, err = d.db.UpsertParticipant(ctx, participantObj)
-
 	if err != nil {
 		return nil, err
+	}
+
+	if _, err := d.CreateAlertPost(ctx, discussionID, userObj, discussionParticipantInput.IsAnonymous); err != nil {
+		// Don't return err. Just log
+		logrus.WithError(err).Error("failed to create alert post")
 	}
 
 	return &participantObj, nil

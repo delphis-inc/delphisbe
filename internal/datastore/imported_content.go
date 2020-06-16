@@ -212,7 +212,7 @@ func (d *delphisDB) PutImportedContentDiscussionQueue(ctx context.Context, discu
 	return &contentQ, nil
 }
 
-func (d *delphisDB) UpdateImportedContentDiscussionQueue(ctx context.Context, discussionID, contentID string) (*model.ContentQueueRecord, error) {
+func (d *delphisDB) UpdateImportedContentDiscussionQueue(ctx context.Context, discussionID, contentID string, postedAt *time.Time) (*model.ContentQueueRecord, error) {
 	logrus.Debug("UpdateImportedContentDiscussionQueue::SQL Create")
 	if err := d.initializeStatements(ctx); err != nil {
 		logrus.WithError(err).Error("UpdateImportedContentDiscussionQueue::failed to initialize statements")
@@ -224,6 +224,7 @@ func (d *delphisDB) UpdateImportedContentDiscussionQueue(ctx context.Context, di
 		ctx,
 		discussionID,
 		contentID,
+		postedAt,
 	).Scan(
 		&contentQ.DiscussionID,
 		&contentQ.ImportedContentID,
