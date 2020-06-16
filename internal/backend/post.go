@@ -11,6 +11,7 @@ import (
 
 	"go.uber.org/multierr"
 
+	"github.com/lib/pq"
 	"github.com/nedrocks/delphisbe/graph/model"
 	"github.com/nedrocks/delphisbe/internal/util"
 	"github.com/sirupsen/logrus"
@@ -71,7 +72,8 @@ func (d *delphisBackend) CreatePost(ctx context.Context, discussionID string, pa
 		// Put post
 		postObj, err := d.db.PutPost(ctx, tx, post)
 		if err != nil {
-			if retryAttempts < PutPostMaxRetry && strings.Contains(strings.ToLower(err.Error()), "duplicate key value violates unique constraint") {
+			pqError, isPqError := err.(*pq.Error)
+			if isPqError && retryAttempts < PutPostMaxRetry && pqError.Code == "23505" {
 				retryAttempts++
 				logrus.WithError(err).Error("failed to PutPost, retrying with attempt #" + strconv.Itoa(retryAttempts))
 				// Note for the future: hould we backoff a little?
