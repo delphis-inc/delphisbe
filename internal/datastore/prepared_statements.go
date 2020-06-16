@@ -75,6 +75,7 @@ const getPostsByDiscussionIDFromCursorString = `
 			p.quoted_post_id,
 			p.media_id,
 			p.imported_content_id,
+			p.post_type,
 			pc.id,
 			pc.content
 		FROM posts p

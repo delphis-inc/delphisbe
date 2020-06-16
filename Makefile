@@ -1,5 +1,5 @@
 M = $(shell printf "\033[34;1m▶\033[0m")
-NOW = ${shell date +%FT%T%z}
+NOW = ${shell date +%s}
 
 
 .PHONY: setup-internal-dep
@@ -23,9 +23,6 @@ run-local-use-aws:
 
 build:
 	go build -o delphis_server
-
-foo:
-	echo ${NOW}
 
 build-and-deploy-docker:
 	docker build -t delphisbe .
