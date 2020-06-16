@@ -1,4 +1,5 @@
 M = $(shell printf "\033[34;1m▶\033[0m")
+NOW = ${shell date +%FT%T%z}
 
 
 .PHONY: setup-internal-dep
@@ -23,13 +24,19 @@ run-local-use-aws:
 build:
 	go build -o delphis_server
 
+foo:
+	echo ${NOW}
+
 build-and-deploy-docker:
 	docker build -t delphisbe .
 	docker tag delphisbe:latest 033236388136.dkr.ecr.us-west-2.amazonaws.com/delphisbe:latest
+	docker tag delphisbe:latest 033236388136.dkr.ecr.us-west-2.amazonaws.com/delphisbe:${NOW}
 	docker push 033236388136.dkr.ecr.us-west-2.amazonaws.com/delphisbe:latest
+	docker push 033236388136.dkr.ecr.us-west-2.amazonaws.com/delphisbe:${NOW}
+	aws ecs update-service --cluster delphis-cluster --task-definition delphisbe:${NOW} --service delphis-service --force-new-deployment --profile delphis
 
-update-service:
-	aws ecs update-service --cluster delphis-cluster --service delphis-service --force-new-deployment --profile delphis
+# update-service:
+# 	aws ecs update-service --cluster delphis-cluster --task-definition delphisbe:${NOW} --service delphis-service --force-new-deployment --profile delphis
 
 get-ecr-creds:
 	aws ecr --profile delphis get-login-password --region us-west-2 | docker login --username AWS --password-stdin 033236388136.dkr.ecr.us-west-2.amazonaws.com/delphisbe
