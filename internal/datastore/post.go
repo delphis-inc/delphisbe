@@ -124,7 +124,7 @@ func (d *delphisDB) GetPostsConnectionByDiscussionID(ctx context.Context, discus
 	edges := make([]*model.PostsEdge, 0)
 	for _, elem := range postArr {
 		edges = append(edges, &model.PostsEdge{
-			Cursor: elem.CreatedAt.String(),
+			Cursor: elem.CreatedAt.Format(time.RFC3339),
 			Node:   elem,
 		})
 	}
