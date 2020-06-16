@@ -124,7 +124,7 @@ func (d *delphisDB) GetPostsConnectionByDiscussionID(ctx context.Context, discus
 	edges := make([]*model.PostsEdge, 0)
 	for _, elem := range postArr {
 		edges = append(edges, &model.PostsEdge{
-			Cursor: elem.CreatedAt.Format(time.RFC3339),
+			Cursor: elem.CreatedAt.Format(time.RFC3339Nano),
 			Node:   elem,
 		})
 	}
@@ -145,10 +145,10 @@ func (d *delphisDB) GetPostsConnectionByDiscussionID(ctx context.Context, discus
 	}
 
 	hasNextPage := len(postArr) == limit+1
-	startCursor := postArr[0].CreatedAt.Format(time.RFC3339)
-	endCursor := postArr[len(postArr)-1].CreatedAt.Format(time.RFC3339)
+	startCursor := postArr[0].CreatedAt.Format(time.RFC3339Nano)
+	endCursor := postArr[len(postArr)-1].CreatedAt.Format(time.RFC3339Nano)
 	if hasNextPage {
-		endCursor = postArr[len(postArr)-2].CreatedAt.Format(time.RFC3339)
+		endCursor = postArr[len(postArr)-2].CreatedAt.Format(time.RFC3339Nano)
 		edges = edges[:len(edges)-1]
 	}
 	pageInfo := model.PageInfo{

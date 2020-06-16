@@ -43,7 +43,7 @@ func (r *discussionResolver) PostsConnection(ctx context.Context, obj *model.Dis
 	/* Sanity check. If no "after" parameter is specified, we set it to a time far into the future, for which
 	   no post can yet have been created (not even cosidering large clocks drift) */
 	if after == nil {
-		futureTime := time.Now().AddDate(1, 0, 0).Format(time.RFC3339)
+		futureTime := time.Now().AddDate(1, 0, 0).Format(time.RFC3339Nano)
 		after = &futureTime
 	} else if _, err := time.Parse(time.RFC3339, *after); err != nil {
 		return nil, errors.New("The 'After' parameter is badly formatted: " + *after)
