@@ -46,7 +46,8 @@ func (d *delphisDB) createTestTables(ctx context.Context) error {
 			post_content_id varchar(36) not null,
 			quoted_post_id varchar(36),
 			media_id varchar(36),
-			imported_content_id varchar(36)
+			imported_content_id varchar(36),
+			post_type varchar(20) not null
 		);`,
 
 		`CREATE TABLE IF NOT EXISTS post_contents (

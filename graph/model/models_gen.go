@@ -311,22 +311,20 @@ func (e PostDeletedReason) MarshalGQL(w io.Writer) {
 type PostType string
 
 const (
-	PostTypeText            PostType = "TEXT"
-	PostTypeMedia           PostType = "MEDIA"
-	PostTypePoll            PostType = "POLL"
+	PostTypeStandard        PostType = "STANDARD"
 	PostTypeImportedContent PostType = "IMPORTED_CONTENT"
+	PostTypeAlert           PostType = "ALERT"
 )
 
 var AllPostType = []PostType{
-	PostTypeText,
-	PostTypeMedia,
-	PostTypePoll,
+	PostTypeStandard,
 	PostTypeImportedContent,
+	PostTypeAlert,
 }
 
 func (e PostType) IsValid() bool {
 	switch e {
-	case PostTypeText, PostTypeMedia, PostTypePoll, PostTypeImportedContent:
+	case PostTypeStandard, PostTypeImportedContent, PostTypeAlert:
 		return true
 	}
 	return false

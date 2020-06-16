@@ -80,7 +80,7 @@ type Datastore interface {
 	GetImportedContentByDiscussionID(ctx context.Context, discussionID string, limit int) ContentIter
 	GetScheduledImportedContentByDiscussionID(ctx context.Context, discussionID string) ContentIter
 	PutImportedContentDiscussionQueue(ctx context.Context, discussionID, contentID string, postedAt *time.Time, matchingTags []string) (*model.ContentQueueRecord, error)
-	UpdateImportedContentDiscussionQueue(ctx context.Context, discussionID, contentID string) (*model.ContentQueueRecord, error)
+	UpdateImportedContentDiscussionQueue(ctx context.Context, discussionID, contentID string, postedAt *time.Time) (*model.ContentQueueRecord, error)
 
 	// TXN
 	BeginTx(ctx context.Context) (*sql2.Tx, error)

@@ -18,12 +18,10 @@ import (
 )
 
 func (d *delphisBackend) CreatePost(ctx context.Context, discussionID string, participantID string, input model.PostContentInput) (*model.Post, error) {
-	// Validate input string if there are mentioned entities
-	if input.MentionedEntities != nil {
-		if err := validateMentionedEntities(ctx, input.PostText, input.MentionedEntities); err != nil {
-			logrus.WithError(err).Error("unequal amount of tokens and mentions")
-			return nil, err
-		}
+	// Validate post params
+	if err := validatePostParams(ctx, input); err != nil {
+		logrus.WithError(err).Error("failed to validate post params")
+		return nil, err
 	}
 
 	postContent := model.PostContent{
@@ -34,6 +32,7 @@ func (d *delphisBackend) CreatePost(ctx context.Context, discussionID string, pa
 
 	post := model.Post{
 		ID:                util.UUIDv4(),
+		PostType:          input.PostType,
 		CreatedAt:         time.Now(),
 		UpdatedAt:         time.Now(),
 		DiscussionID:      &discussionID,
@@ -105,8 +104,40 @@ func (d *delphisBackend) CreatePost(ctx context.Context, discussionID string, pa
 	return postObj, nil
 }
 
+func (d *delphisBackend) CreateAlertPost(ctx context.Context, discussionID string, userObj *model.User, isAnonymous bool) (*model.Post, error) {
+	// Do not create an alert post when the concierge joins
+	if userObj.ID == model.ConciergeUser {
+		return nil, nil
+	}
+
+	// Create post string based on anonymity. Need proper copy from Ned/Chris
+	var welcomeStr string
+	if isAnonymous {
+		welcomeStr = "Welcome Anonymous to the Chat"
+	} else {
+		welcomeStr = fmt.Sprintf("Welcome %v to the chat", userObj.UserProfile.DisplayName)
+	}
+
+	// Get concierge participant
+	resp, err := d.GetParticipantsByDiscussionIDUserID(ctx, discussionID, model.ConciergeUser)
+	if err != nil {
+		logrus.WithError(err).Error("failed to fetch concierge participant")
+		return nil, err
+	}
+	if resp.NonAnon == nil {
+		return nil, fmt.Errorf("discussion is missing a concierge participant")
+	}
+
+	input := model.PostContentInput{
+		PostText: welcomeStr,
+		PostType: model.PostTypeAlert,
+	}
+
+	return d.CreatePost(ctx, discussionID, resp.NonAnon.ID, input)
+}
+
 // PostImportedContent puts a record in the queue and posts the content
-func (d *delphisBackend) PostImportedContent(ctx context.Context, participantID, discussionID, contentID string, postedAt *time.Time, matchingTags []string, autoPost bool) (*model.Post, error) {
+func (d *delphisBackend) PostImportedContent(ctx context.Context, participantID, discussionID, contentID string, postedAt *time.Time, matchingTags []string, dripType model.DripPostType) (*model.Post, error) {
 	// Fetch content from importedContents Table
 	// Do we want to block mods from posting the same article?
 	content, err := d.db.GetImportedContentByID(ctx, contentID)
@@ -129,7 +160,7 @@ func (d *delphisBackend) PostImportedContent(ctx context.Context, participantID,
 		return nil, err
 	}
 
-	if _, err := d.PutImportedContentQueue(ctx, discussionID, contentID, postedAt, matchingTags, autoPost); err != nil {
+	if _, err := d.PutImportedContentQueue(ctx, discussionID, contentID, postedAt, matchingTags, dripType); err != nil {
 		logrus.WithError(err).Error("failed to put importedContentQueue")
 		return nil, err
 	}
@@ -138,7 +169,7 @@ func (d *delphisBackend) PostImportedContent(ctx context.Context, participantID,
 }
 
 // PutImportedContentQueue creates a record in the queue which is used for archiving and posting
-func (d *delphisBackend) PutImportedContentQueue(ctx context.Context, discussionID, contentID string, postedAt *time.Time, matchingTags []string, autoPost bool) (*model.ContentQueueRecord, error) {
+func (d *delphisBackend) PutImportedContentQueue(ctx context.Context, discussionID, contentID string, postedAt *time.Time, matchingTags []string, dripType model.DripPostType) (*model.ContentQueueRecord, error) {
 	// Get matching tags if none have been passed in
 	if len(matchingTags) == 0 {
 		var err error
@@ -153,14 +184,30 @@ func (d *delphisBackend) PutImportedContentQueue(ctx context.Context, discussion
 	// If auto-posted, update record within queue
 	// If not, create new record. This allows mods to post an article as many times as they want
 	icObj := &model.ContentQueueRecord{}
-	if autoPost {
+	switch dripType {
+	case model.ManualDrip:
+		// Set existing scheduled matching importedContents to postedAt = timeZero
+		timeZero := time.Time{}
+		if _, err := d.db.UpdateImportedContentDiscussionQueue(ctx, discussionID, contentID, &timeZero); err != nil {
+			logrus.WithError(err).Error("failed to update imported content into the queue")
+			return nil, err
+		}
+
+		// Insert new record for manual drip
 		var err error
-		icObj, err = d.db.UpdateImportedContentDiscussionQueue(ctx, discussionID, contentID)
+		icObj, err = d.db.PutImportedContentDiscussionQueue(ctx, discussionID, contentID, postedAt, matchingTags)
+		if err != nil {
+			logrus.WithError(err).Error("failed to post imported content into the queue")
+			return nil, err
+		}
+	case model.ScheduledDrip:
+		var err error
+		icObj, err = d.db.UpdateImportedContentDiscussionQueue(ctx, discussionID, contentID, postedAt)
 		if err != nil {
 			logrus.WithError(err).Error("failed to update imported content into the queue")
 			return nil, err
 		}
-	} else {
+	case model.AutoDrip:
 		var err error
 		icObj, err = d.db.PutImportedContentDiscussionQueue(ctx, discussionID, contentID, postedAt, matchingTags)
 		if err != nil {
@@ -292,10 +339,19 @@ func (d *delphisBackend) iterToPosts(ctx context.Context, iter datastore.PostIte
 	return posts, nil
 }
 
-func validateMentionedEntities(ctx context.Context, inputText string, entities []string) error {
-	tokens := regexp.MustCompile(`\<(\d+)\>`).FindAllStringSubmatch(inputText, -1)
-	if len(tokens) != len(entities) {
-		return errors.New("tokens did not match entities")
+func validatePostParams(ctx context.Context, input model.PostContentInput) error {
+	// Validate post type
+	if input.PostType == "" {
+		return fmt.Errorf("PostType must not be empty")
 	}
+
+	// Validate mentionedEntities
+	if input.MentionedEntities != nil {
+		tokens := regexp.MustCompile(`\<(\d+)\>`).FindAllStringSubmatch(input.PostText, -1)
+		if len(tokens) != len(input.MentionedEntities) {
+			return errors.New("tokens did not match entities")
+		}
+	}
+
 	return nil
 }
