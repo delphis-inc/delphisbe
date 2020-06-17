@@ -30,10 +30,9 @@ build-and-deploy-docker:
 	docker tag delphisbe:latest 033236388136.dkr.ecr.us-west-2.amazonaws.com/delphisbe:${NOW}
 	docker push 033236388136.dkr.ecr.us-west-2.amazonaws.com/delphisbe:latest
 	docker push 033236388136.dkr.ecr.us-west-2.amazonaws.com/delphisbe:${NOW}
-	aws ecs update-service --cluster delphis-cluster --task-definition delphisbe:${NOW} --service delphis-service --force-new-deployment --profile delphis
 
-# update-service:
-# 	aws ecs update-service --cluster delphis-cluster --task-definition delphisbe:${NOW} --service delphis-service --force-new-deployment --profile delphis
+update-service:
+	aws ecs update-service --cluster delphis-cluster --service delphis-service --force-new-deployment --profile delphis
 
 get-ecr-creds:
 	aws ecr --profile delphis get-login-password --region us-west-2 | docker login --username AWS --password-stdin 033236388136.dkr.ecr.us-west-2.amazonaws.com/delphisbe

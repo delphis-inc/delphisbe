@@ -75,32 +75,32 @@ resource "aws_iam_policy" "dynamodb" {
 EOF
 }
 
-resource "aws_iam_policy" "rds-read-write" {
-  name = "chatham-task-policy-rds-read-write"
-  description = "Policy that allows access to rds for read and write"
+# resource "aws_iam_policy" "rds-read-write" {
+#   name = "chatham-task-policy-rds-read-write"
+#   description = "Policy that allows access to rds for read and write"
 
-  assume_role_policy = <<EOF
-{
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Sid": "RDS Read Write",
-      "Effect": "Allow",
-      "Action": [
-        // TODO
-      ],
-      "Resource": {cluster_instances-staging.arn}
-    }
-  ]
-}
-EOF
+#   assume_role_policy = <<EOF
+# {
+#   "Version": "2012-10-17",
+#   "Statement": [
+#     {
+#       "Sid": "RDS Read Write",
+#       "Effect": "Allow",
+#       "Action": [
+#         // TODO
+#       ],
+#       "Resource": {cluster_instances-staging.arn}
+#     }
+#   ]
+# }
+# EOF
  
 resource "aws_iam_role_policy_attachment" "ecs-task-role-policy-attachment" {
   role       = aws_iam_role.ecs_task_role.name
   policy_arn = aws_iam_policy.dynamodb.arn
 }
 
-resource ""
+# resource ""
 
 // TODO: This should limit to just the speicfic secret that we use for delphis.
 resource "aws_iam_policy" "secrets-manager" {
