@@ -24,7 +24,7 @@ run-local-use-aws:
 build:
 	go build -o delphis_server
 
-build-and-deploy-docker:
+build-and-deploy-docker: get-ecr-creds
 	docker build -t delphisbe .
 	docker tag delphisbe:latest 033236388136.dkr.ecr.us-west-2.amazonaws.com/delphisbe:latest
 	docker tag delphisbe:latest 033236388136.dkr.ecr.us-west-2.amazonaws.com/delphisbe:${NOW}
