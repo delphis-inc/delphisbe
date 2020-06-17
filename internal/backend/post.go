@@ -5,11 +5,13 @@ import (
 	"errors"
 	"fmt"
 	"regexp"
+	"strconv"
 	"strings"
 	"time"
 
 	"go.uber.org/multierr"
 
+	"github.com/lib/pq"
 	"github.com/nedrocks/delphisbe/graph/model"
 	"github.com/nedrocks/delphisbe/internal/util"
 	"github.com/sirupsen/logrus"
@@ -17,6 +19,7 @@ import (
 
 const (
 	PostPerPageLimit = 50
+	PutPostMaxRetry  = 3
 )
 
 func (d *delphisBackend) CreatePost(ctx context.Context, discussionID string, participantID string, input model.PostContentInput) (*model.Post, error) {
@@ -46,64 +49,75 @@ func (d *delphisBackend) CreatePost(ctx context.Context, discussionID string, pa
 		ImportedContentID: input.ImportedContentID,
 	}
 
-	// Begin tx
-	tx, err := d.db.BeginTx(ctx)
-	if err != nil {
-		logrus.WithError(err).Error("failed to begin tx")
-		return nil, err
-	}
-	// Put post contents
-	if err := d.db.PutPostContent(ctx, tx, postContent); err != nil {
-		logrus.WithError(err).Error("failed to PutPostContent")
-
-		// Rollback on errors
-		if txErr := d.db.RollbackTx(ctx, tx); txErr != nil {
-			logrus.WithError(txErr).Error("failed to rollback tx")
-			return nil, multierr.Append(err, txErr)
-		}
-		return nil, err
-	}
-
-	// Put post
-	postObj, err := d.db.PutPost(ctx, tx, post)
-	if err != nil {
-		logrus.WithError(err).Error("failed to PutPost")
-
-		// Rollback on errors
-		if txErr := d.db.RollbackTx(ctx, tx); txErr != nil {
-			logrus.WithError(txErr).Error("failed to rollback tx")
-			return nil, multierr.Append(err, txErr)
-		}
-		return nil, err
-	}
-
-	// Put Activity
-	if err := d.db.PutActivity(ctx, tx, postObj); err != nil {
-		logrus.WithError(err).Error("failed to PutActivity")
-
-		// We don't want to rollback the whole transaction if we mess up the recording of mentions.
-		// Ideally we'd push it to a queue to be re-ran later
-	}
-
-	// Commit transaction
-	if err := d.db.CommitTx(ctx, tx); err != nil {
-		logrus.WithError(err).Error("failed to commit post tx")
-		return nil, err
-	}
-
-	logrus.Debugf("Post: %+v\n", postObj.PostContent)
-
-	discussion, err := d.db.GetDiscussionByID(ctx, discussionID)
-	if err != nil {
-		logrus.WithError(err).Debugf("Skipping notification to subscribers because of an error")
-	} else {
-		_, err := d.SendNotificationsToSubscribers(ctx, discussion, &post)
+	retryAttempts := 0
+	for true {
+		// Begin tx
+		tx, err := d.db.BeginTx(ctx)
 		if err != nil {
-			logrus.WithError(err).Warn("Failed to send push notifications on createPost")
+			logrus.WithError(err).Error("failed to begin tx")
+			return nil, err
 		}
-	}
+		// Put post contents
+		if err := d.db.PutPostContent(ctx, tx, postContent); err != nil {
+			logrus.WithError(err).Error("failed to PutPostContent")
 
-	return postObj, nil
+			// Rollback on errors
+			if txErr := d.db.RollbackTx(ctx, tx); txErr != nil {
+				logrus.WithError(txErr).Error("failed to rollback tx")
+				return nil, multierr.Append(err, txErr)
+			}
+			return nil, err
+		}
+
+		// Put post
+		postObj, err := d.db.PutPost(ctx, tx, post)
+		if err != nil {
+			pqError, isPqError := err.(*pq.Error)
+			if isPqError && retryAttempts < PutPostMaxRetry && pqError.Code == "23505" {
+				retryAttempts++
+				logrus.WithError(err).Error("failed to PutPost, retrying with attempt #" + strconv.Itoa(retryAttempts))
+				// Note for the future: hould we backoff a little?
+				continue
+			} else {
+				logrus.WithError(err).Error("failed to PutPost")
+				// Rollback on errors
+				if txErr := d.db.RollbackTx(ctx, tx); txErr != nil {
+					logrus.WithError(txErr).Error("failed to rollback tx")
+					return nil, multierr.Append(err, txErr)
+				}
+				return nil, err
+			}
+		}
+
+		// Put Activity
+		if err := d.db.PutActivity(ctx, tx, postObj); err != nil {
+			logrus.WithError(err).Error("failed to PutActivity")
+
+			// We don't want to rollback the whole transaction if we mess up the recording of mentions.
+			// Ideally we'd push it to a queue to be re-ran later
+		}
+
+		// Commit transaction
+		if err := d.db.CommitTx(ctx, tx); err != nil {
+			logrus.WithError(err).Error("failed to commit post tx")
+			return nil, err
+		}
+
+		// If we reach this point then the transaction is succesfully committed and we should not retry
+		logrus.Debugf("Post: %+v\n", postObj.PostContent)
+		discussion, err := d.db.GetDiscussionByID(ctx, discussionID)
+		if err != nil {
+			logrus.WithError(err).Debugf("Skipping notification to subscribers because of an error")
+		} else {
+			_, err := d.SendNotificationsToSubscribers(ctx, discussion, &post)
+			if err != nil {
+				logrus.WithError(err).Warn("Failed to send push notifications on createPost")
+			}
+		}
+
+		return postObj, nil
+	}
+	return nil, errors.New("Unknown error, this code should not be reachable")
 }
 
 func (d *delphisBackend) CreateAlertPost(ctx context.Context, discussionID string, userObj *model.User, isAnonymous bool) (*model.Post, error) {
