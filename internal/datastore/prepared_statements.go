@@ -22,6 +22,7 @@ type dbPrepStmts struct {
 
 	// Discussion
 	getDiscussionsForAutoPostStmt *sql2.Stmt
+	getPublicDiscussionsStmt      *sql2.Stmt
 
 	// Moderator
 	getModeratorByUserIDStmt                *sql2.Stmt
@@ -42,6 +43,29 @@ type dbPrepStmts struct {
 	putImportedContentTagsStmt *sql2.Stmt
 	putDiscussionTagsStmt      *sql2.Stmt
 	deleteDiscussionTagsStmt   *sql2.Stmt
+
+	// Discussion Access
+	getDiscussionsByFlairTemplateForUserStmt *sql2.Stmt
+	getDiscussionsByUserAccessForUserStmt    *sql2.Stmt
+	getDiscussionFlairAccessStmt             *sql2.Stmt
+	upsertDiscussionFlairAccessStmt          *sql2.Stmt
+	upsertDiscussionUserAccessStmt           *sql2.Stmt
+	deleteDiscussionFlairAccessStmt          *sql2.Stmt
+	deleteDiscussionUserAccessStmt           *sql2.Stmt
+
+	// InvitesRequests
+	getDiscussionInviteByIDStmt                *sql2.Stmt
+	getDiscussionRequestAccessByIDStmt         *sql2.Stmt
+	getDiscussionInvitesForUserStmt            *sql2.Stmt
+	getSentDiscussionInvitesForUserStmt        *sql2.Stmt
+	getDiscussionAccessRequestsStmt            *sql2.Stmt
+	getSentDiscussionAccessRequestsForUserStmt *sql2.Stmt
+	getInviteLinksForDiscussion                *sql2.Stmt
+	putDiscussionInviteRecordStmt              *sql2.Stmt
+	putDiscussionAccessRequestStmt             *sql2.Stmt
+	updateDiscussionInviteRecordStmt           *sql2.Stmt
+	updateDiscussionAccessRequestStmt          *sql2.Stmt
+	upsertInviteLinksForDiscussion             *sql2.Stmt
 }
 
 const getPostsByDiscussionIDString = `
@@ -169,6 +193,19 @@ const getDiscussionsForAutoPostString = `
 			idle_minutes
 		FROM discussions
 		WHERE auto_post = true`
+
+const getPublicDiscussionsString = `
+		SELECT id,
+			created_at,
+			title,
+			anonymity_type,
+			moderator_id,
+			auto_post,
+			idle_minutes,
+			public_access
+		FROM discussions
+		WHERE public_access = true
+			AND deleted_at is null;`
 
 // Currently only care if you are a mod, not checking on discussion mods
 const getModeratorByUserIDString = `
@@ -362,7 +399,8 @@ const putDiscussionTagsString = `
 			discussion_id,
 			tag
 		) VALUES ($1, $2)
-		ON CONFLICT DO NOTHING
+		ON CONFLICT (discussion_id, tag)
+		DO UPDATE SET deleted_at = null
 		RETURNING
 			discussion_id,
 			tag,
@@ -378,3 +416,251 @@ const deleteDiscussionTagsString = `
 			tag,
 			created_at,
 			deleted_at;`
+
+// Discussion Access
+const getDiscussionsByFlairTemplateForUserString = `
+		SELECT d.id,
+			d.created_at,
+			d.title,
+			d.anonymity_type,
+			d.moderator_id,
+			d.auto_post,
+			d.idle_minutes,
+			d.public_access
+		FROM flairs f
+		INNER JOIN discussion_flair_access dfa
+			ON f.template_id = dfa.flair_template_id
+		INNER JOIN discussions d
+			ON dfa.discussion_id = d.id
+		WHERE f.user_id = $1
+			AND dfa.deleted_at is null
+			AND d.public_access = false;`
+
+const getDiscussionsByUserAccessForUserString = `
+		SELECT d.id,
+			d.created_at,
+			d.title,
+			d.anonymity_type,
+			d.moderator_id,
+			d.auto_post,
+			d.idle_minutes,
+			d.public_access
+		FROM discussion_user_access dua
+		INNER JOIN discussions d
+			ON dua.discussion_id = d.id
+		WHERE dua.user_id = $1
+			AND d.public_access = false;`
+
+const getDiscussionFlairAccessString = `
+		SELECT discussion_id,
+			flair_template_id,
+			created_at,
+			updated_at
+		FROM discussion_flair_access
+		WHERE discussion_id = $1
+			AND deleted_at is null
+		ORDER BY created_at desc;`
+
+const upsertDiscussionFlairAccessString = `
+		INSERT INTO discussion_flair_access (
+			discussion_id,
+			flair_template_id
+		) VALUES ($1, $2)
+		ON CONFLICT (discussion_id, flair_template_id)
+		DO UPDATE SET deleted_at = null
+		RETURNING
+			discussion_id,
+			flair_template_id,
+			created_at,
+			updated_at;`
+
+const upsertDiscussionUserAccessString = `
+		INSERT INTO discussion_user_access (
+			discussion_id,
+			user_id
+		) VALUES ($1, $2)
+		ON CONFLICT (discussion_id, user_id)
+		DO UPDATE SET deleted_at = null
+		RETURNING
+			discussion_id,
+			user_id,
+			created_at,
+			updated_at;`
+
+const deleteDiscussionFlairAccessString = `
+		UPDATE discussion_flair_access
+		SET deleted_at = now()
+		WHERE discussion_id = $1
+			AND flair_template_id = $2
+		RETURNING
+			discussion_id,
+			flair_template_id,
+			created_at,
+			updated_at,
+			deleted_at;`
+
+const deleteDiscussionUserAccessString = `
+		UPDATE discussion_user_access
+		SET deleted_at = now()
+		WHERE discussion_id = $1
+			AND user_id = $2
+		RETURNING
+			discussion_id,
+			user_id,
+			created_at,
+			updated_at,
+			deleted_at;`
+
+// Invites and Requests
+const getDiscussionInviteByIDString = `
+		SELECT id,
+			user_id,
+			discussion_id,
+			invite_from_participant_id,
+			created_at,
+			updated_at,
+			status,
+			invite_type
+		FROM discussion_user_invitations
+		WHERE id = $1;`
+
+const getDiscussionRequestAccessByIDString = `
+		SELECT id,
+			user_id,
+			discussion_id,
+			created_at,
+			updated_at,
+			status
+		FROM discussion_user_requests
+		WHERE id = $1;`
+
+const getDiscussionInvitesForUserString = `
+		SELECT id,
+			user_id,
+			discussion_id,
+			invite_from_participant_id,
+			created_at,
+			updated_at,
+			status,
+			invite_type
+		FROM discussion_user_invitations
+		WHERE user_id = $1
+			AND deleted_at is null
+			AND status = $2;`
+
+const getSentDiscussionInvitesForUserString = `
+		SELECT id,
+			user_id,
+			discussion_id,
+			invite_from_participant_id,
+			created_at,
+			updated_at,
+			status,
+			invite_type
+		FROM discussion_user_invitations
+		WHERE invite_from_participant_id = $1
+			AND deleted_at is null;`
+
+const getDiscussionAccessRequestsString = `
+		SELECT id,
+			user_id,
+			discussion_id,
+			created_at,
+			updated_at,
+			status
+		FROM discussion_user_requests
+		WHERE discussion_id = $1
+			AND deleted_at is null;`
+
+const getSentDiscussionAccessRequestsForUserString = `
+		SELECT id,
+			user_id,
+			discussion_id,
+			created_at,
+			updated_at,
+			status
+		FROM discussion_user_requests
+		WHERE user_id = $1
+			AND deleted_at is null;`
+
+const getInviteLinksForDiscussion = `
+		SELECT discussion_id,
+			invite_link_id,
+			vip_invite_link_id,
+			created_at,
+			updated_at
+		FROM discussion_invite_link_access
+		WHERE discussion_id = $1
+			AND deleted_at is null`
+
+const putDiscussionInviteRecordString = `
+		INSERT INTO discussion_user_invitations (
+			id,
+			user_id,
+			discussion_id,
+			invite_from_participant_id,
+			status,
+			invite_type
+		) VALUES ($1, $2, $3, $4, $5, $6)
+		RETURNING id,
+			user_id,
+			discussion_id,
+			invite_from_participant_id,
+			created_at,
+			updated_at,
+			status,
+			invite_type;`
+
+const putDiscussionAccessRequestString = `
+		INSERT INTO discussion_user_requests (
+			id,
+			user_id,
+			discussion_id,
+			status
+		) VALUES ($1, $2, $3, $4)
+		RETURNING id,
+			user_id,
+			discussion_id,
+			created_at,
+			updated_at,
+			status;`
+
+const updateDiscussionInviteRecordString = `
+		UPDATE discussion_user_invitations
+		SET status = $2
+		WHERE id = $1
+		RETURNING id,
+			user_id,
+			discussion_id,
+			invite_from_participant_id,
+			created_at,
+			updated_at,
+			status,
+			invite_type;`
+
+const updateDiscussionAccessRequestString = `
+		UPDATE discussion_user_requests
+		SET status = $2
+		WHERE id = $1
+		RETURNING id,
+			user_id,
+			discussion_id,
+			created_at,
+			updated_at,
+			status;`
+
+const upsertInviteLinksForDiscussion = `
+		INSERT into discussion_invite_link_access (
+			discussion_id,
+			invite_link_id,
+			vip_invite_link_id
+		) VALUES ($1, $2, $3)
+		ON CONFLICT (discussion_id)
+		DO UPDATE SET deleted_at = null,
+			invite_link_id = $2,
+			vip_invite_link_id = $3
+		RETURNING discussion_id,
+			invite_link_id,
+			vip_invite_link_id,
+			created_at,
+			updated_at;`

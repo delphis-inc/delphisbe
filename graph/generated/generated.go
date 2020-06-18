@@ -40,6 +40,10 @@ type Config struct {
 type ResolverRoot interface {
 	ContentQueueRecord() ContentQueueRecordResolver
 	Discussion() DiscussionResolver
+	DiscussionAccessRequest() DiscussionAccessRequestResolver
+	DiscussionFlairTemplateAccess() DiscussionFlairTemplateAccessResolver
+	DiscussionInvite() DiscussionInviteResolver
+	DiscussionLinkAccess() DiscussionLinkAccessResolver
 	Flair() FlairResolver
 	ImportedContent() ImportedContentResolver
 	Moderator() ModeratorResolver
@@ -86,9 +90,12 @@ type ComplexityRoot struct {
 	}
 
 	Discussion struct {
+		AccessRequests          func(childComplexity int) int
 		AnonymityType           func(childComplexity int) int
 		AutoPost                func(childComplexity int) int
 		CreatedAt               func(childComplexity int) int
+		DiscussionLinksAccess   func(childComplexity int) int
+		FlairTemplates          func(childComplexity int) int
 		ID                      func(childComplexity int) int
 		IconURL                 func(childComplexity int) int
 		IdleMinutes             func(childComplexity int) int
@@ -102,6 +109,44 @@ type ComplexityRoot struct {
 		Title                   func(childComplexity int) int
 		UpcomingContent         func(childComplexity int) int
 		UpdatedAt               func(childComplexity int) int
+	}
+
+	DiscussionAccessRequest struct {
+		CreatedAt  func(childComplexity int) int
+		Discussion func(childComplexity int) int
+		ID         func(childComplexity int) int
+		IsDeleted  func(childComplexity int) int
+		Status     func(childComplexity int) int
+		UpdatedAt  func(childComplexity int) int
+		User       func(childComplexity int) int
+	}
+
+	DiscussionFlairTemplateAccess struct {
+		CreatedAt     func(childComplexity int) int
+		Discussion    func(childComplexity int) int
+		FlairTemplate func(childComplexity int) int
+		ID            func(childComplexity int) int
+		IsDeleted     func(childComplexity int) int
+		UpdatedAt     func(childComplexity int) int
+	}
+
+	DiscussionInvite struct {
+		CreatedAt           func(childComplexity int) int
+		Discussion          func(childComplexity int) int
+		ID                  func(childComplexity int) int
+		InvitingParticipant func(childComplexity int) int
+		IsDeleted           func(childComplexity int) int
+		Status              func(childComplexity int) int
+		UpdatedAt           func(childComplexity int) int
+	}
+
+	DiscussionLinkAccess struct {
+		CreatedAt        func(childComplexity int) int
+		DiscussionID     func(childComplexity int) int
+		InviteLinkURL    func(childComplexity int) int
+		IsDeleted        func(childComplexity int) int
+		UpdatedAt        func(childComplexity int) int
+		VipInviteLinkURL func(childComplexity int) int
 	}
 
 	Flair struct {
@@ -152,23 +197,29 @@ type ComplexityRoot struct {
 	}
 
 	Mutation struct {
-		AddDiscussionParticipant func(childComplexity int, discussionID string, userID string, discussionParticipantInput model.AddDiscussionParticipantInput) int
-		AddDiscussionTags        func(childComplexity int, discussionID string, tags []string) int
-		AddPost                  func(childComplexity int, discussionID string, participantID string, postContent model.PostContentInput) int
-		AssignFlair              func(childComplexity int, participantID string, flairID string) int
-		ConciergeMutation        func(childComplexity int, discussionID string, mutationID string, selectedOptions []string) int
-		CreateDiscussion         func(childComplexity int, anonymityType model.AnonymityType, title string) int
-		CreateFlair              func(childComplexity int, userID string, templateID string) int
-		CreateFlairTemplate      func(childComplexity int, displayName *string, imageURL *string, source string) int
-		DeleteDiscussionTags     func(childComplexity int, discussionID string, tags []string) int
-		PostImportedContent      func(childComplexity int, discussionID string, participantID string, contentID string) int
-		RemoveFlair              func(childComplexity int, id string) int
-		RemoveFlairTemplate      func(childComplexity int, id string) int
-		ScheduleImportedContent  func(childComplexity int, discussionID string, contentID string) int
-		UnassignFlair            func(childComplexity int, participantID string) int
-		UpdateDiscussion         func(childComplexity int, discussionID string, input model.DiscussionInput) int
-		UpdateParticipant        func(childComplexity int, discussionID string, participantID string, updateInput model.UpdateParticipantInput) int
-		UpsertUserDevice         func(childComplexity int, userID *string, platform model.Platform, deviceID string, token *string) int
+		AddDiscussionFlairTemplatesAccess    func(childComplexity int, discussionID string, flairTemplateIDs []string) int
+		AddDiscussionParticipant             func(childComplexity int, discussionID string, userID string, discussionParticipantInput model.AddDiscussionParticipantInput) int
+		AddDiscussionTags                    func(childComplexity int, discussionID string, tags []string) int
+		AddPost                              func(childComplexity int, discussionID string, participantID string, postContent model.PostContentInput) int
+		AssignFlair                          func(childComplexity int, participantID string, flairID string) int
+		ConciergeMutation                    func(childComplexity int, discussionID string, mutationID string, selectedOptions []string) int
+		CreateDiscussion                     func(childComplexity int, anonymityType model.AnonymityType, title string, publicAccess *bool) int
+		CreateFlair                          func(childComplexity int, userID string, templateID string) int
+		CreateFlairTemplate                  func(childComplexity int, displayName *string, imageURL *string, source string) int
+		DeleteDiscussionFlairTemplatesAccess func(childComplexity int, discussionID string, flairTemplateIDs []string) int
+		DeleteDiscussionTags                 func(childComplexity int, discussionID string, tags []string) int
+		InviteUserToDiscussion               func(childComplexity int, discussionID string, userID string, invitingParticipantID string) int
+		PostImportedContent                  func(childComplexity int, discussionID string, participantID string, contentID string) int
+		RemoveFlair                          func(childComplexity int, id string) int
+		RemoveFlairTemplate                  func(childComplexity int, id string) int
+		RequestAccessToDiscussion            func(childComplexity int, discussionID string) int
+		RespondToInvite                      func(childComplexity int, inviteID string, response model.InviteRequestStatus, discussionParticipantInput model.AddDiscussionParticipantInput) int
+		RespondToRequestAccess               func(childComplexity int, requestID string, response model.InviteRequestStatus) int
+		ScheduleImportedContent              func(childComplexity int, discussionID string, contentID string) int
+		UnassignFlair                        func(childComplexity int, participantID string) int
+		UpdateDiscussion                     func(childComplexity int, discussionID string, input model.DiscussionInput) int
+		UpdateParticipant                    func(childComplexity int, discussionID string, participantID string, updateInput model.UpdateParticipantInput) int
+		UpsertUserDevice                     func(childComplexity int, userID *string, platform model.Platform, deviceID string, token *string) int
 	}
 
 	PageInfo struct {
@@ -285,13 +336,17 @@ type ComplexityRoot struct {
 	}
 
 	User struct {
-		Bookmarks    func(childComplexity int) int
-		Devices      func(childComplexity int) int
-		Flairs       func(childComplexity int) int
-		ID           func(childComplexity int) int
-		Participants func(childComplexity int) int
-		Profile      func(childComplexity int) int
-		Viewers      func(childComplexity int) int
+		Bookmarks                    func(childComplexity int) int
+		Devices                      func(childComplexity int) int
+		DiscussionInvites            func(childComplexity int, status model.InviteRequestStatus) int
+		Discussions                  func(childComplexity int) int
+		Flairs                       func(childComplexity int) int
+		ID                           func(childComplexity int) int
+		Participants                 func(childComplexity int) int
+		Profile                      func(childComplexity int) int
+		SentDiscussionAccessRequests func(childComplexity int) int
+		SentDiscussionInvites        func(childComplexity int) int
+		Viewers                      func(childComplexity int) int
 	}
 
 	UserDevice struct {
@@ -354,6 +409,28 @@ type DiscussionResolver interface {
 
 	Tags(ctx context.Context, obj *model.Discussion) ([]*model.Tag, error)
 	UpcomingContent(ctx context.Context, obj *model.Discussion) ([]*model.ImportedContent, error)
+	FlairTemplates(ctx context.Context, obj *model.Discussion) ([]*model.FlairTemplate, error)
+	AccessRequests(ctx context.Context, obj *model.Discussion) ([]*model.DiscussionAccessRequest, error)
+	DiscussionLinksAccess(ctx context.Context, obj *model.Discussion) (*model.DiscussionLinkAccess, error)
+}
+type DiscussionAccessRequestResolver interface {
+	User(ctx context.Context, obj *model.DiscussionAccessRequest) (*model.User, error)
+	Discussion(ctx context.Context, obj *model.DiscussionAccessRequest) (*model.Discussion, error)
+}
+type DiscussionFlairTemplateAccessResolver interface {
+	Discussion(ctx context.Context, obj *model.DiscussionFlairTemplateAccess) (*model.Discussion, error)
+	FlairTemplate(ctx context.Context, obj *model.DiscussionFlairTemplateAccess) (*model.FlairTemplate, error)
+	CreatedAt(ctx context.Context, obj *model.DiscussionFlairTemplateAccess) (string, error)
+	UpdatedAt(ctx context.Context, obj *model.DiscussionFlairTemplateAccess) (string, error)
+	IsDeleted(ctx context.Context, obj *model.DiscussionFlairTemplateAccess) (bool, error)
+}
+type DiscussionInviteResolver interface {
+	Discussion(ctx context.Context, obj *model.DiscussionInvite) (*model.Discussion, error)
+	InvitingParticipant(ctx context.Context, obj *model.DiscussionInvite) (*model.Participant, error)
+}
+type DiscussionLinkAccessResolver interface {
+	InviteLinkURL(ctx context.Context, obj *model.DiscussionLinkAccess) (string, error)
+	VipInviteLinkURL(ctx context.Context, obj *model.DiscussionLinkAccess) (string, error)
 }
 type FlairResolver interface {
 	DisplayName(ctx context.Context, obj *model.Flair) (*string, error)
@@ -374,7 +451,7 @@ type MutationResolver interface {
 	AddPost(ctx context.Context, discussionID string, participantID string, postContent model.PostContentInput) (*model.Post, error)
 	PostImportedContent(ctx context.Context, discussionID string, participantID string, contentID string) (*model.Post, error)
 	ScheduleImportedContent(ctx context.Context, discussionID string, contentID string) (*model.ContentQueueRecord, error)
-	CreateDiscussion(ctx context.Context, anonymityType model.AnonymityType, title string) (*model.Discussion, error)
+	CreateDiscussion(ctx context.Context, anonymityType model.AnonymityType, title string, publicAccess *bool) (*model.Discussion, error)
 	CreateFlair(ctx context.Context, userID string, templateID string) (*model.Flair, error)
 	RemoveFlair(ctx context.Context, id string) (*model.Flair, error)
 	AssignFlair(ctx context.Context, participantID string, flairID string) (*model.Participant, error)
@@ -387,6 +464,12 @@ type MutationResolver interface {
 	AddDiscussionTags(ctx context.Context, discussionID string, tags []string) ([]*model.Tag, error)
 	DeleteDiscussionTags(ctx context.Context, discussionID string, tags []string) ([]*model.Tag, error)
 	ConciergeMutation(ctx context.Context, discussionID string, mutationID string, selectedOptions []string) (*model.Post, error)
+	AddDiscussionFlairTemplatesAccess(ctx context.Context, discussionID string, flairTemplateIDs []string) (*model.Discussion, error)
+	DeleteDiscussionFlairTemplatesAccess(ctx context.Context, discussionID string, flairTemplateIDs []string) (*model.Discussion, error)
+	InviteUserToDiscussion(ctx context.Context, discussionID string, userID string, invitingParticipantID string) (*model.DiscussionInvite, error)
+	RespondToInvite(ctx context.Context, inviteID string, response model.InviteRequestStatus, discussionParticipantInput model.AddDiscussionParticipantInput) (*model.DiscussionInvite, error)
+	RequestAccessToDiscussion(ctx context.Context, discussionID string) (*model.DiscussionAccessRequest, error)
+	RespondToRequestAccess(ctx context.Context, requestID string, response model.InviteRequestStatus) (*model.DiscussionAccessRequest, error)
 }
 type ParticipantResolver interface {
 	Discussion(ctx context.Context, obj *model.Participant) (*model.Discussion, error)
@@ -441,6 +524,10 @@ type UserResolver interface {
 	Profile(ctx context.Context, obj *model.User) (*model.UserProfile, error)
 	Flairs(ctx context.Context, obj *model.User) ([]*model.Flair, error)
 	Devices(ctx context.Context, obj *model.User) ([]*model.UserDevice, error)
+	Discussions(ctx context.Context, obj *model.User) ([]*model.Discussion, error)
+	DiscussionInvites(ctx context.Context, obj *model.User, status model.InviteRequestStatus) ([]*model.DiscussionInvite, error)
+	SentDiscussionInvites(ctx context.Context, obj *model.User) ([]*model.DiscussionInvite, error)
+	SentDiscussionAccessRequests(ctx context.Context, obj *model.User) ([]*model.DiscussionAccessRequest, error)
 }
 type UserDeviceResolver interface {
 	Platform(ctx context.Context, obj *model.UserDevice) (model.Platform, error)
@@ -564,6 +651,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.ContentQueueRecord.UpdatedAt(childComplexity), true
 
+	case "Discussion.accessRequests":
+		if e.complexity.Discussion.AccessRequests == nil {
+			break
+		}
+
+		return e.complexity.Discussion.AccessRequests(childComplexity), true
+
 	case "Discussion.anonymityType":
 		if e.complexity.Discussion.AnonymityType == nil {
 			break
@@ -584,6 +678,20 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Discussion.CreatedAt(childComplexity), true
+
+	case "Discussion.discussionLinksAccess":
+		if e.complexity.Discussion.DiscussionLinksAccess == nil {
+			break
+		}
+
+		return e.complexity.Discussion.DiscussionLinksAccess(childComplexity), true
+
+	case "Discussion.flairTemplates":
+		if e.complexity.Discussion.FlairTemplates == nil {
+			break
+		}
+
+		return e.complexity.Discussion.FlairTemplates(childComplexity), true
 
 	case "Discussion.id":
 		if e.complexity.Discussion.ID == nil {
@@ -680,6 +788,188 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Discussion.UpdatedAt(childComplexity), true
+
+	case "DiscussionAccessRequest.createdAt":
+		if e.complexity.DiscussionAccessRequest.CreatedAt == nil {
+			break
+		}
+
+		return e.complexity.DiscussionAccessRequest.CreatedAt(childComplexity), true
+
+	case "DiscussionAccessRequest.discussion":
+		if e.complexity.DiscussionAccessRequest.Discussion == nil {
+			break
+		}
+
+		return e.complexity.DiscussionAccessRequest.Discussion(childComplexity), true
+
+	case "DiscussionAccessRequest.id":
+		if e.complexity.DiscussionAccessRequest.ID == nil {
+			break
+		}
+
+		return e.complexity.DiscussionAccessRequest.ID(childComplexity), true
+
+	case "DiscussionAccessRequest.isDeleted":
+		if e.complexity.DiscussionAccessRequest.IsDeleted == nil {
+			break
+		}
+
+		return e.complexity.DiscussionAccessRequest.IsDeleted(childComplexity), true
+
+	case "DiscussionAccessRequest.status":
+		if e.complexity.DiscussionAccessRequest.Status == nil {
+			break
+		}
+
+		return e.complexity.DiscussionAccessRequest.Status(childComplexity), true
+
+	case "DiscussionAccessRequest.updatedAt":
+		if e.complexity.DiscussionAccessRequest.UpdatedAt == nil {
+			break
+		}
+
+		return e.complexity.DiscussionAccessRequest.UpdatedAt(childComplexity), true
+
+	case "DiscussionAccessRequest.user":
+		if e.complexity.DiscussionAccessRequest.User == nil {
+			break
+		}
+
+		return e.complexity.DiscussionAccessRequest.User(childComplexity), true
+
+	case "DiscussionFlairTemplateAccess.createdAt":
+		if e.complexity.DiscussionFlairTemplateAccess.CreatedAt == nil {
+			break
+		}
+
+		return e.complexity.DiscussionFlairTemplateAccess.CreatedAt(childComplexity), true
+
+	case "DiscussionFlairTemplateAccess.discussion":
+		if e.complexity.DiscussionFlairTemplateAccess.Discussion == nil {
+			break
+		}
+
+		return e.complexity.DiscussionFlairTemplateAccess.Discussion(childComplexity), true
+
+	case "DiscussionFlairTemplateAccess.flairTemplate":
+		if e.complexity.DiscussionFlairTemplateAccess.FlairTemplate == nil {
+			break
+		}
+
+		return e.complexity.DiscussionFlairTemplateAccess.FlairTemplate(childComplexity), true
+
+	case "DiscussionFlairTemplateAccess.id":
+		if e.complexity.DiscussionFlairTemplateAccess.ID == nil {
+			break
+		}
+
+		return e.complexity.DiscussionFlairTemplateAccess.ID(childComplexity), true
+
+	case "DiscussionFlairTemplateAccess.isDeleted":
+		if e.complexity.DiscussionFlairTemplateAccess.IsDeleted == nil {
+			break
+		}
+
+		return e.complexity.DiscussionFlairTemplateAccess.IsDeleted(childComplexity), true
+
+	case "DiscussionFlairTemplateAccess.updatedAt":
+		if e.complexity.DiscussionFlairTemplateAccess.UpdatedAt == nil {
+			break
+		}
+
+		return e.complexity.DiscussionFlairTemplateAccess.UpdatedAt(childComplexity), true
+
+	case "DiscussionInvite.createdAt":
+		if e.complexity.DiscussionInvite.CreatedAt == nil {
+			break
+		}
+
+		return e.complexity.DiscussionInvite.CreatedAt(childComplexity), true
+
+	case "DiscussionInvite.discussion":
+		if e.complexity.DiscussionInvite.Discussion == nil {
+			break
+		}
+
+		return e.complexity.DiscussionInvite.Discussion(childComplexity), true
+
+	case "DiscussionInvite.id":
+		if e.complexity.DiscussionInvite.ID == nil {
+			break
+		}
+
+		return e.complexity.DiscussionInvite.ID(childComplexity), true
+
+	case "DiscussionInvite.invitingParticipant":
+		if e.complexity.DiscussionInvite.InvitingParticipant == nil {
+			break
+		}
+
+		return e.complexity.DiscussionInvite.InvitingParticipant(childComplexity), true
+
+	case "DiscussionInvite.isDeleted":
+		if e.complexity.DiscussionInvite.IsDeleted == nil {
+			break
+		}
+
+		return e.complexity.DiscussionInvite.IsDeleted(childComplexity), true
+
+	case "DiscussionInvite.status":
+		if e.complexity.DiscussionInvite.Status == nil {
+			break
+		}
+
+		return e.complexity.DiscussionInvite.Status(childComplexity), true
+
+	case "DiscussionInvite.updatedAt":
+		if e.complexity.DiscussionInvite.UpdatedAt == nil {
+			break
+		}
+
+		return e.complexity.DiscussionInvite.UpdatedAt(childComplexity), true
+
+	case "DiscussionLinkAccess.createdAt":
+		if e.complexity.DiscussionLinkAccess.CreatedAt == nil {
+			break
+		}
+
+		return e.complexity.DiscussionLinkAccess.CreatedAt(childComplexity), true
+
+	case "DiscussionLinkAccess.discussionID":
+		if e.complexity.DiscussionLinkAccess.DiscussionID == nil {
+			break
+		}
+
+		return e.complexity.DiscussionLinkAccess.DiscussionID(childComplexity), true
+
+	case "DiscussionLinkAccess.inviteLinkURL":
+		if e.complexity.DiscussionLinkAccess.InviteLinkURL == nil {
+			break
+		}
+
+		return e.complexity.DiscussionLinkAccess.InviteLinkURL(childComplexity), true
+
+	case "DiscussionLinkAccess.isDeleted":
+		if e.complexity.DiscussionLinkAccess.IsDeleted == nil {
+			break
+		}
+
+		return e.complexity.DiscussionLinkAccess.IsDeleted(childComplexity), true
+
+	case "DiscussionLinkAccess.updatedAt":
+		if e.complexity.DiscussionLinkAccess.UpdatedAt == nil {
+			break
+		}
+
+		return e.complexity.DiscussionLinkAccess.UpdatedAt(childComplexity), true
+
+	case "DiscussionLinkAccess.vipInviteLinkURL":
+		if e.complexity.DiscussionLinkAccess.VipInviteLinkURL == nil {
+			break
+		}
+
+		return e.complexity.DiscussionLinkAccess.VipInviteLinkURL(childComplexity), true
 
 	case "Flair.displayName":
 		if e.complexity.Flair.DisplayName == nil {
@@ -884,6 +1174,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Moderator.UserProfile(childComplexity), true
 
+	case "Mutation.addDiscussionFlairTemplatesAccess":
+		if e.complexity.Mutation.AddDiscussionFlairTemplatesAccess == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_addDiscussionFlairTemplatesAccess_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.AddDiscussionFlairTemplatesAccess(childComplexity, args["discussionID"].(string), args["flairTemplateIDs"].([]string)), true
+
 	case "Mutation.addDiscussionParticipant":
 		if e.complexity.Mutation.AddDiscussionParticipant == nil {
 			break
@@ -954,7 +1256,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Mutation.CreateDiscussion(childComplexity, args["anonymityType"].(model.AnonymityType), args["title"].(string)), true
+		return e.complexity.Mutation.CreateDiscussion(childComplexity, args["anonymityType"].(model.AnonymityType), args["title"].(string), args["publicAccess"].(*bool)), true
 
 	case "Mutation.createFlair":
 		if e.complexity.Mutation.CreateFlair == nil {
@@ -980,6 +1282,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Mutation.CreateFlairTemplate(childComplexity, args["displayName"].(*string), args["imageURL"].(*string), args["source"].(string)), true
 
+	case "Mutation.deleteDiscussionFlairTemplatesAccess":
+		if e.complexity.Mutation.DeleteDiscussionFlairTemplatesAccess == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_deleteDiscussionFlairTemplatesAccess_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.DeleteDiscussionFlairTemplatesAccess(childComplexity, args["discussionID"].(string), args["flairTemplateIDs"].([]string)), true
+
 	case "Mutation.deleteDiscussionTags":
 		if e.complexity.Mutation.DeleteDiscussionTags == nil {
 			break
@@ -991,6 +1305,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Mutation.DeleteDiscussionTags(childComplexity, args["discussionID"].(string), args["tags"].([]string)), true
+
+	case "Mutation.inviteUserToDiscussion":
+		if e.complexity.Mutation.InviteUserToDiscussion == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_inviteUserToDiscussion_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.InviteUserToDiscussion(childComplexity, args["discussionID"].(string), args["userID"].(string), args["invitingParticipantID"].(string)), true
 
 	case "Mutation.postImportedContent":
 		if e.complexity.Mutation.PostImportedContent == nil {
@@ -1027,6 +1353,42 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Mutation.RemoveFlairTemplate(childComplexity, args["id"].(string)), true
+
+	case "Mutation.requestAccessToDiscussion":
+		if e.complexity.Mutation.RequestAccessToDiscussion == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_requestAccessToDiscussion_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.RequestAccessToDiscussion(childComplexity, args["discussionID"].(string)), true
+
+	case "Mutation.respondToInvite":
+		if e.complexity.Mutation.RespondToInvite == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_respondToInvite_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.RespondToInvite(childComplexity, args["inviteID"].(string), args["response"].(model.InviteRequestStatus), args["discussionParticipantInput"].(model.AddDiscussionParticipantInput)), true
+
+	case "Mutation.respondToRequestAccess":
+		if e.complexity.Mutation.RespondToRequestAccess == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_respondToRequestAccess_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.RespondToRequestAccess(childComplexity, args["requestID"].(string), args["response"].(model.InviteRequestStatus)), true
 
 	case "Mutation.scheduleImportedContent":
 		if e.complexity.Mutation.ScheduleImportedContent == nil {
@@ -1556,6 +1918,25 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.User.Devices(childComplexity), true
 
+	case "User.discussionInvites":
+		if e.complexity.User.DiscussionInvites == nil {
+			break
+		}
+
+		args, err := ec.field_User_discussionInvites_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.User.DiscussionInvites(childComplexity, args["status"].(model.InviteRequestStatus)), true
+
+	case "User.discussions":
+		if e.complexity.User.Discussions == nil {
+			break
+		}
+
+		return e.complexity.User.Discussions(childComplexity), true
+
 	case "User.flairs":
 		if e.complexity.User.Flairs == nil {
 			break
@@ -1583,6 +1964,20 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.User.Profile(childComplexity), true
+
+	case "User.sentDiscussionAccessRequests":
+		if e.complexity.User.SentDiscussionAccessRequests == nil {
+			break
+		}
+
+		return e.complexity.User.SentDiscussionAccessRequests(childComplexity), true
+
+	case "User.sentDiscussionInvites":
+		if e.complexity.User.SentDiscussionInvites == nil {
+			break
+		}
+
+		return e.complexity.User.SentDiscussionInvites(childComplexity), true
 
 	case "User.viewers":
 		if e.complexity.User.Viewers == nil {
@@ -1845,12 +2240,53 @@ var sources = []*ast.Source{
     idleMinutes: Int!
     tags: [Tag!]
     upcomingContent: [ImportedContent!]
+    flairTemplates: [FlairTemplate!]
+    accessRequests: [DiscussionAccessRequest!]
+    discussionLinksAccess: DiscussionLinkAccess!
 }
 
 type Tag {
     id: ID!
     createdAt: String!
     tag: String!
+    isDeleted: Boolean!
+}
+
+type DiscussionFlairTemplateAccess {
+    id: ID!
+    discussion: Discussion!
+    flairTemplate: FlairTemplate!
+    createdAt: String!
+    updatedAt: String!
+    isDeleted: Boolean!
+}
+
+type DiscussionInvite {
+    id: ID!
+    discussion: Discussion!
+    invitingParticipant: Participant!
+    createdAt: String!
+    updatedAt: String!
+    isDeleted: Boolean!
+    status: InviteRequestStatus!
+}
+
+type DiscussionAccessRequest {
+    id: ID!
+    user: User!
+    discussion: Discussion!
+    createdAt: String!
+    updatedAt: String!
+    isDeleted: Boolean!
+    status: InviteRequestStatus!
+}
+
+type DiscussionLinkAccess {
+    discussionID: ID!
+    inviteLinkURL: String!
+    vipInviteLinkURL: String!
+    createdAt: String!
+    updatedAt: String!
     isDeleted: Boolean!
 }
 
@@ -1918,6 +2354,13 @@ enum PostType {
     IMPORTED_CONTENT,
     ALERT,
     CONCIERGE
+}
+
+enum InviteRequestStatus {
+    ACCEPTED,
+    REJECTED,
+    PENDING,
+    CANCELLED
 }`, BuiltIn: false},
 	&ast.Source{Name: "graph/types/flair.graphqls", Input: `type Flair {
     # The UUID for this flair
@@ -2143,6 +2586,7 @@ input DiscussionInput {
   title: String
   autoPost: Boolean
   idleMinutes: Int
+  publicAccess: Boolean
 }
 
 
@@ -2152,7 +2596,7 @@ type Mutation {
   addPost(discussionID: ID!, participantID: ID!, postContent: PostContentInput!): Post!
   postImportedContent(discussionID: ID!, participantID: ID!, contentID: ID!): Post! # TODO: Need clarity on UX for this. Keeping it simple for now
   scheduleImportedContent(discussionID: ID!, contentID: ID!): ContentQueueRecord!
-  createDiscussion(anonymityType: AnonymityType!, title: String!): Discussion!
+  createDiscussion(anonymityType: AnonymityType!, title: String!, publicAccess: Boolean = true): Discussion!
 
   # Creates a User Flair from a Flair template, accessible via available flair
   createFlair(userID: String!, templateID: String!): Flair!
@@ -2182,6 +2626,16 @@ type Mutation {
   deleteDiscussionTags(discussionID: ID!, tags:[String!]): [Tag!]
 
   conciergeMutation(discussionID: ID!, mutationID: ID!, selectedOptions:[String!]): Post! # Heterogeneous endpoint. Think about what we want to return here. Could use entities? What does that gain us?
+  # Add flair accessibility to private discussions
+  addDiscussionFlairTemplatesAccess(discussionID: ID!, flairTemplateIDs:[ID!]): Discussion!
+  deleteDiscussionFlairTemplatesAccess(discussionID: ID!, flairTemplateIDs:[ID!]): Discussion!
+
+  # Invites
+  inviteUserToDiscussion(discussionID: ID!, userID: ID!, invitingParticipantID: ID!): DiscussionInvite!
+  respondToInvite(inviteID: ID!, response: InviteRequestStatus!, discussionParticipantInput: AddDiscussionParticipantInput!): DiscussionInvite!
+
+  requestAccessToDiscussion(discussionID: ID!): DiscussionAccessRequest!
+  respondToRequestAccess(requestID: ID!, response: InviteRequestStatus!): DiscussionAccessRequest!
 }
 
 type Subscription {
@@ -2227,6 +2681,11 @@ type User {
     flairs: [Flair!]
     # The user's devices.
     devices: [UserDevice!]
+
+    discussions: [Discussion!]
+    discussionInvites(status: InviteRequestStatus!): [DiscussionInvite!]
+    sentDiscussionInvites: [DiscussionInvite!]
+    sentDiscussionAccessRequests: [DiscussionAccessRequest!]
 }
 `, BuiltIn: false},
 	&ast.Source{Name: "graph/types/user_device.graphqls", Input: `type UserDevice {
@@ -2290,6 +2749,28 @@ func (ec *executionContext) field_Discussion_postsConnection_args(ctx context.Co
 		}
 	}
 	args["after"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_addDiscussionFlairTemplatesAccess_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 string
+	if tmp, ok := rawArgs["discussionID"]; ok {
+		arg0, err = ec.unmarshalNID2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["discussionID"] = arg0
+	var arg1 []string
+	if tmp, ok := rawArgs["flairTemplateIDs"]; ok {
+		arg1, err = ec.unmarshalOID2ᚕstringᚄ(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["flairTemplateIDs"] = arg1
 	return args, nil
 }
 
@@ -2446,6 +2927,14 @@ func (ec *executionContext) field_Mutation_createDiscussion_args(ctx context.Con
 		}
 	}
 	args["title"] = arg1
+	var arg2 *bool
+	if tmp, ok := rawArgs["publicAccess"]; ok {
+		arg2, err = ec.unmarshalOBoolean2ᚖbool(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["publicAccess"] = arg2
 	return args, nil
 }
 
@@ -2501,6 +2990,28 @@ func (ec *executionContext) field_Mutation_createFlair_args(ctx context.Context,
 	return args, nil
 }
 
+func (ec *executionContext) field_Mutation_deleteDiscussionFlairTemplatesAccess_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 string
+	if tmp, ok := rawArgs["discussionID"]; ok {
+		arg0, err = ec.unmarshalNID2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["discussionID"] = arg0
+	var arg1 []string
+	if tmp, ok := rawArgs["flairTemplateIDs"]; ok {
+		arg1, err = ec.unmarshalOID2ᚕstringᚄ(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["flairTemplateIDs"] = arg1
+	return args, nil
+}
+
 func (ec *executionContext) field_Mutation_deleteDiscussionTags_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
@@ -2520,6 +3031,36 @@ func (ec *executionContext) field_Mutation_deleteDiscussionTags_args(ctx context
 		}
 	}
 	args["tags"] = arg1
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_inviteUserToDiscussion_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 string
+	if tmp, ok := rawArgs["discussionID"]; ok {
+		arg0, err = ec.unmarshalNID2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["discussionID"] = arg0
+	var arg1 string
+	if tmp, ok := rawArgs["userID"]; ok {
+		arg1, err = ec.unmarshalNID2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["userID"] = arg1
+	var arg2 string
+	if tmp, ok := rawArgs["invitingParticipantID"]; ok {
+		arg2, err = ec.unmarshalNID2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["invitingParticipantID"] = arg2
 	return args, nil
 }
 
@@ -2578,6 +3119,72 @@ func (ec *executionContext) field_Mutation_removeFlair_args(ctx context.Context,
 		}
 	}
 	args["id"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_requestAccessToDiscussion_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 string
+	if tmp, ok := rawArgs["discussionID"]; ok {
+		arg0, err = ec.unmarshalNID2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["discussionID"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_respondToInvite_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 string
+	if tmp, ok := rawArgs["inviteID"]; ok {
+		arg0, err = ec.unmarshalNID2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["inviteID"] = arg0
+	var arg1 model.InviteRequestStatus
+	if tmp, ok := rawArgs["response"]; ok {
+		arg1, err = ec.unmarshalNInviteRequestStatus2githubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐInviteRequestStatus(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["response"] = arg1
+	var arg2 model.AddDiscussionParticipantInput
+	if tmp, ok := rawArgs["discussionParticipantInput"]; ok {
+		arg2, err = ec.unmarshalNAddDiscussionParticipantInput2githubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐAddDiscussionParticipantInput(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["discussionParticipantInput"] = arg2
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_respondToRequestAccess_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 string
+	if tmp, ok := rawArgs["requestID"]; ok {
+		arg0, err = ec.unmarshalNID2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["requestID"] = arg0
+	var arg1 model.InviteRequestStatus
+	if tmp, ok := rawArgs["response"]; ok {
+		arg1, err = ec.unmarshalNInviteRequestStatus2githubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐInviteRequestStatus(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["response"] = arg1
 	return args, nil
 }
 
@@ -2774,6 +3381,20 @@ func (ec *executionContext) field_Subscription_postAdded_args(ctx context.Contex
 		}
 	}
 	args["discussionID"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_User_discussionInvites_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 model.InviteRequestStatus
+	if tmp, ok := rawArgs["status"]; ok {
+		arg0, err = ec.unmarshalNInviteRequestStatus2githubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐInviteRequestStatus(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["status"] = arg0
 	return args, nil
 }
 
@@ -3771,6 +4392,986 @@ func (ec *executionContext) _Discussion_upcomingContent(ctx context.Context, fie
 	res := resTmp.([]*model.ImportedContent)
 	fc.Result = res
 	return ec.marshalOImportedContent2ᚕᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐImportedContentᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Discussion_flairTemplates(ctx context.Context, field graphql.CollectedField, obj *model.Discussion) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "Discussion",
+		Field:    field,
+		Args:     nil,
+		IsMethod: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Discussion().FlairTemplates(rctx, obj)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.([]*model.FlairTemplate)
+	fc.Result = res
+	return ec.marshalOFlairTemplate2ᚕᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐFlairTemplateᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Discussion_accessRequests(ctx context.Context, field graphql.CollectedField, obj *model.Discussion) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "Discussion",
+		Field:    field,
+		Args:     nil,
+		IsMethod: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Discussion().AccessRequests(rctx, obj)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.([]*model.DiscussionAccessRequest)
+	fc.Result = res
+	return ec.marshalODiscussionAccessRequest2ᚕᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐDiscussionAccessRequestᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Discussion_discussionLinksAccess(ctx context.Context, field graphql.CollectedField, obj *model.Discussion) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "Discussion",
+		Field:    field,
+		Args:     nil,
+		IsMethod: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Discussion().DiscussionLinksAccess(rctx, obj)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.DiscussionLinkAccess)
+	fc.Result = res
+	return ec.marshalNDiscussionLinkAccess2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐDiscussionLinkAccess(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _DiscussionAccessRequest_id(ctx context.Context, field graphql.CollectedField, obj *model.DiscussionAccessRequest) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "DiscussionAccessRequest",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.ID, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNID2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _DiscussionAccessRequest_user(ctx context.Context, field graphql.CollectedField, obj *model.DiscussionAccessRequest) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "DiscussionAccessRequest",
+		Field:    field,
+		Args:     nil,
+		IsMethod: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.DiscussionAccessRequest().User(rctx, obj)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.User)
+	fc.Result = res
+	return ec.marshalNUser2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐUser(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _DiscussionAccessRequest_discussion(ctx context.Context, field graphql.CollectedField, obj *model.DiscussionAccessRequest) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "DiscussionAccessRequest",
+		Field:    field,
+		Args:     nil,
+		IsMethod: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.DiscussionAccessRequest().Discussion(rctx, obj)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.Discussion)
+	fc.Result = res
+	return ec.marshalNDiscussion2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐDiscussion(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _DiscussionAccessRequest_createdAt(ctx context.Context, field graphql.CollectedField, obj *model.DiscussionAccessRequest) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "DiscussionAccessRequest",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.CreatedAt, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _DiscussionAccessRequest_updatedAt(ctx context.Context, field graphql.CollectedField, obj *model.DiscussionAccessRequest) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "DiscussionAccessRequest",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.UpdatedAt, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _DiscussionAccessRequest_isDeleted(ctx context.Context, field graphql.CollectedField, obj *model.DiscussionAccessRequest) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "DiscussionAccessRequest",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.IsDeleted, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(bool)
+	fc.Result = res
+	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _DiscussionAccessRequest_status(ctx context.Context, field graphql.CollectedField, obj *model.DiscussionAccessRequest) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "DiscussionAccessRequest",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Status, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(model.InviteRequestStatus)
+	fc.Result = res
+	return ec.marshalNInviteRequestStatus2githubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐInviteRequestStatus(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _DiscussionFlairTemplateAccess_id(ctx context.Context, field graphql.CollectedField, obj *model.DiscussionFlairTemplateAccess) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "DiscussionFlairTemplateAccess",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.ID, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNID2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _DiscussionFlairTemplateAccess_discussion(ctx context.Context, field graphql.CollectedField, obj *model.DiscussionFlairTemplateAccess) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "DiscussionFlairTemplateAccess",
+		Field:    field,
+		Args:     nil,
+		IsMethod: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.DiscussionFlairTemplateAccess().Discussion(rctx, obj)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.Discussion)
+	fc.Result = res
+	return ec.marshalNDiscussion2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐDiscussion(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _DiscussionFlairTemplateAccess_flairTemplate(ctx context.Context, field graphql.CollectedField, obj *model.DiscussionFlairTemplateAccess) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "DiscussionFlairTemplateAccess",
+		Field:    field,
+		Args:     nil,
+		IsMethod: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.DiscussionFlairTemplateAccess().FlairTemplate(rctx, obj)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.FlairTemplate)
+	fc.Result = res
+	return ec.marshalNFlairTemplate2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐFlairTemplate(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _DiscussionFlairTemplateAccess_createdAt(ctx context.Context, field graphql.CollectedField, obj *model.DiscussionFlairTemplateAccess) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "DiscussionFlairTemplateAccess",
+		Field:    field,
+		Args:     nil,
+		IsMethod: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.DiscussionFlairTemplateAccess().CreatedAt(rctx, obj)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _DiscussionFlairTemplateAccess_updatedAt(ctx context.Context, field graphql.CollectedField, obj *model.DiscussionFlairTemplateAccess) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "DiscussionFlairTemplateAccess",
+		Field:    field,
+		Args:     nil,
+		IsMethod: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.DiscussionFlairTemplateAccess().UpdatedAt(rctx, obj)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _DiscussionFlairTemplateAccess_isDeleted(ctx context.Context, field graphql.CollectedField, obj *model.DiscussionFlairTemplateAccess) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "DiscussionFlairTemplateAccess",
+		Field:    field,
+		Args:     nil,
+		IsMethod: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.DiscussionFlairTemplateAccess().IsDeleted(rctx, obj)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(bool)
+	fc.Result = res
+	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _DiscussionInvite_id(ctx context.Context, field graphql.CollectedField, obj *model.DiscussionInvite) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "DiscussionInvite",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.ID, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNID2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _DiscussionInvite_discussion(ctx context.Context, field graphql.CollectedField, obj *model.DiscussionInvite) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "DiscussionInvite",
+		Field:    field,
+		Args:     nil,
+		IsMethod: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.DiscussionInvite().Discussion(rctx, obj)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.Discussion)
+	fc.Result = res
+	return ec.marshalNDiscussion2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐDiscussion(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _DiscussionInvite_invitingParticipant(ctx context.Context, field graphql.CollectedField, obj *model.DiscussionInvite) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "DiscussionInvite",
+		Field:    field,
+		Args:     nil,
+		IsMethod: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.DiscussionInvite().InvitingParticipant(rctx, obj)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.Participant)
+	fc.Result = res
+	return ec.marshalNParticipant2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐParticipant(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _DiscussionInvite_createdAt(ctx context.Context, field graphql.CollectedField, obj *model.DiscussionInvite) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "DiscussionInvite",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.CreatedAt, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _DiscussionInvite_updatedAt(ctx context.Context, field graphql.CollectedField, obj *model.DiscussionInvite) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "DiscussionInvite",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.UpdatedAt, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _DiscussionInvite_isDeleted(ctx context.Context, field graphql.CollectedField, obj *model.DiscussionInvite) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "DiscussionInvite",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.IsDeleted, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(bool)
+	fc.Result = res
+	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _DiscussionInvite_status(ctx context.Context, field graphql.CollectedField, obj *model.DiscussionInvite) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "DiscussionInvite",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Status, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(model.InviteRequestStatus)
+	fc.Result = res
+	return ec.marshalNInviteRequestStatus2githubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐInviteRequestStatus(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _DiscussionLinkAccess_discussionID(ctx context.Context, field graphql.CollectedField, obj *model.DiscussionLinkAccess) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "DiscussionLinkAccess",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.DiscussionID, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNID2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _DiscussionLinkAccess_inviteLinkURL(ctx context.Context, field graphql.CollectedField, obj *model.DiscussionLinkAccess) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "DiscussionLinkAccess",
+		Field:    field,
+		Args:     nil,
+		IsMethod: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.DiscussionLinkAccess().InviteLinkURL(rctx, obj)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _DiscussionLinkAccess_vipInviteLinkURL(ctx context.Context, field graphql.CollectedField, obj *model.DiscussionLinkAccess) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "DiscussionLinkAccess",
+		Field:    field,
+		Args:     nil,
+		IsMethod: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.DiscussionLinkAccess().VipInviteLinkURL(rctx, obj)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _DiscussionLinkAccess_createdAt(ctx context.Context, field graphql.CollectedField, obj *model.DiscussionLinkAccess) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "DiscussionLinkAccess",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.CreatedAt, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _DiscussionLinkAccess_updatedAt(ctx context.Context, field graphql.CollectedField, obj *model.DiscussionLinkAccess) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "DiscussionLinkAccess",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.UpdatedAt, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _DiscussionLinkAccess_isDeleted(ctx context.Context, field graphql.CollectedField, obj *model.DiscussionLinkAccess) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "DiscussionLinkAccess",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.IsDeleted, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(bool)
+	fc.Result = res
+	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Flair_id(ctx context.Context, field graphql.CollectedField, obj *model.Flair) (ret graphql.Marshaler) {
@@ -4917,7 +6518,7 @@ func (ec *executionContext) _Mutation_createDiscussion(ctx context.Context, fiel
 	fc.Args = args
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().CreateDiscussion(rctx, args["anonymityType"].(model.AnonymityType), args["title"].(string))
+		return ec.resolvers.Mutation().CreateDiscussion(rctx, args["anonymityType"].(model.AnonymityType), args["title"].(string), args["publicAccess"].(*bool))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -5418,6 +7019,252 @@ func (ec *executionContext) _Mutation_conciergeMutation(ctx context.Context, fie
 	res := resTmp.(*model.Post)
 	fc.Result = res
 	return ec.marshalNPost2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐPost(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Mutation_addDiscussionFlairTemplatesAccess(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "Mutation",
+		Field:    field,
+		Args:     nil,
+		IsMethod: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Mutation_addDiscussionFlairTemplatesAccess_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().AddDiscussionFlairTemplatesAccess(rctx, args["discussionID"].(string), args["flairTemplateIDs"].([]string))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.Discussion)
+	fc.Result = res
+	return ec.marshalNDiscussion2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐDiscussion(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Mutation_deleteDiscussionFlairTemplatesAccess(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "Mutation",
+		Field:    field,
+		Args:     nil,
+		IsMethod: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Mutation_deleteDiscussionFlairTemplatesAccess_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().DeleteDiscussionFlairTemplatesAccess(rctx, args["discussionID"].(string), args["flairTemplateIDs"].([]string))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.Discussion)
+	fc.Result = res
+	return ec.marshalNDiscussion2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐDiscussion(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Mutation_inviteUserToDiscussion(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "Mutation",
+		Field:    field,
+		Args:     nil,
+		IsMethod: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Mutation_inviteUserToDiscussion_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().InviteUserToDiscussion(rctx, args["discussionID"].(string), args["userID"].(string), args["invitingParticipantID"].(string))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.DiscussionInvite)
+	fc.Result = res
+	return ec.marshalNDiscussionInvite2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐDiscussionInvite(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Mutation_respondToInvite(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "Mutation",
+		Field:    field,
+		Args:     nil,
+		IsMethod: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Mutation_respondToInvite_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().RespondToInvite(rctx, args["inviteID"].(string), args["response"].(model.InviteRequestStatus), args["discussionParticipantInput"].(model.AddDiscussionParticipantInput))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.DiscussionInvite)
+	fc.Result = res
+	return ec.marshalNDiscussionInvite2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐDiscussionInvite(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Mutation_requestAccessToDiscussion(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "Mutation",
+		Field:    field,
+		Args:     nil,
+		IsMethod: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Mutation_requestAccessToDiscussion_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().RequestAccessToDiscussion(rctx, args["discussionID"].(string))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.DiscussionAccessRequest)
+	fc.Result = res
+	return ec.marshalNDiscussionAccessRequest2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐDiscussionAccessRequest(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Mutation_respondToRequestAccess(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "Mutation",
+		Field:    field,
+		Args:     nil,
+		IsMethod: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Mutation_respondToRequestAccess_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().RespondToRequestAccess(rctx, args["requestID"].(string), args["response"].(model.InviteRequestStatus))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.DiscussionAccessRequest)
+	fc.Result = res
+	return ec.marshalNDiscussionAccessRequest2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐDiscussionAccessRequest(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _PageInfo_startCursor(ctx context.Context, field graphql.CollectedField, obj *model.PageInfo) (ret graphql.Marshaler) {
@@ -7774,6 +9621,137 @@ func (ec *executionContext) _User_devices(ctx context.Context, field graphql.Col
 	return ec.marshalOUserDevice2ᚕᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐUserDeviceᚄ(ctx, field.Selections, res)
 }
 
+func (ec *executionContext) _User_discussions(ctx context.Context, field graphql.CollectedField, obj *model.User) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "User",
+		Field:    field,
+		Args:     nil,
+		IsMethod: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.User().Discussions(rctx, obj)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.([]*model.Discussion)
+	fc.Result = res
+	return ec.marshalODiscussion2ᚕᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐDiscussionᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _User_discussionInvites(ctx context.Context, field graphql.CollectedField, obj *model.User) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "User",
+		Field:    field,
+		Args:     nil,
+		IsMethod: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_User_discussionInvites_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.User().DiscussionInvites(rctx, obj, args["status"].(model.InviteRequestStatus))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.([]*model.DiscussionInvite)
+	fc.Result = res
+	return ec.marshalODiscussionInvite2ᚕᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐDiscussionInviteᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _User_sentDiscussionInvites(ctx context.Context, field graphql.CollectedField, obj *model.User) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "User",
+		Field:    field,
+		Args:     nil,
+		IsMethod: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.User().SentDiscussionInvites(rctx, obj)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.([]*model.DiscussionInvite)
+	fc.Result = res
+	return ec.marshalODiscussionInvite2ᚕᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐDiscussionInviteᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _User_sentDiscussionAccessRequests(ctx context.Context, field graphql.CollectedField, obj *model.User) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "User",
+		Field:    field,
+		Args:     nil,
+		IsMethod: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.User().SentDiscussionAccessRequests(rctx, obj)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.([]*model.DiscussionAccessRequest)
+	fc.Result = res
+	return ec.marshalODiscussionAccessRequest2ᚕᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐDiscussionAccessRequestᚄ(ctx, field.Selections, res)
+}
+
 func (ec *executionContext) _UserDevice_id(ctx context.Context, field graphql.CollectedField, obj *model.UserDevice) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -9557,6 +11535,12 @@ func (ec *executionContext) unmarshalInputDiscussionInput(ctx context.Context, o
 			if err != nil {
 				return it, err
 			}
+		case "publicAccess":
+			var err error
+			it.PublicAccess, err = ec.unmarshalOBoolean2ᚖbool(ctx, v)
+			if err != nil {
+				return it, err
+			}
 		}
 	}
 
@@ -10089,6 +12073,359 @@ func (ec *executionContext) _Discussion(ctx context.Context, sel ast.SelectionSe
 				res = ec._Discussion_upcomingContent(ctx, field, obj)
 				return res
 			})
+		case "flairTemplates":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Discussion_flairTemplates(ctx, field, obj)
+				return res
+			})
+		case "accessRequests":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Discussion_accessRequests(ctx, field, obj)
+				return res
+			})
+		case "discussionLinksAccess":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Discussion_discussionLinksAccess(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
+var discussionAccessRequestImplementors = []string{"DiscussionAccessRequest"}
+
+func (ec *executionContext) _DiscussionAccessRequest(ctx context.Context, sel ast.SelectionSet, obj *model.DiscussionAccessRequest) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, discussionAccessRequestImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("DiscussionAccessRequest")
+		case "id":
+			out.Values[i] = ec._DiscussionAccessRequest_id(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&invalids, 1)
+			}
+		case "user":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._DiscussionAccessRequest_user(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
+		case "discussion":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._DiscussionAccessRequest_discussion(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
+		case "createdAt":
+			out.Values[i] = ec._DiscussionAccessRequest_createdAt(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&invalids, 1)
+			}
+		case "updatedAt":
+			out.Values[i] = ec._DiscussionAccessRequest_updatedAt(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&invalids, 1)
+			}
+		case "isDeleted":
+			out.Values[i] = ec._DiscussionAccessRequest_isDeleted(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&invalids, 1)
+			}
+		case "status":
+			out.Values[i] = ec._DiscussionAccessRequest_status(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&invalids, 1)
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
+var discussionFlairTemplateAccessImplementors = []string{"DiscussionFlairTemplateAccess"}
+
+func (ec *executionContext) _DiscussionFlairTemplateAccess(ctx context.Context, sel ast.SelectionSet, obj *model.DiscussionFlairTemplateAccess) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, discussionFlairTemplateAccessImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("DiscussionFlairTemplateAccess")
+		case "id":
+			out.Values[i] = ec._DiscussionFlairTemplateAccess_id(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&invalids, 1)
+			}
+		case "discussion":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._DiscussionFlairTemplateAccess_discussion(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
+		case "flairTemplate":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._DiscussionFlairTemplateAccess_flairTemplate(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
+		case "createdAt":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._DiscussionFlairTemplateAccess_createdAt(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
+		case "updatedAt":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._DiscussionFlairTemplateAccess_updatedAt(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
+		case "isDeleted":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._DiscussionFlairTemplateAccess_isDeleted(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
+var discussionInviteImplementors = []string{"DiscussionInvite"}
+
+func (ec *executionContext) _DiscussionInvite(ctx context.Context, sel ast.SelectionSet, obj *model.DiscussionInvite) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, discussionInviteImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("DiscussionInvite")
+		case "id":
+			out.Values[i] = ec._DiscussionInvite_id(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&invalids, 1)
+			}
+		case "discussion":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._DiscussionInvite_discussion(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
+		case "invitingParticipant":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._DiscussionInvite_invitingParticipant(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
+		case "createdAt":
+			out.Values[i] = ec._DiscussionInvite_createdAt(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&invalids, 1)
+			}
+		case "updatedAt":
+			out.Values[i] = ec._DiscussionInvite_updatedAt(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&invalids, 1)
+			}
+		case "isDeleted":
+			out.Values[i] = ec._DiscussionInvite_isDeleted(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&invalids, 1)
+			}
+		case "status":
+			out.Values[i] = ec._DiscussionInvite_status(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&invalids, 1)
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
+var discussionLinkAccessImplementors = []string{"DiscussionLinkAccess"}
+
+func (ec *executionContext) _DiscussionLinkAccess(ctx context.Context, sel ast.SelectionSet, obj *model.DiscussionLinkAccess) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, discussionLinkAccessImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("DiscussionLinkAccess")
+		case "discussionID":
+			out.Values[i] = ec._DiscussionLinkAccess_discussionID(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&invalids, 1)
+			}
+		case "inviteLinkURL":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._DiscussionLinkAccess_inviteLinkURL(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
+		case "vipInviteLinkURL":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._DiscussionLinkAccess_vipInviteLinkURL(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
+		case "createdAt":
+			out.Values[i] = ec._DiscussionLinkAccess_createdAt(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&invalids, 1)
+			}
+		case "updatedAt":
+			out.Values[i] = ec._DiscussionLinkAccess_updatedAt(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&invalids, 1)
+			}
+		case "isDeleted":
+			out.Values[i] = ec._DiscussionLinkAccess_isDeleted(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&invalids, 1)
+			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -10501,6 +12838,36 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			out.Values[i] = ec._Mutation_deleteDiscussionTags(ctx, field)
 		case "conciergeMutation":
 			out.Values[i] = ec._Mutation_conciergeMutation(ctx, field)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "addDiscussionFlairTemplatesAccess":
+			out.Values[i] = ec._Mutation_addDiscussionFlairTemplatesAccess(ctx, field)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "deleteDiscussionFlairTemplatesAccess":
+			out.Values[i] = ec._Mutation_deleteDiscussionFlairTemplatesAccess(ctx, field)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "inviteUserToDiscussion":
+			out.Values[i] = ec._Mutation_inviteUserToDiscussion(ctx, field)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "respondToInvite":
+			out.Values[i] = ec._Mutation_respondToInvite(ctx, field)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "requestAccessToDiscussion":
+			out.Values[i] = ec._Mutation_requestAccessToDiscussion(ctx, field)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "respondToRequestAccess":
+			out.Values[i] = ec._Mutation_respondToRequestAccess(ctx, field)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
@@ -11429,6 +13796,50 @@ func (ec *executionContext) _User(ctx context.Context, sel ast.SelectionSet, obj
 				res = ec._User_devices(ctx, field, obj)
 				return res
 			})
+		case "discussions":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._User_discussions(ctx, field, obj)
+				return res
+			})
+		case "discussionInvites":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._User_discussionInvites(ctx, field, obj)
+				return res
+			})
+		case "sentDiscussionInvites":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._User_sentDiscussionInvites(ctx, field, obj)
+				return res
+			})
+		case "sentDiscussionAccessRequests":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._User_sentDiscussionAccessRequests(ctx, field, obj)
+				return res
+			})
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -12022,8 +14433,50 @@ func (ec *executionContext) marshalNDiscussion2ᚖgithubᚗcomᚋnedrocksᚋdelp
 	return ec._Discussion(ctx, sel, v)
 }
 
+func (ec *executionContext) marshalNDiscussionAccessRequest2githubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐDiscussionAccessRequest(ctx context.Context, sel ast.SelectionSet, v model.DiscussionAccessRequest) graphql.Marshaler {
+	return ec._DiscussionAccessRequest(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNDiscussionAccessRequest2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐDiscussionAccessRequest(ctx context.Context, sel ast.SelectionSet, v *model.DiscussionAccessRequest) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	return ec._DiscussionAccessRequest(ctx, sel, v)
+}
+
 func (ec *executionContext) unmarshalNDiscussionInput2githubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐDiscussionInput(ctx context.Context, v interface{}) (model.DiscussionInput, error) {
 	return ec.unmarshalInputDiscussionInput(ctx, v)
+}
+
+func (ec *executionContext) marshalNDiscussionInvite2githubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐDiscussionInvite(ctx context.Context, sel ast.SelectionSet, v model.DiscussionInvite) graphql.Marshaler {
+	return ec._DiscussionInvite(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNDiscussionInvite2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐDiscussionInvite(ctx context.Context, sel ast.SelectionSet, v *model.DiscussionInvite) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	return ec._DiscussionInvite(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalNDiscussionLinkAccess2githubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐDiscussionLinkAccess(ctx context.Context, sel ast.SelectionSet, v model.DiscussionLinkAccess) graphql.Marshaler {
+	return ec._DiscussionLinkAccess(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNDiscussionLinkAccess2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐDiscussionLinkAccess(ctx context.Context, sel ast.SelectionSet, v *model.DiscussionLinkAccess) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	return ec._DiscussionLinkAccess(ctx, sel, v)
 }
 
 func (ec *executionContext) marshalNDiscussionNotificationPreferences2githubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐDiscussionNotificationPreferences(ctx context.Context, sel ast.SelectionSet, v model.DiscussionNotificationPreferences) graphql.Marshaler {
@@ -12128,6 +14581,15 @@ func (ec *executionContext) marshalNInt2int(ctx context.Context, sel ast.Selecti
 		}
 	}
 	return res
+}
+
+func (ec *executionContext) unmarshalNInviteRequestStatus2githubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐInviteRequestStatus(ctx context.Context, v interface{}) (model.InviteRequestStatus, error) {
+	var res model.InviteRequestStatus
+	return res, res.UnmarshalGQL(v)
+}
+
+func (ec *executionContext) marshalNInviteRequestStatus2githubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐInviteRequestStatus(ctx context.Context, sel ast.SelectionSet, v model.InviteRequestStatus) graphql.Marshaler {
+	return v
 }
 
 func (ec *executionContext) marshalNModerator2githubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐModerator(ctx context.Context, sel ast.SelectionSet, v model.Moderator) graphql.Marshaler {
@@ -12763,6 +15225,86 @@ func (ec *executionContext) marshalODiscussion2ᚖgithubᚗcomᚋnedrocksᚋdelp
 	return ec._Discussion(ctx, sel, v)
 }
 
+func (ec *executionContext) marshalODiscussionAccessRequest2ᚕᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐDiscussionAccessRequestᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.DiscussionAccessRequest) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNDiscussionAccessRequest2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐDiscussionAccessRequest(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+	return ret
+}
+
+func (ec *executionContext) marshalODiscussionInvite2ᚕᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐDiscussionInviteᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.DiscussionInvite) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNDiscussionInvite2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐDiscussionInvite(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+	return ret
+}
+
 func (ec *executionContext) marshalOEntity2ᚕgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐEntityᚄ(ctx context.Context, sel ast.SelectionSet, v []model.Entity) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
@@ -12924,6 +15466,38 @@ func (ec *executionContext) unmarshalOID2string(ctx context.Context, v interface
 
 func (ec *executionContext) marshalOID2string(ctx context.Context, sel ast.SelectionSet, v string) graphql.Marshaler {
 	return graphql.MarshalID(v)
+}
+
+func (ec *executionContext) unmarshalOID2ᚕstringᚄ(ctx context.Context, v interface{}) ([]string, error) {
+	var vSlice []interface{}
+	if v != nil {
+		if tmp1, ok := v.([]interface{}); ok {
+			vSlice = tmp1
+		} else {
+			vSlice = []interface{}{v}
+		}
+	}
+	var err error
+	res := make([]string, len(vSlice))
+	for i := range vSlice {
+		res[i], err = ec.unmarshalNID2string(ctx, vSlice[i])
+		if err != nil {
+			return nil, err
+		}
+	}
+	return res, nil
+}
+
+func (ec *executionContext) marshalOID2ᚕstringᚄ(ctx context.Context, sel ast.SelectionSet, v []string) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	ret := make(graphql.Array, len(v))
+	for i := range v {
+		ret[i] = ec.marshalNID2string(ctx, sel, v[i])
+	}
+
+	return ret
 }
 
 func (ec *executionContext) unmarshalOID2ᚖstring(ctx context.Context, v interface{}) (*string, error) {

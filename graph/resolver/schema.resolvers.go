@@ -118,7 +118,7 @@ func (r *mutationResolver) ScheduleImportedContent(ctx context.Context, discussi
 	return r.DAOManager.PutImportedContentQueue(ctx, discussionID, contentID, nil, nil, "")
 }
 
-func (r *mutationResolver) CreateDiscussion(ctx context.Context, anonymityType model.AnonymityType, title string) (*model.Discussion, error) {
+func (r *mutationResolver) CreateDiscussion(ctx context.Context, anonymityType model.AnonymityType, title string, publicAccess *bool) (*model.Discussion, error) {
 	authedUser := auth.GetAuthedUser(ctx)
 	if authedUser == nil {
 		return nil, fmt.Errorf("Need auth")
@@ -131,7 +131,7 @@ func (r *mutationResolver) CreateDiscussion(ctx context.Context, anonymityType m
 		}
 	}
 
-	discussionObj, err := r.DAOManager.CreateNewDiscussion(ctx, authedUser.User, anonymityType, title)
+	discussionObj, err := r.DAOManager.CreateNewDiscussion(ctx, authedUser.User, anonymityType, title, *publicAccess)
 
 	if err != nil {
 		return nil, err
@@ -416,6 +416,142 @@ func (r *mutationResolver) ConciergeMutation(ctx context.Context, discussionID s
 	}
 
 	return r.DAOManager.HandleConciergeMutation(ctx, authedUser.UserID, discussionID, mutationID, selectedOptions)
+}
+
+func (r *mutationResolver) AddDiscussionFlairTemplatesAccess(ctx context.Context, discussionID string, flairTemplateIDs []string) (*model.Discussion, error) {
+	authedUser := auth.GetAuthedUser(ctx)
+	if authedUser == nil {
+		return nil, fmt.Errorf("Need auth")
+	}
+
+	// Only allow the mod to add discussion flair gating
+	modCheck, err := r.DAOManager.CheckIfModeratorForDiscussion(ctx, authedUser.UserID, discussionID)
+	if err != nil || !modCheck {
+		return nil, fmt.Errorf("unauthorized")
+	}
+
+	if _, err := r.DAOManager.PutDiscussionFlairTemplatesAccess(ctx, authedUser.UserID, discussionID, flairTemplateIDs); err != nil {
+		logrus.WithError(err).Error("failed to updated flair templates")
+		return nil, fmt.Errorf("failed to update flair templates")
+	}
+
+	return r.DAOManager.GetDiscussionByID(ctx, discussionID)
+}
+
+func (r *mutationResolver) DeleteDiscussionFlairTemplatesAccess(ctx context.Context, discussionID string, flairTemplateIDs []string) (*model.Discussion, error) {
+	authedUser := auth.GetAuthedUser(ctx)
+	if authedUser == nil {
+		return nil, fmt.Errorf("Need auth")
+	}
+
+	// Only allow the mod to delete discussion flair gating
+	modCheck, err := r.DAOManager.CheckIfModeratorForDiscussion(ctx, authedUser.UserID, discussionID)
+	if err != nil || !modCheck {
+		return nil, fmt.Errorf("unauthorized")
+	}
+
+	if _, err := r.DAOManager.DeleteDiscussionFlairTemplatesAccess(ctx, discussionID, flairTemplateIDs); err != nil {
+		logrus.WithError(err).Error("failed to delete flair templates")
+		return nil, fmt.Errorf("failed to delete flair templates")
+	}
+
+	return r.DAOManager.GetDiscussionByID(ctx, discussionID)
+}
+
+func (r *mutationResolver) InviteUserToDiscussion(ctx context.Context, discussionID string, userID string, invitingParticipantID string) (*model.DiscussionInvite, error) {
+	authedUser := auth.GetAuthedUser(ctx)
+	if authedUser == nil {
+		return nil, fmt.Errorf("Need auth")
+	}
+
+	participantResponse, err := r.DAOManager.GetParticipantsByDiscussionIDUserID(ctx, discussionID, authedUser.UserID)
+	if err != nil {
+		return nil, err
+	}
+	if participantResponse == nil {
+		return nil, fmt.Errorf("Failed to find participant with ID %s", invitingParticipantID)
+	}
+
+	// Verify that the updating participant belongs to the logged-in user
+	var nonAnonUserID, anonUserID string
+	if participantResponse.NonAnon != nil && participantResponse.NonAnon.ID == invitingParticipantID {
+		nonAnonUserID = *participantResponse.NonAnon.UserID
+	}
+	if participantResponse.Anon != nil && participantResponse.Anon.ID == invitingParticipantID {
+		anonUserID = *participantResponse.Anon.UserID
+	}
+	if authedUser.UserID != nonAnonUserID && authedUser.UserID != anonUserID {
+		return nil, fmt.Errorf("Unauthorized")
+	}
+
+	return r.DAOManager.InviteUserToDiscussion(ctx, userID, discussionID, invitingParticipantID)
+}
+
+func (r *mutationResolver) RespondToInvite(ctx context.Context, inviteID string, response model.InviteRequestStatus, discussionParticipantInput model.AddDiscussionParticipantInput) (*model.DiscussionInvite, error) {
+	authedUser := auth.GetAuthedUser(ctx)
+	if authedUser == nil {
+		return nil, fmt.Errorf("Need auth")
+	}
+
+	invite, err := r.DAOManager.GetDiscussionInviteByID(ctx, inviteID)
+	if err != nil {
+		return nil, err
+	}
+	if invite.UserID != authedUser.UserID {
+		return nil, fmt.Errorf("unauthorized")
+	}
+	if invite == nil {
+		logrus.Errorf("invite doesn't exist: %+v\n", inviteID)
+		return nil, fmt.Errorf("invite doesn't exist")
+	}
+
+	return r.DAOManager.RespondToInvitation(ctx, inviteID, response, discussionParticipantInput)
+}
+
+func (r *mutationResolver) RequestAccessToDiscussion(ctx context.Context, discussionID string) (*model.DiscussionAccessRequest, error) {
+	authedUser := auth.GetAuthedUser(ctx)
+	if authedUser == nil {
+		return nil, fmt.Errorf("Need auth")
+	}
+
+	return r.DAOManager.RequestAccessToDiscussion(ctx, authedUser.UserID, discussionID)
+}
+
+func (r *mutationResolver) RespondToRequestAccess(ctx context.Context, requestID string, response model.InviteRequestStatus) (*model.DiscussionAccessRequest, error) {
+	authedUser := auth.GetAuthedUser(ctx)
+	if authedUser == nil {
+		return nil, fmt.Errorf("Need auth")
+	}
+
+	request, err := r.DAOManager.GetDiscussionRequestAccessByID(ctx, requestID)
+	if err != nil {
+		return nil, err
+	}
+	if request == nil {
+		return nil, fmt.Errorf("failed to get discussion")
+	}
+
+	// Only allow the mod to add users to discussion
+	modCheck, err := r.DAOManager.CheckIfModeratorForDiscussion(ctx, authedUser.UserID, request.DiscussionID)
+	if err != nil || !modCheck {
+		return nil, fmt.Errorf("unauthorized")
+	}
+
+	participantResponse, err := r.DAOManager.GetParticipantsByDiscussionIDUserID(ctx, request.DiscussionID, authedUser.UserID)
+	if err != nil {
+		return nil, err
+	}
+	if participantResponse == nil {
+		return nil, fmt.Errorf("Failed to find participant")
+	}
+
+	// Have moderator's non-anon participant approve the request access
+	var nonAnonUserID string
+	if participantResponse.NonAnon == nil {
+		nonAnonUserID = *participantResponse.NonAnon.UserID
+	}
+
+	return r.DAOManager.RespondToRequestAccess(ctx, requestID, response, nonAnonUserID)
 }
 
 func (r *queryResolver) Discussion(ctx context.Context, id string) (*model.Discussion, error) {

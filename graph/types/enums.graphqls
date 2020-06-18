@@ -44,3 +44,10 @@ enum PostType {
     ALERT,
     CONCIERGE
 }
+
+enum InviteRequestStatus {
+    ACCEPTED,
+    REJECTED,
+    PENDING,
+    CANCELLED
+}

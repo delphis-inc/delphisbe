@@ -22,4 +22,9 @@ type User {
     flairs: [Flair!]
     # The user's devices.
     devices: [UserDevice!]
+
+    discussions: [Discussion!]
+    discussionInvites(status: InviteRequestStatus!): [DiscussionInvite!]
+    sentDiscussionInvites: [DiscussionInvite!]
+    sentDiscussionAccessRequests: [DiscussionAccessRequest!]
 }

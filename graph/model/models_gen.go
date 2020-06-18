@@ -41,6 +41,7 @@ type DiscussionInput struct {
 	Title         *string        `json:"title"`
 	AutoPost      *bool          `json:"autoPost"`
 	IdleMinutes   *int           `json:"idleMinutes"`
+	PublicAccess  *bool          `json:"publicAccess"`
 }
 
 type Media struct {
@@ -229,6 +230,51 @@ func (e *GradientColor) UnmarshalGQL(v interface{}) error {
 }
 
 func (e GradientColor) MarshalGQL(w io.Writer) {
+	fmt.Fprint(w, strconv.Quote(e.String()))
+}
+
+type InviteRequestStatus string
+
+const (
+	InviteRequestStatusAccepted  InviteRequestStatus = "ACCEPTED"
+	InviteRequestStatusRejected  InviteRequestStatus = "REJECTED"
+	InviteRequestStatusPending   InviteRequestStatus = "PENDING"
+	InviteRequestStatusCancelled InviteRequestStatus = "CANCELLED"
+)
+
+var AllInviteRequestStatus = []InviteRequestStatus{
+	InviteRequestStatusAccepted,
+	InviteRequestStatusRejected,
+	InviteRequestStatusPending,
+	InviteRequestStatusCancelled,
+}
+
+func (e InviteRequestStatus) IsValid() bool {
+	switch e {
+	case InviteRequestStatusAccepted, InviteRequestStatusRejected, InviteRequestStatusPending, InviteRequestStatusCancelled:
+		return true
+	}
+	return false
+}
+
+func (e InviteRequestStatus) String() string {
+	return string(e)
+}
+
+func (e *InviteRequestStatus) UnmarshalGQL(v interface{}) error {
+	str, ok := v.(string)
+	if !ok {
+		return fmt.Errorf("enums must be strings")
+	}
+
+	*e = InviteRequestStatus(str)
+	if !e.IsValid() {
+		return fmt.Errorf("%s is not a valid InviteRequestStatus", str)
+	}
+	return nil
+}
+
+func (e InviteRequestStatus) MarshalGQL(w io.Writer) {
 	fmt.Fprint(w, strconv.Quote(e.String()))
 }
 
