@@ -11,9 +11,18 @@ const (
 	ManualDrip    DripPostType = "manual"
 	AutoDrip      DripPostType = "auto"
 	ScheduledDrip DripPostType = "scheduled"
+
+	AppActionCopyToClipboard AppActionID = "db5fd0da-d645-4aa2-990c-b61d004a45e1"
+
+	MutationUpdateFlairAccessToDiscussion MutationID = "4e960003-da38-4971-a23b-98953cb5ce4b"
+	MutationUpdateInvitationApproval      MutationID = "84c0e197-6394-4b9a-87dc-91e75e7faf67"
+	MutationUpdateViewerAccessibility     MutationID = "e8c71b3c-b984-4090-b032-7dbfd374e8c9"
+	MutationUpdateDiscussionNameAndEmoji  MutationID = "633cb21f-a004-45d4-b4e8-bd6cd0bdaea9"
 )
 
 type DripPostType string
+type AppActionID string
+type MutationID string
 
 type Post struct {
 	ID                string             `json:"id" dynamodbav:"ID" gorm:"type:varchar(36);"`
@@ -33,6 +42,7 @@ type Post struct {
 	QuotedPost        *Post
 	MediaID           *string
 	ImportedContentID *string
+	ConciergeContent  *ConciergeContent
 }
 
 type PostsEdge struct {

@@ -30,7 +30,6 @@ require (
 	github.com/vektra/mockery v1.1.2 // indirect
 	go.uber.org/multierr v1.1.0
 	golang.org/x/mod v0.3.0 // indirect
-	golang.org/x/net v0.0.0-20200226121028-0de0cce0169b // indirect
 	golang.org/x/tools v0.0.0-20200616164858-e3971a17a80d // indirect
 	gopkg.in/yaml.v2 v2.3.0 // indirect
 	gopkg.in/yaml.v3 v3.0.0-20200615113413-eeeca48fe776 // indirect

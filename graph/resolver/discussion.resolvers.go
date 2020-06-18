@@ -27,7 +27,12 @@ func (r *discussionResolver) Moderator(ctx context.Context, obj *model.Discussio
 }
 
 func (r *discussionResolver) Posts(ctx context.Context, obj *model.Discussion) ([]*model.Post, error) {
-	posts, err := r.DAOManager.GetPostsByDiscussionID(ctx, obj.ID)
+	authedUser := auth.GetAuthedUser(ctx)
+	if authedUser == nil {
+		return nil, fmt.Errorf("Need auth")
+	}
+
+	posts, err := r.DAOManager.GetPostsByDiscussionID(ctx, authedUser.UserID, obj.ID)
 
 	if err != nil {
 		return nil, err

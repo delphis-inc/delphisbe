@@ -132,7 +132,7 @@ func main() {
 
 	// Kickoff cron job
 	c := cron.New()
-	c.AddFunc("@every 10s", delphisBackend.AutoPostContent)
+	c.AddFunc("@every 5m", delphisBackend.AutoPostContent)
 	c.Start()
 
 	http.Handle("/", allowCors(healthCheck()))
