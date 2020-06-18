@@ -63,6 +63,18 @@ type DirectiveRoot struct {
 }
 
 type ComplexityRoot struct {
+	ConciergeContent struct {
+		AppActionID func(childComplexity int) int
+		MutationID  func(childComplexity int) int
+		Options     func(childComplexity int) int
+	}
+
+	ConciergeOption struct {
+		Selected func(childComplexity int) int
+		Text     func(childComplexity int) int
+		Value    func(childComplexity int) int
+	}
+
 	ContentQueueRecord struct {
 		CreatedAt         func(childComplexity int) int
 		DiscussionID      func(childComplexity int) int
@@ -144,6 +156,7 @@ type ComplexityRoot struct {
 		AddDiscussionTags        func(childComplexity int, discussionID string, tags []string) int
 		AddPost                  func(childComplexity int, discussionID string, participantID string, postContent model.PostContentInput) int
 		AssignFlair              func(childComplexity int, participantID string, flairID string) int
+		ConciergeMutation        func(childComplexity int, discussionID string, mutationID string, selectedOptions []string) int
 		CreateDiscussion         func(childComplexity int, anonymityType model.AnonymityType, title string) int
 		CreateFlair              func(childComplexity int, userID string, templateID string) int
 		CreateFlairTemplate      func(childComplexity int, displayName *string, imageURL *string, source string) int
@@ -199,6 +212,7 @@ type ComplexityRoot struct {
 	}
 
 	Post struct {
+		ConciergeContent  func(childComplexity int) int
 		Content           func(childComplexity int) int
 		CreatedAt         func(childComplexity int) int
 		DeletedReasonCode func(childComplexity int) int
@@ -372,6 +386,7 @@ type MutationResolver interface {
 	UpdateDiscussion(ctx context.Context, discussionID string, input model.DiscussionInput) (*model.Discussion, error)
 	AddDiscussionTags(ctx context.Context, discussionID string, tags []string) ([]*model.Tag, error)
 	DeleteDiscussionTags(ctx context.Context, discussionID string, tags []string) ([]*model.Tag, error)
+	ConciergeMutation(ctx context.Context, discussionID string, mutationID string, selectedOptions []string) (bool, error)
 }
 type ParticipantResolver interface {
 	Discussion(ctx context.Context, obj *model.Participant) (*model.Discussion, error)
@@ -457,6 +472,48 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 	ec := executionContext{nil, e}
 	_ = ec
 	switch typeName + "." + field {
+
+	case "ConciergeContent.appActionID":
+		if e.complexity.ConciergeContent.AppActionID == nil {
+			break
+		}
+
+		return e.complexity.ConciergeContent.AppActionID(childComplexity), true
+
+	case "ConciergeContent.mutationID":
+		if e.complexity.ConciergeContent.MutationID == nil {
+			break
+		}
+
+		return e.complexity.ConciergeContent.MutationID(childComplexity), true
+
+	case "ConciergeContent.options":
+		if e.complexity.ConciergeContent.Options == nil {
+			break
+		}
+
+		return e.complexity.ConciergeContent.Options(childComplexity), true
+
+	case "ConciergeOption.selected":
+		if e.complexity.ConciergeOption.Selected == nil {
+			break
+		}
+
+		return e.complexity.ConciergeOption.Selected(childComplexity), true
+
+	case "ConciergeOption.text":
+		if e.complexity.ConciergeOption.Text == nil {
+			break
+		}
+
+		return e.complexity.ConciergeOption.Text(childComplexity), true
+
+	case "ConciergeOption.value":
+		if e.complexity.ConciergeOption.Value == nil {
+			break
+		}
+
+		return e.complexity.ConciergeOption.Value(childComplexity), true
 
 	case "ContentQueueRecord.createdAt":
 		if e.complexity.ContentQueueRecord.CreatedAt == nil {
@@ -875,6 +932,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Mutation.AssignFlair(childComplexity, args["participantID"].(string), args["flairID"].(string)), true
 
+	case "Mutation.conciergeMutation":
+		if e.complexity.Mutation.ConciergeMutation == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_conciergeMutation_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.ConciergeMutation(childComplexity, args["discussionID"].(string), args["mutationID"].(string), args["selectedOptions"].([]string)), true
+
 	case "Mutation.createDiscussion":
 		if e.complexity.Mutation.CreateDiscussion == nil {
 			break
@@ -1172,6 +1241,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.ParticipantsEdge.Node(childComplexity), true
+
+	case "Post.conciergeContent":
+		if e.complexity.Post.ConciergeContent == nil {
+			break
+		}
+
+		return e.complexity.Post.ConciergeContent(childComplexity), true
 
 	case "Post.content":
 		if e.complexity.Post.Content == nil {
@@ -1840,7 +1916,8 @@ enum Platform {
 enum PostType {
     STANDARD,
     IMPORTED_CONTENT,
-    ALERT
+    ALERT,
+    CONCIERGE
 }`, BuiltIn: false},
 	&ast.Source{Name: "graph/types/flair.graphqls", Input: `type Flair {
     # The UUID for this flair
@@ -1967,7 +2044,22 @@ type MediaSize {
     media: Media
     importedContent: ImportedContent
     postType: PostType!
-}`, BuiltIn: false},
+    conciergeContent: ConciergeContent
+}
+
+type ConciergeContent {
+    appActionID: String
+    mutationID: String
+    options: [ConciergeOption!]
+}
+
+type ConciergeOption {
+    text: String!
+    value: String!
+    selected: Boolean!
+}
+
+`, BuiltIn: false},
 	&ast.Source{Name: "graph/types/post_bookmark.graphqls", Input: `# Defines a bookmark for a post. Built this way because I
 # assume we will have other types of bookmarks down the road
 # (e.g. discussion bookmarks, moderator bookmarks?)
@@ -2088,6 +2180,8 @@ type Mutation {
 
   addDiscussionTags(discussionID: ID!, tags:[String!]): [Tag!]
   deleteDiscussionTags(discussionID: ID!, tags:[String!]): [Tag!]
+
+  conciergeMutation(discussionID: ID!, mutationID: ID!, selectedOptions:[String!]): Boolean! # Heterogeneous endpoint. Think about what we want to return here. Could use entities? What does that gain us?
 }
 
 type Subscription {
@@ -2300,6 +2394,36 @@ func (ec *executionContext) field_Mutation_assignFlair_args(ctx context.Context,
 		}
 	}
 	args["flairID"] = arg1
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_conciergeMutation_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 string
+	if tmp, ok := rawArgs["discussionID"]; ok {
+		arg0, err = ec.unmarshalNID2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["discussionID"] = arg0
+	var arg1 string
+	if tmp, ok := rawArgs["mutationID"]; ok {
+		arg1, err = ec.unmarshalNID2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["mutationID"] = arg1
+	var arg2 []string
+	if tmp, ok := rawArgs["selectedOptions"]; ok {
+		arg2, err = ec.unmarshalOString2ᚕstringᚄ(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["selectedOptions"] = arg2
 	return args, nil
 }
 
@@ -2688,6 +2812,201 @@ func (ec *executionContext) field___Type_fields_args(ctx context.Context, rawArg
 // endregion ************************** directives.gotpl **************************
 
 // region    **************************** field.gotpl *****************************
+
+func (ec *executionContext) _ConciergeContent_appActionID(ctx context.Context, field graphql.CollectedField, obj *model.ConciergeContent) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "ConciergeContent",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.AppActionID, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*string)
+	fc.Result = res
+	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _ConciergeContent_mutationID(ctx context.Context, field graphql.CollectedField, obj *model.ConciergeContent) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "ConciergeContent",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.MutationID, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*string)
+	fc.Result = res
+	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _ConciergeContent_options(ctx context.Context, field graphql.CollectedField, obj *model.ConciergeContent) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "ConciergeContent",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Options, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.([]*model.ConciergeOption)
+	fc.Result = res
+	return ec.marshalOConciergeOption2ᚕᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐConciergeOptionᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _ConciergeOption_text(ctx context.Context, field graphql.CollectedField, obj *model.ConciergeOption) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "ConciergeOption",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Text, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _ConciergeOption_value(ctx context.Context, field graphql.CollectedField, obj *model.ConciergeOption) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "ConciergeOption",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Value, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _ConciergeOption_selected(ctx context.Context, field graphql.CollectedField, obj *model.ConciergeOption) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "ConciergeOption",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Selected, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(bool)
+	fc.Result = res
+	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
+}
 
 func (ec *executionContext) _ContentQueueRecord_discussionID(ctx context.Context, field graphql.CollectedField, obj *model.ContentQueueRecord) (ret graphql.Marshaler) {
 	defer func() {
@@ -5060,6 +5379,47 @@ func (ec *executionContext) _Mutation_deleteDiscussionTags(ctx context.Context, 
 	return ec.marshalOTag2ᚕᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐTagᚄ(ctx, field.Selections, res)
 }
 
+func (ec *executionContext) _Mutation_conciergeMutation(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "Mutation",
+		Field:    field,
+		Args:     nil,
+		IsMethod: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Mutation_conciergeMutation_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().ConciergeMutation(rctx, args["discussionID"].(string), args["mutationID"].(string), args["selectedOptions"].([]string))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(bool)
+	fc.Result = res
+	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
+}
+
 func (ec *executionContext) _PageInfo_startCursor(ctx context.Context, field graphql.CollectedField, obj *model.PageInfo) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -6197,6 +6557,37 @@ func (ec *executionContext) _Post_postType(ctx context.Context, field graphql.Co
 	res := resTmp.(model.PostType)
 	fc.Result = res
 	return ec.marshalNPostType2githubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐPostType(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Post_conciergeContent(ctx context.Context, field graphql.CollectedField, obj *model.Post) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "Post",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.ConciergeContent, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*model.ConciergeContent)
+	fc.Result = res
+	return ec.marshalOConciergeContent2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐConciergeContent(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _PostBookmark_id(ctx context.Context, field graphql.CollectedField, obj *model.PostBookmark) (ret graphql.Marshaler) {
@@ -9383,6 +9774,71 @@ func (ec *executionContext) _Entity(ctx context.Context, sel ast.SelectionSet, o
 
 // region    **************************** object.gotpl ****************************
 
+var conciergeContentImplementors = []string{"ConciergeContent"}
+
+func (ec *executionContext) _ConciergeContent(ctx context.Context, sel ast.SelectionSet, obj *model.ConciergeContent) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, conciergeContentImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("ConciergeContent")
+		case "appActionID":
+			out.Values[i] = ec._ConciergeContent_appActionID(ctx, field, obj)
+		case "mutationID":
+			out.Values[i] = ec._ConciergeContent_mutationID(ctx, field, obj)
+		case "options":
+			out.Values[i] = ec._ConciergeContent_options(ctx, field, obj)
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
+var conciergeOptionImplementors = []string{"ConciergeOption"}
+
+func (ec *executionContext) _ConciergeOption(ctx context.Context, sel ast.SelectionSet, obj *model.ConciergeOption) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, conciergeOptionImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("ConciergeOption")
+		case "text":
+			out.Values[i] = ec._ConciergeOption_text(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "value":
+			out.Values[i] = ec._ConciergeOption_value(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "selected":
+			out.Values[i] = ec._ConciergeOption_selected(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
 var contentQueueRecordImplementors = []string{"ContentQueueRecord"}
 
 func (ec *executionContext) _ContentQueueRecord(ctx context.Context, sel ast.SelectionSet, obj *model.ContentQueueRecord) graphql.Marshaler {
@@ -10043,6 +10499,11 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			out.Values[i] = ec._Mutation_addDiscussionTags(ctx, field)
 		case "deleteDiscussionTags":
 			out.Values[i] = ec._Mutation_deleteDiscussionTags(ctx, field)
+		case "conciergeMutation":
+			out.Values[i] = ec._Mutation_conciergeMutation(ctx, field)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -10456,6 +10917,8 @@ func (ec *executionContext) _Post(ctx context.Context, sel ast.SelectionSet, obj
 			if out.Values[i] == graphql.Null {
 				atomic.AddUint32(&invalids, 1)
 			}
+		case "conciergeContent":
+			out.Values[i] = ec._Post_conciergeContent(ctx, field, obj)
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -11517,6 +11980,20 @@ func (ec *executionContext) marshalNBoolean2bool(ctx context.Context, sel ast.Se
 	return res
 }
 
+func (ec *executionContext) marshalNConciergeOption2githubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐConciergeOption(ctx context.Context, sel ast.SelectionSet, v model.ConciergeOption) graphql.Marshaler {
+	return ec._ConciergeOption(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNConciergeOption2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐConciergeOption(ctx context.Context, sel ast.SelectionSet, v *model.ConciergeOption) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	return ec._ConciergeOption(ctx, sel, v)
+}
+
 func (ec *executionContext) marshalNContentQueueRecord2githubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐContentQueueRecord(ctx context.Context, sel ast.SelectionSet, v model.ContentQueueRecord) graphql.Marshaler {
 	return ec._ContentQueueRecord(ctx, sel, &v)
 }
@@ -12182,6 +12659,57 @@ func (ec *executionContext) marshalOBoolean2ᚖbool(ctx context.Context, sel ast
 		return graphql.Null
 	}
 	return ec.marshalOBoolean2bool(ctx, sel, *v)
+}
+
+func (ec *executionContext) marshalOConciergeContent2githubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐConciergeContent(ctx context.Context, sel ast.SelectionSet, v model.ConciergeContent) graphql.Marshaler {
+	return ec._ConciergeContent(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalOConciergeContent2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐConciergeContent(ctx context.Context, sel ast.SelectionSet, v *model.ConciergeContent) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._ConciergeContent(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalOConciergeOption2ᚕᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐConciergeOptionᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.ConciergeOption) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNConciergeOption2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐConciergeOption(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+	return ret
 }
 
 func (ec *executionContext) marshalODiscussion2githubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐDiscussion(ctx context.Context, sel ast.SelectionSet, v model.Discussion) graphql.Marshaler {

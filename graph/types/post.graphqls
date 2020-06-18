@@ -12,4 +12,18 @@ type Post{
     media: Media
     importedContent: ImportedContent
     postType: PostType!
+    conciergeContent: ConciergeContent
 }
+
+type ConciergeContent {
+    appActionID: String
+    mutationID: String
+    options: [ConciergeOption!]
+}
+
+type ConciergeOption {
+    text: String!
+    value: String!
+    selected: Boolean!
+}
+

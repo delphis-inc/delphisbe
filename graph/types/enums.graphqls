@@ -41,5 +41,6 @@ enum Platform {
 enum PostType {
     STANDARD,
     IMPORTED_CONTENT,
-    ALERT
+    ALERT,
+    CONCIERGE
 }

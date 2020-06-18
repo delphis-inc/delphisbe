@@ -53,8 +53,8 @@ type DelphisBackend interface {
 	PostImportedContent(ctx context.Context, participantID, discussionID, contentID string, postedAt *time.Time, matchingTags []string, dripType model.DripPostType) (*model.Post, error)
 	PutImportedContentQueue(ctx context.Context, discussionID, contentID string, postedAt *time.Time, matchingTags []string, dripType model.DripPostType) (*model.ContentQueueRecord, error)
 	NotifySubscribersOfCreatedPost(ctx context.Context, post *model.Post, discussionID string) error
-	GetPostsByDiscussionID(ctx context.Context, discussionID string) ([]*model.Post, error)
 	GetPostsConnectionByDiscussionID(ctx context.Context, discussionID string, cursor string, limit int) (*model.PostsConnection, error)
+	GetPostsByDiscussionID(ctx context.Context, userID string, discussionID string) ([]*model.Post, error)
 	GetLastPostByDiscussionID(ctx context.Context, discussionID string, minutes int) (*model.Post, error)
 	GetPostContentByID(ctx context.Context, id string) (*model.PostContent, error)
 	GetUserProfileByID(ctx context.Context, id string) (*model.UserProfile, error)
@@ -84,6 +84,7 @@ type DelphisBackend interface {
 	AutoPostContent()
 	GetMediaRecord(ctx context.Context, mediaID string) (*model.Media, error)
 	UploadMedia(ctx context.Context, media multipart.File) (string, string, error)
+	HandleConciergeMutation(ctx context.Context, userID string, discussionID string, mutationID string, selectedOptions []string) (bool, error)
 }
 
 type delphisBackend struct {

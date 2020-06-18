@@ -24,6 +24,18 @@ type AddDiscussionParticipantInput struct {
 	IsAnonymous   bool           `json:"isAnonymous"`
 }
 
+type ConciergeContent struct {
+	AppActionID *string            `json:"appActionID"`
+	MutationID  *string            `json:"mutationID"`
+	Options     []*ConciergeOption `json:"options"`
+}
+
+type ConciergeOption struct {
+	Text     string `json:"text"`
+	Value    string `json:"value"`
+	Selected bool   `json:"selected"`
+}
+
 type DiscussionInput struct {
 	AnonymityType *AnonymityType `json:"anonymityType"`
 	Title         *string        `json:"title"`
@@ -314,17 +326,19 @@ const (
 	PostTypeStandard        PostType = "STANDARD"
 	PostTypeImportedContent PostType = "IMPORTED_CONTENT"
 	PostTypeAlert           PostType = "ALERT"
+	PostTypeConcierge       PostType = "CONCIERGE"
 )
 
 var AllPostType = []PostType{
 	PostTypeStandard,
 	PostTypeImportedContent,
 	PostTypeAlert,
+	PostTypeConcierge,
 }
 
 func (e PostType) IsValid() bool {
 	switch e {
-	case PostTypeStandard, PostTypeImportedContent, PostTypeAlert:
+	case PostTypeStandard, PostTypeImportedContent, PostTypeAlert, PostTypeConcierge:
 		return true
 	}
 	return false

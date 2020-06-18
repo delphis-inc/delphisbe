@@ -263,9 +263,33 @@ func (d *delphisBackend) NotifySubscribersOfCreatedPost(ctx context.Context, pos
 	return nil
 }
 
-func (d *delphisBackend) GetPostsByDiscussionID(ctx context.Context, discussionID string) ([]*model.Post, error) {
+func (d *delphisBackend) GetPostsByDiscussionID(ctx context.Context, userID string, discussionID string) ([]*model.Post, error) {
 	iter := d.db.GetPostsByDiscussionIDIter(ctx, discussionID)
-	return d.db.PostIterCollect(ctx, iter)
+
+	posts, err := d.db.PostIterCollect(ctx, iter)
+	if err != nil {
+		logrus.WithError(err).Error("failed to get posts by discussionID")
+		return nil, err
+	}
+
+	// If there are no posts in the discussion, populate with ConciergeSetup posts
+	if len(posts) == 0 {
+		modCheck, err := d.CheckIfModeratorForDiscussion(ctx, userID, discussionID)
+		if err != nil {
+			logrus.WithError(err).Error("failed to check moderator")
+			return nil, err
+		}
+		if modCheck {
+			tempPosts, err := d.GetEmptyDiscussionConciergePosts(ctx, userID, discussionID)
+			if err != nil {
+				logrus.WithError(err).Error("failed to get concierge posts")
+				return nil, err
+			}
+			return tempPosts, nil
+		}
+	}
+
+	return posts, nil
 }
 
 func (d *delphisBackend) GetLastPostByDiscussionID(ctx context.Context, discussionID string, minutes int) (*model.Post, error) {
@@ -327,6 +351,58 @@ func (d *delphisBackend) GetMentionedEntities(ctx context.Context, entityIDs []s
 	}
 
 	return entities, nil
+}
+
+func (d *delphisBackend) GetEmptyDiscussionConciergePosts(ctx context.Context, userID string, discussionID string) ([]*model.Post, error) {
+	var posts []*model.Post
+
+	tempParticipant := "af7899ef-e8b2-419c-bef1-1d27494995a8" // TODO: replace after merging in concierge PR
+
+	// Get discussionObj to show which settings are selected
+	discussionObj, err := d.GetDiscussionByID(ctx, discussionID)
+	if err != nil {
+		logrus.WithError(err).Error("failed to get discussion by ID")
+		return nil, err
+	}
+
+	// Create invite link concierge post
+	createLinkPost, err := d.createInviteLinkConciergePost(ctx, discussionID, tempParticipant)
+	if err != nil {
+		logrus.WithError(err).Error("failed to create invite link CP")
+		return nil, err
+	}
+
+	// Create flair access concierge post
+	flairAccessPost, err := d.createFlairAccessConciergePost(ctx, userID, discussionID, tempParticipant)
+	if err != nil {
+		logrus.WithError(err).Error("failed to create flair access CP")
+		return nil, err
+	}
+
+	// Create invitation setting concierge post
+	inviteSettingPost, err := d.createInviteSettingConciergePost(ctx, discussionID, tempParticipant, discussionObj)
+	if err != nil {
+		logrus.WithError(err).Error("failed to create invite setting CP")
+		return nil, err
+	}
+
+	// Create viewer access concierge post
+	viewerAccessPost, err := d.createViewerAccessConciergePost(ctx, discussionID, tempParticipant, discussionObj)
+	if err != nil {
+		logrus.WithError(err).Error("failed to create viewer access CP")
+		return nil, err
+	}
+
+	// Create rename chat concierge post
+	renameChat, err := d.createRenameChatAndEmojiConciergePost(ctx, discussionID, tempParticipant)
+	if err != nil {
+		logrus.WithError(err).Error("failed to create viewer access CP")
+		return nil, err
+	}
+
+	posts = append(posts, createLinkPost, flairAccessPost, inviteSettingPost, viewerAccessPost, renameChat)
+
+	return posts, nil
 }
 
 func validatePostParams(ctx context.Context, input model.PostContentInput) error {

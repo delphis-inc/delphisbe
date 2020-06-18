@@ -26,6 +26,7 @@ type dbPrepStmts struct {
 	// Moderator
 	getModeratorByUserIDStmt                *sql2.Stmt
 	getModeratorByUserIDAndDiscussionIDStmt *sql2.Stmt
+	getModeratorByDiscussionIDStmt          *sql2.Stmt
 
 	// ImportedContent
 	getImportedContentByIDStmt                    *sql2.Stmt
@@ -198,6 +199,9 @@ const getModeratorByUserIDAndDiscussionIDString = `
 		INNER JOIN discussions d
 		ON m.id = d.moderator_id
 		WHERE u.user_id = $1 and d.id = $2;`
+
+const getModeratorByDiscussionIDString = `
+SELECT`
 
 const getImportedContentByIDString = `
 		SELECT id,
