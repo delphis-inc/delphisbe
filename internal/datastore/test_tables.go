@@ -67,7 +67,9 @@ func (d *delphisDB) createTestTables(ctx context.Context) error {
 			anonymity_type varchar(36) not null,
 			moderator_id varchar(36),
 			auto_post boolean default true not null,
-			idle_minutes int default 300 not null
+			idle_minutes int default 300 not null,
+			public_access boolean default true not null,
+			icon_url text
 		);`,
 
 		`CREATE TABLE IF NOT EXISTS participants (

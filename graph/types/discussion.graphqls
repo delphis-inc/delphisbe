@@ -31,12 +31,53 @@ type Discussion implements Entity {
     idleMinutes: Int!
     tags: [Tag!]
     upcomingContent: [ImportedContent!]
+    flairTemplates: [FlairTemplate!]
+    accessRequests: [DiscussionAccessRequest!]
+    discussionLinksAccess: DiscussionLinkAccess!
 }
 
 type Tag {
     id: ID!
     createdAt: String!
     tag: String!
+    isDeleted: Boolean!
+}
+
+type DiscussionFlairTemplateAccess {
+    id: ID!
+    discussion: Discussion!
+    flairTemplate: FlairTemplate!
+    createdAt: String!
+    updatedAt: String!
+    isDeleted: Boolean!
+}
+
+type DiscussionInvite {
+    id: ID!
+    discussion: Discussion!
+    invitingParticipant: Participant!
+    createdAt: String!
+    updatedAt: String!
+    isDeleted: Boolean!
+    status: InviteRequestStatus!
+}
+
+type DiscussionAccessRequest {
+    id: ID!
+    user: User!
+    discussion: Discussion!
+    createdAt: String!
+    updatedAt: String!
+    isDeleted: Boolean!
+    status: InviteRequestStatus!
+}
+
+type DiscussionLinkAccess {
+    discussionID: ID!
+    inviteLinkURL: String!
+    vipInviteLinkURL: String!
+    createdAt: String!
+    updatedAt: String!
     isDeleted: Boolean!
 }
 

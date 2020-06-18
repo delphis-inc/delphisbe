@@ -2,6 +2,7 @@ package datastore
 
 import (
 	"context"
+	"database/sql"
 	sql2 "database/sql"
 	"fmt"
 	"sync"
@@ -24,7 +25,7 @@ import (
 type Datastore interface {
 	GetDiscussionByID(ctx context.Context, id string) (*model.Discussion, error)
 	GetDiscussionsByIDs(ctx context.Context, ids []string) (map[string]*model.Discussion, error)
-	GetDiscussionsAutoPost(ctx context.Context) DiscussionIter
+	GetDiscussionsAutoPost(ctx context.Context) AutoPostDiscussionIter
 	GetDiscussionByModeratorID(ctx context.Context, moderatorID string) (*model.Discussion, error)
 	CreateModerator(ctx context.Context, moderator model.Moderator) (*model.Moderator, error)
 	GetModeratorByID(ctx context.Context, id string) (*model.Moderator, error)
@@ -87,6 +88,26 @@ type Datastore interface {
 	// Helper functions
 	PostIterCollect(ctx context.Context, iter PostIter) ([]*model.Post, error)
 
+	GetPublicDiscussions(ctx context.Context) DiscussionIter
+	GetDiscussionsForFlairTemplateByUserID(ctx context.Context, userID string) DiscussionIter
+	GetDiscussionsForUserAccessByUserID(ctx context.Context, userID string) DiscussionIter
+	GetDiscussionFlairTemplatesAccessByDiscussionID(ctx context.Context, discussionID string) DFAIter
+	UpsertDiscussionFlairTemplatesAccess(ctx context.Context, tx *sql2.Tx, discussionID, flairTemplateID string) (*model.DiscussionFlairTemplateAccess, error)
+	UpsertDiscussionUserAccess(ctx context.Context, tx *sql2.Tx, discussionID, userID string) (*model.DiscussionUserAccess, error)
+	DeleteDiscussionFlairTemplatesAccess(ctx context.Context, tx *sql2.Tx, discussionID, flairTemplateID string) (*model.DiscussionFlairTemplateAccess, error)
+	DeleteDiscussionUserAccess(ctx context.Context, tx *sql2.Tx, discussionID, userID string) (*model.DiscussionUserAccess, error)
+	GetDiscussionInviteByID(ctx context.Context, id string) (*model.DiscussionInvite, error)
+	GetDiscussionRequestAccessByID(ctx context.Context, id string) (*model.DiscussionAccessRequest, error)
+	GetDiscussionInvitesByUserIDAndStatus(ctx context.Context, userID string, status model.InviteRequestStatus) DiscussionInviteIter
+	GetSentDiscussionInvitesByUserID(ctx context.Context, userID string) DiscussionInviteIter
+	GetDiscussionAccessRequestsByDiscussionID(ctx context.Context, discussionID string) DiscussionAccessRequestIter
+	GetSentDiscussionAccessRequestsByUserID(ctx context.Context, userID string) DiscussionAccessRequestIter
+	GetInviteLinksByDiscussionID(ctx context.Context, discussionID string) (*model.DiscussionLinkAccess, error)
+	PutDiscussionInviteRecord(ctx context.Context, tx *sql2.Tx, invite model.DiscussionInvite) (*model.DiscussionInvite, error)
+	PutDiscussionAccessRequestRecord(ctx context.Context, tx *sql2.Tx, request model.DiscussionAccessRequest) (*model.DiscussionAccessRequest, error)
+	UpdateDiscussionInviteRecord(ctx context.Context, tx *sql2.Tx, invite model.DiscussionInvite) (*model.DiscussionInvite, error)
+	UpdateDiscussionAccessRequestRecord(ctx context.Context, tx *sql2.Tx, request model.DiscussionAccessRequest) (*model.DiscussionAccessRequest, error)
+	UpsertInviteLinksByDiscussionID(ctx context.Context, tx *sql.Tx, input model.DiscussionLinkAccess) (*model.DiscussionLinkAccess, error)
 	// TXN
 	BeginTx(ctx context.Context) (*sql2.Tx, error)
 	RollbackTx(ctx context.Context, tx *sql2.Tx) error
@@ -122,8 +143,28 @@ type ContentIter interface {
 	Close() error
 }
 
-type DiscussionIter interface {
+type AutoPostDiscussionIter interface {
 	Next(discussion *model.DiscussionAutoPost) bool
+	Close() error
+}
+
+type DiscussionIter interface {
+	Next(discussion *model.Discussion) bool
+	Close() error
+}
+
+type DiscussionInviteIter interface {
+	Next(invite *model.DiscussionInvite) bool
+	Close() error
+}
+
+type DiscussionAccessRequestIter interface {
+	Next(request *model.DiscussionAccessRequest) bool
+	Close() error
+}
+
+type DFAIter interface {
+	Next(dfa *model.DiscussionFlairTemplateAccess) bool
 	Close() error
 }
 
@@ -249,6 +290,10 @@ func (d *delphisDB) initializeStatements(ctx context.Context) (err error) {
 		logrus.WithError(err).Error("failed to prepare getDiscussionsForAutoPostStmt")
 		return errors.Wrap(err, "failed to prepare getDiscussionsForAutoPostStmt")
 	}
+	if d.prepStmts.getPublicDiscussionsStmt, err = d.pg.PrepareContext(ctx, getPublicDiscussionsString); err != nil {
+		logrus.WithError(err).Error("failed to prepare getPublicDiscussionsStmt")
+		return errors.Wrap(err, "failed to prepare getPublicDiscussionsStmt")
+	}
 
 	// MODERATOR
 	if d.prepStmts.getModeratorByUserIDStmt, err = d.pg.PrepareContext(ctx, getModeratorByUserIDString); err != nil {
@@ -312,6 +357,88 @@ func (d *delphisDB) initializeStatements(ctx context.Context) (err error) {
 		return errors.Wrap(err, "failed to prepare deleteDiscussionTagsStmt")
 	}
 
+	// DISCUSSION ACCESS
+	if d.prepStmts.getDiscussionsByFlairTemplateForUserStmt, err = d.pg.PrepareContext(ctx, getDiscussionsByFlairTemplateForUserString); err != nil {
+		logrus.WithError(err).Error("failed to prepare getDiscussionsByFlairTemplateForUserStmt")
+		return errors.Wrap(err, "failed to prepare getDiscussionsByFlairTemplateForUserStmt")
+	}
+	if d.prepStmts.getDiscussionsByUserAccessForUserStmt, err = d.pg.PrepareContext(ctx, getDiscussionsByUserAccessForUserString); err != nil {
+		logrus.WithError(err).Error("failed to prepare getDiscussionsByUserAccessForUserStmt")
+		return errors.Wrap(err, "failed to prepare getDiscussionsByUserAccessForUserStmt")
+	}
+	if d.prepStmts.getDiscussionFlairAccessStmt, err = d.pg.PrepareContext(ctx, getDiscussionFlairAccessString); err != nil {
+		logrus.WithError(err).Error("failed to prepare getDiscussionFlairAccessStmt")
+		return errors.Wrap(err, "failed to prepare getDiscussionFlairAccessStmt")
+	}
+	if d.prepStmts.upsertDiscussionFlairAccessStmt, err = d.pg.PrepareContext(ctx, upsertDiscussionFlairAccessString); err != nil {
+		logrus.WithError(err).Error("failed to prepare upsertDiscussionFlairAccessStmt")
+		return errors.Wrap(err, "failed to prepare upsertDiscussionFlairAccessStmt")
+	}
+	if d.prepStmts.upsertDiscussionUserAccessStmt, err = d.pg.PrepareContext(ctx, upsertDiscussionUserAccessString); err != nil {
+		logrus.WithError(err).Error("failed to prepare upsertDiscussionUserAccessStmt")
+		return errors.Wrap(err, "failed to prepare upsertDiscussionUserAccessStmt")
+	}
+	if d.prepStmts.deleteDiscussionFlairAccessStmt, err = d.pg.PrepareContext(ctx, deleteDiscussionFlairAccessString); err != nil {
+		logrus.WithError(err).Error("failed to prepare deleteDiscussionFlairAccessStmt")
+		return errors.Wrap(err, "failed to prepare deleteDiscussionFlairAccessStmt")
+	}
+	if d.prepStmts.deleteDiscussionUserAccessStmt, err = d.pg.PrepareContext(ctx, deleteDiscussionUserAccessString); err != nil {
+		logrus.WithError(err).Error("failed to prepare deleteDiscussionUserAccessStmt")
+		return errors.Wrap(err, "failed to prepare deleteDiscussionUserAccessStmt")
+	}
+
+	// INVITES AND REQUESTS
+	if d.prepStmts.getDiscussionInviteByIDStmt, err = d.pg.PrepareContext(ctx, getDiscussionInviteByIDString); err != nil {
+		logrus.WithError(err).Error("failed to prepare getDiscussionInviteByIDStmt")
+		return errors.Wrap(err, "failed to prepare getDiscussionInviteByIDStmt")
+	}
+	if d.prepStmts.getDiscussionRequestAccessByIDStmt, err = d.pg.PrepareContext(ctx, getDiscussionAccessRequestsString); err != nil {
+		logrus.WithError(err).Error("failed to prepare getDiscussionRequestAccessByIDStmt")
+		return errors.Wrap(err, "failed to prepare getDiscussionRequestAccessByIDStmt")
+	}
+	if d.prepStmts.getDiscussionInvitesForUserStmt, err = d.pg.PrepareContext(ctx, getDiscussionInvitesForUserString); err != nil {
+		logrus.WithError(err).Error("failed to prepare getDiscussionInvitesForUserStmt")
+		return errors.Wrap(err, "failed to prepare getDiscussionInvitesForUserStmt")
+	}
+	if d.prepStmts.getSentDiscussionInvitesForUserStmt, err = d.pg.PrepareContext(ctx, getSentDiscussionInvitesForUserString); err != nil {
+		logrus.WithError(err).Error("failed to prepare getSentDiscussionInvitesForUserStmt")
+		return errors.Wrap(err, "failed to prepare getSentDiscussionInvitesForUserStmt")
+	}
+	if d.prepStmts.getDiscussionAccessRequestsStmt, err = d.pg.PrepareContext(ctx, getDiscussionAccessRequestsString); err != nil {
+		logrus.WithError(err).Error("failed to prepare getDiscussionAccessRequestsStmt")
+		return errors.Wrap(err, "failed to prepare getDiscussionAccessRequestsStmt")
+	}
+	if d.prepStmts.getSentDiscussionAccessRequestsForUserStmt, err = d.pg.PrepareContext(ctx, getSentDiscussionAccessRequestsForUserString); err != nil {
+		logrus.WithError(err).Error("failed to prepare getSentDiscussionAccessRequestsForUserStmt")
+		return errors.Wrap(err, "failed to prepare getSentDiscussionAccessRequestsForUserStmt")
+	}
+	if d.prepStmts.getInviteLinksForDiscussion, err = d.pg.PrepareContext(ctx, getInviteLinksForDiscussion); err != nil {
+		logrus.WithError(err).Error("failed to prepare getInviteLinksForDiscussion")
+		return errors.Wrap(err, "failed to prepare getInviteLinksForDiscussion")
+	}
+
+	if d.prepStmts.putDiscussionInviteRecordStmt, err = d.pg.PrepareContext(ctx, putDiscussionInviteRecordString); err != nil {
+		logrus.WithError(err).Error("failed to prepare putDiscussionInviteRecordStmt")
+		return errors.Wrap(err, "failed to prepare putDiscussionInviteRecordStmt")
+	}
+	if d.prepStmts.putDiscussionAccessRequestStmt, err = d.pg.PrepareContext(ctx, putDiscussionAccessRequestString); err != nil {
+		logrus.WithError(err).Error("failed to prepare putDiscussionAccessRequestStmt")
+		return errors.Wrap(err, "failed to prepare putDiscussionAccessRequestStmt")
+	}
+
+	if d.prepStmts.updateDiscussionInviteRecordStmt, err = d.pg.PrepareContext(ctx, updateDiscussionInviteRecordString); err != nil {
+		logrus.WithError(err).Error("failed to prepare updateDiscussionInviteRecordStmt")
+		return errors.Wrap(err, "failed to prepare updateDiscussionInviteRecordStmt")
+	}
+	if d.prepStmts.updateDiscussionAccessRequestStmt, err = d.pg.PrepareContext(ctx, updateDiscussionAccessRequestString); err != nil {
+		logrus.WithError(err).Error("failed to prepare updateDiscussionAccessRequestStmt")
+		return errors.Wrap(err, "failed to prepare updateDiscussionAccessRequestStmt")
+	}
+
+	if d.prepStmts.upsertInviteLinksForDiscussion, err = d.pg.PrepareContext(ctx, upsertInviteLinksForDiscussion); err != nil {
+		logrus.WithError(err).Error("failed to prepare upsertInviteLinksForDiscussion")
+		return errors.Wrap(err, "failed to prepare upsertInviteLinksForDiscussion")
+	}
 	d.ready = true
 	return
 }

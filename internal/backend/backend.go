@@ -18,7 +18,7 @@ import (
 )
 
 type DelphisBackend interface {
-	CreateNewDiscussion(ctx context.Context, creatingUser *model.User, anonymityType model.AnonymityType, title string) (*model.Discussion, error)
+	CreateNewDiscussion(ctx context.Context, creatingUser *model.User, anonymityType model.AnonymityType, title string, publicAccess bool) (*model.Discussion, error)
 	UpdateDiscussion(ctx context.Context, id string, input model.DiscussionInput) (*model.Discussion, error)
 	GetDiscussionByID(ctx context.Context, id string) (*model.Discussion, error)
 	GetDiscussionsByIDs(ctx context.Context, ids []string) (map[string]*model.Discussion, error)
@@ -86,6 +86,22 @@ type DelphisBackend interface {
 	UploadMedia(ctx context.Context, media multipart.File) (string, string, error)
 	GetConciergeParticipantID(ctx context.Context, discussionID string) (string, error)
 	HandleConciergeMutation(ctx context.Context, userID string, discussionID string, mutationID string, selectedOptions []string) (*model.Post, error)
+	GetDiscussionAccessByUserID(ctx context.Context, userID string) ([]*model.Discussion, error)
+	GetDiscussionFlairTemplateAccessByDiscussionID(ctx context.Context, discussionID string) ([]*model.FlairTemplate, error)
+	PutDiscussionFlairTemplatesAccess(ctx context.Context, userID string, discussionID string, flairTemplateIDs []string) ([]*model.DiscussionFlairTemplateAccess, error)
+	DeleteDiscussionFlairTemplatesAccess(ctx context.Context, discussionID string, flairTemplateIDs []string) ([]*model.DiscussionFlairTemplateAccess, error)
+	GetDiscussionInviteByID(ctx context.Context, id string) (*model.DiscussionInvite, error)
+	GetDiscussionRequestAccessByID(ctx context.Context, id string) (*model.DiscussionAccessRequest, error)
+	GetDiscussionInvitesByUserIDAndStatus(ctx context.Context, userID string, status model.InviteRequestStatus) ([]*model.DiscussionInvite, error)
+	GetSentDiscussionInvitesByUserID(ctx context.Context, userID string) ([]*model.DiscussionInvite, error)
+	GetDiscussionAccessRequestsByDiscussionID(ctx context.Context, discussionID string) ([]*model.DiscussionAccessRequest, error)
+	GetSentDiscussionAccessRequestsByUserID(ctx context.Context, userID string) ([]*model.DiscussionAccessRequest, error)
+	InviteUserToDiscussion(ctx context.Context, userID, discussionID, invitingParticipantID string) (*model.DiscussionInvite, error)
+	RespondToInvitation(ctx context.Context, inviteID string, response model.InviteRequestStatus, discussionParticipantInput model.AddDiscussionParticipantInput) (*model.DiscussionInvite, error)
+	RequestAccessToDiscussion(ctx context.Context, userID, discussionID string) (*model.DiscussionAccessRequest, error)
+	RespondToRequestAccess(ctx context.Context, requestID string, response model.InviteRequestStatus, invitingParticipantID string) (*model.DiscussionAccessRequest, error)
+	GetInviteLinksByDiscussionID(ctx context.Context, discussionID string) (*model.DiscussionLinkAccess, error)
+	UpsertInviteLinksByDiscussionID(ctx context.Context, discussionID string) (*model.DiscussionLinkAccess, error)
 }
 
 type delphisBackend struct {

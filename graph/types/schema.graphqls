@@ -55,6 +55,7 @@ input DiscussionInput {
   title: String
   autoPost: Boolean
   idleMinutes: Int
+  publicAccess: Boolean
 }
 
 
@@ -64,7 +65,7 @@ type Mutation {
   addPost(discussionID: ID!, participantID: ID!, postContent: PostContentInput!): Post!
   postImportedContent(discussionID: ID!, participantID: ID!, contentID: ID!): Post! # TODO: Need clarity on UX for this. Keeping it simple for now
   scheduleImportedContent(discussionID: ID!, contentID: ID!): ContentQueueRecord!
-  createDiscussion(anonymityType: AnonymityType!, title: String!): Discussion!
+  createDiscussion(anonymityType: AnonymityType!, title: String!, publicAccess: Boolean = true): Discussion!
 
   # Creates a User Flair from a Flair template, accessible via available flair
   createFlair(userID: String!, templateID: String!): Flair!
@@ -94,6 +95,16 @@ type Mutation {
   deleteDiscussionTags(discussionID: ID!, tags:[String!]): [Tag!]
 
   conciergeMutation(discussionID: ID!, mutationID: ID!, selectedOptions:[String!]): Post! # Heterogeneous endpoint. Think about what we want to return here. Could use entities? What does that gain us?
+  # Add flair accessibility to private discussions
+  addDiscussionFlairTemplatesAccess(discussionID: ID!, flairTemplateIDs:[ID!]): Discussion!
+  deleteDiscussionFlairTemplatesAccess(discussionID: ID!, flairTemplateIDs:[ID!]): Discussion!
+
+  # Invites
+  inviteUserToDiscussion(discussionID: ID!, userID: ID!, invitingParticipantID: ID!): DiscussionInvite!
+  respondToInvite(inviteID: ID!, response: InviteRequestStatus!, discussionParticipantInput: AddDiscussionParticipantInput!): DiscussionInvite!
+
+  requestAccessToDiscussion(discussionID: ID!): DiscussionAccessRequest!
+  respondToRequestAccess(requestID: ID!, response: InviteRequestStatus!): DiscussionAccessRequest!
 }
 
 type Subscription {

@@ -118,3 +118,9 @@ models:
         resolver: true
       bookmarks:
         resolver: true
+  DiscussionLinkAccess:
+    fields:
+      inviteLinkURL:
+        resolver: true
+      vipInviteLinkURL:
+        resolver: true

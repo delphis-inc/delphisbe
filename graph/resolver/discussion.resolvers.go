@@ -7,6 +7,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/nedrocks/delphisbe/graph/generated"
@@ -155,6 +156,97 @@ func (r *discussionResolver) UpcomingContent(ctx context.Context, obj *model.Dis
 	return r.DAOManager.GetUpcomingImportedContentByDiscussionID(ctx, obj.ID)
 }
 
+func (r *discussionResolver) FlairTemplates(ctx context.Context, obj *model.Discussion) ([]*model.FlairTemplate, error) {
+	return r.DAOManager.GetDiscussionFlairTemplateAccessByDiscussionID(ctx, obj.ID)
+}
+
+func (r *discussionResolver) AccessRequests(ctx context.Context, obj *model.Discussion) ([]*model.DiscussionAccessRequest, error) {
+	authedUser := auth.GetAuthedUser(ctx)
+	if authedUser == nil {
+		return nil, fmt.Errorf("Need auth")
+	}
+
+	// Only allow the mod to view access requests
+	modCheck, err := r.DAOManager.CheckIfModeratorForDiscussion(ctx, authedUser.UserID, obj.ID)
+	if err != nil || !modCheck {
+		return nil, fmt.Errorf("unauthorized")
+	}
+
+	return r.DAOManager.GetDiscussionAccessRequestsByDiscussionID(ctx, obj.ID)
+}
+
+func (r *discussionResolver) DiscussionLinksAccess(ctx context.Context, obj *model.Discussion) (*model.DiscussionLinkAccess, error) {
+	authedUser := auth.GetAuthedUser(ctx)
+	if authedUser == nil {
+		return nil, fmt.Errorf("Need auth")
+	}
+
+	// Only allow the mod to view invite links
+	modCheck, err := r.DAOManager.CheckIfModeratorForDiscussion(ctx, authedUser.UserID, obj.ID)
+	if err != nil || !modCheck {
+		return nil, fmt.Errorf("unauthorized")
+	}
+
+	return r.DAOManager.GetInviteLinksByDiscussionID(ctx, obj.ID)
+}
+
+func (r *discussionAccessRequestResolver) User(ctx context.Context, obj *model.DiscussionAccessRequest) (*model.User, error) {
+	authedUser := auth.GetAuthedUser(ctx)
+	if authedUser == nil {
+		return nil, fmt.Errorf("Need auth")
+	}
+
+	if authedUser.UserID != obj.UserID {
+		// Only allow the mod to view access requests
+		modCheck, err := r.DAOManager.CheckIfModeratorForDiscussion(ctx, authedUser.UserID, obj.ID)
+		if err != nil || !modCheck {
+			return nil, fmt.Errorf("unauthorized")
+		}
+	}
+
+	return r.DAOManager.GetUserByID(ctx, obj.UserID)
+}
+
+func (r *discussionAccessRequestResolver) Discussion(ctx context.Context, obj *model.DiscussionAccessRequest) (*model.Discussion, error) {
+	return r.DAOManager.GetDiscussionByID(ctx, obj.DiscussionID)
+}
+
+func (r *discussionFlairTemplateAccessResolver) Discussion(ctx context.Context, obj *model.DiscussionFlairTemplateAccess) (*model.Discussion, error) {
+	return r.DAOManager.GetDiscussionByID(ctx, obj.DiscussionID)
+}
+
+func (r *discussionFlairTemplateAccessResolver) FlairTemplate(ctx context.Context, obj *model.DiscussionFlairTemplateAccess) (*model.FlairTemplate, error) {
+	return r.DAOManager.GetFlairTemplateByID(ctx, obj.FlairTemplateID)
+}
+
+func (r *discussionFlairTemplateAccessResolver) CreatedAt(ctx context.Context, obj *model.DiscussionFlairTemplateAccess) (string, error) {
+	return obj.CreatedAt.Format(time.RFC3339), nil
+}
+
+func (r *discussionFlairTemplateAccessResolver) UpdatedAt(ctx context.Context, obj *model.DiscussionFlairTemplateAccess) (string, error) {
+	return obj.UpdatedAt.Format(time.RFC3339), nil
+}
+
+func (r *discussionFlairTemplateAccessResolver) IsDeleted(ctx context.Context, obj *model.DiscussionFlairTemplateAccess) (bool, error) {
+	return obj.DeletedAt != nil, nil
+}
+
+func (r *discussionInviteResolver) Discussion(ctx context.Context, obj *model.DiscussionInvite) (*model.Discussion, error) {
+	return r.DAOManager.GetDiscussionByID(ctx, obj.DiscussionID)
+}
+
+func (r *discussionInviteResolver) InvitingParticipant(ctx context.Context, obj *model.DiscussionInvite) (*model.Participant, error) {
+	return r.DAOManager.GetParticipantByID(ctx, obj.InvitingParticipantID)
+}
+
+func (r *discussionLinkAccessResolver) InviteLinkURL(ctx context.Context, obj *model.DiscussionLinkAccess) (string, error) {
+	return strings.Join([]string{model.InviteLinkHostname, obj.DiscussionID, obj.InviteLinkSlug}, "/"), nil
+}
+
+func (r *discussionLinkAccessResolver) VipInviteLinkURL(ctx context.Context, obj *model.DiscussionLinkAccess) (string, error) {
+	return strings.Join([]string{model.InviteLinkHostname, obj.DiscussionID, obj.VipInviteLinkSlug}, "/"), nil
+}
+
 func (r *tagResolver) CreatedAt(ctx context.Context, obj *model.Tag) (string, error) {
 	return obj.CreatedAt.Format(time.RFC3339), nil
 }
@@ -166,8 +258,32 @@ func (r *tagResolver) IsDeleted(ctx context.Context, obj *model.Tag) (bool, erro
 // Discussion returns generated.DiscussionResolver implementation.
 func (r *Resolver) Discussion() generated.DiscussionResolver { return &discussionResolver{r} }
 
+// DiscussionAccessRequest returns generated.DiscussionAccessRequestResolver implementation.
+func (r *Resolver) DiscussionAccessRequest() generated.DiscussionAccessRequestResolver {
+	return &discussionAccessRequestResolver{r}
+}
+
+// DiscussionFlairTemplateAccess returns generated.DiscussionFlairTemplateAccessResolver implementation.
+func (r *Resolver) DiscussionFlairTemplateAccess() generated.DiscussionFlairTemplateAccessResolver {
+	return &discussionFlairTemplateAccessResolver{r}
+}
+
+// DiscussionInvite returns generated.DiscussionInviteResolver implementation.
+func (r *Resolver) DiscussionInvite() generated.DiscussionInviteResolver {
+	return &discussionInviteResolver{r}
+}
+
+// DiscussionLinkAccess returns generated.DiscussionLinkAccessResolver implementation.
+func (r *Resolver) DiscussionLinkAccess() generated.DiscussionLinkAccessResolver {
+	return &discussionLinkAccessResolver{r}
+}
+
 // Tag returns generated.TagResolver implementation.
 func (r *Resolver) Tag() generated.TagResolver { return &tagResolver{r} }
 
 type discussionResolver struct{ *Resolver }
+type discussionAccessRequestResolver struct{ *Resolver }
+type discussionFlairTemplateAccessResolver struct{ *Resolver }
+type discussionInviteResolver struct{ *Resolver }
+type discussionLinkAccessResolver struct{ *Resolver }
 type tagResolver struct{ *Resolver }

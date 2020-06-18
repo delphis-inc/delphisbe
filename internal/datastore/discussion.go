@@ -55,11 +55,11 @@ func (d *delphisDB) GetDiscussionByModeratorID(ctx context.Context, moderatorID 
 	return &discussion, nil
 }
 
-func (d *delphisDB) GetDiscussionsAutoPost(ctx context.Context) DiscussionIter {
+func (d *delphisDB) GetDiscussionsAutoPost(ctx context.Context) AutoPostDiscussionIter {
 	logrus.Debug("GetDiscussionsAutoPost::SQL Query")
 	if err := d.initializeStatements(ctx); err != nil {
 		logrus.WithError(err).Error("GetDiscussionsAutoPost::failed to initialize statements")
-		return &discussionIter{err: err}
+		return &autoPostDiscussionIter{err: err}
 	}
 
 	rows, err := d.prepStmts.getDiscussionsForAutoPostStmt.QueryContext(
@@ -67,10 +67,10 @@ func (d *delphisDB) GetDiscussionsAutoPost(ctx context.Context) DiscussionIter {
 	)
 	if err != nil {
 		logrus.WithError(err).Error("failed to query GetDiscussionsAutoPost")
-		return &discussionIter{err: err}
+		return &autoPostDiscussionIter{err: err}
 	}
 
-	return &discussionIter{
+	return &autoPostDiscussionIter{
 		ctx:  ctx,
 		rows: rows,
 	}
@@ -116,9 +116,12 @@ func (d *delphisDB) UpsertDiscussion(ctx context.Context, discussion model.Discu
 			return nil, err
 		}
 	} else {
-		if err := d.sql.Preload("Moderator").Model(&discussion).Updates(model.Discussion{
-			Title:         discussion.Title,
-			AnonymityType: discussion.AnonymityType,
+		if err := d.sql.Preload("Moderator").Model(&discussion).Updates(map[string]interface{}{
+			"Title":         discussion.Title,
+			"AnonymityType": discussion.AnonymityType,
+			"AutoPost":      discussion.AutoPost,
+			"IdleMinutes":   discussion.IdleMinutes,
+			"PublicAccess":  discussion.PublicAccess,
 		}).First(&found).Error; err != nil {
 			logrus.WithError(err).Errorf("UpsertDiscussion::Failed updating disucssion object")
 			return nil, err
@@ -139,7 +142,7 @@ func (d *delphisDB) GetDiscussionTags(ctx context.Context, id string) TagIter {
 		id,
 	)
 	if err != nil {
-		logrus.WithError(err).Error("failed to query GetDiscussionTags")
+		logrus.WithError(err).Error("failed to query GetDiscussionTagsStmt")
 		return &tagIter{err: err}
 	}
 
@@ -199,13 +202,13 @@ func (d *delphisDB) DeleteDiscussionTags(ctx context.Context, tx *sql.Tx, tag mo
 	return &tag, nil
 }
 
-type discussionIter struct {
+type autoPostDiscussionIter struct {
 	err  error
 	ctx  context.Context
 	rows *sql.Rows
 }
 
-func (iter *discussionIter) Next(discussion *model.DiscussionAutoPost) bool {
+func (iter *autoPostDiscussionIter) Next(discussion *model.DiscussionAutoPost) bool {
 	if iter.err != nil {
 		logrus.WithError(iter.err).Error("iterator error")
 		return false
@@ -231,7 +234,7 @@ func (iter *discussionIter) Next(discussion *model.DiscussionAutoPost) bool {
 	return true
 }
 
-func (iter *discussionIter) Close() error {
+func (iter *autoPostDiscussionIter) Close() error {
 	if err := iter.err; err != nil {
 		logrus.WithError(err).Error("iter error on close")
 		return err

@@ -18,7 +18,7 @@ import (
 
 const discussionSubscriberKey = "discussion_subscribers-%s"
 
-func (d *delphisBackend) CreateNewDiscussion(ctx context.Context, creatingUser *model.User, anonymityType model.AnonymityType, title string) (*model.Discussion, error) {
+func (d *delphisBackend) CreateNewDiscussion(ctx context.Context, creatingUser *model.User, anonymityType model.AnonymityType, title string, publicAccess bool) (*model.Discussion, error) {
 	moderatorObj := model.Moderator{
 		ID:            util.UUIDv4(),
 		UserProfileID: &creatingUser.UserProfile.ID,
@@ -36,6 +36,7 @@ func (d *delphisBackend) CreateNewDiscussion(ctx context.Context, creatingUser *
 		AnonymityType: anonymityType,
 		Title:         title,
 		ModeratorID:   &moderatorObj.ID,
+		PublicAccess:  publicAccess,
 	}
 
 	_, err = d.db.UpsertDiscussion(ctx, discussionObj)
@@ -50,6 +51,12 @@ func (d *delphisBackend) CreateNewDiscussion(ctx context.Context, creatingUser *
 		return nil, err
 	}
 
+	// Create invite links for discussion
+	if _, err := d.UpsertInviteLinksByDiscussionID(ctx, discussionID); err != nil {
+		logrus.WithError(err).Error("failed to create invite links")
+		return nil, err
+	}
+
 	return &discussionObj, nil
 }
 
@@ -60,6 +67,7 @@ func (d *delphisBackend) UpdateDiscussion(ctx context.Context, id string, input 
 	}
 
 	updateDiscussionObj(discObj, input)
+	logrus.Debugf("Discussion: %+v\n", discObj)
 
 	return d.db.UpsertDiscussion(ctx, *discObj)
 }
@@ -170,7 +178,7 @@ func (d *delphisBackend) PutDiscussionTags(ctx context.Context, discussionID str
 
 func (d *delphisBackend) DeleteDiscussionTags(ctx context.Context, discussionID string, tags []string) ([]*model.Tag, error) {
 	if len(tags) == 0 {
-		return nil, fmt.Errorf("no tags to add")
+		return nil, fmt.Errorf("no tags to delete")
 	}
 
 	var deletedTags []*model.Tag
@@ -210,7 +218,7 @@ func (d *delphisBackend) DeleteDiscussionTags(ctx context.Context, discussionID 
 	return deletedTags, nil
 }
 
-func (d *delphisBackend) iterToDiscussionsAutoPost(ctx context.Context, iter datastore.DiscussionIter) ([]*model.DiscussionAutoPost, error) {
+func (d *delphisBackend) iterToDiscussionsAutoPost(ctx context.Context, iter datastore.AutoPostDiscussionIter) ([]*model.DiscussionAutoPost, error) {
 	var discs []*model.DiscussionAutoPost
 	disc := model.DiscussionAutoPost{}
 
@@ -263,5 +271,20 @@ func updateDiscussionObj(disc *model.Discussion, input model.DiscussionInput) {
 	if input.IdleMinutes != nil {
 		disc.IdleMinutes = *input.IdleMinutes
 	}
+	if input.PublicAccess != nil {
+		disc.PublicAccess = *input.PublicAccess
+	}
+}
 
+func dedupeDiscussions(discussions []*model.Discussion) []*model.Discussion {
+	hashMap := make(map[string]int)
+
+	var results []*model.Discussion
+	for _, val := range discussions {
+		if _, ok := hashMap[val.ID]; !ok {
+			results = append(results, val)
+		}
+		hashMap[val.ID]++
+	}
+	return results
 }

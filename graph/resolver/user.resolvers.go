@@ -10,6 +10,7 @@ import (
 
 	"github.com/nedrocks/delphisbe/graph/generated"
 	"github.com/nedrocks/delphisbe/graph/model"
+	"github.com/nedrocks/delphisbe/internal/auth"
 	"github.com/sirupsen/logrus"
 )
 
@@ -91,6 +92,63 @@ func (r *userResolver) Devices(ctx context.Context, obj *model.User) ([]*model.U
 		resp[i] = &devices[i]
 	}
 	return resp, nil
+}
+
+func (r *userResolver) Discussions(ctx context.Context, obj *model.User) ([]*model.Discussion, error) {
+	authedUser := auth.GetAuthedUser(ctx)
+	if authedUser == nil {
+		return nil, fmt.Errorf("Need auth")
+	}
+
+	// Do we want a mod override?
+	if authedUser.UserID != obj.ID {
+		return nil, fmt.Errorf("unauthorized")
+	}
+
+	return r.DAOManager.GetDiscussionAccessByUserID(ctx, authedUser.UserID)
+}
+
+func (r *userResolver) DiscussionInvites(ctx context.Context, obj *model.User, status model.InviteRequestStatus) ([]*model.DiscussionInvite, error) {
+	authedUser := auth.GetAuthedUser(ctx)
+	if authedUser == nil {
+		return nil, fmt.Errorf("Need auth")
+	}
+
+	// Do we want a mod override?
+	if authedUser.UserID != obj.ID {
+		return nil, fmt.Errorf("unauthorized")
+	}
+
+	// Do we want a different status? Made it generic for easy change
+	return r.DAOManager.GetDiscussionInvitesByUserIDAndStatus(ctx, authedUser.UserID, status)
+}
+
+func (r *userResolver) SentDiscussionInvites(ctx context.Context, obj *model.User) ([]*model.DiscussionInvite, error) {
+	authedUser := auth.GetAuthedUser(ctx)
+	if authedUser == nil {
+		return nil, fmt.Errorf("Need auth")
+	}
+
+	// Do we want a mod override?
+	if authedUser.UserID != obj.ID {
+		return nil, fmt.Errorf("unauthorized")
+	}
+
+	return r.DAOManager.GetSentDiscussionInvitesByUserID(ctx, authedUser.UserID)
+}
+
+func (r *userResolver) SentDiscussionAccessRequests(ctx context.Context, obj *model.User) ([]*model.DiscussionAccessRequest, error) {
+	authedUser := auth.GetAuthedUser(ctx)
+	if authedUser == nil {
+		return nil, fmt.Errorf("Need auth")
+	}
+
+	// Do we want a mod override?
+	if authedUser.UserID != obj.ID {
+		return nil, fmt.Errorf("unauthorized")
+	}
+
+	return r.DAOManager.GetSentDiscussionAccessRequestsByUserID(ctx, authedUser.UserID)
 }
 
 // User returns generated.UserResolver implementation.

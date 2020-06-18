@@ -40,6 +40,7 @@ func (d *delphisBackend) CreateParticipantForDiscussion(ctx context.Context, dis
 	}
 
 	logrus.Debugf("PariticipantObj: %+v\n", participantObj)
+	logrus.Debugf("UserID: %+v\n", userID)
 
 	if discussionParticipantInput.GradientColor != nil {
 		participantObj.GradientColor = discussionParticipantInput.GradientColor
