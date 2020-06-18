@@ -409,10 +409,10 @@ func (r *mutationResolver) DeleteDiscussionTags(ctx context.Context, discussionI
 	return r.DAOManager.DeleteDiscussionTags(ctx, discussionID, tags)
 }
 
-func (r *mutationResolver) ConciergeMutation(ctx context.Context, discussionID string, mutationID string, selectedOptions []string) (bool, error) {
+func (r *mutationResolver) ConciergeMutation(ctx context.Context, discussionID string, mutationID string, selectedOptions []string) (*model.Post, error) {
 	authedUser := auth.GetAuthedUser(ctx)
 	if authedUser == nil {
-		return false, fmt.Errorf("Need auth")
+		return nil, fmt.Errorf("Need auth")
 	}
 
 	return r.DAOManager.HandleConciergeMutation(ctx, authedUser.UserID, discussionID, mutationID, selectedOptions)

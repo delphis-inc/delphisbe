@@ -84,7 +84,8 @@ type DelphisBackend interface {
 	AutoPostContent()
 	GetMediaRecord(ctx context.Context, mediaID string) (*model.Media, error)
 	UploadMedia(ctx context.Context, media multipart.File) (string, string, error)
-	HandleConciergeMutation(ctx context.Context, userID string, discussionID string, mutationID string, selectedOptions []string) (bool, error)
+	GetConciergeParticipantID(ctx context.Context, discussionID string) (string, error)
+	HandleConciergeMutation(ctx context.Context, userID string, discussionID string, mutationID string, selectedOptions []string) (*model.Post, error)
 }
 
 type delphisBackend struct {

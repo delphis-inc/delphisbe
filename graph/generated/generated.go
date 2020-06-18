@@ -386,7 +386,7 @@ type MutationResolver interface {
 	UpdateDiscussion(ctx context.Context, discussionID string, input model.DiscussionInput) (*model.Discussion, error)
 	AddDiscussionTags(ctx context.Context, discussionID string, tags []string) ([]*model.Tag, error)
 	DeleteDiscussionTags(ctx context.Context, discussionID string, tags []string) ([]*model.Tag, error)
-	ConciergeMutation(ctx context.Context, discussionID string, mutationID string, selectedOptions []string) (bool, error)
+	ConciergeMutation(ctx context.Context, discussionID string, mutationID string, selectedOptions []string) (*model.Post, error)
 }
 type ParticipantResolver interface {
 	Discussion(ctx context.Context, obj *model.Participant) (*model.Discussion, error)
@@ -2181,7 +2181,7 @@ type Mutation {
   addDiscussionTags(discussionID: ID!, tags:[String!]): [Tag!]
   deleteDiscussionTags(discussionID: ID!, tags:[String!]): [Tag!]
 
-  conciergeMutation(discussionID: ID!, mutationID: ID!, selectedOptions:[String!]): Boolean! # Heterogeneous endpoint. Think about what we want to return here. Could use entities? What does that gain us?
+  conciergeMutation(discussionID: ID!, mutationID: ID!, selectedOptions:[String!]): Post! # Heterogeneous endpoint. Think about what we want to return here. Could use entities? What does that gain us?
 }
 
 type Subscription {
@@ -5415,9 +5415,9 @@ func (ec *executionContext) _Mutation_conciergeMutation(ctx context.Context, fie
 		}
 		return graphql.Null
 	}
-	res := resTmp.(bool)
+	res := resTmp.(*model.Post)
 	fc.Result = res
-	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
+	return ec.marshalNPost2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐPost(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _PageInfo_startCursor(ctx context.Context, field graphql.CollectedField, obj *model.PageInfo) (ret graphql.Marshaler) {

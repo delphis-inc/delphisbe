@@ -2,6 +2,7 @@ package backend
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/sirupsen/logrus"
@@ -11,19 +12,53 @@ import (
 	"github.com/nedrocks/delphisbe/graph/model"
 )
 
-func (d *delphisBackend) HandleConciergeMutation(ctx context.Context, userID string, discussionID string, mutationID string, selectedOptions []string) (bool, error) {
+func (d *delphisBackend) GetConciergeParticipantID(ctx context.Context, discussionID string) (string, error) {
+	// Get concierge participant for posts
+	participants, err := d.GetParticipantsByDiscussionIDUserID(ctx, discussionID, model.ConciergeUser)
+	if err != nil {
+		logrus.WithError(err).Error("failed to get concierge participant")
+		return "", err
+	}
+
+	if participants.NonAnon == nil {
+		return "", fmt.Errorf("no non-anonymouse participant for the concierge")
+	}
+
+	return participants.NonAnon.ID, nil
+}
+
+func (d *delphisBackend) HandleConciergeMutation(ctx context.Context, userID string, discussionID string, mutationID string, selectedOptions []string) (*model.Post, error) {
+	conciergeParticipant, err := d.GetConciergeParticipantID(ctx, discussionID)
+	if err != nil {
+		logrus.WithError(err).Error("failed to get concierge participant")
+		return nil, err
+	}
+
 	switch mutationID {
 	case string(model.MutationUpdateFlairAccessToDiscussion):
 		logrus.Debugf("Update flair access: %v\n", selectedOptions)
-		return d.updateDiscussionFlairAccess(ctx, discussionID, selectedOptions)
+		if err := d.updateDiscussionFlairAccess(ctx, discussionID, selectedOptions); err != nil {
+			logrus.WithError(err).Error("failed to update discussion flair access")
+			return nil, err
+		}
+
+		return d.createFlairAccessConciergePost(ctx, userID, discussionID, conciergeParticipant)
 	case string(model.MutationUpdateDiscussionNameAndEmoji):
 		logrus.Debugf("Update discussion name and emoji: %v\n", selectedOptions)
+
+		return d.createRenameChatAndEmojiConciergePost(ctx, discussionID, conciergeParticipant)
 	case string(model.MutationUpdateViewerAccessibility):
 		logrus.Debugf("Update viewer accessibility: %v\n", selectedOptions)
+
+		return d.createViewerAccessConciergePost(ctx, discussionID, conciergeParticipant)
 	case string(model.MutationUpdateInvitationApproval):
 		logrus.Debugf("Update invitation approval: %v\n", selectedOptions)
+
+		return d.createInviteSettingConciergePost(ctx, discussionID, conciergeParticipant)
 	}
-	return false, nil
+
+	logrus.Error("mutationID did not match any existing mutations")
+	return nil, fmt.Errorf("mutationID did not match any existing mutations")
 }
 
 func (d *delphisBackend) createInviteLinkConciergePost(ctx context.Context, discussionID string, participantID string) (*model.Post, error) {
@@ -36,11 +71,11 @@ func (d *delphisBackend) createInviteLinkConciergePost(ctx context.Context, disc
 		Options: []*model.ConciergeOption{
 			{
 				Text:  "Copy VIP Link (auto-join)",
-				Value: "https://delphis.com/viplink/testme", // update
+				Value: "https://delphis.com/viplink/testme", // TODO: update
 			},
 			{
 				Text:  "Copy public Link (approval req'd)",
-				Value: "https://delphis.com/publiclink/testme", // update
+				Value: "https://delphis.com/publiclink/testme", // TODO: update
 			},
 		},
 	}
@@ -105,7 +140,14 @@ func (d *delphisBackend) createFlairAccessConciergePost(ctx context.Context, use
 	return &post, nil
 }
 
-func (d *delphisBackend) createInviteSettingConciergePost(ctx context.Context, discussionID, participantID string, discussionObj *model.Discussion) (*model.Post, error) {
+func (d *delphisBackend) createInviteSettingConciergePost(ctx context.Context, discussionID, participantID string) (*model.Post, error) {
+	// Get discussionObj to show which settings are selected
+	_, err := d.GetDiscussionByID(ctx, discussionID)
+	if err != nil {
+		logrus.WithError(err).Error("failed to get discussion by ID")
+		return nil, err
+	}
+
 	mutationID := string(model.MutationUpdateInvitationApproval)
 	content := model.ConciergeContent{
 		MutationID: &mutationID,
@@ -113,12 +155,12 @@ func (d *delphisBackend) createInviteSettingConciergePost(ctx context.Context, d
 			{
 				Text:     "Manually approve all invites",
 				Value:    "false",
-				Selected: false, // update to discussionObj.AutoJoin
+				Selected: false, // TODO: update to discussionObj.AutoJoin
 			},
 			{
 				Text:     "Invites get auto-joined",
 				Value:    "true",
-				Selected: true, // update to discussionObj.AutoJoin
+				Selected: true, // TODO: update to discussionObj.AutoJoin
 			},
 		},
 	}
@@ -138,7 +180,14 @@ func (d *delphisBackend) createInviteSettingConciergePost(ctx context.Context, d
 	return &post, nil
 }
 
-func (d *delphisBackend) createViewerAccessConciergePost(ctx context.Context, discussionID, participantID string, discussionObj *model.Discussion) (*model.Post, error) {
+func (d *delphisBackend) createViewerAccessConciergePost(ctx context.Context, discussionID, participantID string) (*model.Post, error) {
+	// Get discussionObj to show which settings are selected
+	_, err := d.GetDiscussionByID(ctx, discussionID)
+	if err != nil {
+		logrus.WithError(err).Error("failed to get discussion by ID")
+		return nil, err
+	}
+
 	mutationID := string(model.MutationUpdateViewerAccessibility)
 	content := model.ConciergeContent{
 		MutationID: &mutationID,
@@ -146,12 +195,12 @@ func (d *delphisBackend) createViewerAccessConciergePost(ctx context.Context, di
 			{
 				Text:     "Make chat publicly viewable",
 				Value:    "true",
-				Selected: false, // update to discussionObj.PublicToViewer
+				Selected: false, // TODO: update to discussionObj.PublicToViewer
 			},
 			{
 				Text:     "Chat is private to participants",
 				Value:    "false",
-				Selected: true, // update to discussionObj.PublicToViewer
+				Selected: true, // TODO: update to discussionObj.PublicToViewer
 			},
 		},
 	}
@@ -198,8 +247,8 @@ func (d *delphisBackend) createRenameChatAndEmojiConciergePost(ctx context.Conte
 	return &post, nil
 }
 
-func (d *delphisBackend) updateDiscussionFlairAccess(ctx context.Context, discussionID string, flairTemplates []string) (bool, error) {
+func (d *delphisBackend) updateDiscussionFlairAccess(ctx context.Context, discussionID string, flairTemplates []string) error {
 	// TODO: need flair access PR to be merged
 
-	return true, nil
+	return nil
 }

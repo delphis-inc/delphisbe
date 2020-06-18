@@ -93,7 +93,7 @@ type Mutation {
   addDiscussionTags(discussionID: ID!, tags:[String!]): [Tag!]
   deleteDiscussionTags(discussionID: ID!, tags:[String!]): [Tag!]
 
-  conciergeMutation(discussionID: ID!, mutationID: ID!, selectedOptions:[String!]): Boolean! # Heterogeneous endpoint. Think about what we want to return here. Could use entities? What does that gain us?
+  conciergeMutation(discussionID: ID!, mutationID: ID!, selectedOptions:[String!]): Post! # Heterogeneous endpoint. Think about what we want to return here. Could use entities? What does that gain us?
 }
 
 type Subscription {
