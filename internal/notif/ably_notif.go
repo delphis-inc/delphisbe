@@ -51,6 +51,10 @@ func SendPushNotification(ctx context.Context, config config.AblyConfig, device 
 		return true, nil
 	}
 
+	if device == nil || device.Token == nil {
+		return false, errors.New("Device token must not be nil")
+	}
+
 	var body []byte = nil
 	var err error = nil
 	if strings.ToLower(device.Platform) == "android" {
