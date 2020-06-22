@@ -13,6 +13,7 @@ import (
 
 	"github.com/lib/pq"
 	"github.com/nedrocks/delphisbe/graph/model"
+	"github.com/nedrocks/delphisbe/internal/auth"
 	"github.com/nedrocks/delphisbe/internal/util"
 	"github.com/sirupsen/logrus"
 )
@@ -300,7 +301,49 @@ func (d *delphisBackend) GetPostsConnectionByDiscussionID(ctx context.Context, d
 	if limit < 2 || limit > PostPerPageLimit {
 		return nil, errors.New("Values of 'limit' is illegal")
 	}
-	return d.db.GetPostsConnectionByDiscussionID(ctx, discussionID, cursor, limit)
+
+	connection, err := d.db.GetPostsConnectionByDiscussionID(ctx, discussionID, cursor, limit)
+
+	if err != nil {
+		return nil, err
+	}
+
+	// If the cursor is in the future we are asking for latest posts.
+	parsedCursor, err := time.Parse(time.RFC3339Nano, cursor)
+	if err != nil {
+		return connection, nil
+	}
+
+	if parsedCursor.After(time.Now()) && len(connection.Edges) <= 1 {
+		authedUser := auth.GetAuthedUser(ctx)
+		modCheck, err := d.CheckIfModeratorForDiscussion(ctx, authedUser.UserID, discussionID)
+		if err != nil {
+			logrus.WithError(err).Error("GetPostsConnectionByDiscussionID:: failed to check moderator")
+			return connection, nil
+		}
+
+		if modCheck {
+			tempPosts, err := d.GetNewDiscussionConciergePosts(ctx, authedUser.UserID, discussionID)
+			if err != nil {
+				logrus.WithError(err).Error("failed to get concierge posts")
+				return connection, nil
+			}
+
+			if len(tempPosts) > 0 {
+				postsAsEdges := make([]*model.PostsEdge, 0)
+
+				for _, post := range tempPosts {
+					postsAsEdges = append(postsAsEdges, &model.PostsEdge{
+						Cursor: "",
+						Node:   post,
+					})
+				}
+
+				connection.Edges = append(connection.Edges, postsAsEdges...)
+			}
+		}
+	}
+	return connection, err
 }
 
 func (d *delphisBackend) GetMentionedEntities(ctx context.Context, entityIDs []string) (map[string]model.Entity, error) {
