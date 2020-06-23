@@ -6,7 +6,7 @@ package model
 // * URL Wrapping
 // * Ability to contain different types of posts (e.g. images, twitter cards)
 type PostContent struct {
-	ID                string `json:"id" gorm:"type:varchar(36);"`
-	Content           string `json:"content"`
-	MentionedEntities []string
+	ID                string   `json:"id" gorm:"type:varchar(36);"`
+	Content           string   `json:"content" gorm:"type:text;"`
+	MentionedEntities []string `json:"mentionedEntities" gorm:"type:varchar(50)[];"`
 }
