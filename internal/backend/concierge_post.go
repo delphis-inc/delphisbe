@@ -90,6 +90,7 @@ func (d *delphisBackend) createInviteLinkConciergePost(ctx context.Context, disc
 			Content: "Here's your links for the chat. By default, you have to approve people who try to join, but you can share the VIP link too.",
 		},
 		ConciergeContent: &content,
+		PostType:         model.PostTypeConcierge,
 	}
 
 	return &post, nil
@@ -135,6 +136,7 @@ func (d *delphisBackend) createFlairAccessConciergePost(ctx context.Context, use
 				" Otherwise, they'll need the VIP link or you'll have to approve them before they can join the chat.",
 		},
 		ConciergeContent: &content,
+		PostType:         model.PostTypeConcierge,
 	}
 
 	return &post, nil
@@ -175,6 +177,7 @@ func (d *delphisBackend) createInviteSettingConciergePost(ctx context.Context, d
 			Content: "Also, what should we do it someone in the chat wants to invite a friend?",
 		},
 		ConciergeContent: &content,
+		PostType:         model.PostTypeConcierge,
 	}
 
 	return &post, nil
@@ -215,6 +218,7 @@ func (d *delphisBackend) createViewerAccessConciergePost(ctx context.Context, di
 			Content: "Do you want to allow people who aren't in the chat to be able to watch?",
 		},
 		ConciergeContent: &content,
+		PostType:         model.PostTypeConcierge,
 	}
 
 	return &post, nil
@@ -242,6 +246,7 @@ func (d *delphisBackend) createRenameChatAndEmojiConciergePost(ctx context.Conte
 			Content: "Would you like to rename the chat or pick a different emoji?", // Need copy
 		},
 		ConciergeContent: &content,
+		PostType:         model.PostTypeConcierge,
 	}
 
 	return &post, nil
