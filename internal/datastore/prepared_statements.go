@@ -126,7 +126,8 @@ const getLastPostByDiscussionIDStmt = `
 			p.imported_content_id,
 			p.post_type,
 			pc.id,
-			pc.content
+			pc.content,
+			pc.mentioned_entities
 		FROM posts p
 		INNER JOIN post_contents pc
 		ON p.post_content_id = pc.id

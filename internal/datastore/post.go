@@ -191,6 +191,7 @@ func (d *delphisDB) GetLastPostByDiscussionID(ctx context.Context, discussionID 
 		&post.PostType,
 		&postContent.ID,
 		&postContent.Content,
+		pq.Array(&postContent.MentionedEntities),
 	); err != nil {
 		if err == sql.ErrNoRows {
 			return nil, nil
