@@ -27,8 +27,8 @@ func (d *delphisDB) PutActivity(ctx context.Context, tx *sql.Tx, post *model.Pos
 				ctx,
 				post.ParticipantID,
 				post.PostContent.ID,
-				s[0],
 				s[1],
+				s[0],
 			)
 			if err != nil {
 				logrus.WithError(err).Error("failed to execute putActivityStmt")

@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/jinzhu/gorm"
+	"github.com/lib/pq"
 	"github.com/nedrocks/delphisbe/graph/model"
 	"github.com/sirupsen/logrus"
 )
@@ -190,6 +191,7 @@ func (d *delphisDB) GetLastPostByDiscussionID(ctx context.Context, discussionID 
 		&post.PostType,
 		&postContent.ID,
 		&postContent.Content,
+		pq.Array(&postContent.MentionedEntities),
 	); err != nil {
 		if err == sql.ErrNoRows {
 			return nil, nil
@@ -287,6 +289,7 @@ func (iter *postIter) Next(post *model.Post) bool {
 		&post.PostType,
 		&postContent.ID,
 		&postContent.Content,
+		pq.Array(&postContent.MentionedEntities),
 	); iter.err != nil {
 		logrus.WithError(iter.err).Error("iterator failed to scan row")
 		return false
