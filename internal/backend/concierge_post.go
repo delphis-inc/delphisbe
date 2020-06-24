@@ -225,13 +225,13 @@ func (d *delphisBackend) createViewerAccessConciergePost(ctx context.Context, di
 }
 
 func (d *delphisBackend) createRenameChatAndEmojiConciergePost(ctx context.Context, discussionID, participantID string) (*model.Post, error) {
-	mutationID := string(model.MutationUpdateDiscussionNameAndEmoji)
+	actionID := string(model.AppActionRenameChat)
 	content := model.ConciergeContent{
-		MutationID: &mutationID,
+		AppActionID: &actionID,
 		Options: []*model.ConciergeOption{
 			{
 				Text:  "Rename chat + pick emoji",
-				Value: "return chat name and emoji comma-separated", // how do we want to handle this on the client?
+				Value: "rename",
 			},
 		},
 	}

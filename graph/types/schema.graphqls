@@ -56,9 +56,8 @@ input DiscussionInput {
   autoPost: Boolean
   idleMinutes: Int
   publicAccess: Boolean
+  iconURL: String
 }
-
-
 
 type Mutation {
   addDiscussionParticipant(discussionID: String!, userID: String!, discussionParticipantInput: AddDiscussionParticipantInput!): Participant!

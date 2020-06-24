@@ -13,6 +13,7 @@ const (
 	ScheduledDrip DripPostType = "scheduled"
 
 	AppActionCopyToClipboard AppActionID = "db5fd0da-d645-4aa2-990c-b61d004a45e1"
+	AppActionRenameChat      AppActionID = "d81118d6-427a-4267-96be-45cadd94b782"
 
 	MutationUpdateFlairAccessToDiscussion MutationID = "4e960003-da38-4971-a23b-98953cb5ce4b"
 	MutationUpdateInvitationApproval      MutationID = "84c0e197-6394-4b9a-87dc-91e75e7faf67"

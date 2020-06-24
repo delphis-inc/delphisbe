@@ -122,6 +122,7 @@ func (d *delphisDB) UpsertDiscussion(ctx context.Context, discussion model.Discu
 			"AutoPost":      discussion.AutoPost,
 			"IdleMinutes":   discussion.IdleMinutes,
 			"PublicAccess":  discussion.PublicAccess,
+			"IconURL":       discussion.IconURL,
 		}).First(&found).Error; err != nil {
 			logrus.WithError(err).Errorf("UpsertDiscussion::Failed updating disucssion object")
 			return nil, err

@@ -46,7 +46,7 @@ const (
 )
 
 func main() {
-	logrus.SetLevel(logrus.WarnLevel)
+	logrus.SetLevel(logrus.InfoLevel)
 	logrus.Debugf("Starting")
 
 	ctx := context.Background()

@@ -69,6 +69,20 @@ func (r *participantResolver) Flair(ctx context.Context, obj *model.Participant)
 	return obj.Flair, nil
 }
 
+func (r *participantResolver) UserProfile(ctx context.Context, obj *model.Participant) (*model.UserProfile, error) {
+	if obj.IsAnonymous || obj.UserID == nil {
+		return nil, nil
+	}
+
+	userProfile, err := r.DAOManager.GetUserProfileByUserID(ctx, *obj.UserID)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return userProfile, nil
+}
+
 // Participant returns generated.ParticipantResolver implementation.
 func (r *Resolver) Participant() generated.ParticipantResolver { return &participantResolver{r} }
 
