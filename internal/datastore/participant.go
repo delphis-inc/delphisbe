@@ -32,7 +32,8 @@ func (d *delphisDB) GetParticipantsByIDs(ctx context.Context, ids []string) (map
 
 	retVal := map[string]*model.Participant{}
 	for _, p := range participants {
-		retVal[p.ID] = &p
+		tempVal := p
+		retVal[p.ID] = &tempVal
 	}
 
 	return retVal, nil
