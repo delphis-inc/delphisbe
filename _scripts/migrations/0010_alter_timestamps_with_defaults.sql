@@ -109,11 +109,6 @@ FOR EACH ROW
 EXECUTE PROCEDURE trigger_set_timestamp();
 
 CREATE TRIGGER set_timestamp
-BEFORE UPDATE ON user_devices
-FOR EACH ROW
-EXECUTE PROCEDURE trigger_set_timestamp();
-
-CREATE TRIGGER set_timestamp
 BEFORE UPDATE ON post_contents
 FOR EACH ROW
 EXECUTE PROCEDURE trigger_set_timestamp();

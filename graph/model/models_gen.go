@@ -42,6 +42,7 @@ type DiscussionInput struct {
 	AutoPost      *bool          `json:"autoPost"`
 	IdleMinutes   *int           `json:"idleMinutes"`
 	PublicAccess  *bool          `json:"publicAccess"`
+	IconURL       *string        `json:"iconURL"`
 }
 
 type Media struct {

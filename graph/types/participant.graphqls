@@ -18,5 +18,7 @@ type Participant implements Entity{
     flair: Flair
 
     hasJoined: Boolean!
+
+    userProfile: UserProfile
 }
 

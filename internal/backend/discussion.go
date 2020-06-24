@@ -274,6 +274,9 @@ func updateDiscussionObj(disc *model.Discussion, input model.DiscussionInput) {
 	if input.PublicAccess != nil {
 		disc.PublicAccess = *input.PublicAccess
 	}
+	if input.IconURL != nil {
+		disc.IconURL = *input.IconURL
+	}
 }
 
 func dedupeDiscussions(discussions []*model.Discussion) []*model.Discussion {
