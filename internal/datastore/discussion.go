@@ -35,7 +35,8 @@ func (d *delphisDB) GetDiscussionsByIDs(ctx context.Context, ids []string) (map[
 		retVal[id] = nil
 	}
 	for _, disc := range discussions {
-		retVal[disc.ID] = &disc
+		tempDisc := disc
+		retVal[disc.ID] = &tempDisc
 	}
 	return retVal, nil
 }
