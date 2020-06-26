@@ -44,10 +44,11 @@ input PostContentInput {
   postText: String!,
   postType: PostType!,
   mentionedEntities:[String!],
-  quotedPostID: ID
+  quotedPostID: ID,
   mediaID: ID,
-  poll: PollInput
-  importedContentID: ID
+  poll: PollInput,
+  importedContentID: ID,
+  preview: String
 }
 
 input DiscussionInput {
