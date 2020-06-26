@@ -21,7 +21,7 @@ func (d *delphisBackend) GetConciergeParticipantID(ctx context.Context, discussi
 	}
 
 	if participants.NonAnon == nil {
-		return "", fmt.Errorf("no non-anonymouse participant for the concierge")
+		return "", fmt.Errorf("no non-anonymous participant for the concierge")
 	}
 
 	return participants.NonAnon.ID, nil

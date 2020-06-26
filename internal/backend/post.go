@@ -420,18 +420,18 @@ func (d *delphisBackend) GetNewDiscussionConciergePosts(ctx context.Context, use
 	}
 
 	// Create invitation setting concierge post
-	inviteSettingPost, err := d.createInviteSettingConciergePost(ctx, discussionID, conciergeParticipant)
-	if err != nil {
-		logrus.WithError(err).Error("failed to create invite setting CP")
-		return nil, err
-	}
+	// inviteSettingPost, err := d.createInviteSettingConciergePost(ctx, discussionID, conciergeParticipant)
+	// if err != nil {
+	// 	logrus.WithError(err).Error("failed to create invite setting CP")
+	// 	return nil, err
+	// }
 
-	// Create viewer access concierge post
-	viewerAccessPost, err := d.createViewerAccessConciergePost(ctx, discussionID, conciergeParticipant)
-	if err != nil {
-		logrus.WithError(err).Error("failed to create viewer access CP")
-		return nil, err
-	}
+	// // Create viewer access concierge post
+	// viewerAccessPost, err := d.createViewerAccessConciergePost(ctx, discussionID, conciergeParticipant)
+	// if err != nil {
+	// 	logrus.WithError(err).Error("failed to create viewer access CP")
+	// 	return nil, err
+	// }
 
 	// Create rename chat concierge post
 	renameChat, err := d.createRenameChatAndEmojiConciergePost(ctx, discussionID, conciergeParticipant)
@@ -440,7 +440,12 @@ func (d *delphisBackend) GetNewDiscussionConciergePosts(ctx context.Context, use
 		return nil, err
 	}
 
-	posts = append(posts, createLinkPost, flairAccessPost, inviteSettingPost, viewerAccessPost, renameChat)
+	//posts = append(posts, createLinkPost, flairAccessPost, inviteSettingPost, viewerAccessPost, renameChat)
+	posts = append(posts, createLinkPost)
+	if flairAccessPost != nil && len(flairAccessPost.ConciergeContent.Options) > 0 {
+		posts = append(posts, flairAccessPost)
+	}
+	posts = append(posts, renameChat)
 
 	return posts, nil
 }
