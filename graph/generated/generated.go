@@ -2587,10 +2587,11 @@ input PostContentInput {
   postText: String!,
   postType: PostType!,
   mentionedEntities:[String!],
-  quotedPostID: ID
+  quotedPostID: ID,
   mediaID: ID,
-  poll: PollInput
-  importedContentID: ID
+  poll: PollInput,
+  importedContentID: ID,
+  preview: String
 }
 
 input DiscussionInput {
@@ -11688,6 +11689,12 @@ func (ec *executionContext) unmarshalInputPostContentInput(ctx context.Context, 
 		case "importedContentID":
 			var err error
 			it.ImportedContentID, err = ec.unmarshalOID2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "preview":
+			var err error
+			it.Preview, err = ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
 				return it, err
 			}
