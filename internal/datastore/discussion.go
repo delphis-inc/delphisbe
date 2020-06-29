@@ -243,6 +243,7 @@ func (iter *autoPostDiscussionIter) Close() error {
 	}
 	if err := iter.rows.Close(); err != nil {
 		logrus.WithError(err).Error("iter rows close on close")
+		return err
 	}
 
 	return nil
