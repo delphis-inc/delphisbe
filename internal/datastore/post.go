@@ -7,7 +7,6 @@ import (
 	"io"
 	"time"
 
-	"github.com/jinzhu/gorm"
 	"github.com/lib/pq"
 	"github.com/nedrocks/delphisbe/graph/model"
 	"github.com/sirupsen/logrus"
@@ -205,50 +204,43 @@ func (d *delphisDB) GetLastPostByDiscussionID(ctx context.Context, discussionID 
 	return &post, nil
 }
 
-func (d *delphisDB) GetPostsByDiscussionID(ctx context.Context, discussionID string) ([]*model.Post, error) {
-	logrus.Debug("GetPostsByDiscussionID::SQL Query")
-	posts := []model.Post{}
-	if err := d.sql.Where(model.Post{DiscussionID: &discussionID}).Preload("PostContent").Find(&posts).Error; err != nil {
-		if gorm.IsRecordNotFoundError(err) {
-			// Not sure if this will return not found error... If the discussion is empty maybe?
-			// Should this be nil, nil?
-			return []*model.Post{}, nil
-		}
-		logrus.WithError(err).Errorf("Failed to get posts by discussionID")
-		return nil, err
-	}
-
-	logrus.Debugf("Found posts: %+v", posts)
-
-	returnedPosts := []*model.Post{}
-	for i := range posts {
-		if posts[i].QuotedPostID != nil {
-			var err error
-			posts[i].QuotedPost, err = d.GetPostByID(ctx, *posts[i].QuotedPostID)
-			if err != nil {
-				// Do we want to fail the whole discussion if we can't get a quote?
-				return nil, err
-			}
-		}
-		returnedPosts = append(returnedPosts, &posts[i])
-
-	}
-
-	return returnedPosts, nil
-}
-
-// TODO: rewrite for single posts
 func (d *delphisDB) GetPostByID(ctx context.Context, postID string) (*model.Post, error) {
 	logrus.Debug("GetPostByID::SQL Query")
-	post := model.Post{}
-	// TODO: Clean up for single queries
-	if err := d.sql.Where([]string{postID}).Preload("PostContent").Find(&post).Error; err != nil {
-		if gorm.IsRecordNotFoundError(err) {
-			return nil, nil
-		}
-		logrus.WithError(err).Errorf("Failed to get Post by ID")
+	if err := d.initializeStatements(ctx); err != nil {
+		logrus.WithError(err).Error("GetPostByID::failed to initialize statements")
 		return nil, err
 	}
+
+	post := model.Post{}
+	postContent := model.PostContent{}
+	if err := d.prepStmts.getPostByIDStmt.QueryRowContext(
+		ctx,
+		postID,
+	).Scan(
+		&post.ID,
+		&post.CreatedAt,
+		&post.UpdatedAt,
+		&post.DeletedAt,
+		&post.DeletedReasonCode,
+		&post.DiscussionID,
+		&post.ParticipantID,
+		&post.QuotedPostID,
+		&post.MediaID,
+		&post.ImportedContentID,
+		&post.PostType,
+		&postContent.ID,
+		&postContent.Content,
+		pq.Array(&postContent.MentionedEntities),
+	); err != nil {
+		if err == sql.ErrNoRows {
+			logrus.WithError(err).Error("no record found")
+			return nil, nil
+		}
+		logrus.WithError(err).Error("failed to execute getPostByIDStmt")
+		return nil, err
+	}
+
+	post.PostContent = &postContent
 
 	return &post, nil
 }
@@ -308,6 +300,7 @@ func (iter *postIter) Close() error {
 	}
 	if err := iter.rows.Close(); err != nil {
 		logrus.WithError(err).Error("iter rows close on close")
+		return err
 	}
 
 	return nil
@@ -323,10 +316,12 @@ func (d *delphisDB) PostIterCollect(ctx context.Context, iter PostIter) ([]*mode
 	for iter.Next(&post) {
 		tempPost := post
 
+		logrus.Infof("Here: %+v\n", tempPost)
 		// Check if there is a quotedPostID. Fetch if so
 		if tempPost.QuotedPostID != nil {
 			var err error
 			// TODO: potentially optimize into joins
+			logrus.Infof("In Here\n")
 			tempPost.QuotedPost, err = d.GetPostByID(ctx, *tempPost.QuotedPostID)
 			if err != nil {
 				// Do we want to fail the whole discussion if we can't get a quote?
@@ -344,38 +339,3 @@ func (d *delphisDB) PostIterCollect(ctx context.Context, iter PostIter) ([]*mode
 
 	return posts, nil
 }
-
-///////////////
-// Dynamo functions
-///////////////
-
-// func (d *db) PutPostDynamo(ctx context.Context, post model.Post) (*model.Post, error) {
-// 	logrus.Debug("PutPost: DynamoDB PutItem")
-// 	av, err := d.marshalMap(post)
-// 	if err != nil {
-// 		logrus.WithError(err).Errorf("PutPost: Failed to marshal post object: %+v", post)
-// 		return nil, err
-// 	}
-// 	_, err = d.dynamo.PutItem(&dynamodb.PutItemInput{
-// 		TableName: aws.String(d.dbConfig.Posts.TableName),
-// 		Item:      av,
-// 	})
-
-// 	if err != nil {
-// 		logrus.WithError(err).Errorf("PutPost: Failed to put post object: %+v", av)
-// 		return nil, err
-// 	}
-
-// 	return &post, nil
-// }
-
-// func (d *db) GetPostsByDiscussionIDDynamo(ctx context.Context, discussionID string) ([]*model.Post, error) {
-// 	logrus.Debug("GetPostsByDiscussionID: DynamoDB Query")
-// 	res, err := d.dynamo.Query(&dynamodb.QueryInput{
-// 		TableName: aws.String(d.dbConfig.Posts.TableName),
-// 		ExpressionAttributeValues: map[string]*dynamodb.AttributeValue{
-// 			":did": {
-// 				S: aws.String(discussionID),
-// 			},
-// 		},
-// 		KeyConditionExpression: a

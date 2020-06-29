@@ -48,7 +48,6 @@ type Datastore interface {
 	GetParticipantsByDiscussionID(ctx context.Context, id string) ([]model.Participant, error)
 	GetParticipantsByDiscussionIDUserID(ctx context.Context, discussionID string, userID string) ([]model.Participant, error)
 	UpsertParticipant(ctx context.Context, participant model.Participant) (*model.Participant, error)
-	GetPostsByDiscussionID(ctx context.Context, discussionID string) ([]*model.Post, error)
 	GetPostsByDiscussionIDIter(ctx context.Context, discussionID string) PostIter
 	GetPostsByDiscussionIDFromCursorIter(ctx context.Context, discussionID string, cursor string, limit int) PostIter
 	GetPostsConnectionByDiscussionID(ctx context.Context, discussionID string, cursor string, limit int) (*model.PostsConnection, error)
@@ -69,7 +68,6 @@ type Datastore interface {
 	UpsertViewer(ctx context.Context, viewer model.Viewer) (*model.Viewer, error)
 	GetPostByID(ctx context.Context, postID string) (*model.Post, error)
 	PutActivity(ctx context.Context, tx *sql2.Tx, post *model.Post) error
-	CreateTestTables(ctx context.Context, data TestData) (func() error, error)
 	PutMediaRecord(ctx context.Context, tx *sql2.Tx, media model.Media) error
 	GetMediaRecordByID(ctx context.Context, mediaID string) (*model.Media, error)
 	GetImportedContentByID(ctx context.Context, id string) (*model.ImportedContent, error)
@@ -246,6 +244,10 @@ func (d *delphisDB) initializeStatements(ctx context.Context) (err error) {
 	}
 
 	// POSTS
+	if d.prepStmts.getPostByIDStmt, err = d.pg.PrepareContext(ctx, getPostByIDString); err != nil {
+		logrus.WithError(err).Error("failed to prepare getPostByIDStmt")
+		return errors.Wrap(err, "failed to prepare getPostByIDStmt")
+	}
 	if d.prepStmts.getPostsByDiscussionIDStmt, err = d.pg.PrepareContext(ctx, getPostsByDiscussionIDString); err != nil {
 		logrus.WithError(err).Error("failed to prepare getPostsByDiscussionIDStmt")
 		return errors.Wrap(err, "failed to prepare getPostsByDiscussionIDStmt")
@@ -392,7 +394,7 @@ func (d *delphisDB) initializeStatements(ctx context.Context) (err error) {
 		logrus.WithError(err).Error("failed to prepare getDiscussionInviteByIDStmt")
 		return errors.Wrap(err, "failed to prepare getDiscussionInviteByIDStmt")
 	}
-	if d.prepStmts.getDiscussionRequestAccessByIDStmt, err = d.pg.PrepareContext(ctx, getDiscussionAccessRequestsString); err != nil {
+	if d.prepStmts.getDiscussionRequestAccessByIDStmt, err = d.pg.PrepareContext(ctx, getDiscussionRequestAccessByIDString); err != nil {
 		logrus.WithError(err).Error("failed to prepare getDiscussionRequestAccessByIDStmt")
 		return errors.Wrap(err, "failed to prepare getDiscussionRequestAccessByIDStmt")
 	}
