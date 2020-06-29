@@ -6,7 +6,6 @@ import (
 
 	"github.com/pkg/errors"
 
-	"github.com/jinzhu/gorm"
 	"github.com/lib/pq"
 	"github.com/nedrocks/delphisbe/graph/model"
 	"github.com/sirupsen/logrus"
@@ -37,9 +36,6 @@ func (d *delphisDB) GetPostContentByID(ctx context.Context, id string) (*model.P
 	logrus.Debug("GetPostContentByID::SQL Query")
 	found := model.PostContent{}
 	if err := d.sql.First(&found, &model.PostContent{ID: id}).Error; err != nil {
-		if gorm.IsRecordNotFoundError(err) {
-			return nil, nil
-		}
 		logrus.WithError(err).Errorf("Failed to get PostContent by ID")
 		return nil, err
 	}

@@ -232,10 +232,6 @@ func (d *delphisDB) GetPostByID(ctx context.Context, postID string) (*model.Post
 		&postContent.Content,
 		pq.Array(&postContent.MentionedEntities),
 	); err != nil {
-		if err == sql.ErrNoRows {
-			logrus.WithError(err).Error("no record found")
-			return nil, nil
-		}
 		logrus.WithError(err).Error("failed to execute getPostByIDStmt")
 		return nil, err
 	}

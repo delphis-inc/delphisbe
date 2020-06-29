@@ -130,6 +130,7 @@ func (d *delphisDB) PutImportedContent(ctx context.Context, tx *sql.Tx, ic model
 		&ic.Source,
 	); err != nil {
 		logrus.WithError(err).Error("failed to execute putImportedContentStmt")
+		return nil, err
 	}
 
 	return &ic, nil
@@ -177,6 +178,7 @@ func (d *delphisDB) GetMatchingTags(ctx context.Context, discussionID, importedC
 			return nil, nil
 		}
 		logrus.WithError(err).Error("failed to GetMatchingTags")
+		return nil, err
 	}
 
 	return tags, nil
@@ -281,6 +283,7 @@ func (iter *tagIter) Close() error {
 	}
 	if err := iter.rows.Close(); err != nil {
 		logrus.WithError(err).Error("iter rows close on close")
+		return err
 	}
 
 	return nil
@@ -331,6 +334,7 @@ func (iter *contentIter) Close() error {
 	}
 	if err := iter.rows.Close(); err != nil {
 		logrus.WithError(err).Error("iter rows close on close")
+		return err
 	}
 
 	return nil

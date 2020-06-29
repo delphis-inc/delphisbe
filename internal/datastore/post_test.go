@@ -541,17 +541,6 @@ func TestDelphisDB_GetPostByID(t *testing.T) {
 			So(mock.ExpectationsWereMet(), ShouldBeNil)
 		})
 
-		Convey("when query execution returns no rows", func() {
-			mockPreparedStatements(mock)
-			mock.ExpectQuery(getPostByIDString).WithArgs(postID).WillReturnError(sql.ErrNoRows)
-
-			resp, err := mockDatastore.GetPostByID(ctx, postID)
-
-			So(err, ShouldBeNil)
-			So(resp, ShouldBeNil)
-			So(mock.ExpectationsWereMet(), ShouldBeNil)
-		})
-
 		Convey("when query execution succeeds and returns a post", func() {
 			mockPreparedStatements(mock)
 			rs := sqlmock.NewRows([]string{"p.id", "p.created_at", "p.updated_at", "p.deleted_at", "p.deleted_reason_code", "p.discussion_id", "p.participant_id",
