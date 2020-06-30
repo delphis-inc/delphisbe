@@ -53,6 +53,7 @@ func (m *mediaDB) UploadMedia(ctx context.Context, filename string, media []byte
 		ContentType: aws.String(fileInfo.mimeType),
 	}); err != nil {
 		logrus.WithError(err).Error("failed to upload image to s3")
+		return "", err
 	}
 
 	return fileInfo.mimeType, nil
