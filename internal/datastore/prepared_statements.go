@@ -223,6 +223,7 @@ const getPublicDiscussionsString = `
 			anonymity_type,
 			moderator_id,
 			auto_post,
+			"icon_url",
 			idle_minutes,
 			public_access
 		FROM discussions
@@ -447,6 +448,7 @@ const getDiscussionsByFlairTemplateForUserString = `
 			d.anonymity_type,
 			d.moderator_id,
 			d.auto_post,
+			d.icon_url,
 			d.idle_minutes,
 			d.public_access
 		FROM flairs f
@@ -465,6 +467,7 @@ const getDiscussionsByUserAccessForUserString = `
 			d.anonymity_type,
 			d.moderator_id,
 			d.auto_post,
+			d.icon_url,
 			d.idle_minutes,
 			d.public_access
 		FROM discussion_user_access dua

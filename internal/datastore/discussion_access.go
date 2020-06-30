@@ -232,6 +232,7 @@ func (iter *discussionIter) Next(discussion *model.Discussion) bool {
 		&discussion.AnonymityType,
 		&discussion.ModeratorID,
 		&discussion.AutoPost,
+		&discussion.IconURL,
 		&discussion.IdleMinutes,
 		&discussion.PublicAccess,
 	); iter.err != nil {
@@ -249,6 +250,7 @@ func (iter *discussionIter) Close() error {
 	}
 	if err := iter.rows.Close(); err != nil {
 		logrus.WithError(err).Error("iter rows close on close")
+		return err
 	}
 
 	return nil
@@ -295,6 +297,7 @@ func (iter *dfaIter) Close() error {
 	}
 	if err := iter.rows.Close(); err != nil {
 		logrus.WithError(err).Error("iter rows close on close")
+		return err
 	}
 
 	return nil

@@ -38,7 +38,6 @@ type DiscussionAutoPost struct {
 }
 
 type DiscussionFlairTemplateAccess struct {
-	ID              string
 	DiscussionID    string
 	FlairTemplateID string
 	CreatedAt       time.Time
@@ -47,7 +46,6 @@ type DiscussionFlairTemplateAccess struct {
 }
 
 type DiscussionUserAccess struct {
-	ID           string
 	DiscussionID string
 	UserID       string
 	CreatedAt    time.Time
