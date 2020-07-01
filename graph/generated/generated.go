@@ -419,6 +419,7 @@ type DiscussionAccessRequestResolver interface {
 	Discussion(ctx context.Context, obj *model.DiscussionAccessRequest) (*model.Discussion, error)
 }
 type DiscussionFlairTemplateAccessResolver interface {
+	ID(ctx context.Context, obj *model.DiscussionFlairTemplateAccess) (string, error)
 	Discussion(ctx context.Context, obj *model.DiscussionFlairTemplateAccess) (*model.Discussion, error)
 	FlairTemplate(ctx context.Context, obj *model.DiscussionFlairTemplateAccess) (*model.FlairTemplate, error)
 	CreatedAt(ctx context.Context, obj *model.DiscussionFlairTemplateAccess) (string, error)
@@ -4750,13 +4751,13 @@ func (ec *executionContext) _DiscussionFlairTemplateAccess_id(ctx context.Contex
 		Object:   "DiscussionFlairTemplateAccess",
 		Field:    field,
 		Args:     nil,
-		IsMethod: false,
+		IsMethod: true,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.ID, nil
+		return ec.resolvers.DiscussionFlairTemplateAccess().ID(rctx, obj)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -12255,10 +12256,19 @@ func (ec *executionContext) _DiscussionFlairTemplateAccess(ctx context.Context, 
 		case "__typename":
 			out.Values[i] = graphql.MarshalString("DiscussionFlairTemplateAccess")
 		case "id":
-			out.Values[i] = ec._DiscussionFlairTemplateAccess_id(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				atomic.AddUint32(&invalids, 1)
-			}
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._DiscussionFlairTemplateAccess_id(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
 		case "discussion":
 			field := field
 			out.Concurrently(i, func() (res graphql.Marshaler) {

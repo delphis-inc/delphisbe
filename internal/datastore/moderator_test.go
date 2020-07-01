@@ -125,12 +125,8 @@ func TestDelphisDB_CreateModerator(t *testing.T) {
 		}
 		defer db.Close()
 
-		//expectedFindQueryStr := `SELECT * FROM "flairs" WHERE "flairs"."deleted_at" IS NULL AND (("flairs"."id" = $1)) ORDER BY "flairs"."id" ASC LIMIT 1`
 		updateQueryStr := `UPDATE "user_profiles" SET "updated_at" = $1, "deleted_at" = $2, "display_name" = $3, "user_id" = $4, "twitter_handle" = $5  WHERE "user_profiles"."deleted_at" IS NULL AND "user_profiles"."id" = $6`
 		insertModQueryStr := `INSERT INTO "moderators" ("id","created_at","updated_at","deleted_at","user_profile_id") VALUES ($1,$2,$3,$4,$5) RETURNING "moderators"."id"`
-		//expectedNewObjectRow := sqlmock.NewRows([]string{"id", "template_id", "created_at", "updated_at", "deleted_at", "user_id"}).
-		//	AddRow(flairObj.ID, flairObj.TemplateID, flairObj.CreatedAt, flairObj.UpdatedAt, flairObj.DeletedAt, flairObj.UserID)
-		//expectedUpdateStr := `UPDATE "flairs" SET "template_id" = $1, "updated_at" = $2, "user_id" = $3 WHERE "flairs"."deleted_at" IS NULL AND "flairs"."id" = $4`
 		expectedPostInsertSelectStr := `SELECT * FROM "moderators"  WHERE "moderators"."deleted_at" IS NULL AND (("moderators"."id" = $1)) ORDER BY "moderators"."id" ASC LIMIT 1`
 
 		Convey("when create returns an error on updating the user_profile", func() {

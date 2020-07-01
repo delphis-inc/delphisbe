@@ -22,7 +22,6 @@ func (d *delphisDB) UpsertUser(ctx context.Context, user model.User) (*model.Use
 			return nil, err
 		}
 	} else {
-		logrus.Infof("In here\n")
 		if err := d.sql.Model(&user).Updates(model.User{
 			// Nothing should actually update here rn.
 		}).First(&found).Error; err != nil {
@@ -43,7 +42,6 @@ func (d *delphisDB) GetUserByID(ctx context.Context, userID string) (*model.User
 		logrus.WithError(err).Errorf("GetUserByID::Failed to get user")
 		return nil, err
 	}
-	logrus.Debugf("Found: %+v", user)
 
 	return &user, nil
 }

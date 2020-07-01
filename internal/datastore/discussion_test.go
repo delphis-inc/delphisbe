@@ -230,94 +230,77 @@ func TestDelphisDB_GetDiscussionsByIDs(t *testing.T) {
 
 // GORM!!!
 func TestDelphisDB_GetDiscussionByModeratorID(t *testing.T) {
-	//ctx := context.Background()
-	//now := time.Now()
-	//modID := "modID"
-	//discObj := model.Discussion{
-	//	ID:            "discussion1",
-	//	CreatedAt:     now,
-	//	UpdatedAt:     now,
-	//	DeletedAt:     nil,
-	//	Title:         "test",
-	//	AnonymityType: "",
-	//	ModeratorID:   &modID,
-	//	AutoPost:      false,
-	//	IdleMinutes:   120,
-	//	PublicAccess:  false,
-	//	IconURL:       "",
-	//}
-	//modObj := model.Moderator{
-	//	ID:        modID,
-	//	CreatedAt: now,
-	//	UpdatedAt: now,
-	//	DeletedAt: nil,
-	//}
-	//
-	//Convey("GetDiscussionByModeratorID", t, func() {
-	//	db, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
-	//
-	//	assert.Nil(t, err, "Failed setting up sqlmock db")
-	//
-	//	gormDB, _ := gorm.Open("postgres", db)
-	//	mockDatastore := &delphisDB{
-	//		dbConfig:  config.TablesConfig{},
-	//		sql:       gormDB,
-	//		pg:        db,
-	//		prepStmts: &dbPrepStmts{},
-	//		dynamo:    nil,
-	//		encoder:   nil,
-	//	}
-	//	defer db.Close()
-	//
-	//	expectedQueryString := `SELECT * FROM "discussions";`
-	//	expectedModQueryString := `SELECT * FROM "moderators" WHERE "moderators"."deleted_at" IS NULL AND (("moderators"."id" = $1)) ORDER BY "moderators"."id" ASC LIMIT 1`
-	//
-	//	//Convey("when query execution returns an error", func() {
-	//	//	mock.ExpectQuery(expectedQueryString).WithArgs(discObj.ModeratorID).WillReturnError(fmt.Errorf("error"))
-	//	//
-	//	//	resp, err := mockDatastore.GetDiscussionByModeratorID(ctx, *discObj.ModeratorID)
-	//	//
-	//	//	So(err, ShouldNotBeNil)
-	//	//	So(resp, ShouldBeNil)
-	//	//	So(mock.ExpectationsWereMet(), ShouldBeNil)
-	//	//})
-	//	//
-	//	//Convey("when query execution returns and does not find a record", func() {
-	//	//	rs := sqlmock.NewRows([]string{"id", "created_at", "updated_at", "deleted_at", "title", "anonymity_type", "moderator_id", "icon_url",
-	//	//		"auto_post", "idle_minutes", "public_access"})
-	//	//
-	//	//	mock.ExpectQuery(expectedQueryString).WithArgs(discObj.ModeratorID).WillReturnRows(rs)
-	//	//
-	//	//	resp, err := mockDatastore.GetDiscussionByModeratorID(ctx, *discObj.ModeratorID)
-	//	//
-	//	//	So(err, ShouldBeNil)
-	//	//	So(resp, ShouldBeNil)
-	//	//	So(mock.ExpectationsWereMet(), ShouldBeNil)
-	//	//})
-	//
-	//	Convey("when query execution succeeds and returns a discussions", func() {
-	//		rs := sqlmock.NewRows([]string{"id", "created_at", "updated_at", "deleted_at", "title", "anonymity_type", "moderator_id", "icon_url",
-	//			"auto_post", "idle_minutes", "public_access"}).
-	//			AddRow(discObj.ID, discObj.CreatedAt, discObj.UpdatedAt, discObj.DeletedAt, discObj.Title, discObj.AnonymityType,
-	//				discObj.ModeratorID, discObj.IconURL, discObj.AutoPost, discObj.IdleMinutes, discObj.PublicAccess)
-	//
-	//		modRs := sqlmock.NewRows([]string{"id", "created_at", "updated_at", "deleted_at", "user_profile_id"}).
-	//			AddRow(modObj.ID, modObj.CreatedAt, modObj.UpdatedAt, modObj.DeletedAt, modObj.UserProfileID)
-	//
-	//		mock.ExpectQuery(expectedModQueryString).WithArgs(discObj.ModeratorID).WillReturnRows(modRs)
-	//
-	//		mock.ExpectQuery(expectedQueryString).WithArgs(discObj.ID).WillReturnRows(rs)
-	//
-	//		resp, err := mockDatastore.GetDiscussionByModeratorID(ctx, *discObj.ModeratorID)
-	//
-	//		discObj.Moderator = &modObj
-	//
-	//		So(err, ShouldBeNil)
-	//		So(resp, ShouldNotBeNil)
-	//		So(resp, ShouldResemble, &discObj)
-	//		So(mock.ExpectationsWereMet(), ShouldBeNil)
-	//	})
-	//})
+	ctx := context.Background()
+	now := time.Now()
+	modID := "modID"
+	discObj := model.Discussion{
+		ID:            "discussion1",
+		CreatedAt:     now,
+		UpdatedAt:     now,
+		DeletedAt:     nil,
+		Title:         "test",
+		AnonymityType: "",
+		ModeratorID:   &modID,
+		AutoPost:      false,
+		IdleMinutes:   120,
+		PublicAccess:  false,
+		IconURL:       "",
+	}
+
+	Convey("GetDiscussionByModeratorID", t, func() {
+		db, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
+
+		assert.Nil(t, err, "Failed setting up sqlmock db")
+
+		gormDB, _ := gorm.Open("postgres", db)
+		mockDatastore := &delphisDB{
+			dbConfig:  config.TablesConfig{},
+			sql:       gormDB,
+			pg:        db,
+			prepStmts: &dbPrepStmts{},
+			dynamo:    nil,
+			encoder:   nil,
+		}
+		defer db.Close()
+
+		expectedQueryString := `SELECT * FROM "discussions" WHERE "discussions"."deleted_at" IS NULL AND (("discussions"."moderator_id" = $1)) ORDER BY "discussions"."id" ASC LIMIT 1`
+
+		Convey("when query execution returns an error", func() {
+			mock.ExpectQuery(expectedQueryString).WithArgs(discObj.ModeratorID).WillReturnError(fmt.Errorf("error"))
+
+			resp, err := mockDatastore.GetDiscussionByModeratorID(ctx, *discObj.ModeratorID)
+
+			So(err, ShouldNotBeNil)
+			So(resp, ShouldBeNil)
+			So(mock.ExpectationsWereMet(), ShouldBeNil)
+		})
+
+		Convey("when query execution returns and does not find a record", func() {
+			mock.ExpectQuery(expectedQueryString).WithArgs(discObj.ModeratorID).WillReturnError(gorm.ErrRecordNotFound)
+
+			resp, err := mockDatastore.GetDiscussionByModeratorID(ctx, *discObj.ModeratorID)
+
+			So(err, ShouldBeNil)
+			So(resp, ShouldBeNil)
+			So(mock.ExpectationsWereMet(), ShouldBeNil)
+		})
+
+		Convey("when query execution succeeds and returns a discussions", func() {
+			rs := sqlmock.NewRows([]string{"id", "created_at", "updated_at", "deleted_at", "title", "anonymity_type", "moderator_id", "icon_url",
+				"auto_post", "idle_minutes", "public_access"}).
+				AddRow(discObj.ID, discObj.CreatedAt, discObj.UpdatedAt, discObj.DeletedAt, discObj.Title, discObj.AnonymityType,
+					discObj.ModeratorID, discObj.IconURL, discObj.AutoPost, discObj.IdleMinutes, discObj.PublicAccess)
+
+			mock.ExpectQuery(expectedQueryString).WithArgs(discObj.ModeratorID).WillReturnRows(rs)
+
+			resp, err := mockDatastore.GetDiscussionByModeratorID(ctx, *discObj.ModeratorID)
+
+			So(err, ShouldBeNil)
+			So(resp, ShouldNotBeNil)
+			So(resp, ShouldResemble, &discObj)
+			So(mock.ExpectationsWereMet(), ShouldBeNil)
+		})
+	})
 }
 
 func TestDelphisDB_GetDiscussionsAutoPost(t *testing.T) {
@@ -476,7 +459,6 @@ func TestDelphisDB_ListDiscussions(t *testing.T) {
 	})
 }
 
-// GORM!!!! Timestamp is auto-updating and comparison is mismatching by microseconds
 func TestDelphisDB_UpsertDiscussion(t *testing.T) {
 	ctx := context.Background()
 	now := time.Now()
@@ -494,12 +476,12 @@ func TestDelphisDB_UpsertDiscussion(t *testing.T) {
 		PublicAccess:  false,
 		IconURL:       "http://",
 	}
-	//modObj := model.Moderator{
-	//	ID:        modID,
-	//	CreatedAt: now,
-	//	UpdatedAt: now,
-	//	DeletedAt: nil,
-	//}
+	modObj := model.Moderator{
+		ID:        modID,
+		CreatedAt: now,
+		UpdatedAt: now,
+		DeletedAt: nil,
+	}
 
 	Convey("UpsertDiscussion", t, func() {
 		db, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
@@ -523,8 +505,9 @@ func TestDelphisDB_UpsertDiscussion(t *testing.T) {
 			AddRow(discObj.ID, discObj.CreatedAt, discObj.UpdatedAt, discObj.DeletedAt, discObj.Title, discObj.AnonymityType,
 				discObj.ModeratorID, discObj.IconURL, discObj.AutoPost, discObj.IdleMinutes, discObj.PublicAccess)
 
-		//expectedUpdateStr := `UPDATE "discussions" SET "anonymity_type" = $1, "auto_post" = $2, "icon_url" = $3, "idle_minutes" = $4, "public_access" = $5, "title" = $6, "updated_at" = $7 WHERE "discussions"."deleted_at" IS NULL AND "discussions"."id" = $8`
-		//expectedPostUpdateSelectStr := `SELECT * FROM "user_devices" WHERE "user_devices"."deleted_at" IS NULL AND "user_devices"."id" = $1 ORDER BY "user_devices"."id" ASC LIMIT 1`
+		expectedUpdateStr := `UPDATE "discussions" SET "anonymity_type" = $1, "auto_post" = $2, "icon_url" = $3, "idle_minutes" = $4, "public_access" = $5, "title" = $6, "updated_at" = $7  WHERE "discussions"."deleted_at" IS NULL AND "discussions"."id" = $8`
+		expectedPostUpdateSelectStr := `SELECT * FROM "discussions" WHERE "discussions"."deleted_at" IS NULL AND "discussions"."id" = $1 ORDER BY "discussions"."id" ASC LIMIT 1`
+		expectedPostUpdateModSelectStr := `SELECT * FROM "moderators"  WHERE "moderators"."deleted_at" IS NULL AND (("id" IN ($1))) ORDER BY "moderators"."id" ASC`
 
 		Convey("when find query fails with a non-not-found-error the function should return the error", func() {
 			expectedError := fmt.Errorf("Some fake error")
@@ -576,38 +559,68 @@ func TestDelphisDB_UpsertDiscussion(t *testing.T) {
 		})
 
 		Convey("when the object is found we should update it", func() {
-			//Convey("when updating if it fails then return the error", func() {
-			//	expectedError := fmt.Errorf("something went wrong")
-			//	mock.ExpectQuery(expectedFindQueryStr).WithArgs(discObj.ID).WillReturnRows(expectedNewObjectRow)
-			//	mock.ExpectBegin()
-			//	mock.ExpectExec(expectedUpdateStr).WithArgs(
-			//		discObj.AnonymityType, discObj.AutoPost, discObj.IconURL, discObj.IdleMinutes,
-			//		discObj.PublicAccess, discObj.Title, discObj.UpdatedAt, discObj.ID,
-			//	).WillReturnError(expectedError)
-			//
-			//	resp, err := mockDatastore.UpsertDiscussion(ctx, discObj)
-			//
-			//	So(err, ShouldNotBeNil)
-			//	So(resp, ShouldBeNil)
-			//	So(mock.ExpectationsWereMet(), ShouldBeNil)
-			//})
+			Convey("when updating if it fails then return the error", func() {
+				expectedError := fmt.Errorf("something went wrong")
+				mock.ExpectQuery(expectedFindQueryStr).WithArgs(discObj.ID).WillReturnRows(expectedNewObjectRow)
+				mock.ExpectBegin()
+				mock.ExpectExec(expectedUpdateStr).WithArgs(
+					discObj.AnonymityType, discObj.AutoPost, discObj.IconURL, discObj.IdleMinutes,
+					discObj.PublicAccess, discObj.Title, sqlmock.AnyArg(), discObj.ID,
+				).WillReturnError(expectedError)
 
-			//Convey("when updating if it succeeds it should return the updated object", func() {
-			//	mock.ExpectQuery(regexp.QuoteMeta(expectedFindQueryStr)).WithArgs(newObject.ID).WillReturnRows(expectedNewObjectRow)
-			//	mock.ExpectBegin()
-			//	mock.ExpectExec(regexp.QuoteMeta(expectedUpdateStr)).WithArgs(
-			//		newObject.LastSeen, *newObject.UserID, newObject.ID,
-			//	).WillReturnResult(sqlmock.NewResult(0, 1))
-			//	mock.ExpectCommit()
-			//	mock.ExpectQuery(regexp.QuoteMeta(expectedPostUpdateSelectStr)).WithArgs(newObject.ID).WillReturnRows(sqlmock.NewRows([]string{"id", "created_at", "deleted_at", "platform", "last_seen", "token", "user_id"}).
-			//		AddRow(newObject.ID, newObject.CreatedAt, newObject.DeletedAt, newObject.Platform, newObject.LastSeen, newObject.Token, newObject.UserID))
-			//
-			//	resp, err := mockDatastore.UpsertUserDevice(ctx, newObject)
-			//
-			//	assert.Nil(t, err)
-			//	assert.NotNil(t, resp)
-			//	assert.Nil(t, mock.ExpectationsWereMet())
-			//})
+				resp, err := mockDatastore.UpsertDiscussion(ctx, discObj)
+
+				So(err, ShouldNotBeNil)
+				So(resp, ShouldBeNil)
+				So(mock.ExpectationsWereMet(), ShouldBeNil)
+			})
+
+			Convey("when updating if it fails on moderator query", func() {
+				expectedError := fmt.Errorf("something went wrong")
+				mock.ExpectQuery(expectedFindQueryStr).WithArgs(discObj.ID).WillReturnRows(expectedNewObjectRow)
+				mock.ExpectBegin()
+				mock.ExpectExec(expectedUpdateStr).WithArgs(
+					discObj.AnonymityType, discObj.AutoPost, discObj.IconURL, discObj.IdleMinutes,
+					discObj.PublicAccess, discObj.Title, sqlmock.AnyArg(), discObj.ID,
+				).WillReturnResult(sqlmock.NewResult(0, 1))
+				mock.ExpectCommit()
+				mock.ExpectQuery(expectedPostUpdateSelectStr).WithArgs(discObj.ID).
+					WillReturnRows(sqlmock.NewRows([]string{"id", "created_at", "updated_at", "deleted_at", "title", "anonymity_type", "moderator_id", "icon_url",
+						"auto_post", "idle_minutes", "public_access"}).
+						AddRow(discObj.ID, discObj.CreatedAt, discObj.UpdatedAt, discObj.DeletedAt, discObj.Title, discObj.AnonymityType,
+							discObj.ModeratorID, discObj.IconURL, discObj.AutoPost, discObj.IdleMinutes, discObj.PublicAccess))
+				mock.ExpectQuery(expectedPostUpdateModSelectStr).WithArgs(discObj.ModeratorID).WillReturnError(expectedError)
+
+				resp, err := mockDatastore.UpsertDiscussion(ctx, discObj)
+
+				So(err, ShouldNotBeNil)
+				So(resp, ShouldBeNil)
+				So(mock.ExpectationsWereMet(), ShouldBeNil)
+			})
+
+			Convey("when updating if it succeeds it should return the updated object", func() {
+				mock.ExpectQuery(expectedFindQueryStr).WithArgs(discObj.ID).WillReturnRows(expectedNewObjectRow)
+				mock.ExpectBegin()
+				mock.ExpectExec(expectedUpdateStr).WithArgs(
+					discObj.AnonymityType, discObj.AutoPost, discObj.IconURL, discObj.IdleMinutes,
+					discObj.PublicAccess, discObj.Title, sqlmock.AnyArg(), discObj.ID,
+				).WillReturnResult(sqlmock.NewResult(0, 1))
+				mock.ExpectCommit()
+				mock.ExpectQuery(expectedPostUpdateSelectStr).WithArgs(discObj.ID).
+					WillReturnRows(sqlmock.NewRows([]string{"id", "created_at", "updated_at", "deleted_at", "title", "anonymity_type", "moderator_id", "icon_url",
+						"auto_post", "idle_minutes", "public_access"}).
+						AddRow(discObj.ID, discObj.CreatedAt, discObj.UpdatedAt, discObj.DeletedAt, discObj.Title, discObj.AnonymityType,
+							discObj.ModeratorID, discObj.IconURL, discObj.AutoPost, discObj.IdleMinutes, discObj.PublicAccess))
+				mock.ExpectQuery(expectedPostUpdateModSelectStr).WithArgs(discObj.ModeratorID).WillReturnRows(
+					sqlmock.NewRows([]string{"id", "created_at", "updated_at", "deleted_at", "user_profile_id"}).
+						AddRow(modObj.ID, modObj.CreatedAt, modObj.UpdatedAt, modObj.DeletedAt, modObj.UserProfileID))
+
+				resp, err := mockDatastore.UpsertDiscussion(ctx, discObj)
+
+				assert.Nil(t, err)
+				assert.NotNil(t, resp)
+				assert.Nil(t, mock.ExpectationsWereMet())
+			})
 		})
 	})
 }

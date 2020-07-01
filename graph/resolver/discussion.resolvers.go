@@ -211,6 +211,10 @@ func (r *discussionAccessRequestResolver) Discussion(ctx context.Context, obj *m
 	return r.DAOManager.GetDiscussionByID(ctx, obj.DiscussionID)
 }
 
+func (r *discussionFlairTemplateAccessResolver) ID(ctx context.Context, obj *model.DiscussionFlairTemplateAccess) (string, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
 func (r *discussionFlairTemplateAccessResolver) Discussion(ctx context.Context, obj *model.DiscussionFlairTemplateAccess) (*model.Discussion, error) {
 	return r.DAOManager.GetDiscussionByID(ctx, obj.DiscussionID)
 }
