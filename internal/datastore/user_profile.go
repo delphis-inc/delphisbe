@@ -3,9 +3,6 @@ package datastore
 import (
 	"context"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/dynamodb"
-	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbattribute"
 	"github.com/jinzhu/gorm"
 	"github.com/nedrocks/delphisbe/graph/model"
 	"github.com/sirupsen/logrus"
@@ -55,12 +52,16 @@ func (d *delphisDB) CreateOrUpdateUserProfile(ctx context.Context, userProfile m
 			return nil, false, err
 		}
 	} else {
+		logrus.Infof("User: %+v\n", *found.UserID)
+
 		// Found so this is an update.
 		toUpdate := model.UserProfile{
 			DisplayName:   userProfile.DisplayName,
 			TwitterHandle: userProfile.TwitterHandle,
 		}
-		if found.UserID == nil && userProfile.UserID != nil {
+
+		// Can't mock this
+		if *found.UserID == "" && userProfile.UserID != nil {
 			toUpdate.UserID = userProfile.UserID
 		}
 		if err := d.sql.Preload("SocialInfos").Model(&userProfile).Updates(toUpdate).First(&found).Error; err != nil {
@@ -71,70 +72,70 @@ func (d *delphisDB) CreateOrUpdateUserProfile(ctx context.Context, userProfile m
 	}
 }
 
-func (d *delphisDB) AddModeratedDiscussionToUserProfileDynamo(ctx context.Context, userProfileID string, discussionID string) (*model.UserProfile, error) {
-	logrus.Debug("AddModeratedDiscussionToUserProfile: Dynamo UpdateItem")
-	res, err := d.dynamo.UpdateItem(&dynamodb.UpdateItemInput{
-		ExpressionAttributeNames: map[string]*string{
-			"#MD": aws.String("ModeratedDiscussionIDs"),
-		},
-		ExpressionAttributeValues: map[string]*dynamodb.AttributeValue{
-			":dids": {
-				SS: []*string{aws.String(discussionID)},
-			},
-		},
-		Key: map[string]*dynamodb.AttributeValue{
-			"ID": {
-				S: aws.String(userProfileID),
-			},
-		},
-		ReturnValues:     aws.String("ALL_NEW"),
-		TableName:        aws.String(d.dbConfig.UserProfiles.TableName),
-		UpdateExpression: aws.String("SET #MD = :dids"),
-	})
-
-	if err != nil {
-		logrus.WithError(err).Errorf("Failed updating user profile object")
-		return nil, err
-	}
-
-	userProfileObj := model.UserProfile{}
-
-	err = dynamodbattribute.UnmarshalMap(res.Attributes, &userProfileObj)
-
-	if err != nil {
-		logrus.WithError(err).Errorf("Failed unmarshaling returned value: %+v", res.Attributes)
-		return nil, err
-	}
-
-	return &userProfileObj, nil
-}
-
-func (d *delphisDB) GetUserProfileByIDDynamo(ctx context.Context, id string) (*model.UserProfile, error) {
-	logrus.Debug("GetUserProfileByID: Dynamo GetItem")
-	res, err := d.dynamo.GetItem(&dynamodb.GetItemInput{
-		TableName: aws.String(d.dbConfig.UserProfiles.TableName),
-		Key: map[string]*dynamodb.AttributeValue{
-			"ID": {
-				S: aws.String(id),
-			},
-		},
-	})
-
-	if err != nil {
-		logrus.WithError(err).Errorf("GetUserProfileByID: Error getting user profile with id %s", id)
-		return nil, err
-	}
-
-	userProfile := model.UserProfile{}
-	err = dynamodbattribute.UnmarshalMap(res.Item, &userProfile)
-
-	if err != nil {
-		logrus.WithError(err).Errorf("GetUserProfileByID: Failed unmarshaling user profile object %+v", res.Item)
-		return nil, err
-	}
-
-	return &userProfile, nil
-}
+//func (d *delphisDB) AddModeratedDiscussionToUserProfileDynamo(ctx context.Context, userProfileID string, discussionID string) (*model.UserProfile, error) {
+//	logrus.Debug("AddModeratedDiscussionToUserProfile: Dynamo UpdateItem")
+//	res, err := d.dynamo.UpdateItem(&dynamodb.UpdateItemInput{
+//		ExpressionAttributeNames: map[string]*string{
+//			"#MD": aws.String("ModeratedDiscussionIDs"),
+//		},
+//		ExpressionAttributeValues: map[string]*dynamodb.AttributeValue{
+//			":dids": {
+//				SS: []*string{aws.String(discussionID)},
+//			},
+//		},
+//		Key: map[string]*dynamodb.AttributeValue{
+//			"ID": {
+//				S: aws.String(userProfileID),
+//			},
+//		},
+//		ReturnValues:     aws.String("ALL_NEW"),
+//		TableName:        aws.String(d.dbConfig.UserProfiles.TableName),
+//		UpdateExpression: aws.String("SET #MD = :dids"),
+//	})
+//
+//	if err != nil {
+//		logrus.WithError(err).Errorf("Failed updating user profile object")
+//		return nil, err
+//	}
+//
+//	userProfileObj := model.UserProfile{}
+//
+//	err = dynamodbattribute.UnmarshalMap(res.Attributes, &userProfileObj)
+//
+//	if err != nil {
+//		logrus.WithError(err).Errorf("Failed unmarshaling returned value: %+v", res.Attributes)
+//		return nil, err
+//	}
+//
+//	return &userProfileObj, nil
+//}
+//
+//func (d *delphisDB) GetUserProfileByIDDynamo(ctx context.Context, id string) (*model.UserProfile, error) {
+//	logrus.Debug("GetUserProfileByID: Dynamo GetItem")
+//	res, err := d.dynamo.GetItem(&dynamodb.GetItemInput{
+//		TableName: aws.String(d.dbConfig.UserProfiles.TableName),
+//		Key: map[string]*dynamodb.AttributeValue{
+//			"ID": {
+//				S: aws.String(id),
+//			},
+//		},
+//	})
+//
+//	if err != nil {
+//		logrus.WithError(err).Errorf("GetUserProfileByID: Error getting user profile with id %s", id)
+//		return nil, err
+//	}
+//
+//	userProfile := model.UserProfile{}
+//	err = dynamodbattribute.UnmarshalMap(res.Item, &userProfile)
+//
+//	if err != nil {
+//		logrus.WithError(err).Errorf("GetUserProfileByID: Failed unmarshaling user profile object %+v", res.Item)
+//		return nil, err
+//	}
+//
+//	return &userProfile, nil
+//}
 
 // func (d *db) CreateOrUpdateUserProfileDynamo(ctx context.Context, userProfile model.UserProfile) (*model.UserProfile, bool, error) {
 // 	logrus.Debug("PutUserProfileIfNotExists: Dynamo PutItem")
