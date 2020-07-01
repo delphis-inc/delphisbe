@@ -5,7 +5,7 @@ CREATE TABLE IF NOT EXISTS user_devices (
     created_at timestamp with time zone NOT NULL,
     last_seen timestamp with time zone NOT NULL,
     deleted_at timestamp with time zone,
-    token VARCHAR(128)
+    token VARCHAR(512)
 );
 
 CREATE INDEX user_devices_user_id_last_seen on user_devices (user_id, last_seen);
