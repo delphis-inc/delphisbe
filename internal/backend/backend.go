@@ -80,7 +80,7 @@ type DelphisBackend interface {
 	DeleteDiscussionTags(ctx context.Context, discussionID string, tags []string) ([]*model.Tag, error)
 	GetImportedContentByID(ctx context.Context, id string) (*model.ImportedContent, error)
 	GetUpcomingImportedContentByDiscussionID(ctx context.Context, discussionID string) ([]*model.ImportedContent, error)
-	SendNotificationsToSubscribers(ctx context.Context, discussion *model.Discussion, post *model.Post) (*SendNotificationResponse, error)
+	SendNotificationsToSubscribers(ctx context.Context, discussion *model.Discussion, post *model.Post, contentPreview *string) (*SendNotificationResponse, error)
 	AutoPostContent()
 	GetMediaRecord(ctx context.Context, mediaID string) (*model.Media, error)
 	UploadMedia(ctx context.Context, media multipart.File) (string, string, error)

@@ -23,7 +23,7 @@ type SendNotificationResponse struct {
 	NumDevicesToNotify int
 }
 
-func (d *delphisBackend) SendNotificationsToSubscribers(ctx context.Context, discussion *model.Discussion, post *model.Post) (*SendNotificationResponse, error) {
+func (d *delphisBackend) SendNotificationsToSubscribers(ctx context.Context, discussion *model.Discussion, post *model.Post, contentPreview *string) (*SendNotificationResponse, error) {
 	if discussion == nil || post == nil {
 		return nil, fmt.Errorf("Cannot send notification to missing Post or Discussion")
 	}
@@ -79,7 +79,7 @@ func (d *delphisBackend) SendNotificationsToSubscribers(ctx context.Context, dis
 					sendMessageNonBlocking(notifChan, sendStatus)
 					return
 				}
-				notificationBody, err := notif.BuildPushNotification(ctx, *discussion, *post)
+				notificationBody, err := notif.BuildPushNotification(ctx, *discussion, *post, contentPreview)
 				if err != nil || notificationBody == nil {
 					sendMessageNonBlocking(notifChan, sendStatus)
 					return

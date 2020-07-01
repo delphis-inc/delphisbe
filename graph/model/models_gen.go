@@ -90,6 +90,7 @@ type PostContentInput struct {
 	MediaID           *string    `json:"mediaID"`
 	Poll              *PollInput `json:"poll"`
 	ImportedContentID *string    `json:"importedContentID"`
+	Preview           *string    `json:"preview"`
 }
 
 type URL struct {
