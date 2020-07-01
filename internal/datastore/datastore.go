@@ -13,7 +13,6 @@ import (
 	"github.com/sirupsen/logrus"
 
 	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbattribute"
 	"github.com/nedrocks/delphisbe/graph/model"
 	"github.com/nedrocks/delphisbe/internal/config"
@@ -164,16 +163,6 @@ type DiscussionAccessRequestIter interface {
 type DFAIter interface {
 	Next(dfa *model.DiscussionFlairTemplateAccess) bool
 	Close() error
-}
-
-//MarshalMap wraps the dynamodbattribute.MarshalMap with a defined encoder.
-func (d *delphisDB) marshalMap(in interface{}) (map[string]*dynamodb.AttributeValue, error) {
-	av, err := d.encoder.Encode(in)
-	if err != nil || av == nil || av.M == nil {
-		return map[string]*dynamodb.AttributeValue{}, err
-	}
-
-	return av.M, nil
 }
 
 func NewDatastore(config config.Config, awsSession *session.Session) Datastore {
