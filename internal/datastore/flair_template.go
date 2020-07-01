@@ -65,7 +65,7 @@ func (d *delphisDB) GetFlairTemplateByID(ctx context.Context, id string) (*model
 func (d *delphisDB) RemoveFlairTemplate(ctx context.Context, flairTemplate model.FlairTemplate) (*model.FlairTemplate, error) {
 	logrus.Debug("RemoveFlairTemplate::SQL Query")
 	// Ensure that flairTemplate.ID is set, otherwise GORM could delete all flairTemplate
-	if &flairTemplate.ID == nil {
+	if flairTemplate.ID == "" {
 		logrus.Errorf("Attempted to delete flair template with no ID")
 		return &flairTemplate, nil
 	}

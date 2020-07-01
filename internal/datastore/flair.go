@@ -62,7 +62,7 @@ func (d *delphisDB) GetFlairsByUserID(ctx context.Context, userID string) ([]*mo
 func (d *delphisDB) RemoveFlair(ctx context.Context, flair model.Flair) (*model.Flair, error) {
 	logrus.Debug("RemoveFlair::SQL Query")
 	// Ensure that flair.ID is set, otherwise GORM could delete all flair
-	if &flair.ID == nil {
+	if flair.ID == "" {
 		logrus.Errorf("Attempted to delete flair with no ID")
 		return &flair, nil
 	}
@@ -70,7 +70,7 @@ func (d *delphisDB) RemoveFlair(ctx context.Context, flair model.Flair) (*model.
 		// Set Null all participants referencing the flairs we just deleted.
 		if err := tx.Unscoped().Model(model.Participant{}).
 			Where(model.Participant{FlairID: &flair.ID}).
-			Update("flair_id", nil).Error; err != nil {
+			UpdateColumn("flair_id", nil).Error; err != nil {
 			logrus.WithError(err).Errorf("RemoveFlair::Failed to unassign flairs")
 			return err
 		}
@@ -79,6 +79,7 @@ func (d *delphisDB) RemoveFlair(ctx context.Context, flair model.Flair) (*model.
 		if err := tx.Delete(&flair).Error; err != nil {
 			return err
 		}
+
 		return nil
 	})
 	if err != nil {

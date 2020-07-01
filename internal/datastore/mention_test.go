@@ -74,7 +74,7 @@ func TestDelphisDB_PutActivity(t *testing.T) {
 			mockPreparedStatements(mock)
 			mock.ExpectPrepare(putActivityString)
 			mock.ExpectExec(putActivityString).WithArgs(postObject.ParticipantID, postObject.PostContent.ID,
-				postObject.PostContent).WillReturnError(fmt.Errorf("error"))
+				entity0[1], entity0[0]).WillReturnError(fmt.Errorf("error"))
 
 			tx, err := mockDatastore.BeginTx(ctx)
 			err = mockDatastore.PutActivity(ctx, tx, &postObject)
@@ -88,8 +88,11 @@ func TestDelphisDB_PutActivity(t *testing.T) {
 			mock.ExpectBegin()
 			mockPreparedStatements(mock)
 			mock.ExpectPrepare(putActivityString)
-			mock.ExpectExec(putActivityString).WithArgs(mediaObj.ID, mediaObj.MediaType,
-				sizeJson).WillReturnResult(sqlmock.NewResult(0, 0))
+			mock.ExpectExec(putActivityString).WithArgs(postObject.ParticipantID, postObject.PostContent.ID,
+				entity0[1], entity0[0]).WillReturnResult(sqlmock.NewResult(0, 0))
+			//mock.ExpectPrepare(putActivityString)
+			mock.ExpectExec(putActivityString).WithArgs(postObject.ParticipantID, postObject.PostContent.ID,
+				entity1[1], entity1[0]).WillReturnResult(sqlmock.NewResult(0, 0))
 
 			tx, err := mockDatastore.BeginTx(ctx)
 			err = mockDatastore.PutActivity(ctx, tx, &postObject)
