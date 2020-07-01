@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <script>
+      var isAndroid = /(android)/i.test(navigator.userAgent);
+    </script>
+    <meta charset="utf-8" />
+    <title>Chatham</title>
+  </head>
+  <body style="background-color: #000">
+    <div style="height: 100vh">
+        <img alt="Chatham Logo" style="margin: auto auto; display: block" src="https://static.chatham.ai/images/icon.png"/>
+        <a style="color: #fff; font-size: 24px; display: block; text-align: center" href="delphis-chatham://app-staging.delphishq.com">Open in App!</a>
+        <a style="color: #fff; font-size: 24px; display: block; text-align: center" href="https://www.chatham.ai">Learn more</a>
+    </div>
+    <script>
+      if (!isAndroid) {
+        setTimeout(function() {
+          window.location.replace('https://www.chatham.ai');
+        }, 50);
+        window.location.replace('delphis-chatham://app-staging.delphishq.com/');
+      }
+    </script>
+  </body>
+</html>
