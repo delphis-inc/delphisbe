@@ -9,8 +9,6 @@ import (
 
 	"github.com/lib/pq"
 
-	"github.com/sirupsen/logrus"
-
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/jinzhu/gorm"
 	"github.com/nedrocks/delphisbe/graph/model"
@@ -92,8 +90,6 @@ func TestDelphisDB_PutPost(t *testing.T) {
 
 			tx, err := mockDatastore.BeginTx(ctx)
 			resp, err := mockDatastore.PutPost(ctx, tx, postObject)
-
-			logrus.Infof("Resp: %+v\n", resp)
 
 			So(err, ShouldBeNil)
 			So(resp, ShouldNotBeNil)

@@ -236,8 +236,7 @@ const getModeratorByUserIDString = `
 			m.created_at,
 			m.updated_at,
 			m.deleted_at,
-			m.user_profile_id,
-			d.id
+			m.user_profile_id
 		FROM moderators m
 		INNER JOIN user_profiles u
 		ON m.user_profile_id = u.id
@@ -250,8 +249,7 @@ const getModeratorByUserIDAndDiscussionIDString = `
 			m.created_at,
 			m.updated_at,
 			m.deleted_at,
-			m.user_profile_id,
-			d.id
+			m.user_profile_id
 		FROM moderators m
 		INNER JOIN user_profiles u
 		ON m.user_profile_id = u.id

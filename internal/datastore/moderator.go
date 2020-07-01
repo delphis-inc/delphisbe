@@ -68,7 +68,6 @@ func (d *delphisDB) GetModeratorByUserIDAndDiscussionID(ctx context.Context, use
 	}
 
 	moderator := model.Moderator{}
-	discussion := model.Discussion{}
 	if err := d.prepStmts.getModeratorByUserIDAndDiscussionIDStmt.QueryRowContext(
 		ctx,
 		userID,
@@ -79,7 +78,6 @@ func (d *delphisDB) GetModeratorByUserIDAndDiscussionID(ctx context.Context, use
 		&moderator.UpdatedAt,
 		&moderator.DeletedAt,
 		&moderator.UserProfileID,
-		&discussion.ID,
 	); err != nil {
 		if err == sql.ErrNoRows {
 			return nil, nil
@@ -87,8 +85,6 @@ func (d *delphisDB) GetModeratorByUserIDAndDiscussionID(ctx context.Context, use
 		logrus.WithError(err).Error("failed to execute getModeratorByUserIDAndDiscussionIDStmt")
 		return nil, err
 	}
-
-	moderator.Discussion = &discussion
 
 	return &moderator, nil
 }

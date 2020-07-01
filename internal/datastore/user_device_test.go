@@ -181,10 +181,11 @@ func Test_UpsertUserDevice(t *testing.T) {
 			})
 
 			Convey("when updating if it succeeds it should return the updated object", func() {
+				newObject.LastSeen = time.Time{}
 				mock.ExpectQuery(regexp.QuoteMeta(expectedFindQueryStr)).WithArgs(newObject.ID).WillReturnRows(expectedNewObjectRow)
 				mock.ExpectBegin()
 				mock.ExpectExec(regexp.QuoteMeta(expectedUpdateStr)).WithArgs(
-					newObject.LastSeen, *newObject.UserID, newObject.ID,
+					sqlmock.AnyArg(), *newObject.UserID, newObject.ID,
 				).WillReturnResult(sqlmock.NewResult(0, 1))
 				mock.ExpectCommit()
 				mock.ExpectQuery(regexp.QuoteMeta(expectedPostUpdateSelectStr)).WithArgs(newObject.ID).WillReturnRows(sqlmock.NewRows([]string{"id", "created_at", "deleted_at", "platform", "last_seen", "token", "user_id"}).
