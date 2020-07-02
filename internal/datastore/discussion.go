@@ -45,7 +45,6 @@ func (d *delphisDB) GetDiscussionByModeratorID(ctx context.Context, moderatorID 
 	logrus.Debugf("GetDiscussionByModeratorID::SQL Query")
 	discussion := model.Discussion{}
 	if err := d.sql.First(&discussion, model.Discussion{ModeratorID: &moderatorID}).Error; err != nil {
-		//if err := d.sql.Preload("Moderator").First(&moderator, model.Moderator{ID: moderatorID}).Related(&discussion).Error; err != nil {
 		if gorm.IsRecordNotFoundError(err) {
 			return nil, nil
 		}

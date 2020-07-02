@@ -90,7 +90,6 @@ func TestDelphisDB_PutActivity(t *testing.T) {
 			mock.ExpectPrepare(putActivityString)
 			mock.ExpectExec(putActivityString).WithArgs(postObject.ParticipantID, postObject.PostContent.ID,
 				entity0[1], entity0[0]).WillReturnResult(sqlmock.NewResult(0, 0))
-			//mock.ExpectPrepare(putActivityString)
 			mock.ExpectExec(putActivityString).WithArgs(postObject.ParticipantID, postObject.PostContent.ID,
 				entity1[1], entity1[0]).WillReturnResult(sqlmock.NewResult(0, 0))
 

@@ -55,7 +55,7 @@ func TestDelphisDB_ListFlairTemplates(t *testing.T) {
 			So(mock.ExpectationsWereMet(), ShouldBeNil)
 		})
 
-		Convey("when an query is passed in and returns results", func() {
+		Convey("when a query is passed in and returns results", func() {
 			query := "test"
 			likeQuery := "%test%"
 			mock.ExpectQuery(expectedStrWithQuery).WithArgs(likeQuery, likeQuery).

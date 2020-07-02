@@ -312,12 +312,10 @@ func (d *delphisDB) PostIterCollect(ctx context.Context, iter PostIter) ([]*mode
 	for iter.Next(&post) {
 		tempPost := post
 
-		logrus.Infof("Here: %+v\n", tempPost)
 		// Check if there is a quotedPostID. Fetch if so
 		if tempPost.QuotedPostID != nil {
 			var err error
 			// TODO: potentially optimize into joins
-			logrus.Infof("In Here\n")
 			tempPost.QuotedPost, err = d.GetPostByID(ctx, *tempPost.QuotedPostID)
 			if err != nil {
 				// Do we want to fail the whole discussion if we can't get a quote?

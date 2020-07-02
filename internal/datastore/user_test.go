@@ -43,8 +43,6 @@ func TestDelphisDB_UpsertUser(t *testing.T) {
 		createQueryStr := `INSERT INTO "users" ("id","created_at","updated_at","deleted_at") VALUES ($1,$2,$3,$4) RETURNING "users"."id"`
 		expectedNewObjectRow := sqlmock.NewRows([]string{"id", "created_at", "updated_at", "deleted_at"}).
 			AddRow(userObj.ID, userObj.CreatedAt, userObj.UpdatedAt, userObj.DeletedAt)
-		//expectedUpdateStr := `UPDATE "participants" SET "flair_id" = $1, "gradient_color" = $2, "has_joined" = $3, "updated_at" = $4 WHERE "participants"."deleted_at" IS NULL AND "participants"."id" = $5`
-		//expectedPostUpdateSelectStr := `SELECT * FROM "participants" WHERE "participants"."deleted_at" IS NULL AND "participants"."id" = $1 ORDER BY "participants"."id" ASC LIMIT 1`
 
 		Convey("when find query fails with a non-not-found-error the function should return the error", func() {
 			expectedError := fmt.Errorf("Some fake error")
@@ -292,87 +290,4 @@ func TestDelphisDB_GetUserByID(t *testing.T) {
 			So(mock.ExpectationsWereMet(), ShouldBeNil)
 		})
 	})
-}
-
-func Test_MarshalUser(t *testing.T) {
-	// type args struct {
-	// 	user model.User
-	// }
-
-	// haveUserObj := model.User{
-	// 	ID:            "11111",
-	// 	CreatedAt:     time.Now(),
-	// 	UpdatedAt:     time.Now(),
-	// 	UserProfileID: "22222",
-	// 	UserProfile:   &model.UserProfile{},
-	// 	DiscussionParticipants: &model.DiscussionParticipantKeys{
-	// 		Keys: []model.DiscussionParticipantKey{
-	// 			{
-	// 				DiscussionID:  "33333",
-	// 				ParticipantID: 0,
-	// 			},
-	// 		},
-	// 	},
-	// 	DiscussionViewers: &model.DiscussionViewerKeys{
-	// 		Keys: []model.DiscussionViewerKey{
-	// 			{
-	// 				DiscussionID: "33333",
-	// 				ViewerID:     "44444",
-	// 			},
-	// 		},
-	// 	},
-	// 	Participants: []*model.Participant{},
-	// 	Viewers:      []*model.Viewer{},
-	// }
-
-	// datastoreObj := NewDatastore(config.DBConfig{})
-
-	// tests := []struct {
-	// 	name string
-	// 	args args
-	// 	want map[string]*dynamodb.AttributeValue
-	// }{
-	// 	{
-	// 		name: "fully filled object",
-	// 		args: args{
-	// 			user: haveUserObj,
-	// 		},
-	// 		want: map[string]*dynamodb.AttributeValue{
-	// 			"ID": {
-	// 				S: aws.String(haveUserObj.ID),
-	// 			},
-	// 			"CreatedAt": {
-	// 				S: aws.String(haveUserObj.CreatedAt.Format(time.RFC3339Nano)),
-	// 			},
-	// 			"UpdatedAt": {
-	// 				S: aws.String(haveUserObj.UpdatedAt.Format(time.RFC3339Nano)),
-	// 			},
-	// 			"DeletedAt": {
-	// 				NULL: aws.Bool(true),
-	// 			},
-	// 			"UserProfileID": {
-	// 				S: aws.String(haveUserObj.UserProfileID),
-	// 			},
-	// 			"DiscussionParticipants": {
-	// 				SS: []*string{aws.String(haveUserObj.DiscussionParticipants.Keys[0].String())},
-	// 			},
-	// 			"DiscussionViewers": {
-	// 				SS: []*string{aws.String(haveUserObj.DiscussionViewers.Keys[0].String())},
-	// 			},
-	// 		},
-	// 	},
-	// }
-
-	// for _, tt := range tests {
-	// 	t.Run(tt.name, func(t *testing.T) {
-	// 		marshaled, err := datastoreObj.marshalMap(tt.args.user)
-	// 		if err != nil {
-	// 			t.Errorf("Caught an error marshaling: %+v", err)
-	// 			return
-	// 		}
-	// 		if !reflect.DeepEqual(marshaled, tt.want) {
-	// 			t.Errorf("These objects did not match. Got: %+v\n\n Want: %+v", marshaled, tt.want)
-	// 		}
-	// 	})
-	// }
 }
