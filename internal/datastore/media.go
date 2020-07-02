@@ -51,8 +51,6 @@ func (d *delphisDB) GetMediaRecordByID(ctx context.Context, mediaID string) (*mo
 	}
 	mediaRecord.MediaSize = &mediaSize
 
-	logrus.Debugf("Media: %v\n", mediaRecord.MediaSize)
-
 	return &mediaRecord, nil
 }
 

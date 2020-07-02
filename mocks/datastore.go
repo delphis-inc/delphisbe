@@ -133,29 +133,6 @@ func (_m *Datastore) CreateOrUpdateUserProfile(ctx context.Context, userProfile 
 	return r0, r1, r2
 }
 
-// CreateTestTables provides a mock function with given fields: ctx, data
-func (_m *Datastore) CreateTestTables(ctx context.Context, data datastore.TestData) (func() error, error) {
-	ret := _m.Called(ctx, data)
-
-	var r0 func() error
-	if rf, ok := ret.Get(0).(func(context.Context, datastore.TestData) func() error); ok {
-		r0 = rf(ctx, data)
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(func() error)
-		}
-	}
-
-	var r1 error
-	if rf, ok := ret.Get(1).(func(context.Context, datastore.TestData) error); ok {
-		r1 = rf(ctx, data)
-	} else {
-		r1 = ret.Error(1)
-	}
-
-	return r0, r1
-}
-
 // DeleteDiscussionFlairTemplatesAccess provides a mock function with given fields: ctx, tx, discussionID, flairTemplateID
 func (_m *Datastore) DeleteDiscussionFlairTemplatesAccess(ctx context.Context, tx *sql.Tx, discussionID string, flairTemplateID string) (*model.DiscussionFlairTemplateAccess, error) {
 	ret := _m.Called(ctx, tx, discussionID, flairTemplateID)
@@ -868,29 +845,6 @@ func (_m *Datastore) GetPostContentByID(ctx context.Context, id string) (*model.
 	var r1 error
 	if rf, ok := ret.Get(1).(func(context.Context, string) error); ok {
 		r1 = rf(ctx, id)
-	} else {
-		r1 = ret.Error(1)
-	}
-
-	return r0, r1
-}
-
-// GetPostsByDiscussionID provides a mock function with given fields: ctx, discussionID
-func (_m *Datastore) GetPostsByDiscussionID(ctx context.Context, discussionID string) ([]*model.Post, error) {
-	ret := _m.Called(ctx, discussionID)
-
-	var r0 []*model.Post
-	if rf, ok := ret.Get(0).(func(context.Context, string) []*model.Post); ok {
-		r0 = rf(ctx, discussionID)
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).([]*model.Post)
-		}
-	}
-
-	var r1 error
-	if rf, ok := ret.Get(1).(func(context.Context, string) error); ok {
-		r1 = rf(ctx, discussionID)
 	} else {
 		r1 = ret.Error(1)
 	}

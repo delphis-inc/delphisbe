@@ -44,8 +44,7 @@ func (d *delphisDB) GetDiscussionsByIDs(ctx context.Context, ids []string) (map[
 func (d *delphisDB) GetDiscussionByModeratorID(ctx context.Context, moderatorID string) (*model.Discussion, error) {
 	logrus.Debugf("GetDiscussionByModeratorID::SQL Query")
 	discussion := model.Discussion{}
-	moderator := model.Moderator{}
-	if err := d.sql.Preload("Moderator").First(&moderator, model.Moderator{ID: moderatorID}).Related(&discussion).Error; err != nil {
+	if err := d.sql.First(&discussion, model.Discussion{ModeratorID: &moderatorID}).Error; err != nil {
 		if gorm.IsRecordNotFoundError(err) {
 			return nil, nil
 		}
@@ -243,6 +242,7 @@ func (iter *autoPostDiscussionIter) Close() error {
 	}
 	if err := iter.rows.Close(); err != nil {
 		logrus.WithError(err).Error("iter rows close on close")
+		return err
 	}
 
 	return nil

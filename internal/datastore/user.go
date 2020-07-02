@@ -42,55 +42,6 @@ func (d *delphisDB) GetUserByID(ctx context.Context, userID string) (*model.User
 		logrus.WithError(err).Errorf("GetUserByID::Failed to get user")
 		return nil, err
 	}
-	logrus.Debugf("Found: %+v", user)
 
 	return &user, nil
 }
-
-// func (d *db) GetUserByIDDynamo(ctx context.Context, userID string) (*model.User, error) {
-// 	logrus.Debug("GetUserByID: Dynamo GetItem")
-// 	res, err := d.dynamo.GetItem(&dynamodb.GetItemInput{
-// 		TableName: aws.String(d.dbConfig.Users.TableName),
-// 		Key: map[string]*dynamodb.AttributeValue{
-// 			"ID": {
-// 				S: aws.String(userID),
-// 			},
-// 		},
-// 	})
-
-// 	if err != nil {
-// 		logrus.WithError(err).Errorf("GetUserByID: Failed to get user with ID: %s", userID)
-// 		return nil, err
-// 	}
-
-// 	user := model.User{}
-// 	err = dynamodbattribute.UnmarshalMap(res.Item, &user)
-
-// 	if err != nil {
-// 		logrus.WithError(err).Errorf("GetUserByID: Failed to unmarshal user object: %+v", res.Item)
-// 		return nil, err
-// 	}
-
-// 	return &user, nil
-// }
-
-// func (d *db) PutUserDynamo(ctx context.Context, user model.User) (*model.User, error) {
-// 	logrus.Debug("PutUser::Dynamo PutItem")
-// 	av, err := d.marshalMap(user)
-// 	if err != nil {
-// 		logrus.WithError(err).Errorf("PutUser: Failed to marshal user object: %+v", user)
-// 		return nil, err
-// 	}
-
-// 	_, err = d.dynamo.PutItem(&dynamodb.PutItemInput{
-// 		TableName: aws.String(d.dbConfig.Users.TableName),
-// 		Item:      av,
-// 	})
-
-// 	if err != nil {
-// 		logrus.WithError(err).Errorf("PutUser: Failed to put user object: %+v", av)
-// 		return nil, err
-// 	}
-
-// 	return &user, nil
-// }

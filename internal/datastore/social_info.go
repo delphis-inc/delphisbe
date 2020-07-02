@@ -42,7 +42,7 @@ func (d *delphisDB) GetSocialInfosByUserProfileID(ctx context.Context, userProfi
 	found := []model.SocialInfo{}
 	if err := d.sql.Where(&model.SocialInfo{UserProfileID: userProfileID}).Find(&found).Error; err != nil {
 		if gorm.IsRecordNotFoundError(err) {
-
+			return nil, nil
 		} else {
 			logrus.WithError(err).Errorf("GetSocialInfosByUserProfileID::Failed getting social infos")
 			return nil, err

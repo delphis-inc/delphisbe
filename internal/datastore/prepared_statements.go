@@ -5,6 +5,7 @@ import sql2 "database/sql"
 // Prepared Statements
 type dbPrepStmts struct {
 	// Post
+	getPostByIDStmt                      *sql2.Stmt
 	getPostsByDiscussionIDStmt           *sql2.Stmt
 	getLastPostByDiscussionIDStmt        *sql2.Stmt
 	getPostsByDiscussionIDFromCursorStmt *sql2.Stmt
@@ -68,6 +69,26 @@ type dbPrepStmts struct {
 	upsertInviteLinksForDiscussion             *sql2.Stmt
 }
 
+const getPostByIDString = `
+		SELECT p.id,
+			p.created_at,
+			p.updated_at,
+			p.deleted_at,
+			p.deleted_reason_code,
+			p.discussion_id,
+			p.participant_id,
+			p.quoted_post_id,
+			p.media_id,
+			p.imported_content_id,
+			p.post_type,
+			pc.id,
+			pc.content,
+			pc.mentioned_entities
+		FROM posts p
+		INNER JOIN post_contents pc
+		ON p.post_content_id = pc.id
+		WHERE p.id = $1;`
+
 const getPostsByDiscussionIDString = `
 		SELECT p.id,
 			p.created_at,
@@ -86,8 +107,7 @@ const getPostsByDiscussionIDString = `
 		FROM posts p
 		INNER JOIN post_contents pc
 		ON p.post_content_id = pc.id
-		WHERE p.discussion_id = $1
-		;`
+		WHERE p.discussion_id = $1;`
 
 const getPostsByDiscussionIDFromCursorString = `
 		SELECT p.id,
@@ -110,8 +130,7 @@ const getPostsByDiscussionIDFromCursorString = `
 		WHERE p.discussion_id = $1
 		AND p.created_at < $2
 		ORDER BY p.created_at desc
-		LIMIT $3
-		;`
+		LIMIT $3;`
 
 const getLastPostByDiscussionIDStmt = `
 		SELECT p.id,
@@ -204,6 +223,7 @@ const getPublicDiscussionsString = `
 			anonymity_type,
 			moderator_id,
 			auto_post,
+			"icon_url",
 			idle_minutes,
 			public_access
 		FROM discussions
@@ -216,8 +236,7 @@ const getModeratorByUserIDString = `
 			m.created_at,
 			m.updated_at,
 			m.deleted_at,
-			m.user_profile_id,
-			d.id
+			m.user_profile_id
 		FROM moderators m
 		INNER JOIN user_profiles u
 		ON m.user_profile_id = u.id
@@ -230,8 +249,7 @@ const getModeratorByUserIDAndDiscussionIDString = `
 			m.created_at,
 			m.updated_at,
 			m.deleted_at,
-			m.user_profile_id,
-			d.id
+			m.user_profile_id
 		FROM moderators m
 		INNER JOIN user_profiles u
 		ON m.user_profile_id = u.id
@@ -428,6 +446,7 @@ const getDiscussionsByFlairTemplateForUserString = `
 			d.anonymity_type,
 			d.moderator_id,
 			d.auto_post,
+			d.icon_url,
 			d.idle_minutes,
 			d.public_access
 		FROM flairs f
@@ -446,6 +465,7 @@ const getDiscussionsByUserAccessForUserString = `
 			d.anonymity_type,
 			d.moderator_id,
 			d.auto_post,
+			d.icon_url,
 			d.idle_minutes,
 			d.public_access
 		FROM discussion_user_access dua
