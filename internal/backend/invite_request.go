@@ -278,6 +278,12 @@ func (d *delphisBackend) UpsertInviteLinksByDiscussionID(ctx context.Context, di
 	dla, err := d.db.UpsertInviteLinksByDiscussionID(ctx, tx, input)
 	if err != nil {
 		logrus.WithError(err).Error("failed to upsert discussion invite links")
+		// Rollback on errors
+		if txErr := d.db.RollbackTx(ctx, tx); txErr != nil {
+			logrus.WithError(txErr).Error("failed to rollback tx")
+			return nil, multierr.Append(err, txErr)
+		}
+
 		return nil, err
 	}
 

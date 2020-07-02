@@ -2,10 +2,7 @@ package backend
 
 import (
 	"context"
-	"io"
 	"strings"
-
-	"github.com/nedrocks/delphisbe/internal/datastore"
 
 	"go.uber.org/multierr"
 
@@ -17,7 +14,7 @@ import (
 
 func (d *delphisBackend) GetUpcomingImportedContentByDiscussionID(ctx context.Context, discussionID string) ([]*model.ImportedContent, error) {
 	iter := d.db.GetScheduledImportedContentByDiscussionID(ctx, discussionID)
-	schedContents, err := d.iterToContent(ctx, iter)
+	schedContents, err := d.db.ContentIterCollect(ctx, iter)
 	if err != nil {
 		logrus.WithError(err).Error("failed to get scheduledContent")
 		return nil, err
@@ -25,7 +22,7 @@ func (d *delphisBackend) GetUpcomingImportedContentByDiscussionID(ctx context.Co
 
 	// Do we want the client to pass in the limit?
 	iter = d.db.GetImportedContentByDiscussionID(ctx, discussionID, 10)
-	importedContents, err := d.iterToContent(ctx, iter)
+	importedContents, err := d.db.ContentIterCollect(ctx, iter)
 	if err != nil {
 		logrus.WithError(err).Error("failed to get imported content")
 		return nil, err
@@ -102,24 +99,4 @@ func (d *delphisBackend) PutImportedContentAndTags(ctx context.Context, input mo
 	}
 
 	return importedContent, nil
-}
-
-func (d *delphisBackend) iterToContent(ctx context.Context, iter datastore.ContentIter) ([]*model.ImportedContent, error) {
-	var contents []*model.ImportedContent
-	content := model.ImportedContent{}
-
-	defer iter.Close()
-
-	for iter.Next(&content) {
-		tempContent := content
-
-		contents = append(contents, &tempContent)
-	}
-
-	if err := iter.Close(); err != nil && err != io.EOF {
-		logrus.WithError(err).Error("failed to close iter")
-		return nil, err
-	}
-
-	return contents, nil
 }

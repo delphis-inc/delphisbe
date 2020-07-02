@@ -61,12 +61,12 @@ func Test_GetViewersByIDs(t *testing.T) {
 	})
 }
 
-func Test_GetViewesrByID(t *testing.T) {
+func Test_GetViewerByID(t *testing.T) {
 	ctx := context.Background()
 
 	viewerID := "view1"
 
-	Convey("GetViewersByIDs", t, func() {
+	Convey("GetViewerByID", t, func() {
 		now := time.Now()
 		cacheObj := cache.NewInMemoryCache()
 		authObj := auth.NewDelphisAuth(nil)

@@ -80,6 +80,29 @@ func (_m *Datastore) CommitTx(ctx context.Context, tx *sql.Tx) error {
 	return r0
 }
 
+// ContentIterCollect provides a mock function with given fields: ctx, iter
+func (_m *Datastore) ContentIterCollect(ctx context.Context, iter datastore.ContentIter) ([]*model.ImportedContent, error) {
+	ret := _m.Called(ctx, iter)
+
+	var r0 []*model.ImportedContent
+	if rf, ok := ret.Get(0).(func(context.Context, datastore.ContentIter) []*model.ImportedContent); ok {
+		r0 = rf(ctx, iter)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]*model.ImportedContent)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(context.Context, datastore.ContentIter) error); ok {
+		r1 = rf(ctx, iter)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // CreateModerator provides a mock function with given fields: ctx, moderator
 func (_m *Datastore) CreateModerator(ctx context.Context, moderator model.Moderator) (*model.Moderator, error) {
 	ret := _m.Called(ctx, moderator)
@@ -195,6 +218,29 @@ func (_m *Datastore) DeleteDiscussionUserAccess(ctx context.Context, tx *sql.Tx,
 	var r1 error
 	if rf, ok := ret.Get(1).(func(context.Context, *sql.Tx, string, string) error); ok {
 		r1 = rf(ctx, tx, discussionID, userID)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// DiscussionAutoPostIterCollect provides a mock function with given fields: ctx, iter
+func (_m *Datastore) DiscussionAutoPostIterCollect(ctx context.Context, iter datastore.AutoPostDiscussionIter) ([]*model.DiscussionAutoPost, error) {
+	ret := _m.Called(ctx, iter)
+
+	var r0 []*model.DiscussionAutoPost
+	if rf, ok := ret.Get(0).(func(context.Context, datastore.AutoPostDiscussionIter) []*model.DiscussionAutoPost); ok {
+		r0 = rf(ctx, iter)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]*model.DiscussionAutoPost)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(context.Context, datastore.AutoPostDiscussionIter) error); ok {
+		r1 = rf(ctx, iter)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -1453,6 +1499,29 @@ func (_m *Datastore) RollbackTx(ctx context.Context, tx *sql.Tx) error {
 	}
 
 	return r0
+}
+
+// TagIterCollect provides a mock function with given fields: ctx, iter
+func (_m *Datastore) TagIterCollect(ctx context.Context, iter datastore.TagIter) ([]*model.Tag, error) {
+	ret := _m.Called(ctx, iter)
+
+	var r0 []*model.Tag
+	if rf, ok := ret.Get(0).(func(context.Context, datastore.TagIter) []*model.Tag); ok {
+		r0 = rf(ctx, iter)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]*model.Tag)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(context.Context, datastore.TagIter) error); ok {
+		r1 = rf(ctx, iter)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
 }
 
 // UpdateDiscussionAccessRequestRecord provides a mock function with given fields: ctx, tx, request

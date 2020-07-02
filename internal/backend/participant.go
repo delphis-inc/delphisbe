@@ -39,9 +39,6 @@ func (d *delphisBackend) CreateParticipantForDiscussion(ctx context.Context, dis
 		UserID:        &userID,
 	}
 
-	logrus.Debugf("PariticipantObj: %+v\n", participantObj)
-	logrus.Debugf("UserID: %+v\n", userID)
-
 	if discussionParticipantInput.GradientColor != nil {
 		participantObj.GradientColor = discussionParticipantInput.GradientColor
 	} else {
@@ -105,7 +102,6 @@ func (d *delphisBackend) GetParticipantsByDiscussionIDUserID(ctx context.Context
 
 	participantResponse := &UserDiscussionParticipants{}
 
-	logrus.Debugf("Participants: %+v\n", participants)
 	for i, participant := range participants {
 
 		if participant.IsAnonymous && participantResponse.Anon == nil {
