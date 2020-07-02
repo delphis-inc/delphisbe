@@ -3,9 +3,6 @@ package backend
 import (
 	"context"
 	"fmt"
-	"io"
-
-	"github.com/nedrocks/delphisbe/internal/datastore"
 
 	"github.com/nedrocks/delphisbe/graph/model"
 	"github.com/sirupsen/logrus"
@@ -17,7 +14,7 @@ func (d *delphisBackend) GetDiscussionAccessByUserID(ctx context.Context, userID
 
 	// Get public discussions
 	publicIter := d.db.GetPublicDiscussions(ctx)
-	publicDiscussions, err := d.iterToDiscussions(ctx, publicIter)
+	publicDiscussions, err := d.db.DiscussionIterCollect(ctx, publicIter)
 	if err != nil {
 		logrus.WithError(err).Error("failed to get public discussions")
 		return nil, err
@@ -25,7 +22,7 @@ func (d *delphisBackend) GetDiscussionAccessByUserID(ctx context.Context, userID
 
 	// Get discussions the user has access to by flair
 	flairDiscIter := d.db.GetDiscussionsForFlairTemplateByUserID(ctx, userID)
-	flairDiscussions, err := d.iterToDiscussions(ctx, flairDiscIter)
+	flairDiscussions, err := d.db.DiscussionIterCollect(ctx, flairDiscIter)
 	if err != nil {
 		logrus.WithError(err).Error("failed to get flair discussions")
 		return nil, err
@@ -33,7 +30,7 @@ func (d *delphisBackend) GetDiscussionAccessByUserID(ctx context.Context, userID
 
 	// Get discussions the user was invited to
 	userDiscIter := d.db.GetDiscussionsForUserAccessByUserID(ctx, userID)
-	userDiscussions, err := d.iterToDiscussions(ctx, userDiscIter)
+	userDiscussions, err := d.db.DiscussionIterCollect(ctx, userDiscIter)
 	if err != nil {
 		logrus.WithError(err).Error("failed to get user access discussions")
 		return nil, err
@@ -49,7 +46,7 @@ func (d *delphisBackend) GetDiscussionAccessByUserID(ctx context.Context, userID
 
 func (d *delphisBackend) GetDiscussionFlairTemplateAccessByDiscussionID(ctx context.Context, discussionID string) ([]*model.FlairTemplate, error) {
 	iter := d.db.GetDiscussionFlairTemplatesAccessByDiscussionID(ctx, discussionID)
-	return d.iterToFlairTemplates(ctx, iter)
+	return d.db.FlairTemplatesIterCollect(ctx, iter)
 }
 
 func (d *delphisBackend) PutDiscussionFlairTemplatesAccess(ctx context.Context, userID string, discussionID string, flairTemplateIDs []string) ([]*model.DiscussionFlairTemplateAccess, error) {
@@ -130,50 +127,6 @@ func (d *delphisBackend) DeleteDiscussionFlairTemplatesAccess(ctx context.Contex
 	}
 
 	return deletedTemplates, nil
-}
-
-func (d *delphisBackend) iterToDiscussions(ctx context.Context, iter datastore.DiscussionIter) ([]*model.Discussion, error) {
-	var discussions []*model.Discussion
-	disc := model.Discussion{}
-
-	defer iter.Close()
-
-	for iter.Next(&disc) {
-		tempDisc := disc
-
-		discussions = append(discussions, &tempDisc)
-	}
-
-	if err := iter.Close(); err != nil && err != io.EOF {
-		logrus.WithError(err).Error("failed to close iter")
-		return nil, err
-	}
-
-	return discussions, nil
-}
-
-func (d *delphisBackend) iterToFlairTemplates(ctx context.Context, iter datastore.DFAIter) ([]*model.FlairTemplate, error) {
-	var templates []*model.FlairTemplate
-	dfa := model.DiscussionFlairTemplateAccess{}
-
-	defer iter.Close()
-
-	for iter.Next(&dfa) {
-		template, err := d.db.GetFlairTemplateByID(ctx, dfa.FlairTemplateID)
-		if err != nil {
-			logrus.WithError(err).Error("failed to get flair template by id")
-			return nil, err
-		}
-
-		templates = append(templates, template)
-	}
-
-	if err := iter.Close(); err != nil && err != io.EOF {
-		logrus.WithError(err).Error("failed to close iter")
-		return nil, err
-	}
-
-	return templates, nil
 }
 
 func (d *delphisBackend) validateFlairTemplatesToAdd(ctx context.Context, userID string, templates []string) ([]string, error) {

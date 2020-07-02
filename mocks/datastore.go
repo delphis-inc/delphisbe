@@ -248,6 +248,52 @@ func (_m *Datastore) DiscussionAutoPostIterCollect(ctx context.Context, iter dat
 	return r0, r1
 }
 
+// DiscussionIterCollect provides a mock function with given fields: ctx, iter
+func (_m *Datastore) DiscussionIterCollect(ctx context.Context, iter datastore.DiscussionIter) ([]*model.Discussion, error) {
+	ret := _m.Called(ctx, iter)
+
+	var r0 []*model.Discussion
+	if rf, ok := ret.Get(0).(func(context.Context, datastore.DiscussionIter) []*model.Discussion); ok {
+		r0 = rf(ctx, iter)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]*model.Discussion)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(context.Context, datastore.DiscussionIter) error); ok {
+		r1 = rf(ctx, iter)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// FlairTemplatesIterCollect provides a mock function with given fields: ctx, iter
+func (_m *Datastore) FlairTemplatesIterCollect(ctx context.Context, iter datastore.DFAIter) ([]*model.FlairTemplate, error) {
+	ret := _m.Called(ctx, iter)
+
+	var r0 []*model.FlairTemplate
+	if rf, ok := ret.Get(0).(func(context.Context, datastore.DFAIter) []*model.FlairTemplate); ok {
+		r0 = rf(ctx, iter)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]*model.FlairTemplate)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(context.Context, datastore.DFAIter) error); ok {
+		r1 = rf(ctx, iter)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // GetDiscussionAccessRequestsByDiscussionID provides a mock function with given fields: ctx, discussionID
 func (_m *Datastore) GetDiscussionAccessRequestsByDiscussionID(ctx context.Context, discussionID string) datastore.DiscussionAccessRequestIter {
 	ret := _m.Called(ctx, discussionID)

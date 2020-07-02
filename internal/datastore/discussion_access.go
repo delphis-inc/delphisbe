@@ -3,6 +3,7 @@ package datastore
 import (
 	"context"
 	"database/sql"
+	"io"
 
 	"github.com/sirupsen/logrus"
 
@@ -301,4 +302,48 @@ func (iter *dfaIter) Close() error {
 	}
 
 	return nil
+}
+
+func (d *delphisDB) DiscussionIterCollect(ctx context.Context, iter DiscussionIter) ([]*model.Discussion, error) {
+	var discussions []*model.Discussion
+	disc := model.Discussion{}
+
+	defer iter.Close()
+
+	for iter.Next(&disc) {
+		tempDisc := disc
+
+		discussions = append(discussions, &tempDisc)
+	}
+
+	if err := iter.Close(); err != nil && err != io.EOF {
+		logrus.WithError(err).Error("failed to close iter")
+		return nil, err
+	}
+
+	return discussions, nil
+}
+
+func (d *delphisDB) FlairTemplatesIterCollect(ctx context.Context, iter DFAIter) ([]*model.FlairTemplate, error) {
+	var templates []*model.FlairTemplate
+	dfa := model.DiscussionFlairTemplateAccess{}
+
+	defer iter.Close()
+
+	for iter.Next(&dfa) {
+		template, err := d.GetFlairTemplateByID(ctx, dfa.FlairTemplateID)
+		if err != nil {
+			logrus.WithError(err).Error("failed to get flair template by id")
+			return nil, err
+		}
+
+		templates = append(templates, template)
+	}
+
+	if err := iter.Close(); err != nil && err != io.EOF {
+		logrus.WithError(err).Error("failed to close iter")
+		return nil, err
+	}
+
+	return templates, nil
 }

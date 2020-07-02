@@ -88,12 +88,14 @@ func TestDelphisBackend_AutoPostContent(t *testing.T) {
 			})
 
 			Convey("when GetImportedContentByDiscussionID errors outs", func() {
+				scheduleIter := mockImportedContentIter{}
+
 				expectedError := fmt.Errorf("Some Error")
 				mockDB.On("GetDiscussionsAutoPost", ctx).Return(&mockDiscAutoPostIter{})
 				mockDB.On("DiscussionAutoPostIterCollect", ctx, mock.Anything).Return([]*model.DiscussionAutoPost{&apObj}, nil)
 				mockDB.On("GetLastPostByDiscussionID", ctx, discussionID, limit).Return(nil, nil)
-				mockDB.On("GetScheduledImportedContentByDiscussionID", ctx, discussionID).Return(&mockImportedContentIter{})
-				mockDB.On("ContentIterCollect", ctx, mock.Anything).Return(nil, nil)
+				mockDB.On("GetScheduledImportedContentByDiscussionID", ctx, discussionID).Return(&scheduleIter)
+				mockDB.On("ContentIterCollect", ctx, scheduleIter).Return(nil, nil)
 				mockDB.On("GetImportedContentByDiscussionID", ctx, discussionID, limit).Return(&mockImportedContentIter{})
 				mockDB.On("ContentIterCollect", ctx, mock.Anything).Return(nil, expectedError)
 
