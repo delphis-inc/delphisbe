@@ -68,7 +68,7 @@ func TestDelphisBackend_CreateNewDiscussion(t *testing.T) {
 			timeProvider:    &util.FrozenTime{NowTime: now},
 		}
 
-		Convey("when create moderator errors outs", func() {
+		Convey("when create moderator errors out", func() {
 			expectedError := fmt.Errorf("Some Error")
 			mockDB.On("CreateModerator", ctx, mock.Anything).Return(nil, expectedError)
 
@@ -78,7 +78,7 @@ func TestDelphisBackend_CreateNewDiscussion(t *testing.T) {
 			So(resp, ShouldBeNil)
 		})
 
-		Convey("when create discussion errors outs", func() {
+		Convey("when create discussion errors out", func() {
 			expectedError := fmt.Errorf("Some Error")
 			mockDB.On("CreateModerator", ctx, mock.Anything).Return(&modObj, nil)
 			mockDB.On("UpsertDiscussion", ctx, mock.Anything).Return(nil, expectedError)
@@ -89,7 +89,7 @@ func TestDelphisBackend_CreateNewDiscussion(t *testing.T) {
 			So(resp, ShouldBeNil)
 		})
 
-		Convey("when create participant errors outs", func() {
+		Convey("when create participant errors out", func() {
 			expectedError := fmt.Errorf("Some Error")
 
 			mockDB.On("CreateModerator", ctx, mock.Anything).Return(&modObj, nil)
@@ -104,7 +104,7 @@ func TestDelphisBackend_CreateNewDiscussion(t *testing.T) {
 			So(resp, ShouldBeNil)
 		})
 
-		Convey("when upsert links errors outs", func() {
+		Convey("when upsert links errors out", func() {
 			expectedError := fmt.Errorf("Some Error")
 
 			mockDB.On("CreateModerator", ctx, mock.Anything).Return(&modObj, nil)
@@ -196,7 +196,7 @@ func TestDelphisBackend_UpdateDiscussion(t *testing.T) {
 			timeProvider:    &util.FrozenTime{NowTime: now},
 		}
 
-		Convey("when get discussion by id errors outs", func() {
+		Convey("when get discussion by id errors out", func() {
 			expectedError := fmt.Errorf("Some Error")
 			mockDB.On("GetDiscussionByID", ctx, discussionID).Return(nil, expectedError)
 
@@ -250,7 +250,7 @@ func TestDelphisBackend_GetDiscussionByID(t *testing.T) {
 			timeProvider:    &util.FrozenTime{NowTime: now},
 		}
 
-		Convey("when the query errors outs", func() {
+		Convey("when the query errors out", func() {
 			expectedError := fmt.Errorf("Some Error")
 			mockDB.On("GetDiscussionByID", ctx, discussionID).Return(nil, expectedError)
 
@@ -291,7 +291,7 @@ func TestDelphisBackend_GetDiscussionsByIDs(t *testing.T) {
 			timeProvider:    &util.FrozenTime{NowTime: now},
 		}
 
-		Convey("when the query errors outs", func() {
+		Convey("when the query errors out", func() {
 			expectedError := fmt.Errorf("Some Error")
 			mockDB.On("GetDiscussionsByIDs", ctx, []string{discussionID}).Return(nil, expectedError)
 
@@ -337,7 +337,7 @@ func TestDelphisBackend_GetDiscussionByModeratorID(t *testing.T) {
 			timeProvider:    &util.FrozenTime{NowTime: now},
 		}
 
-		Convey("when the query errors outs", func() {
+		Convey("when the query errors out", func() {
 			expectedError := fmt.Errorf("Some Error")
 			mockDB.On("GetDiscussionByModeratorID", ctx, modID).Return(nil, expectedError)
 
@@ -377,7 +377,7 @@ func TestDelphisBackend_GetDiscussionsForAutoPost(t *testing.T) {
 			timeProvider:    &util.FrozenTime{NowTime: now},
 		}
 
-		Convey("when the query errors outs", func() {
+		Convey("when the query errors out", func() {
 			expectedError := fmt.Errorf("Some Error")
 			mockDB.On("GetDiscussionsAutoPost", ctx).Return(&mockDiscAutoPostIter{})
 			mockDB.On("DiscussionAutoPostIterCollect", ctx, mock.Anything).Return(nil, expectedError)
@@ -419,7 +419,7 @@ func TestDelphisBackend_ListDiscussions(t *testing.T) {
 			timeProvider:    &util.FrozenTime{NowTime: now},
 		}
 
-		Convey("when the query errors outs", func() {
+		Convey("when the query errors out", func() {
 			expectedError := fmt.Errorf("Some Error")
 			mockDB.On("ListDiscussions", ctx).Return(nil, expectedError)
 
@@ -461,7 +461,7 @@ func TestDelphisBackend_GetDiscussionTags(t *testing.T) {
 			timeProvider:    &util.FrozenTime{NowTime: now},
 		}
 
-		Convey("when the query errors outs", func() {
+		Convey("when the query errors out", func() {
 			expectedError := fmt.Errorf("Some Error")
 			mockDB.On("GetDiscussionTags", ctx, discussionID).Return(&mockTagIter{})
 			mockDB.On("TagIterCollect", ctx, mock.Anything).Return(nil, expectedError)
@@ -515,7 +515,7 @@ func TestDelphisBackend_PutDiscussionTags(t *testing.T) {
 			So(resp, ShouldBeNil)
 		})
 
-		Convey("when BeginTx errors outs", func() {
+		Convey("when BeginTx errors out", func() {
 			expectedError := fmt.Errorf("Some Error")
 			mockDB.On("BeginTx", ctx).Return(nil, expectedError)
 
@@ -525,7 +525,7 @@ func TestDelphisBackend_PutDiscussionTags(t *testing.T) {
 			So(resp, ShouldBeNil)
 		})
 
-		Convey("when PutDiscussionTags errors outs", func() {
+		Convey("when PutDiscussionTags errors out", func() {
 			expectedError := fmt.Errorf("Some Error")
 			mockDB.On("BeginTx", ctx).Return(&tx, nil)
 			mockDB.On("PutDiscussionTags", ctx, mock.Anything, tagObj).Return(nil, expectedError)
@@ -537,7 +537,7 @@ func TestDelphisBackend_PutDiscussionTags(t *testing.T) {
 			So(resp, ShouldBeNil)
 		})
 
-		Convey("when PutDiscussionTags and rollback errors outs", func() {
+		Convey("when PutDiscussionTags and rollback errors out", func() {
 			expectedError := fmt.Errorf("Some Error")
 			mockDB.On("BeginTx", ctx).Return(&tx, nil)
 			mockDB.On("PutDiscussionTags", ctx, mock.Anything, tagObj).Return(nil, expectedError)
@@ -549,7 +549,7 @@ func TestDelphisBackend_PutDiscussionTags(t *testing.T) {
 			So(resp, ShouldBeNil)
 		})
 
-		Convey("when PutDiscussionTags succeeds and CommitTx errors outs", func() {
+		Convey("when PutDiscussionTags succeeds and CommitTx errors out", func() {
 			expectedError := fmt.Errorf("Some Error")
 			mockDB.On("BeginTx", ctx).Return(&tx, nil)
 			mockDB.On("PutDiscussionTags", ctx, mock.Anything, tagObj).Return(&tagObj, nil)
@@ -604,7 +604,7 @@ func TestDelphisBackend_DeleteDiscussionTags(t *testing.T) {
 			So(resp, ShouldBeNil)
 		})
 
-		Convey("when BeginTx errors outs", func() {
+		Convey("when BeginTx errors out", func() {
 			expectedError := fmt.Errorf("Some Error")
 			mockDB.On("BeginTx", ctx).Return(nil, expectedError)
 
@@ -614,7 +614,7 @@ func TestDelphisBackend_DeleteDiscussionTags(t *testing.T) {
 			So(resp, ShouldBeNil)
 		})
 
-		Convey("when PutDiscussionTags errors outs", func() {
+		Convey("when PutDiscussionTags errors out", func() {
 			expectedError := fmt.Errorf("Some Error")
 			mockDB.On("BeginTx", ctx).Return(&tx, nil)
 			mockDB.On("DeleteDiscussionTags", ctx, mock.Anything, tagObj).Return(nil, expectedError)
@@ -626,7 +626,7 @@ func TestDelphisBackend_DeleteDiscussionTags(t *testing.T) {
 			So(resp, ShouldBeNil)
 		})
 
-		Convey("when PutDiscussionTags and rollback errors outs", func() {
+		Convey("when PutDiscussionTags and rollback errors out", func() {
 			expectedError := fmt.Errorf("Some Error")
 			mockDB.On("BeginTx", ctx).Return(&tx, nil)
 			mockDB.On("DeleteDiscussionTags", ctx, mock.Anything, tagObj).Return(nil, expectedError)
@@ -638,7 +638,7 @@ func TestDelphisBackend_DeleteDiscussionTags(t *testing.T) {
 			So(resp, ShouldBeNil)
 		})
 
-		Convey("when PutDiscussionTags succeeds and CommitTx errors outs", func() {
+		Convey("when PutDiscussionTags succeeds and CommitTx errors out", func() {
 			expectedError := fmt.Errorf("Some Error")
 			mockDB.On("BeginTx", ctx).Return(&tx, nil)
 			mockDB.On("DeleteDiscussionTags", ctx, mock.Anything, tagObj).Return(&tagObj, nil)

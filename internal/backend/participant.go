@@ -53,7 +53,7 @@ func (d *delphisBackend) CreateParticipantForDiscussion(ctx context.Context, dis
 	if discussionParticipantInput.FlairID != nil {
 		if userObj.Flairs == nil {
 			userObj.Flairs, err = d.GetFlairsByUserID(ctx, userID)
-			if err == nil {
+			if err != nil {
 				return nil, err
 			}
 		}
@@ -116,7 +116,6 @@ func (d *delphisBackend) GetParticipantsByDiscussionIDUserID(ctx context.Context
 
 func (d *delphisBackend) GetParticipantByID(ctx context.Context, id string) (*model.Participant, error) {
 	participant, err := d.db.GetParticipantByID(ctx, id)
-
 	if err != nil {
 		return nil, err
 	}

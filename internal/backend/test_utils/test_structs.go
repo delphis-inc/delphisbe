@@ -23,6 +23,7 @@ const ViewerID = "viewerID"
 const FlairID = "flairID"
 const FlairTemplateID = "templateID"
 const PostID = "postID"
+const PostContentID = "postContentID"
 const ModeratorID = "modID"
 const Tag = "tag"
 const Source = "source"
@@ -83,6 +84,40 @@ func TestDiscussion() model.Discussion {
 	}
 }
 
+func TestPost() model.Post {
+	discussionID := DiscussionID
+	participantID := ParticipantID
+	postContentID := PostContentID
+
+	return model.Post{
+		ID:            PostID,
+		PostType:      model.PostTypeStandard,
+		DiscussionID:  &discussionID,
+		ParticipantID: &participantID,
+		PostContentID: &postContentID,
+	}
+}
+
+func TestPostContent() model.PostContent {
+	return model.PostContent{
+		ID:      PostContentID,
+		Content: "hello world",
+	}
+}
+
+func TestPostContentInput() model.PostContentInput {
+	return model.PostContentInput{
+		PostText: "hello world",
+		PostType: model.PostTypeStandard,
+	}
+}
+
+func TestContentQueueRecord() model.ContentQueueRecord {
+	return model.ContentQueueRecord{
+		DiscussionID:      DiscussionID,
+		ImportedContentID: ContentID,
+	}
+}
 func TestModerator() model.Moderator {
 	profileID := ProfileID
 
@@ -250,9 +285,37 @@ func TestAddDiscussionParticipantInput() model.AddDiscussionParticipantInput {
 	}
 }
 
+func TestUpdateParticipantInput() model.UpdateParticipantInput {
+	gradientColor := GradientColor
+	flairID := FlairID
+	hasJoined := true
+	isAnonymous := false
+
+	return model.UpdateParticipantInput{
+		GradientColor:   &gradientColor,
+		FlairID:         &flairID,
+		HasJoined:       &hasJoined,
+		IsAnonymous:     &isAnonymous,
+		IsUnsetGradient: nil,
+		IsUnsetFlairID:  nil,
+	}
+}
+
 func TestDiscussionUserAccess() model.DiscussionUserAccess {
 	return model.DiscussionUserAccess{
 		DiscussionID: DiscussionID,
 		UserID:       UserID,
+	}
+}
+
+func TestPostsConnection(cursor string) model.PostsConnection {
+	return model.PostsConnection{
+		Edges: []*model.PostsEdge{
+			{
+				Cursor: cursor,
+				Node:   &model.Post{},
+			},
+		},
+		PageInfo: model.PageInfo{},
 	}
 }

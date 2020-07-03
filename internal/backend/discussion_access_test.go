@@ -51,7 +51,7 @@ func TestDelphisBackend_GetDiscussionAccessByUserID(t *testing.T) {
 			timeProvider:    &util.FrozenTime{NowTime: now},
 		}
 
-		Convey("when GetPublicDiscussions errors outs", func() {
+		Convey("when GetPublicDiscussions errors out", func() {
 			expectedError := fmt.Errorf("Some Error")
 			mockDB.On("GetPublicDiscussions", ctx).Return(&mockDiscussionIter{})
 			mockDB.On("DiscussionIterCollect", ctx, mock.Anything).Return(nil, expectedError)
@@ -62,7 +62,7 @@ func TestDelphisBackend_GetDiscussionAccessByUserID(t *testing.T) {
 			So(resp, ShouldBeNil)
 		})
 
-		Convey("when GetDiscussionsForFlairTemplateByUserID errors outs", func() {
+		Convey("when GetDiscussionsForFlairTemplateByUserID errors out", func() {
 			publicIter := mockDiscussionIter{}
 
 			expectedError := fmt.Errorf("Some Error")
@@ -77,7 +77,7 @@ func TestDelphisBackend_GetDiscussionAccessByUserID(t *testing.T) {
 			So(resp, ShouldBeNil)
 		})
 
-		Convey("when GetDiscussionsForUserAccessByUserID errors outs", func() {
+		Convey("when GetDiscussionsForUserAccessByUserID errors out", func() {
 			publicIter := mockDiscussionIter{}
 			flairIter := mockDiscussionIter{}
 
@@ -132,7 +132,7 @@ func TestDelphisBackend_GetDiscussionFlairTemplateAccessByDiscussionID(t *testin
 			timeProvider:    &util.FrozenTime{NowTime: now},
 		}
 
-		Convey("when the query errors outs", func() {
+		Convey("when the query errors out", func() {
 			expectedError := fmt.Errorf("Some Error")
 			mockDB.On("GetDiscussionFlairTemplatesAccessByDiscussionID", ctx, discussionID).Return(&mockDFAIter{})
 			mockDB.On("FlairTemplatesIterCollect", ctx, mock.Anything).Return(nil, expectedError)

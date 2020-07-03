@@ -51,7 +51,7 @@ func TestDelphisBackend_AutoPostContent(t *testing.T) {
 			timeProvider:    &util.FrozenTime{NowTime: now},
 		}
 
-		Convey("when GetDiscussionsForAutoPost errors outs", func() {
+		Convey("when GetDiscussionsForAutoPost errors out", func() {
 			expectedError := fmt.Errorf("Some Error")
 			mockDB.On("GetDiscussionsAutoPost", ctx).Return(&mockDiscAutoPostIter{})
 			mockDB.On("DiscussionAutoPostIterCollect", ctx, mock.Anything).Return(nil, expectedError)
@@ -59,7 +59,7 @@ func TestDelphisBackend_AutoPostContent(t *testing.T) {
 			backendObj.AutoPostContent()
 		})
 
-		Convey("when checkIdleTime errors outs", func() {
+		Convey("when checkIdleTime errors out", func() {
 			expectedError := fmt.Errorf("Some Error")
 			mockDB.On("GetDiscussionsAutoPost", ctx).Return(&mockDiscAutoPostIter{})
 			mockDB.On("DiscussionAutoPostIterCollect", ctx, mock.Anything).Return([]*model.DiscussionAutoPost{&apObj}, nil)
@@ -68,8 +68,8 @@ func TestDelphisBackend_AutoPostContent(t *testing.T) {
 			backendObj.AutoPostContent()
 		})
 
-		Convey("when postNextContent errors outs", func() {
-			Convey("when GetScheduledImportedContentByDiscussionID errors outs", func() {
+		Convey("when postNextContent errors out", func() {
+			Convey("when GetScheduledImportedContentByDiscussionID errors out", func() {
 				expectedError := fmt.Errorf("Some Error")
 				mockDB.On("GetDiscussionsAutoPost", ctx).Return(&mockDiscAutoPostIter{})
 				mockDB.On("DiscussionAutoPostIterCollect", ctx, mock.Anything).Return([]*model.DiscussionAutoPost{&apObj}, nil)
@@ -80,7 +80,7 @@ func TestDelphisBackend_AutoPostContent(t *testing.T) {
 				backendObj.AutoPostContent()
 			})
 
-			Convey("when GetImportedContentByDiscussionID errors outs", func() {
+			Convey("when GetImportedContentByDiscussionID errors out", func() {
 				scheduleIter := mockImportedContentIter{}
 
 				expectedError := fmt.Errorf("Some Error")
@@ -107,7 +107,7 @@ func TestDelphisBackend_AutoPostContent(t *testing.T) {
 				backendObj.AutoPostContent()
 			})
 
-			Convey("when GetParticipantsByDiscussionIDUserID errors outs", func() {
+			Convey("when GetParticipantsByDiscussionIDUserID errors out", func() {
 				expectedError := fmt.Errorf("Some Error")
 				mockDB.On("GetDiscussionsAutoPost", ctx).Return(&mockDiscAutoPostIter{})
 				mockDB.On("DiscussionAutoPostIterCollect", ctx, mock.Anything).Return([]*model.DiscussionAutoPost{&apObj}, nil)

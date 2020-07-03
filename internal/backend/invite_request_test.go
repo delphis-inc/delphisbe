@@ -631,28 +631,6 @@ func TestDelphisBackend_RespondToInvitation(t *testing.T) {
 			So(resp, ShouldBeNil)
 		})
 
-		Convey("when CommitTx errors out", func() {
-			expectedError := fmt.Errorf("Some Error")
-			mockDB.On("BeginTx", ctx).Return(&tx, nil)
-			mockDB.On("UpdateDiscussionInviteRecord", ctx, mock.Anything, mock.Anything).Return(&inviteObj, nil)
-			mockDB.On("UpsertDiscussionUserAccess", ctx, mock.Anything, inviteObj.DiscussionID, inviteObj.UserID).Return(&duaObj, nil)
-
-			// Create participant functions
-			mockDB.On("GetUserByID", ctx, mock.Anything).Return(&userObj, nil)
-			mockDB.On("GetTotalParticipantCountByDiscussionID", ctx, mock.Anything).Return(10)
-			mockDB.On("GetFlairsByUserID", ctx, mock.Anything).Return([]*model.Flair{&flairObj}, nil)
-			mockDB.On("UpsertViewer", ctx, mock.Anything).Return(&viewerObj, nil)
-			mockDB.On("UpsertParticipant", ctx, mock.Anything).Return(&parObj, nil)
-			mockDB.On("GetParticipantsByDiscussionIDUserID", ctx, mock.Anything, mock.Anything).Return([]model.Participant{parObj}, nil)
-
-			mockDB.On("CommitTx", ctx, mock.Anything).Return(expectedError)
-
-			resp, err := backendObj.RespondToInvitation(ctx, inviteID, response, inputObj)
-
-			So(err, ShouldEqual, expectedError)
-			So(resp, ShouldBeNil)
-		})
-
 		Convey("when response succeeds", func() {
 			mockDB.On("BeginTx", ctx).Return(&tx, nil)
 			mockDB.On("UpdateDiscussionInviteRecord", ctx, mock.Anything, mock.Anything).Return(&inviteObj, nil)

@@ -360,3 +360,23 @@ func (d *delphisDB) ContentIterCollect(ctx context.Context, iter ContentIter) ([
 
 	return contents, nil
 }
+
+func (d *delphisDB) TagIterCollect(ctx context.Context, iter TagIter) ([]*model.Tag, error) {
+	var tags []*model.Tag
+	tag := model.Tag{}
+
+	defer iter.Close()
+
+	for iter.Next(&tag) {
+		tempTag := tag
+
+		tags = append(tags, &tempTag)
+	}
+
+	if err := iter.Close(); err != nil && err != io.EOF {
+		logrus.WithError(err).Error("failed to close iter")
+		return nil, err
+	}
+
+	return tags, nil
+}

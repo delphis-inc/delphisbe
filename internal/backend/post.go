@@ -105,7 +105,6 @@ func (d *delphisBackend) CreatePost(ctx context.Context, discussionID string, pa
 		}
 
 		// If we reach this point then the transaction is succesfully committed and we should not retry
-		logrus.Debugf("Post: %+v\n", postObj.PostContent)
 		discussion, err := d.db.GetDiscussionByID(ctx, discussionID)
 		if err != nil {
 			logrus.WithError(err).Debugf("Skipping notification to subscribers because of an error")
@@ -303,7 +302,6 @@ func (d *delphisBackend) GetPostsConnectionByDiscussionID(ctx context.Context, d
 	}
 
 	connection, err := d.db.GetPostsConnectionByDiscussionID(ctx, discussionID, cursor, limit)
-
 	if err != nil {
 		return nil, err
 	}
@@ -356,6 +354,7 @@ func (d *delphisBackend) GetMentionedEntities(ctx context.Context, entityIDs []s
 		entity, err := util.ReturnParsedEntityID(entityID)
 		if err != nil {
 			logrus.WithError(err).Error("failed to parse entityID")
+			continue
 		}
 		if entity.Type == model.ParticipantPrefix {
 			participantIDs = append(participantIDs, entity.ID)
@@ -367,6 +366,11 @@ func (d *delphisBackend) GetMentionedEntities(ctx context.Context, entityIDs []s
 			continue
 		}
 	}
+
+	if len(participantIDs) == 0 && len(discussionIDs) == 0 {
+		return nil, nil
+	}
+
 	participants, err := d.GetParticipantsByIDs(ctx, participantIDs)
 	if err != nil {
 		logrus.WithError(err).Error("failed to GetParticipantsWithIDs")

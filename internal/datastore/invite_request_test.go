@@ -1220,3 +1220,142 @@ func TestDiscussionAccessRequestIter_Close(t *testing.T) {
 		})
 	})
 }
+
+func TestDelphisDB_DiscussionInviteIterCollect(t *testing.T) {
+	ctx := context.Background()
+	now := time.Now()
+	inviteID := "invite1"
+	inviteObj := model.DiscussionInvite{
+		ID:                    inviteID,
+		UserID:                "user1",
+		DiscussionID:          "discussion1",
+		InvitingParticipantID: "inviting1",
+		CreatedAt:             now.Format(time.RFC3339),
+		UpdatedAt:             now.Format(time.RFC3339),
+		IsDeleted:             false,
+		Status:                model.InviteRequestStatusPending,
+		InviteType:            model.InviteTypeInvite,
+	}
+
+	Convey("DiscussionInviteIterCollect", t, func() {
+		db, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
+		assert.Nil(t, err, "Failed setting up sqlmock db")
+
+		gormDB, _ := gorm.Open("postgres", db)
+		mockDatastore := &delphisDB{
+			dbConfig:  config.TablesConfig{},
+			sql:       gormDB,
+			pg:        db,
+			prepStmts: &dbPrepStmts{},
+			dynamo:    nil,
+			encoder:   nil,
+		}
+		defer db.Close()
+
+		Convey("when the iterator fails to close", func() {
+			iter := &discussionInviteIter{
+				err: fmt.Errorf("error"),
+			}
+
+			resp, err := mockDatastore.DiscussionInviteIterCollect(ctx, iter)
+
+			So(err, ShouldNotBeNil)
+			So(resp, ShouldBeNil)
+			So(mock.ExpectationsWereMet(), ShouldBeNil)
+		})
+
+		Convey("when the iterator has results and returns slice of DiscussionInvites", func() {
+			rs := sqlmock.NewRows([]string{"id", "user_id", "discussion_id", "invite_from_participant_id", "created_at",
+				"updated_at", "status", "invite_type"}).
+				AddRow(inviteObj.ID, inviteObj.UserID, inviteObj.DiscussionID, inviteObj.InvitingParticipantID, inviteObj.CreatedAt,
+					inviteObj.UpdatedAt, inviteObj.Status, inviteObj.InviteType).
+				AddRow(inviteObj.ID, inviteObj.UserID, inviteObj.DiscussionID, inviteObj.InvitingParticipantID, inviteObj.CreatedAt,
+					inviteObj.UpdatedAt, inviteObj.Status, inviteObj.InviteType)
+
+			// Convert mocked rows to sql.Rows
+			mock.ExpectQuery("SELECT").WillReturnRows(rs)
+			rs1, _ := db.Query("SELECT")
+
+			iter := &discussionInviteIter{
+				ctx:  ctx,
+				rows: rs1,
+			}
+
+			resp, err := mockDatastore.DiscussionInviteIterCollect(ctx, iter)
+
+			So(err, ShouldBeNil)
+			So(resp, ShouldNotBeNil)
+			So(resp, ShouldResemble, []*model.DiscussionInvite{&inviteObj, &inviteObj})
+			So(mock.ExpectationsWereMet(), ShouldBeNil)
+		})
+
+	})
+}
+
+func TestDelphisDB_AccessRequestIterCollect(t *testing.T) {
+	ctx := context.Background()
+	now := time.Now()
+	requestID := "request1"
+	requestObj := model.DiscussionAccessRequest{
+		ID:           requestID,
+		UserID:       "user1",
+		DiscussionID: "discussion1",
+		CreatedAt:    now.Format(time.RFC3339),
+		UpdatedAt:    now.Format(time.RFC3339),
+		IsDeleted:    false,
+		Status:       model.InviteRequestStatusPending,
+	}
+
+	Convey("AccessRequestIterCollect", t, func() {
+		db, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
+		assert.Nil(t, err, "Failed setting up sqlmock db")
+
+		gormDB, _ := gorm.Open("postgres", db)
+		mockDatastore := &delphisDB{
+			dbConfig:  config.TablesConfig{},
+			sql:       gormDB,
+			pg:        db,
+			prepStmts: &dbPrepStmts{},
+			dynamo:    nil,
+			encoder:   nil,
+		}
+		defer db.Close()
+
+		Convey("when the iterator fails to close", func() {
+			iter := &discussionAccessRequestIter{
+				err: fmt.Errorf("error"),
+			}
+
+			resp, err := mockDatastore.AccessRequestIterCollect(ctx, iter)
+
+			So(err, ShouldNotBeNil)
+			So(resp, ShouldBeNil)
+			So(mock.ExpectationsWereMet(), ShouldBeNil)
+		})
+
+		Convey("when the iterator has results and returns slice of DiscussionAccessRequests", func() {
+			rs := sqlmock.NewRows([]string{"id", "user_id", "discussion_id", "created_at",
+				"updated_at", "status"}).
+				AddRow(requestObj.ID, requestObj.UserID, requestObj.DiscussionID, requestObj.CreatedAt,
+					requestObj.UpdatedAt, requestObj.Status).
+				AddRow(requestObj.ID, requestObj.UserID, requestObj.DiscussionID, requestObj.CreatedAt,
+					requestObj.UpdatedAt, requestObj.Status)
+
+			// Convert mocked rows to sql.Rows
+			mock.ExpectQuery("SELECT").WillReturnRows(rs)
+			rs1, _ := db.Query("SELECT")
+
+			iter := &discussionAccessRequestIter{
+				ctx:  ctx,
+				rows: rs1,
+			}
+
+			resp, err := mockDatastore.AccessRequestIterCollect(ctx, iter)
+
+			So(err, ShouldBeNil)
+			So(resp, ShouldNotBeNil)
+			So(resp, ShouldResemble, []*model.DiscussionAccessRequest{&requestObj, &requestObj})
+			So(mock.ExpectationsWereMet(), ShouldBeNil)
+		})
+	})
+}

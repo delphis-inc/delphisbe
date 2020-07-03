@@ -48,7 +48,7 @@ func TestDelphisBackend_GetUpcomingImportedContentByDiscussionID(t *testing.T) {
 			timeProvider:    &util.FrozenTime{NowTime: now},
 		}
 
-		Convey("when GetScheduledImportedContentByDiscussionID errors outs", func() {
+		Convey("when GetScheduledImportedContentByDiscussionID errors out", func() {
 			expectedError := fmt.Errorf("Some Error")
 			mockDB.On("GetScheduledImportedContentByDiscussionID", ctx, discussionID).Return(&mockImportedContentIter{})
 			mockDB.On("ContentIterCollect", ctx, mock.Anything).Return(nil, expectedError)
@@ -94,7 +94,7 @@ func TestDelphisBackend_GetImportedContentByID(t *testing.T) {
 			timeProvider:    &util.FrozenTime{NowTime: now},
 		}
 
-		Convey("when query errors outs", func() {
+		Convey("when query errors out", func() {
 			expectedError := fmt.Errorf("Some Error")
 			mockDB.On("GetImportedContentByID", ctx, icID).Return(nil, expectedError)
 
@@ -136,7 +136,7 @@ func TestDelphisBackend_GetMatchingsTags(t *testing.T) {
 			timeProvider:    &util.FrozenTime{NowTime: now},
 		}
 
-		Convey("when query errors outs", func() {
+		Convey("when query errors out", func() {
 			expectedError := fmt.Errorf("Some Error")
 			mockDB.On("GetMatchingTags", ctx, discussionID, icID).Return(nil, expectedError)
 
@@ -185,7 +185,7 @@ func TestDelphisBackend_PutImportedContentAndTags(t *testing.T) {
 			timeProvider:    &util.FrozenTime{NowTime: now},
 		}
 
-		Convey("when BeginTx errors outs", func() {
+		Convey("when BeginTx errors out", func() {
 			expectedError := fmt.Errorf("Some Error")
 			mockDB.On("BeginTx", ctx).Return(nil, expectedError)
 
@@ -195,7 +195,7 @@ func TestDelphisBackend_PutImportedContentAndTags(t *testing.T) {
 			So(resp, ShouldBeNil)
 		})
 
-		Convey("when PutImportedContent errors outs and RollbackTx fails", func() {
+		Convey("when PutImportedContent errors out and RollbackTx fails", func() {
 			expectedError := fmt.Errorf("Some Error")
 			mockDB.On("BeginTx", ctx).Return(&tx, nil)
 			mockDB.On("PutImportedContent", ctx, mock.Anything, mock.Anything).Return(nil, expectedError)

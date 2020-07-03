@@ -41,7 +41,7 @@ func TestDelphisBackend_CreateFlair(t *testing.T) {
 			timeProvider:    &util.FrozenTime{NowTime: now},
 		}
 
-		Convey("when UpsertFlair errors outs", func() {
+		Convey("when UpsertFlair errors out", func() {
 			expectedError := fmt.Errorf("Some Error")
 			mockDB.On("UpsertFlair", ctx, mock.Anything).Return(nil, expectedError)
 
@@ -83,7 +83,7 @@ func TestDelphisBackend_GetFlairByID(t *testing.T) {
 			timeProvider:    &util.FrozenTime{NowTime: now},
 		}
 
-		Convey("when the query errors outs", func() {
+		Convey("when the query errors out", func() {
 			expectedError := fmt.Errorf("Some Error")
 			mockDB.On("GetFlairByID", ctx, flairID).Return(nil, expectedError)
 
@@ -125,7 +125,7 @@ func TestDelphisBackend_GetFlairsByUserID(t *testing.T) {
 			timeProvider:    &util.FrozenTime{NowTime: now},
 		}
 
-		Convey("when the query errors outs", func() {
+		Convey("when the query errors out", func() {
 			expectedError := fmt.Errorf("Some Error")
 			mockDB.On("GetFlairsByUserID", ctx, userID).Return(nil, expectedError)
 
@@ -165,7 +165,7 @@ func TestDelphisBackend_RemoveFlair(t *testing.T) {
 			timeProvider:    &util.FrozenTime{NowTime: now},
 		}
 
-		Convey("when the query errors outs", func() {
+		Convey("when the query errors out", func() {
 			expectedError := fmt.Errorf("Some Error")
 			mockDB.On("RemoveFlair", ctx, flairObj).Return(nil, expectedError)
 

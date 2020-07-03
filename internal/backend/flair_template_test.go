@@ -40,7 +40,7 @@ func TestDelphisBackend_ListFlairTemplates(t *testing.T) {
 			timeProvider:    &util.FrozenTime{NowTime: now},
 		}
 
-		Convey("when the query errors outs", func() {
+		Convey("when the query errors out", func() {
 			expectedError := fmt.Errorf("Some Error")
 			mockDB.On("ListFlairTemplates", ctx, &query).Return(nil, expectedError)
 
@@ -134,7 +134,7 @@ func TestDelphisBackend_GetFlairTemplateByID(t *testing.T) {
 			timeProvider:    &util.FrozenTime{NowTime: now},
 		}
 
-		Convey("when the query errors outs", func() {
+		Convey("when the query errors out", func() {
 			expectedError := fmt.Errorf("Some Error")
 			mockDB.On("GetFlairTemplateByID", ctx, templateID).Return(nil, expectedError)
 
@@ -174,7 +174,7 @@ func TestDelphisBackend_RemoveFlairTemplate(t *testing.T) {
 			timeProvider:    &util.FrozenTime{NowTime: now},
 		}
 
-		Convey("when the query errors outs", func() {
+		Convey("when the query errors out", func() {
 			expectedError := fmt.Errorf("Some Error")
 			mockDB.On("RemoveFlairTemplate", ctx, ftObj).Return(nil, expectedError)
 

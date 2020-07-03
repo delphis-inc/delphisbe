@@ -983,3 +983,64 @@ func TestAutoPostDiscussionIter_Close(t *testing.T) {
 		})
 	})
 }
+
+func TestDelphisDB_DiscussionAutoPostIterCollect(t *testing.T) {
+	ctx := context.Background()
+	discussionID := "discussion1"
+
+	dapObj := model.DiscussionAutoPost{
+		ID:          discussionID,
+		IdleMinutes: 120,
+	}
+
+	Convey("DiscussionAutoPostIterCollect", t, func() {
+		db, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
+		assert.Nil(t, err, "Failed setting up sqlmock db")
+
+		gormDB, _ := gorm.Open("postgres", db)
+		mockDatastore := &delphisDB{
+			dbConfig:  config.TablesConfig{},
+			sql:       gormDB,
+			pg:        db,
+			prepStmts: &dbPrepStmts{},
+			dynamo:    nil,
+			encoder:   nil,
+		}
+		defer db.Close()
+
+		Convey("when the iterator fails to close", func() {
+			iter := &autoPostDiscussionIter{
+				err: fmt.Errorf("error"),
+			}
+
+			resp, err := mockDatastore.DiscussionAutoPostIterCollect(ctx, iter)
+
+			So(err, ShouldNotBeNil)
+			So(resp, ShouldBeNil)
+			So(mock.ExpectationsWereMet(), ShouldBeNil)
+		})
+
+		Convey("when the iterator has results and returns slice of DiscussionAutoPost", func() {
+			rs := sqlmock.NewRows([]string{"id", "idle_minutes"}).
+				AddRow(dapObj.ID, dapObj.IdleMinutes).
+				AddRow(dapObj.ID, dapObj.IdleMinutes)
+
+			// Convert mocked rows to sql.Rows
+			mock.ExpectQuery("SELECT").WillReturnRows(rs)
+			rs1, _ := db.Query("SELECT")
+
+			iter := &autoPostDiscussionIter{
+				ctx:  ctx,
+				rows: rs1,
+			}
+
+			resp, err := mockDatastore.DiscussionAutoPostIterCollect(ctx, iter)
+
+			So(err, ShouldBeNil)
+			So(resp, ShouldNotBeNil)
+			So(resp, ShouldResemble, []*model.DiscussionAutoPost{&dapObj, &dapObj})
+			So(mock.ExpectationsWereMet(), ShouldBeNil)
+		})
+
+	})
+}
