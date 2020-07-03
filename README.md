@@ -1,3 +1,5 @@
+![Delphis Backend](https://github.com/nedrocks/delphisbe/workflows/Go/badge.svg)
+
 # delphisbe
 Backend monolith for delphis
 
