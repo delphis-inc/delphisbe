@@ -89,6 +89,8 @@ type Datastore interface {
 	ContentIterCollect(ctx context.Context, iter ContentIter) ([]*model.ImportedContent, error)
 	DiscussionIterCollect(ctx context.Context, iter DiscussionIter) ([]*model.Discussion, error)
 	FlairTemplatesIterCollect(ctx context.Context, iter DFAIter) ([]*model.FlairTemplate, error)
+	DiscussionInviteIterCollect(ctx context.Context, iter DiscussionInviteIter) ([]*model.DiscussionInvite, error)
+	AccessRequestIterCollect(ctx context.Context, iter DiscussionAccessRequestIter) ([]*model.DiscussionAccessRequest, error)
 
 	GetPublicDiscussions(ctx context.Context) DiscussionIter
 	GetDiscussionsForFlairTemplateByUserID(ctx context.Context, userID string) DiscussionIter

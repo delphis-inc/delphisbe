@@ -20,6 +20,29 @@ type Datastore struct {
 	mock.Mock
 }
 
+// AccessRequestIterCollect provides a mock function with given fields: ctx, iter
+func (_m *Datastore) AccessRequestIterCollect(ctx context.Context, iter datastore.DiscussionAccessRequestIter) ([]*model.DiscussionAccessRequest, error) {
+	ret := _m.Called(ctx, iter)
+
+	var r0 []*model.DiscussionAccessRequest
+	if rf, ok := ret.Get(0).(func(context.Context, datastore.DiscussionAccessRequestIter) []*model.DiscussionAccessRequest); ok {
+		r0 = rf(ctx, iter)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]*model.DiscussionAccessRequest)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(context.Context, datastore.DiscussionAccessRequestIter) error); ok {
+		r1 = rf(ctx, iter)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // AssignFlair provides a mock function with given fields: ctx, participant, flairID
 func (_m *Datastore) AssignFlair(ctx context.Context, participant model.Participant, flairID *string) (*model.Participant, error) {
 	ret := _m.Called(ctx, participant, flairID)
@@ -240,6 +263,29 @@ func (_m *Datastore) DiscussionAutoPostIterCollect(ctx context.Context, iter dat
 
 	var r1 error
 	if rf, ok := ret.Get(1).(func(context.Context, datastore.AutoPostDiscussionIter) error); ok {
+		r1 = rf(ctx, iter)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// DiscussionInviteIterCollect provides a mock function with given fields: ctx, iter
+func (_m *Datastore) DiscussionInviteIterCollect(ctx context.Context, iter datastore.DiscussionInviteIter) ([]*model.DiscussionInvite, error) {
+	ret := _m.Called(ctx, iter)
+
+	var r0 []*model.DiscussionInvite
+	if rf, ok := ret.Get(0).(func(context.Context, datastore.DiscussionInviteIter) []*model.DiscussionInvite); ok {
+		r0 = rf(ctx, iter)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]*model.DiscussionInvite)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(context.Context, datastore.DiscussionInviteIter) error); ok {
 		r1 = rf(ctx, iter)
 	} else {
 		r1 = ret.Error(1)

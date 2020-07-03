@@ -35,7 +35,7 @@ func (d *delphisBackend) GetImportedContentByID(ctx context.Context, id string) 
 	return d.db.GetImportedContentByID(ctx, id)
 }
 
-func (d *delphisBackend) GetMatchingsTags(ctx context.Context, discussionID, contentID string) ([]string, error) {
+func (d *delphisBackend) GetMatchingTags(ctx context.Context, discussionID, contentID string) ([]string, error) {
 	return d.db.GetMatchingTags(ctx, discussionID, contentID)
 }
 

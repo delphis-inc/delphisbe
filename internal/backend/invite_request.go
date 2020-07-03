@@ -2,13 +2,11 @@ package backend
 
 import (
 	"context"
-	"io"
 
 	"github.com/nedrocks/delphisbe/internal/util"
 	"go.uber.org/multierr"
 
 	"github.com/nedrocks/delphisbe/graph/model"
-	"github.com/nedrocks/delphisbe/internal/datastore"
 	"github.com/sirupsen/logrus"
 )
 
@@ -22,22 +20,22 @@ func (d *delphisBackend) GetDiscussionRequestAccessByID(ctx context.Context, id 
 
 func (d *delphisBackend) GetDiscussionInvitesByUserIDAndStatus(ctx context.Context, userID string, status model.InviteRequestStatus) ([]*model.DiscussionInvite, error) {
 	iter := d.db.GetDiscussionInvitesByUserIDAndStatus(ctx, userID, status)
-	return d.iterToDiscussionInvites(ctx, iter)
+	return d.db.DiscussionInviteIterCollect(ctx, iter)
 }
 
 func (d *delphisBackend) GetSentDiscussionInvitesByUserID(ctx context.Context, userID string) ([]*model.DiscussionInvite, error) {
 	iter := d.db.GetSentDiscussionInvitesByUserID(ctx, userID)
-	return d.iterToDiscussionInvites(ctx, iter)
+	return d.db.DiscussionInviteIterCollect(ctx, iter)
 }
 
 func (d *delphisBackend) GetDiscussionAccessRequestsByDiscussionID(ctx context.Context, discussionID string) ([]*model.DiscussionAccessRequest, error) {
 	iter := d.db.GetDiscussionAccessRequestsByDiscussionID(ctx, discussionID)
-	return d.iterToDiscussionAccessRequests(ctx, iter)
+	return d.db.AccessRequestIterCollect(ctx, iter)
 }
 
 func (d *delphisBackend) GetSentDiscussionAccessRequestsByUserID(ctx context.Context, userID string) ([]*model.DiscussionAccessRequest, error) {
-	iter := d.db.GetDiscussionAccessRequestsByDiscussionID(ctx, userID)
-	return d.iterToDiscussionAccessRequests(ctx, iter)
+	iter := d.db.GetSentDiscussionAccessRequestsByUserID(ctx, userID)
+	return d.db.AccessRequestIterCollect(ctx, iter)
 }
 
 func (d *delphisBackend) GetInviteLinksByDiscussionID(ctx context.Context, discussionID string) (*model.DiscussionLinkAccess, error) {
@@ -161,8 +159,6 @@ func (d *delphisBackend) RespondToInvitation(ctx context.Context, inviteID strin
 			return nil, err
 		}
 
-		logrus.Debugf("Invite: %+v\n", inviteObj)
-
 		if _, err := d.CreateParticipantForDiscussion(ctx, inviteObj.DiscussionID, inviteObj.UserID, discussionParticipantInput); err != nil {
 			logrus.WithError(err).Error("failed to create participant for discussion")
 
@@ -266,12 +262,6 @@ func (d *delphisBackend) UpsertInviteLinksByDiscussionID(ctx context.Context, di
 	tx, err := d.db.BeginTx(ctx)
 	if err != nil {
 		logrus.WithError(err).Error("failed to begin tx")
-
-		// Rollback on errors
-		if txErr := d.db.RollbackTx(ctx, tx); txErr != nil {
-			logrus.WithError(txErr).Error("failed to rollback tx")
-			return nil, multierr.Append(err, txErr)
-		}
 		return nil, err
 	}
 
@@ -294,44 +284,4 @@ func (d *delphisBackend) UpsertInviteLinksByDiscussionID(ctx context.Context, di
 	}
 
 	return dla, nil
-}
-
-func (d *delphisBackend) iterToDiscussionInvites(ctx context.Context, iter datastore.DiscussionInviteIter) ([]*model.DiscussionInvite, error) {
-	var invites []*model.DiscussionInvite
-	invite := model.DiscussionInvite{}
-
-	defer iter.Close()
-
-	for iter.Next(&invite) {
-		tempInvite := invite
-
-		invites = append(invites, &tempInvite)
-	}
-
-	if err := iter.Close(); err != nil && err != io.EOF {
-		logrus.WithError(err).Error("failed to close iter")
-		return nil, err
-	}
-
-	return invites, nil
-}
-
-func (d *delphisBackend) iterToDiscussionAccessRequests(ctx context.Context, iter datastore.DiscussionAccessRequestIter) ([]*model.DiscussionAccessRequest, error) {
-	var requests []*model.DiscussionAccessRequest
-	request := model.DiscussionAccessRequest{}
-
-	defer iter.Close()
-
-	for iter.Next(&request) {
-		tempRequest := request
-
-		requests = append(requests, &tempRequest)
-	}
-
-	if err := iter.Close(); err != nil && err != io.EOF {
-		logrus.WithError(err).Error("failed to close iter")
-		return nil, err
-	}
-
-	return requests, nil
 }

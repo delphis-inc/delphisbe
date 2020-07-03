@@ -7,6 +7,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/nedrocks/delphisbe/internal/backend/test_utils"
+
 	"github.com/nedrocks/delphisbe/graph/model"
 	"github.com/nedrocks/delphisbe/internal/auth"
 	"github.com/nedrocks/delphisbe/internal/cache"
@@ -19,11 +21,9 @@ import (
 
 func TestDelphisBackend_GetConciergeParticipantID(t *testing.T) {
 	ctx := context.Background()
-	discussionID := "discussionID"
+	discussionID := test_utils.DiscussionID
 
-	parObj := model.Participant{
-		ID: "participantID",
-	}
+	parObj := test_utils.TestParticipant()
 
 	Convey("GetConciergeParticipantID", t, func() {
 		now := time.Now()
@@ -74,31 +74,16 @@ func TestDelphisBackend_GetConciergeParticipantID(t *testing.T) {
 
 func TestDelphisBackend_HandleConciergeMutation(t *testing.T) {
 	ctx := context.Background()
-	now := time.Now()
-	userID := "userID"
-	discussionID := "discussion1"
+
+	userID := test_utils.UserID
+	discussionID := test_utils.DiscussionID
+
+	parObj := test_utils.TestParticipant()
+	ftObj := test_utils.TestFlairTemplate()
+	flairObj := test_utils.TestFlair()
+
 	mutationID := string(model.MutationUpdateFlairAccessToDiscussion)
 	selectedOptions := []string{"1"}
-
-	parObj := model.Participant{
-		ID: "participantID",
-	}
-
-	flairID := "flairID"
-	templateID := "templateID"
-	flairObj := model.Flair{
-		ID:         flairID,
-		TemplateID: templateID,
-		CreatedAt:  now,
-		UpdatedAt:  now,
-		UserID:     userID,
-	}
-
-	displayName := "name"
-	ftObj := model.FlairTemplate{
-		ID:          templateID,
-		DisplayName: &displayName,
-	}
 
 	Convey("HandleConciergeMutation", t, func() {
 		now := time.Now()
@@ -183,29 +168,13 @@ func TestDelphisBackend_HandleConciergeMutation(t *testing.T) {
 
 func TestDelphisBackend_CreateFlairAccessConciergePost(t *testing.T) {
 	ctx := context.Background()
-	now := time.Now()
-	userID := "userID"
-	discussionID := "discussion1"
 
-	parObj := model.Participant{
-		ID: "participantID",
-	}
+	userID := test_utils.UserID
+	discussionID := test_utils.DiscussionID
 
-	flairID := "flairID"
-	templateID := "templateID"
-	flairObj := model.Flair{
-		ID:         flairID,
-		TemplateID: templateID,
-		CreatedAt:  now,
-		UpdatedAt:  now,
-		UserID:     userID,
-	}
-
-	displayName := "name"
-	ftObj := model.FlairTemplate{
-		ID:          templateID,
-		DisplayName: &displayName,
-	}
+	parObj := test_utils.TestParticipant()
+	flairObj := test_utils.TestFlair()
+	ftObj := test_utils.TestFlairTemplate()
 
 	Convey("CreateFlairAccessConciergePost", t, func() {
 		now := time.Now()
@@ -258,11 +227,9 @@ func TestDelphisBackend_CreateFlairAccessConciergePost(t *testing.T) {
 
 func TestDelphisBackend_CreateInviteSettingConciergePost(t *testing.T) {
 	ctx := context.Background()
-	discussionID := "discussion1"
+	discussionID := test_utils.DiscussionID
 
-	parObj := model.Participant{
-		ID: "participantID",
-	}
+	parObj := test_utils.TestParticipant()
 
 	Convey("CreateInviteSettingConciergePost", t, func() {
 		now := time.Now()
@@ -302,11 +269,9 @@ func TestDelphisBackend_CreateInviteSettingConciergePost(t *testing.T) {
 
 func TestDelphisBackend_CreateViewerAccessConciergePost(t *testing.T) {
 	ctx := context.Background()
-	discussionID := "discussion1"
+	discussionID := test_utils.DiscussionID
 
-	parObj := model.Participant{
-		ID: "participantID",
-	}
+	parObj := test_utils.TestParticipant()
 
 	Convey("CreateViewerAccessConciergePost", t, func() {
 		now := time.Now()

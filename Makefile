@@ -44,7 +44,6 @@ start-db:
 mocks:
 	${GOPATH}/bin/mockery -output ./mocks -name Datastore -dir ./internal/datastore -case underscore
 	${GOPATH}/bin/mockery -output ./mocks -name DelphisAuth -dir ./internal/auth -case underscore
-	${GOPATH}/bin/mockery -output ./mocks -name AutoPostDiscussionIter -dir ./internal/datastore -case underscore
 
 
 

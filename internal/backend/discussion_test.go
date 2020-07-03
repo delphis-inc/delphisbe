@@ -8,6 +8,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/nedrocks/delphisbe/internal/backend/test_utils"
+
 	"github.com/stretchr/testify/mock"
 
 	"github.com/nedrocks/delphisbe/graph/model"
@@ -31,69 +33,24 @@ func (m *mockTagIter) Close() error             { return fmt.Errorf("error") }
 
 func TestDelphisBackend_CreateNewDiscussion(t *testing.T) {
 	ctx := context.Background()
-	now := time.Now()
 
-	userID := "userID"
+	discussionID := test_utils.DiscussionID
 	anonymityType := model.AnonymityTypeStrong
 	title := "test title"
 	publicAccess := true
-	modID := "modID"
-	profileID := "profileID"
 
-	userObj := model.User{
-		ID:          userID,
-		CreatedAt:   now,
-		UpdatedAt:   now,
-		UserProfile: &model.UserProfile{ID: profileID},
-	}
+	userObj := test_utils.TestUser()
+	modObj := test_utils.TestModerator()
+	profile := test_utils.TestUserProfile()
+	discObj := test_utils.TestDiscussion()
+	flairObj := test_utils.TestFlair()
 
-	modObj := model.Moderator{
-		ID: modID,
-		UserProfile: &model.UserProfile{
-			ID: profileID,
-		},
-	}
+	userObj.UserProfile = &profile
+	modObj.UserProfile = &profile
 
-	discObj := model.Discussion{
-		ID:            "discussion1",
-		CreatedAt:     now,
-		UpdatedAt:     now,
-		DeletedAt:     nil,
-		Title:         "test",
-		AnonymityType: "",
-		ModeratorID:   &modID,
-		AutoPost:      false,
-		IdleMinutes:   120,
-		PublicAccess:  false,
-		IconURL:       "",
-	}
+	viewerObj := test_utils.TestViewer()
 
-	flairID := "flairID"
-	templateID := "templateID"
-	flairObj := model.Flair{
-		ID:         flairID,
-		TemplateID: templateID,
-		CreatedAt:  now,
-		UpdatedAt:  now,
-		UserID:     userID,
-	}
-
-	discussionID := "discussionID"
-	viewerID := "viewerID"
-	postID := "post1"
-
-	viewerObj := model.Viewer{
-		ID:               viewerID,
-		CreatedAt:        now,
-		UpdatedAt:        now,
-		DiscussionID:     &discussionID,
-		LastViewedPostID: &postID,
-		UserID:           &userID,
-	}
-
-	parObj := model.Participant{
-		ID: "participantID",
-	}
+	parObj := test_utils.TestParticipant()
 
 	tx := sql.Tx{}
 
@@ -169,6 +126,7 @@ func TestDelphisBackend_CreateNewDiscussion(t *testing.T) {
 			mockDB.On("CommitTx", ctx, mock.Anything).Return(nil)
 			mockDB.On("GetDiscussionByID", ctx, mock.Anything).Return(&discObj, nil)
 			mockDB.On("GetParticipantsByDiscussionID", ctx, mock.Anything, mock.Anything).Return([]model.Participant{parObj}, nil)
+			mockDB.On("GetUserDevicesByUserID", ctx, mock.Anything).Return(nil, nil)
 
 			mockDB.On("BeginTx", ctx).Return(tx, nil)
 			mockDB.On("UpsertInviteLinksByDiscussionID", ctx, mock.Anything, mock.Anything).Return(nil, expectedError)
@@ -201,6 +159,7 @@ func TestDelphisBackend_CreateNewDiscussion(t *testing.T) {
 			mockDB.On("CommitTx", ctx, mock.Anything).Return(nil)
 			mockDB.On("GetDiscussionByID", ctx, mock.Anything).Return(&discObj, nil)
 			mockDB.On("GetParticipantsByDiscussionID", ctx, mock.Anything, mock.Anything).Return([]model.Participant{parObj}, nil)
+			mockDB.On("GetUserDevicesByUserID", ctx, mock.Anything).Return(nil, nil)
 
 			mockDB.On("BeginTx", ctx).Return(tx, nil)
 			mockDB.On("UpsertInviteLinksByDiscussionID", ctx, mock.Anything, mock.Anything).Return(
@@ -217,29 +176,11 @@ func TestDelphisBackend_CreateNewDiscussion(t *testing.T) {
 
 func TestDelphisBackend_UpdateDiscussion(t *testing.T) {
 	ctx := context.Background()
-	now := time.Now()
-	discussionID := "discussionID"
 
-	modID := "modID"
+	discussionID := test_utils.DiscussionID
 
-	title := "test title"
-	discInput := model.DiscussionInput{
-		Title: &title,
-	}
-
-	discObj := model.Discussion{
-		ID:            "discussion1",
-		CreatedAt:     now,
-		UpdatedAt:     now,
-		DeletedAt:     nil,
-		Title:         "test",
-		AnonymityType: "",
-		ModeratorID:   &modID,
-		AutoPost:      false,
-		IdleMinutes:   120,
-		PublicAccess:  false,
-		IconURL:       "",
-	}
+	discInput := test_utils.TestDiscussionInput()
+	discObj := test_utils.TestDiscussion()
 
 	Convey("UpdateDiscussion", t, func() {
 		now := time.Now()
@@ -290,24 +231,10 @@ func TestDelphisBackend_UpdateDiscussion(t *testing.T) {
 
 func TestDelphisBackend_GetDiscussionByID(t *testing.T) {
 	ctx := context.Background()
-	now := time.Now()
-	discussionID := "discussionID"
 
-	modID := "modID"
+	discussionID := test_utils.DiscussionID
 
-	discObj := model.Discussion{
-		ID:            "discussion1",
-		CreatedAt:     now,
-		UpdatedAt:     now,
-		DeletedAt:     nil,
-		Title:         "test",
-		AnonymityType: "",
-		ModeratorID:   &modID,
-		AutoPost:      false,
-		IdleMinutes:   120,
-		PublicAccess:  false,
-		IconURL:       "",
-	}
+	discObj := test_utils.TestDiscussion()
 
 	Convey("GetDiscussionByID", t, func() {
 		now := time.Now()
@@ -346,24 +273,9 @@ func TestDelphisBackend_GetDiscussionByID(t *testing.T) {
 
 func TestDelphisBackend_GetDiscussionsByIDs(t *testing.T) {
 	ctx := context.Background()
-	now := time.Now()
-	discussionID := "discussionID"
+	discussionID := test_utils.DiscussionID
 
-	modID := "modID"
-
-	discObj := model.Discussion{
-		ID:            "discussion1",
-		CreatedAt:     now,
-		UpdatedAt:     now,
-		DeletedAt:     nil,
-		Title:         "test",
-		AnonymityType: "",
-		ModeratorID:   &modID,
-		AutoPost:      false,
-		IdleMinutes:   120,
-		PublicAccess:  false,
-		IconURL:       "",
-	}
+	discObj := test_utils.TestDiscussion()
 
 	Convey("GetDiscussionsByIDs", t, func() {
 		now := time.Now()
@@ -406,24 +318,10 @@ func TestDelphisBackend_GetDiscussionsByIDs(t *testing.T) {
 
 func TestDelphisBackend_GetDiscussionByModeratorID(t *testing.T) {
 	ctx := context.Background()
-	now := time.Now()
-	discussionID := "discussionID"
 
-	modID := "modID"
+	modID := test_utils.ModeratorID
 
-	discObj := model.Discussion{
-		ID:            discussionID,
-		CreatedAt:     now,
-		UpdatedAt:     now,
-		DeletedAt:     nil,
-		Title:         "test",
-		AnonymityType: "",
-		ModeratorID:   &modID,
-		AutoPost:      false,
-		IdleMinutes:   120,
-		PublicAccess:  false,
-		IconURL:       "",
-	}
+	discObj := test_utils.TestDiscussion()
 
 	Convey("GetDiscussionByModeratorID", t, func() {
 		now := time.Now()
@@ -463,10 +361,7 @@ func TestDelphisBackend_GetDiscussionByModeratorID(t *testing.T) {
 func TestDelphisBackend_GetDiscussionsForAutoPost(t *testing.T) {
 	ctx := context.Background()
 
-	apObj := model.DiscussionAutoPost{
-		ID:          "id",
-		IdleMinutes: 120,
-	}
+	apObj := test_utils.TestDiscussionAutoPost()
 
 	Convey("GetDiscussionsForAutoPost", t, func() {
 		now := time.Now()
@@ -508,12 +403,7 @@ func TestDelphisBackend_GetDiscussionsForAutoPost(t *testing.T) {
 func TestDelphisBackend_ListDiscussions(t *testing.T) {
 	ctx := context.Background()
 
-	dcObj := model.DiscussionsConnection{
-		IDs:   []string{"s1", "s2"},
-		From:  0,
-		To:    0,
-		Edges: nil,
-	}
+	dcObj := test_utils.TestDiscussionsConnection()
 
 	Convey("ListDiscussions", t, func() {
 		now := time.Now()
@@ -553,11 +443,9 @@ func TestDelphisBackend_ListDiscussions(t *testing.T) {
 func TestDelphisBackend_GetDiscussionTags(t *testing.T) {
 	ctx := context.Background()
 
-	discussionID := "discussionID"
+	discussionID := test_utils.DiscussionID
 
-	tagObj := model.Tag{
-		ID: "tagID",
-	}
+	tagObj := test_utils.TestDiscussionTag()
 
 	Convey("GetDiscussionTags", t, func() {
 		now := time.Now()
@@ -599,12 +487,9 @@ func TestDelphisBackend_GetDiscussionTags(t *testing.T) {
 func TestDelphisBackend_PutDiscussionTags(t *testing.T) {
 	ctx := context.Background()
 
-	discussionID := "discussionID"
-	tagID := "tagID"
-	tagObj := model.Tag{
-		ID:  discussionID,
-		Tag: tagID,
-	}
+	discussionID := test_utils.DiscussionID
+
+	tagObj := test_utils.TestDiscussionTag()
 
 	tags := []string{tagObj.Tag}
 	tx := sql.Tx{}
@@ -692,12 +577,8 @@ func TestDelphisBackend_PutDiscussionTags(t *testing.T) {
 func TestDelphisBackend_DeleteDiscussionTags(t *testing.T) {
 	ctx := context.Background()
 
-	discussionID := "discussionID"
-	tagID := "tagID"
-	tagObj := model.Tag{
-		ID:  discussionID,
-		Tag: tagID,
-	}
+	discussionID := test_utils.DiscussionID
+	tagObj := test_utils.TestDiscussionTag()
 
 	tags := []string{tagObj.Tag}
 	tx := sql.Tx{}
@@ -783,21 +664,7 @@ func TestDelphisBackend_DeleteDiscussionTags(t *testing.T) {
 }
 
 func TestDelphisBackend_UpdateDiscussionObj(t *testing.T) {
-	anonymityType := model.AnonymityTypeStrong
-	title := "test title"
-	autoPost := true
-	idleMinutes := 120
-	publicAccess := true
-	iconUrl := "http://test.com"
-
-	discInput := model.DiscussionInput{
-		AnonymityType: &anonymityType,
-		Title:         &title,
-		AutoPost:      &autoPost,
-		IdleMinutes:   &idleMinutes,
-		PublicAccess:  &publicAccess,
-		IconURL:       &iconUrl,
-	}
+	discInput := test_utils.TestDiscussionInput()
 
 	disc := model.Discussion{}
 
@@ -817,15 +684,10 @@ func TestDelphisBackend_UpdateDiscussionObj(t *testing.T) {
 }
 
 func TestDelphisBackend_DedupeDiscussions(t *testing.T) {
-	disc1 := model.Discussion{
-		ID:    "id1",
-		Title: "test1",
-	}
+	disc1 := test_utils.TestDiscussion()
+	disc2 := test_utils.TestDiscussion()
 
-	disc2 := model.Discussion{
-		ID:    "id2",
-		Title: "test2",
-	}
+	disc2.ID = "id2"
 
 	Convey("DedupeDiscussions", t, func() {
 		Convey("when it dedupes the discussion objects successfully", func() {

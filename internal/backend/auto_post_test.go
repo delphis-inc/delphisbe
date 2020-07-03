@@ -8,6 +8,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/nedrocks/delphisbe/internal/backend/test_utils"
+
 	"github.com/nedrocks/delphisbe/graph/model"
 
 	"github.com/nedrocks/delphisbe/internal/cache"
@@ -21,27 +23,18 @@ import (
 func TestDelphisBackend_AutoPostContent(t *testing.T) {
 	ctx := context.Background()
 
-	discussionID := "discussionID"
-	limit := 10
+	discussionID := test_utils.DiscussionID
+	idleMinutes := test_utils.IdleMinutes
+	limit := test_utils.Limit
 	userID := model.ConciergeUser
-	contentID := "contentID"
+	contentID := test_utils.ContentID
 
-	apObj := model.DiscussionAutoPost{
-		ID:          discussionID,
-		IdleMinutes: limit,
-	}
-
-	icObj := model.ImportedContent{
-		ID: contentID,
-	}
-
-	parObj := model.Participant{
-		ID: "participantID",
-	}
+	apObj := test_utils.TestDiscussionAutoPost()
+	icObj := test_utils.TestImportedContent()
+	parObj := test_utils.TestParticipant()
+	discObj := test_utils.TestDiscussion()
 
 	tx := sql.Tx{}
-
-	discObj := model.Discussion{ID: discussionID}
 	matchingTags := []string{"tag1"}
 
 	Convey("AutoPostContent", t, func() {
@@ -70,7 +63,7 @@ func TestDelphisBackend_AutoPostContent(t *testing.T) {
 			expectedError := fmt.Errorf("Some Error")
 			mockDB.On("GetDiscussionsAutoPost", ctx).Return(&mockDiscAutoPostIter{})
 			mockDB.On("DiscussionAutoPostIterCollect", ctx, mock.Anything).Return([]*model.DiscussionAutoPost{&apObj}, nil)
-			mockDB.On("GetLastPostByDiscussionID", ctx, discussionID, limit).Return(nil, expectedError)
+			mockDB.On("GetLastPostByDiscussionID", ctx, discussionID, idleMinutes).Return(nil, expectedError)
 
 			backendObj.AutoPostContent()
 		})
@@ -80,7 +73,7 @@ func TestDelphisBackend_AutoPostContent(t *testing.T) {
 				expectedError := fmt.Errorf("Some Error")
 				mockDB.On("GetDiscussionsAutoPost", ctx).Return(&mockDiscAutoPostIter{})
 				mockDB.On("DiscussionAutoPostIterCollect", ctx, mock.Anything).Return([]*model.DiscussionAutoPost{&apObj}, nil)
-				mockDB.On("GetLastPostByDiscussionID", ctx, discussionID, limit).Return(nil, nil)
+				mockDB.On("GetLastPostByDiscussionID", ctx, discussionID, idleMinutes).Return(nil, nil)
 				mockDB.On("GetScheduledImportedContentByDiscussionID", ctx, discussionID).Return(&mockImportedContentIter{})
 				mockDB.On("ContentIterCollect", ctx, mock.Anything).Return(nil, expectedError)
 
@@ -93,7 +86,7 @@ func TestDelphisBackend_AutoPostContent(t *testing.T) {
 				expectedError := fmt.Errorf("Some Error")
 				mockDB.On("GetDiscussionsAutoPost", ctx).Return(&mockDiscAutoPostIter{})
 				mockDB.On("DiscussionAutoPostIterCollect", ctx, mock.Anything).Return([]*model.DiscussionAutoPost{&apObj}, nil)
-				mockDB.On("GetLastPostByDiscussionID", ctx, discussionID, limit).Return(nil, nil)
+				mockDB.On("GetLastPostByDiscussionID", ctx, discussionID, idleMinutes).Return(nil, nil)
 				mockDB.On("GetScheduledImportedContentByDiscussionID", ctx, discussionID).Return(&scheduleIter)
 				mockDB.On("ContentIterCollect", ctx, scheduleIter).Return(nil, nil)
 				mockDB.On("GetImportedContentByDiscussionID", ctx, discussionID, limit).Return(&mockImportedContentIter{})
@@ -105,7 +98,7 @@ func TestDelphisBackend_AutoPostContent(t *testing.T) {
 			Convey("when GetImportedContentByDiscussionID returns 0 content", func() {
 				mockDB.On("GetDiscussionsAutoPost", ctx).Return(&mockDiscAutoPostIter{})
 				mockDB.On("DiscussionAutoPostIterCollect", ctx, mock.Anything).Return([]*model.DiscussionAutoPost{&apObj}, nil)
-				mockDB.On("GetLastPostByDiscussionID", ctx, discussionID, limit).Return(nil, nil)
+				mockDB.On("GetLastPostByDiscussionID", ctx, discussionID, idleMinutes).Return(nil, nil)
 				mockDB.On("GetScheduledImportedContentByDiscussionID", ctx, discussionID).Return(&mockImportedContentIter{})
 				mockDB.On("ContentIterCollect", ctx, mock.Anything).Return(nil, nil)
 				mockDB.On("GetImportedContentByDiscussionID", ctx, discussionID, limit).Return(&mockImportedContentIter{})
@@ -118,7 +111,7 @@ func TestDelphisBackend_AutoPostContent(t *testing.T) {
 				expectedError := fmt.Errorf("Some Error")
 				mockDB.On("GetDiscussionsAutoPost", ctx).Return(&mockDiscAutoPostIter{})
 				mockDB.On("DiscussionAutoPostIterCollect", ctx, mock.Anything).Return([]*model.DiscussionAutoPost{&apObj}, nil)
-				mockDB.On("GetLastPostByDiscussionID", ctx, discussionID, limit).Return(nil, nil)
+				mockDB.On("GetLastPostByDiscussionID", ctx, discussionID, idleMinutes).Return(nil, nil)
 				mockDB.On("GetScheduledImportedContentByDiscussionID", ctx, discussionID).Return(&mockImportedContentIter{})
 				mockDB.On("ContentIterCollect", ctx, mock.Anything).Return([]*model.ImportedContent{&icObj}, nil)
 				mockDB.On("GetParticipantsByDiscussionIDUserID", ctx, discussionID, userID).Return(nil, expectedError)
@@ -131,7 +124,7 @@ func TestDelphisBackend_AutoPostContent(t *testing.T) {
 				tempParObj.IsAnonymous = true
 				mockDB.On("GetDiscussionsAutoPost", ctx).Return(&mockDiscAutoPostIter{})
 				mockDB.On("DiscussionAutoPostIterCollect", ctx, mock.Anything).Return([]*model.DiscussionAutoPost{&apObj}, nil)
-				mockDB.On("GetLastPostByDiscussionID", ctx, discussionID, limit).Return(nil, nil)
+				mockDB.On("GetLastPostByDiscussionID", ctx, discussionID, idleMinutes).Return(nil, nil)
 				mockDB.On("GetScheduledImportedContentByDiscussionID", ctx, discussionID).Return(&mockImportedContentIter{})
 				mockDB.On("ContentIterCollect", ctx, mock.Anything).Return([]*model.ImportedContent{&icObj}, nil)
 				mockDB.On("GetParticipantsByDiscussionIDUserID", ctx, discussionID, userID).Return([]model.Participant{tempParObj}, nil)
@@ -143,7 +136,7 @@ func TestDelphisBackend_AutoPostContent(t *testing.T) {
 				expectedError := fmt.Errorf("Some Error")
 				mockDB.On("GetDiscussionsAutoPost", ctx).Return(&mockDiscAutoPostIter{})
 				mockDB.On("DiscussionAutoPostIterCollect", ctx, mock.Anything).Return([]*model.DiscussionAutoPost{&apObj}, nil)
-				mockDB.On("GetLastPostByDiscussionID", ctx, discussionID, limit).Return(nil, nil)
+				mockDB.On("GetLastPostByDiscussionID", ctx, discussionID, idleMinutes).Return(nil, nil)
 				mockDB.On("GetScheduledImportedContentByDiscussionID", ctx, discussionID).Return(&mockImportedContentIter{})
 				mockDB.On("ContentIterCollect", ctx, mock.Anything).Return([]*model.ImportedContent{&icObj}, nil)
 				mockDB.On("GetParticipantsByDiscussionIDUserID", ctx, discussionID, userID).Return([]model.Participant{parObj}, nil)
@@ -155,13 +148,12 @@ func TestDelphisBackend_AutoPostContent(t *testing.T) {
 			Convey("when auto posting succeeds", func() {
 				mockDB.On("GetDiscussionsAutoPost", ctx).Return(&mockDiscAutoPostIter{})
 				mockDB.On("DiscussionAutoPostIterCollect", ctx, mock.Anything).Return([]*model.DiscussionAutoPost{&apObj}, nil)
-				mockDB.On("GetLastPostByDiscussionID", ctx, discussionID, limit).Return(nil, nil)
+				mockDB.On("GetLastPostByDiscussionID", ctx, discussionID, idleMinutes).Return(nil, nil)
 				mockDB.On("GetScheduledImportedContentByDiscussionID", ctx, discussionID).Return(&mockImportedContentIter{})
 				mockDB.On("ContentIterCollect", ctx, mock.Anything).Return([]*model.ImportedContent{&icObj}, nil)
 				mockDB.On("GetParticipantsByDiscussionIDUserID", ctx, discussionID, userID).Return([]model.Participant{parObj}, nil)
 
 				mockDB.On("GetImportedContentByID", ctx, contentID).Return(&icObj, nil)
-
 				// Create post functions
 				mockDB.On("BeginTx", ctx).Return(&tx, nil)
 				mockDB.On("PutPostContent", ctx, mock.Anything, mock.Anything).Return(nil)
@@ -176,6 +168,8 @@ func TestDelphisBackend_AutoPostContent(t *testing.T) {
 				mockDB.On("UpdateImportedContentDiscussionQueue", ctx, discussionID, contentID, mock.Anything).Return(
 					&model.ContentQueueRecord{DiscussionID: discussionID}, nil)
 				mockDB.On("PutImportedContentDiscussionQueue", ctx, discussionID, contentID, time.Now(), matchingTags).Return(&icObj, nil)
+				mockDB.On("GetUserDevicesByUserID", ctx, mock.Anything).Return(nil, nil)
+
 				backendObj.AutoPostContent()
 			})
 		})

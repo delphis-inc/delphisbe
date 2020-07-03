@@ -7,6 +7,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/nedrocks/delphisbe/internal/backend/test_utils"
+
 	"github.com/nedrocks/delphisbe/internal/auth"
 
 	"github.com/nedrocks/delphisbe/internal/cache"
@@ -19,7 +21,7 @@ import (
 func Test_NewAccessToken(t *testing.T) {
 	ctx := context.Background()
 
-	userID := "userID"
+	userID := test_utils.UserID
 
 	Convey("NewAccessToken", t, func() {
 		now := time.Now()
@@ -64,7 +66,7 @@ func Test_NewAccessToken(t *testing.T) {
 func Test_ValidateAccessToken(t *testing.T) {
 	ctx := context.Background()
 
-	token := "token"
+	token := test_utils.Token
 
 	Convey("ValidateAccessToken", t, func() {
 		now := time.Now()
@@ -109,7 +111,7 @@ func Test_ValidateAccessToken(t *testing.T) {
 func Test_ValidateRefreshToken(t *testing.T) {
 	ctx := context.Background()
 
-	token := "token"
+	token := test_utils.Token
 
 	Convey("ValidateRefreshToken", t, func() {
 		now := time.Now()

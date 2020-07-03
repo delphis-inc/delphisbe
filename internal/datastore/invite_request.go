@@ -3,6 +3,7 @@ package datastore
 import (
 	"context"
 	"database/sql"
+	"io"
 
 	"github.com/sirupsen/logrus"
 
@@ -424,4 +425,44 @@ func (iter *discussionAccessRequestIter) Close() error {
 	}
 
 	return nil
+}
+
+func (d *delphisDB) DiscussionInviteIterCollect(ctx context.Context, iter DiscussionInviteIter) ([]*model.DiscussionInvite, error) {
+	var invites []*model.DiscussionInvite
+	invite := model.DiscussionInvite{}
+
+	defer iter.Close()
+
+	for iter.Next(&invite) {
+		tempInvite := invite
+
+		invites = append(invites, &tempInvite)
+	}
+
+	if err := iter.Close(); err != nil && err != io.EOF {
+		logrus.WithError(err).Error("failed to close iter")
+		return nil, err
+	}
+
+	return invites, nil
+}
+
+func (d *delphisDB) AccessRequestIterCollect(ctx context.Context, iter DiscussionAccessRequestIter) ([]*model.DiscussionAccessRequest, error) {
+	var requests []*model.DiscussionAccessRequest
+	request := model.DiscussionAccessRequest{}
+
+	defer iter.Close()
+
+	for iter.Next(&request) {
+		tempRequest := request
+
+		requests = append(requests, &tempRequest)
+	}
+
+	if err := iter.Close(); err != nil && err != io.EOF {
+		logrus.WithError(err).Error("failed to close iter")
+		return nil, err
+	}
+
+	return requests, nil
 }

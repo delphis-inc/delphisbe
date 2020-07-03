@@ -8,6 +8,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/nedrocks/delphisbe/internal/backend/test_utils"
+
 	"github.com/stretchr/testify/mock"
 
 	"github.com/nedrocks/delphisbe/graph/model"
@@ -31,23 +33,9 @@ func (m *mockDFAIter) Close() error                                       { retu
 
 func TestDelphisBackend_GetDiscussionAccessByUserID(t *testing.T) {
 	ctx := context.Background()
-	now := time.Now()
-	userID := "userID"
-	modID := "modID"
+	userID := test_utils.UserID
 
-	discObj := model.Discussion{
-		ID:            "discussion1",
-		CreatedAt:     now,
-		UpdatedAt:     now,
-		DeletedAt:     nil,
-		Title:         "test",
-		AnonymityType: "",
-		ModeratorID:   &modID,
-		AutoPost:      false,
-		IdleMinutes:   120,
-		PublicAccess:  false,
-		IconURL:       "",
-	}
+	discObj := test_utils.TestDiscussion()
 
 	Convey("GetDiscussionAccessByUserID", t, func() {
 		now := time.Now()
@@ -126,21 +114,9 @@ func TestDelphisBackend_GetDiscussionAccessByUserID(t *testing.T) {
 func TestDelphisBackend_GetDiscussionFlairTemplateAccessByDiscussionID(t *testing.T) {
 	ctx := context.Background()
 
-	discussionID := "discussionID"
+	discussionID := test_utils.DiscussionID
 
-	now := time.Now()
-	ftID := "flairTemplateID"
-	displayName := "displayName"
-	imageURL := "imageURL"
-	source := "test"
-	ftObj := model.FlairTemplate{
-		ID:          ftID,
-		DisplayName: &displayName,
-		ImageURL:    &imageURL,
-		Source:      source,
-		CreatedAt:   now,
-		UpdatedAt:   now,
-	}
+	ftObj := test_utils.TestFlairTemplate()
 
 	Convey("GetDiscussionFlairTemplateAccessByDiscussionID", t, func() {
 		now := time.Now()
@@ -182,37 +158,14 @@ func TestDelphisBackend_GetDiscussionFlairTemplateAccessByDiscussionID(t *testin
 func TestDelphisBackend_PutDiscussionFlairTemplatesAccess(t *testing.T) {
 	ctx := context.Background()
 
-	discussionID := "discussionID"
-	userID := "userID"
-	now := time.Now()
-	ftID := "flairTemplateID"
-	displayName := "displayName"
-	imageURL := "imageURL"
-	source := "test"
-	ftObj := model.FlairTemplate{
-		ID:          ftID,
-		DisplayName: &displayName,
-		ImageURL:    &imageURL,
-		Source:      source,
-		CreatedAt:   now,
-		UpdatedAt:   now,
-	}
+	discussionID := test_utils.DiscussionID
+	userID := test_utils.UserID
 
-	flairID := "flairID"
-	flairObj := model.Flair{
-		ID:         flairID,
-		TemplateID: ftID,
-		CreatedAt:  now,
-		UpdatedAt:  now,
-		UserID:     userID,
-	}
+	ftObj := test_utils.TestFlairTemplate()
+	flairObj := test_utils.TestFlair()
+	dfaObj := test_utils.TestDiscussionFlairTemplateAccess()
 
 	flairTemplateIDs := []string{ftObj.ID}
-
-	dfaObj := model.DiscussionFlairTemplateAccess{
-		DiscussionID:    discussionID,
-		FlairTemplateID: ftObj.ID,
-	}
 
 	tx := sql.Tx{}
 
@@ -314,37 +267,13 @@ func TestDelphisBackend_PutDiscussionFlairTemplatesAccess(t *testing.T) {
 func TestDelphisBackend_DeleteDiscussionFlairTemplatesAccess(t *testing.T) {
 	ctx := context.Background()
 
-	discussionID := "discussionID"
-	userID := "userID"
-	now := time.Now()
-	ftID := "flairTemplateID"
-	displayName := "displayName"
-	imageURL := "imageURL"
-	source := "test"
-	ftObj := model.FlairTemplate{
-		ID:          ftID,
-		DisplayName: &displayName,
-		ImageURL:    &imageURL,
-		Source:      source,
-		CreatedAt:   now,
-		UpdatedAt:   now,
-	}
+	discussionID := test_utils.DiscussionID
 
-	flairID := "flairID"
-	flairObj := model.Flair{
-		ID:         flairID,
-		TemplateID: ftID,
-		CreatedAt:  now,
-		UpdatedAt:  now,
-		UserID:     userID,
-	}
+	ftObj := test_utils.TestFlairTemplate()
+	flairObj := test_utils.TestFlair()
+	dfaObj := test_utils.TestDiscussionFlairTemplateAccess()
 
 	flairTemplateIDs := []string{ftObj.ID}
-
-	dfaObj := model.DiscussionFlairTemplateAccess{
-		DiscussionID:    discussionID,
-		FlairTemplateID: ftObj.ID,
-	}
 
 	tx := sql.Tx{}
 
