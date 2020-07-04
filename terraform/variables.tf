@@ -1,5 +1,10 @@
 # variables.tf
 
+variable "environment" {
+  description = "Staging or production."
+  default     = "staging"
+}
+
 variable "aws_region" {
   description = "The AWS region things are created in"
   default     = "us-west-2"
@@ -7,7 +12,7 @@ variable "aws_region" {
 
 variable "ecs_task_execution_role_name" {
   description = "ECS task execution role name"
-  default = "myEcsTaskExecutionRole"
+  default     = "myEcsTaskExecutionRole"
 }
 
 variable "az_count" {

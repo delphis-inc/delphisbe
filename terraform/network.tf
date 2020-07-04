@@ -65,7 +65,7 @@ resource "aws_route_table" "private" {
   }
 
   route {
-    cidr_block     = "172.31.0.0/16"
+    cidr_block                = "172.31.0.0/16"
     vpc_peering_connection_id = aws_vpc_peering_connection.main_to_ecs.id
   }
 }
@@ -78,8 +78,8 @@ resource "aws_route_table_association" "private" {
 }
 
 resource "aws_vpc_peering_connection" "main_to_ecs" {
-  peer_vpc_id   = aws_vpc.ecs.id
-  vpc_id        = aws_vpc.main.id
+  peer_vpc_id = aws_vpc.ecs.id
+  vpc_id      = aws_vpc.main.id
 
   tags = {
     Name = "main to ecs vpc"

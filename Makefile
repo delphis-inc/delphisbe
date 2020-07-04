@@ -43,3 +43,15 @@ start-db:
 .PHONY: mocks
 mocks:
 	${GOPATH}/bin/mockery -output ./mocks -name Datastore -dir ./internal/datastore -case underscore
+
+plan:
+	@test "${env}" || (echo 'please pass in $$env' && exit)
+	terraform fmt ./terraform
+	@cd terraform && terraform init -backend=true -backend-config=backend/$(env).tfvars -get=true
+	@cd terraform &&terraform plan -refresh=true -out $(env).plan
+.PHONY: plan
+
+apply:
+	@test "${env}" || (echo 'please pass in $$env' && exit)
+	@cd terraform && terraform apply -refresh $(env).plan
+.PHONY: apply

@@ -2,8 +2,8 @@
 data "aws_iam_policy_document" "ecs_task_execution_role" {
   version = "2012-10-17"
   statement {
-    sid = ""
-    effect = "Allow"
+    sid     = ""
+    effect  = "Allow"
     actions = ["sts:AssumeRole"]
 
     principals {
@@ -27,7 +27,7 @@ resource "aws_iam_role_policy_attachment" "ecs_task_execution_role" {
 
 resource "aws_iam_role" "ecs_task_role" {
   name = "delphis-ecsTaskRole"
- 
+
   assume_role_policy = <<EOF
 {
  "Version": "2012-10-17",
@@ -44,12 +44,12 @@ resource "aws_iam_role" "ecs_task_role" {
 }
 EOF
 }
- 
+
 resource "aws_iam_policy" "dynamodb" {
   name        = "delphis-task-policy-dynamodb"
   description = "Policy that allows access to DynamoDB"
- 
- policy = <<EOF
+
+  policy = <<EOF
 {
    "Version": "2012-10-17",
    "Statement": [
@@ -94,7 +94,7 @@ EOF
 #   ]
 # }
 # EOF
- 
+
 resource "aws_iam_role_policy_attachment" "ecs-task-role-policy-attachment" {
   role       = aws_iam_role.ecs_task_role.name
   policy_arn = aws_iam_policy.dynamodb.arn
@@ -106,8 +106,8 @@ resource "aws_iam_role_policy_attachment" "ecs-task-role-policy-attachment" {
 resource "aws_iam_policy" "secrets-manager" {
   name        = "delphis-task-policy-secrets-manager"
   description = "Policy that allows access to Secrets-manager"
- 
- policy = <<EOF
+
+  policy = <<EOF
 {
    "Version": "2012-10-17",
    "Statement": [

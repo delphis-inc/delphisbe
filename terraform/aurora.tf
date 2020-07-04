@@ -35,11 +35,11 @@
 # }
 
 resource "aws_rds_cluster_instance" "cluster_instances-staging" {
-    count = 1
-    identifier = "chatham-staging-aurora-psgql-${count.index}"
-    # Copy this manually from the account if you want to change!
-    cluster_identifier = "chatham-staging-aurora-pgsql"
-    # Smallest we can create...
-    instance_class = "db.r4.large"
-    engine = "aurora-postgresql"
+  count      = 1
+  identifier = "chatham-staging-aurora-psgql-${count.index}"
+  # Copy this manually from the account if you want to change!
+  cluster_identifier = "chatham-staging-aurora-pgsql"
+  # Smallest we can create...
+  instance_class = "db.r4.large"
+  engine         = "aurora-postgresql"
 }
