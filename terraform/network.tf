@@ -59,6 +59,11 @@ resource "aws_route_table" "private" {
     cidr_block     = "0.0.0.0/0"
     nat_gateway_id = element(aws_nat_gateway.gw.*.id, count.index)
   }
+
+  route {
+    cidr_block     = "172.31.0.0/16"
+    vpc_peering_connection_id = "pcx-0891b79cfe04fc075"
+  }
 }
 
 # Explicitly associate the newly created route tables to the private subnets (so they don't default to the main route table)
@@ -66,5 +71,14 @@ resource "aws_route_table_association" "private" {
   count          = var.az_count
   subnet_id      = element(aws_subnet.private.*.id, count.index)
   route_table_id = element(aws_route_table.private.*.id, count.index)
+}
+
+resource "aws_vpc_peering_connection" "main_to_ecs" {
+  peer_vpc_id   = "vpc-7f721507"
+  vpc_id        = "vpc-0abd18fe2d0587115"
+
+  tags = {
+    Name = "main to ecs vpc"
+  }
 }
 
