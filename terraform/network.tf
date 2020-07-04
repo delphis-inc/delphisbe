@@ -29,9 +29,43 @@ resource "aws_subnet" "public" {
   map_public_ip_on_launch = true
 }
 
+# Create var.az_count public subnets. hacky as these were created through the console and need to be imported in
+resource "aws_subnet" "public-ecs-1" {
+  cidr_block              = "172.31.48.0/20"
+  availability_zone       = "us-west-2d"
+  vpc_id                  = aws_vpc.ecs.id
+  map_public_ip_on_launch = true
+}
+
+resource "aws_subnet" "public-ecs-2" {
+  cidr_block              = "172.31.16.0/20"
+  availability_zone       = "us-west-2b"
+  vpc_id                  = aws_vpc.ecs.id
+  map_public_ip_on_launch = true
+}
+
+resource "aws_subnet" "public-ecs-3" {
+  cidr_block              = "172.31.0.0/20"
+  availability_zone       = "us-west-2c"
+  vpc_id                  = aws_vpc.ecs.id
+  map_public_ip_on_launch = true
+}
+
+resource "aws_subnet" "public-ecs-4" {
+  cidr_block              = "172.31.32.0/20"
+  availability_zone       = "us-west-2a"
+  vpc_id                  = aws_vpc.ecs.id
+  map_public_ip_on_launch = true
+}
+
 # Internet Gateway for the public subnet
 resource "aws_internet_gateway" "gw" {
   vpc_id = aws_vpc.main.id
+}
+
+# Internet Gateway for the public subnet
+resource "aws_internet_gateway" "gw-ecs" {
+  vpc_id = aws_vpc.ecs.id
 }
 
 # Route the public subnet traffic through the IGW
@@ -66,6 +100,21 @@ resource "aws_route_table" "private" {
 
   route {
     cidr_block                = "172.31.0.0/16"
+    vpc_peering_connection_id = aws_vpc_peering_connection.main_to_ecs.id
+  }
+}
+
+# Create a new route table for the private subnets, make it route non-local traffic through the NAT gateway to the internet
+resource "aws_route_table" "private-ecs" {
+  vpc_id = aws_vpc.ecs.id
+
+  route {
+    cidr_block = "0.0.0.0/0"
+    gateway_id = aws_internet_gateway.gw-ecs.id
+  }
+
+  route {
+    cidr_block                = "172.17.0.0/16"
     vpc_peering_connection_id = aws_vpc_peering_connection.main_to_ecs.id
   }
 }
