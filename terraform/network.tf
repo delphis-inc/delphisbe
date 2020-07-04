@@ -8,6 +8,10 @@ resource "aws_vpc" "main" {
   cidr_block = "172.17.0.0/16"
 }
 
+resource "aws_vpc" "ecs" {
+  cidr_block = "172.31.0.0/16"
+}
+
 # Create var.az_count private subnets, each in a different AZ
 resource "aws_subnet" "private" {
   count             = var.az_count
@@ -62,7 +66,7 @@ resource "aws_route_table" "private" {
 
   route {
     cidr_block     = "172.31.0.0/16"
-    vpc_peering_connection_id = "pcx-0891b79cfe04fc075"
+    vpc_peering_connection_id = aws_vpc_peering_connection.main_to_ecs.id
   }
 }
 
@@ -74,8 +78,8 @@ resource "aws_route_table_association" "private" {
 }
 
 resource "aws_vpc_peering_connection" "main_to_ecs" {
-  peer_vpc_id   = "vpc-7f721507"
-  vpc_id        = "vpc-0abd18fe2d0587115"
+  peer_vpc_id   = aws_vpc.ecs.id
+  vpc_id        = aws_vpc.main.id
 
   tags = {
     Name = "main to ecs vpc"
