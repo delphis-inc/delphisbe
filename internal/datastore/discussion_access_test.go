@@ -20,6 +20,7 @@ func TestDelphisDB_GetPublicDiscussions(t *testing.T) {
 	ctx := context.Background()
 	now := time.Now()
 	modID := "modID"
+	emptyString := ""
 	discObj := model.Discussion{
 		ID:            "discussion1",
 		CreatedAt:     now,
@@ -31,7 +32,7 @@ func TestDelphisDB_GetPublicDiscussions(t *testing.T) {
 		AutoPost:      false,
 		IdleMinutes:   120,
 		PublicAccess:  false,
-		IconURL:       "",
+		IconURL:       &emptyString,
 	}
 
 	emptyDisc := model.Discussion{}
@@ -96,6 +97,7 @@ func TestDelphisDB_GetDiscussionsForFlairTemplateByUserID(t *testing.T) {
 	now := time.Now()
 	modID := "modID"
 	userID := "userID"
+	emptyString := ""
 	discObj := model.Discussion{
 		ID:            "discussion1",
 		CreatedAt:     now,
@@ -107,7 +109,7 @@ func TestDelphisDB_GetDiscussionsForFlairTemplateByUserID(t *testing.T) {
 		AutoPost:      false,
 		IdleMinutes:   120,
 		PublicAccess:  false,
-		IconURL:       "",
+		IconURL:       &emptyString,
 	}
 
 	emptyDisc := model.Discussion{}
@@ -172,6 +174,7 @@ func TestDelphisDB_GetDiscussionsForUserAccessByUserID(t *testing.T) {
 	now := time.Now()
 	modID := "modID"
 	userID := "userID"
+	emptyString := ""
 	discObj := model.Discussion{
 		ID:            "discussion1",
 		CreatedAt:     now,
@@ -183,7 +186,7 @@ func TestDelphisDB_GetDiscussionsForUserAccessByUserID(t *testing.T) {
 		AutoPost:      false,
 		IdleMinutes:   120,
 		PublicAccess:  false,
-		IconURL:       "",
+		IconURL:       &emptyString,
 	}
 
 	emptyDisc := model.Discussion{}
@@ -625,6 +628,7 @@ func TestDiscussionIter_Next(t *testing.T) {
 	ctx := context.Background()
 	now := time.Now()
 	modID := "modID"
+	emptyString := ""
 	discObj := model.Discussion{
 		ID:            "discussion1",
 		CreatedAt:     now,
@@ -636,7 +640,7 @@ func TestDiscussionIter_Next(t *testing.T) {
 		AutoPost:      false,
 		IdleMinutes:   120,
 		PublicAccess:  false,
-		IconURL:       "",
+		IconURL:       &emptyString,
 	}
 	emptyDisc := model.Discussion{}
 
@@ -904,6 +908,7 @@ func TestDelphisDB_DiscussionIterCollect(t *testing.T) {
 	ctx := context.Background()
 	now := time.Now()
 	modID := "modID"
+	emptyString := ""
 	discObj := model.Discussion{
 		ID:            "discussion1",
 		CreatedAt:     now,
@@ -914,7 +919,7 @@ func TestDelphisDB_DiscussionIterCollect(t *testing.T) {
 		AutoPost:      false,
 		IdleMinutes:   120,
 		PublicAccess:  false,
-		IconURL:       "",
+		IconURL:       &emptyString,
 	}
 
 	Convey("DiscussionIterCollect", t, func() {

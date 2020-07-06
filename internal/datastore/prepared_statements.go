@@ -156,7 +156,7 @@ const deletePostByIDString = `
 const deletePostByParticipantIDDiscussionIDString = `
 		UPDATE posts
 		SET deleted_at = now(),
-			deleted_reason_code = $3
+			deleted_reason_code = $3,
 			quoted_post_id = null,
 			media_id = null,
 			imported_content_id = null
