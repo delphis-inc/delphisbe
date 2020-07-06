@@ -36,7 +36,6 @@ func TestDelphisBackend_DeletePostByID(t *testing.T) {
 
 	postObj := test_utils.TestPost()
 	participantObj := test_utils.TestParticipant()
-	//postInputObj := test_utils.TestPostContentInput()
 	userObj := test_utils.TestUser()
 	profile := test_utils.TestUserProfile()
 	discObj := test_utils.TestDiscussion()
@@ -129,6 +128,17 @@ func TestDelphisBackend_DeletePostByID(t *testing.T) {
 			So(err, ShouldNotBeNil)
 			So(resp, ShouldBeNil)
 		})
+
+		Convey("when post is already deleted", func() {
+			postObj.DeletedAt = &now
+
+			resp, err := backendObj.DeletePostByID(ctx, discussionID, postObj.ID, *discObj.ModeratorID)
+
+			So(err, ShouldBeNil)
+			So(resp, ShouldNotBeNil)
+		})
+
+		postObj.DeletedAt = nil
 
 		Convey("when user is moderator", func() {
 			mockDB.On("DeletePostByID", ctx, postObj.ID, model.PostDeletedReasonModeratorRemoved).Return(&postObj, nil)

@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"fmt"
 	"io"
 	"time"
 
@@ -212,6 +213,7 @@ func (d *delphisDB) DeletePostByID(ctx context.Context, postID string, deletedRe
 		return nil, err
 	}
 
+	fmt.Printf("deletedReasonCode: %+v, as string: %+v", deletedReasonCode, string(deletedReasonCode))
 	post := model.Post{}
 	if err := d.prepStmts.deletePostByIDStmt.QueryRowContext(
 		ctx,
@@ -230,6 +232,10 @@ func (d *delphisDB) DeletePostByID(ctx context.Context, postID string, deletedRe
 		logrus.WithError(err).Error("failed to execute deletePostByIDStmt")
 		return nil, err
 	}
+
+	post.MediaID = nil
+	post.PostContentID = nil
+	post.QuotedPostID = nil
 
 	return &post, nil
 }

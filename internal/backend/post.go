@@ -428,6 +428,11 @@ func (d *delphisBackend) DeletePostByID(ctx context.Context, discussionID string
 		return nil, fmt.Errorf("Only moderator or author can delete a post")
 	}
 
+	if post.DeletedAt != nil {
+		// This has already been deleted. Make this idempotent.
+		return post, nil
+	}
+
 	deletedReasonCode := model.PostDeletedReasonModeratorRemoved
 	if isParticipant {
 		deletedReasonCode = model.PostDeletedReasonParticipantRemoved

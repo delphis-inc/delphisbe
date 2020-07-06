@@ -37,7 +37,7 @@ CREATE TABLE IF NOT EXISTS posts (
     created_at timestamp with time zone not null,
     updated_at timestamp with time zone not null,
     deleted_at timestamp with time zone,
-    deleted_reason_code varchar(16),
+    deleted_reason_code varchar(32),
     discussion_id varchar(36),
     participant_id varchar(36),
     post_content_id varchar(36) not null

@@ -139,7 +139,7 @@ const deletePostByIDString = `
 			deleted_reason_code = $2,
 			quoted_post_id = null,
 			media_id = null,
-			imported_content_id = null,
+			imported_content_id = null
 		WHERE id = $1
 		RETURNING 
 			id,
