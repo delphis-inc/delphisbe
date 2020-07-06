@@ -1,3 +1,5 @@
+![Delphis Backend Build](https://github.com/nedrocks/delphisbe/workflows/Delphis%20Backend%20Build/badge.svg)
+
 # delphisbe
 Backend monolith for delphis
 
@@ -96,6 +98,13 @@ Host delphis-bastion-db
      User ec2-user
 ```
 and kick it off. Then use `localhost:3333` for the database.
+
+# Terraform
+Please run terraform using these commands. This will leverage the S3 backend.
+```
+AWS_PROFILE=delphis make plan env=staging
+AWS_PROFILE=delphis make apply env=staging
+```
 
 # Infra todos:
 * The VPC is different between the main VPC and the ECS fargate tasks. I have peered these manually and added a routing to their subnets. This should be done within terraform.

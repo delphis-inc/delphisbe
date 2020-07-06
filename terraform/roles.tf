@@ -2,8 +2,8 @@
 data "aws_iam_policy_document" "ecs_task_execution_role" {
   version = "2012-10-17"
   statement {
-    sid = ""
-    effect = "Allow"
+    sid     = ""
+    effect  = "Allow"
     actions = ["sts:AssumeRole"]
 
     principals {
@@ -27,7 +27,7 @@ resource "aws_iam_role_policy_attachment" "ecs_task_execution_role" {
 
 resource "aws_iam_role" "ecs_task_role" {
   name = "delphis-ecsTaskRole"
- 
+
   assume_role_policy = <<EOF
 {
  "Version": "2012-10-17",
@@ -44,12 +44,24 @@ resource "aws_iam_role" "ecs_task_role" {
 }
 EOF
 }
- 
+
+# ECS task execution role policy attachment
+//resource "aws_iam_role_policy_attachment" "ecs_task_execution_role-SQS" {
+//  role       = aws_iam_role.ecs_task_role.name
+//  policy_arn = "arn:aws:iam::aws:policy/AmazonSQSFullAccess"
+//}
+
+# ECS task execution role policy attachment
+resource "aws_iam_role_policy_attachment" "ecs_task_execution_role-S3" {
+  role       = aws_iam_role.ecs_task_role.name
+  policy_arn = "arn:aws:iam::aws:policy/AmazonS3FullAccess"
+}
+
 resource "aws_iam_policy" "dynamodb" {
   name        = "delphis-task-policy-dynamodb"
   description = "Policy that allows access to DynamoDB"
- 
- policy = <<EOF
+
+  policy = <<EOF
 {
    "Version": "2012-10-17",
    "Statement": [
@@ -94,7 +106,7 @@ EOF
 #   ]
 # }
 # EOF
- 
+
 resource "aws_iam_role_policy_attachment" "ecs-task-role-policy-attachment" {
   role       = aws_iam_role.ecs_task_role.name
   policy_arn = aws_iam_policy.dynamodb.arn
@@ -102,12 +114,12 @@ resource "aws_iam_role_policy_attachment" "ecs-task-role-policy-attachment" {
 
 # resource ""
 
-// TODO: This should limit to just the speicfic secret that we use for delphis.
+// TODO: This should limit to just the specific secret that we use for delphis.
 resource "aws_iam_policy" "secrets-manager" {
   name        = "delphis-task-policy-secrets-manager"
   description = "Policy that allows access to Secrets-manager"
- 
- policy = <<EOF
+
+  policy = <<EOF
 {
    "Version": "2012-10-17",
    "Statement": [
@@ -128,4 +140,16 @@ EOF
 resource "aws_iam_role_policy_attachment" "ecs-task-role-policy-attachment-secrets-manager" {
   role       = aws_iam_role.ecs_task_role.name
   policy_arn = aws_iam_policy.secrets-manager.arn
+}
+
+// Zapier user for consuming SQS
+resource "aws_iam_user" "zapier_sqs" {
+  name = "zapier_sqs"
+}
+
+resource "aws_iam_policy_attachment" "zapier_sqs" {
+  name       = "sqs_attachment"
+  users      = [aws_iam_user.zapier_sqs.name]
+  roles      = [aws_iam_role.ecs_task_role.name]
+  policy_arn = "arn:aws:iam::aws:policy/AmazonSQSFullAccess"
 }
