@@ -20,7 +20,6 @@ func (d *delphisBackend) CreateUser(ctx context.Context) (*model.User, error) {
 	}
 
 	resp, err := d.db.UpsertUser(ctx, userObj)
-
 	if err != nil {
 		return nil, err
 	}

@@ -899,3 +899,175 @@ func TestDfaIter_Close(t *testing.T) {
 		})
 	})
 }
+
+func TestDelphisDB_DiscussionIterCollect(t *testing.T) {
+	ctx := context.Background()
+	now := time.Now()
+	modID := "modID"
+	discObj := model.Discussion{
+		ID:            "discussion1",
+		CreatedAt:     now,
+		DeletedAt:     nil,
+		Title:         "test",
+		AnonymityType: "",
+		ModeratorID:   &modID,
+		AutoPost:      false,
+		IdleMinutes:   120,
+		PublicAccess:  false,
+		IconURL:       "",
+	}
+
+	Convey("DiscussionIterCollect", t, func() {
+		db, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
+		assert.Nil(t, err, "Failed setting up sqlmock db")
+
+		gormDB, _ := gorm.Open("postgres", db)
+		mockDatastore := &delphisDB{
+			dbConfig:  config.TablesConfig{},
+			sql:       gormDB,
+			pg:        db,
+			prepStmts: &dbPrepStmts{},
+			dynamo:    nil,
+			encoder:   nil,
+		}
+		defer db.Close()
+
+		Convey("when the iterator fails to close", func() {
+			iter := &discussionIter{
+				err: fmt.Errorf("error"),
+			}
+
+			resp, err := mockDatastore.DiscussionIterCollect(ctx, iter)
+
+			So(err, ShouldNotBeNil)
+			So(resp, ShouldBeNil)
+			So(mock.ExpectationsWereMet(), ShouldBeNil)
+		})
+
+		Convey("when the iterator has results and returns slice of Discussions", func() {
+			rs := sqlmock.NewRows([]string{"id", "created_at", "title", "anonymity_type",
+				"moderator_id", "auto_post", "icon_url", "idle_minutes", "public_access"}).
+				AddRow(discObj.ID, discObj.CreatedAt, discObj.Title, discObj.AnonymityType, discObj.ModeratorID,
+					discObj.AutoPost, discObj.IconURL, discObj.IdleMinutes, discObj.PublicAccess).
+				AddRow(discObj.ID, discObj.CreatedAt, discObj.Title, discObj.AnonymityType, discObj.ModeratorID,
+					discObj.AutoPost, discObj.IconURL, discObj.IdleMinutes, discObj.PublicAccess)
+
+			// Convert mocked rows to sql.Rows
+			mock.ExpectQuery("SELECT").WillReturnRows(rs)
+			rs1, _ := db.Query("SELECT")
+
+			iter := &discussionIter{
+				ctx:  ctx,
+				rows: rs1,
+			}
+
+			resp, err := mockDatastore.DiscussionIterCollect(ctx, iter)
+
+			So(err, ShouldBeNil)
+			So(resp, ShouldNotBeNil)
+			So(resp, ShouldResemble, []*model.Discussion{&discObj, &discObj})
+			So(mock.ExpectationsWereMet(), ShouldBeNil)
+		})
+	})
+}
+
+func TestDelphisDB_FlairTemplatesIterCollect(t *testing.T) {
+	ctx := context.Background()
+	flairTemplateID := "flairID"
+	discussionID := "discussionID"
+	dfaObj := model.DiscussionFlairTemplateAccess{
+		DiscussionID:    discussionID,
+		FlairTemplateID: flairTemplateID,
+	}
+
+	now := time.Now()
+	ftID := "flairTemplateID"
+	displayName := "displayName"
+	imageURL := "imageURL"
+	source := "test"
+	ftObj := model.FlairTemplate{
+		ID:          ftID,
+		DisplayName: &displayName,
+		ImageURL:    &imageURL,
+		Source:      source,
+		CreatedAt:   now,
+		UpdatedAt:   now,
+	}
+
+	expectedQueryStr := `SELECT * FROM "flair_templates" WHERE "flair_templates"."deleted_at" IS NULL AND (("flair_templates"."id" = $1)) ORDER BY "flair_templates"."id" ASC LIMIT 1`
+
+	Convey("FlairTemplatesIterCollect", t, func() {
+		db, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
+		assert.Nil(t, err, "Failed setting up sqlmock db")
+
+		gormDB, _ := gorm.Open("postgres", db)
+		mockDatastore := &delphisDB{
+			dbConfig:  config.TablesConfig{},
+			sql:       gormDB,
+			pg:        db,
+			prepStmts: &dbPrepStmts{},
+			dynamo:    nil,
+			encoder:   nil,
+		}
+		defer db.Close()
+
+		Convey("when the iterator fails to close", func() {
+			iter := &dfaIter{
+				err: fmt.Errorf("error"),
+			}
+
+			resp, err := mockDatastore.FlairTemplatesIterCollect(ctx, iter)
+
+			So(err, ShouldNotBeNil)
+			So(resp, ShouldBeNil)
+			So(mock.ExpectationsWereMet(), ShouldBeNil)
+		})
+		Convey("when the iterator errors on fetching the flair template", func() {
+			rs := sqlmock.NewRows([]string{"discussion_id", "flair_template_id", "created_at", "updated_at"}).
+				AddRow(dfaObj.DiscussionID, dfaObj.FlairTemplateID, dfaObj.CreatedAt, dfaObj.UpdatedAt)
+
+			// Convert mocked rows to sql.Rows
+			mock.ExpectQuery("SELECT").WillReturnRows(rs)
+			rs1, _ := db.Query("SELECT")
+
+			mock.ExpectQuery(expectedQueryStr).WithArgs(dfaObj.FlairTemplateID).WillReturnError(fmt.Errorf("some error"))
+
+			iter := &dfaIter{
+				ctx:  ctx,
+				rows: rs1,
+			}
+
+			resp, err := mockDatastore.FlairTemplatesIterCollect(ctx, iter)
+
+			So(err, ShouldNotBeNil)
+			So(resp, ShouldBeNil)
+			So(mock.ExpectationsWereMet(), ShouldBeNil)
+		})
+
+		Convey("when the iterator has results and returns slice of flair templates", func() {
+			rs := sqlmock.NewRows([]string{"discussion_id", "flair_template_id", "created_at", "updated_at"}).
+				AddRow(dfaObj.DiscussionID, dfaObj.FlairTemplateID, dfaObj.CreatedAt, dfaObj.UpdatedAt)
+
+			templateRs := sqlmock.NewRows([]string{"id", "display_name", "image_url", "source", "created_at", "updated_at", "deleted_at"}).
+				AddRow(ftObj.ID, ftObj.DisplayName, ftObj.ImageURL, ftObj.Source, ftObj.CreatedAt, ftObj.UpdatedAt, ftObj.DeletedAt)
+
+			// Convert mocked rows to sql.Rows
+			mock.ExpectQuery("SELECT").WillReturnRows(rs)
+			rs1, _ := db.Query("SELECT")
+
+			mock.ExpectQuery(expectedQueryStr).WithArgs(dfaObj.FlairTemplateID).WillReturnRows(templateRs)
+
+			iter := &dfaIter{
+				ctx:  ctx,
+				rows: rs1,
+			}
+
+			resp, err := mockDatastore.FlairTemplatesIterCollect(ctx, iter)
+
+			So(err, ShouldBeNil)
+			So(resp, ShouldNotBeNil)
+			So(resp, ShouldResemble, []*model.FlairTemplate{&ftObj})
+			So(mock.ExpectationsWereMet(), ShouldBeNil)
+		})
+	})
+}

@@ -40,10 +40,12 @@ func (d *delphisBackend) AutoPostContent() {
 
 func (d *delphisBackend) checkIdleTime(ctx context.Context, discussionID string, minutes int) (bool, error) {
 	post, err := d.GetLastPostByDiscussionID(ctx, discussionID, minutes)
+
 	if err != nil {
 		logrus.WithError(err).Error("failed to get last post by discussion ID")
 		return false, err
 	}
+
 	return post == nil, nil
 }
 
@@ -51,7 +53,7 @@ func (d *delphisBackend) postNextContent(ctx context.Context, discussionID strin
 	dripType := model.ScheduledDrip
 	// Fetch next article
 	iter := d.db.GetScheduledImportedContentByDiscussionID(ctx, discussionID)
-	contents, err := d.iterToContent(ctx, iter)
+	contents, err := d.db.ContentIterCollect(ctx, iter)
 	if err != nil {
 		logrus.WithError(err).Error("failed to get scheduledContent")
 		return err
@@ -59,7 +61,7 @@ func (d *delphisBackend) postNextContent(ctx context.Context, discussionID strin
 	if len(contents) == 0 {
 		dripType = model.AutoDrip
 		iter = d.db.GetImportedContentByDiscussionID(ctx, discussionID, 10)
-		contents, err = d.iterToContent(ctx, iter)
+		contents, err = d.db.ContentIterCollect(ctx, iter)
 		if err != nil {
 			logrus.WithError(err).Error("failed to get imported content")
 			return err

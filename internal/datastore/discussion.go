@@ -3,6 +3,7 @@ package datastore
 import (
 	"context"
 	"database/sql"
+	"io"
 
 	"github.com/jinzhu/gorm"
 	"github.com/nedrocks/delphisbe/graph/model"
@@ -246,4 +247,24 @@ func (iter *autoPostDiscussionIter) Close() error {
 	}
 
 	return nil
+}
+
+func (d *delphisDB) DiscussionAutoPostIterCollect(ctx context.Context, iter AutoPostDiscussionIter) ([]*model.DiscussionAutoPost, error) {
+	var discs []*model.DiscussionAutoPost
+	disc := model.DiscussionAutoPost{}
+
+	defer iter.Close()
+
+	for iter.Next(&disc) {
+		tempDisc := disc
+
+		discs = append(discs, &tempDisc)
+	}
+
+	if err := iter.Close(); err != nil && err != io.EOF {
+		logrus.WithError(err).Error("failed to close iter")
+		return nil, err
+	}
+
+	return discs, nil
 }

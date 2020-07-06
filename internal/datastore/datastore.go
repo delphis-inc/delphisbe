@@ -84,6 +84,13 @@ type Datastore interface {
 
 	// Helper functions
 	PostIterCollect(ctx context.Context, iter PostIter) ([]*model.Post, error)
+	DiscussionAutoPostIterCollect(ctx context.Context, iter AutoPostDiscussionIter) ([]*model.DiscussionAutoPost, error)
+	TagIterCollect(ctx context.Context, iter TagIter) ([]*model.Tag, error)
+	ContentIterCollect(ctx context.Context, iter ContentIter) ([]*model.ImportedContent, error)
+	DiscussionIterCollect(ctx context.Context, iter DiscussionIter) ([]*model.Discussion, error)
+	FlairTemplatesIterCollect(ctx context.Context, iter DFAIter) ([]*model.FlairTemplate, error)
+	DiscussionInviteIterCollect(ctx context.Context, iter DiscussionInviteIter) ([]*model.DiscussionInvite, error)
+	AccessRequestIterCollect(ctx context.Context, iter DiscussionAccessRequestIter) ([]*model.DiscussionAccessRequest, error)
 
 	GetPublicDiscussions(ctx context.Context) DiscussionIter
 	GetDiscussionsForFlairTemplateByUserID(ctx context.Context, userID string) DiscussionIter
@@ -302,7 +309,7 @@ func (d *delphisDB) initializeStatements(ctx context.Context) (err error) {
 		return errors.Wrap(err, "failed to prepare getImportedContentByIDStmt")
 	}
 	if d.prepStmts.getImportedContentForDiscussionStmt, err = d.pg.PrepareContext(ctx, getImportedContentForDiscussionString); err != nil {
-		logrus.WithError(err).Error("failed to prepare getImportedContentForDiscussionStmt")
+		logrus.WithError(err).Error("failed to prepare getImportedContentorDiscussionStmt")
 		return errors.Wrap(err, "failed to prepare getImportedContentForDiscussionStmt")
 	}
 	if d.prepStmts.getScheduledImportedContentByDiscussionIDStmt, err = d.pg.PrepareContext(ctx, getScheduledImportedContentByDiscussionIDString); err != nil {

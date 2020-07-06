@@ -947,3 +947,129 @@ func TestContentIter_Close(t *testing.T) {
 		})
 	})
 }
+
+func TestDelphisDB_ContentIterCollect(t *testing.T) {
+	ctx := context.Background()
+	discussionID := "discussion1"
+
+	icObj := model.ImportedContent{
+		ID:          discussionID,
+		ContentName: "name",
+		ContentType: "type",
+	}
+
+	Convey("ContentIterCollect", t, func() {
+		db, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
+		assert.Nil(t, err, "Failed setting up sqlmock db")
+
+		gormDB, _ := gorm.Open("postgres", db)
+		mockDatastore := &delphisDB{
+			dbConfig:  config.TablesConfig{},
+			sql:       gormDB,
+			pg:        db,
+			prepStmts: &dbPrepStmts{},
+			dynamo:    nil,
+			encoder:   nil,
+		}
+		defer db.Close()
+
+		Convey("when the iterator fails to close", func() {
+			iter := &contentIter{
+				err: fmt.Errorf("error"),
+			}
+
+			resp, err := mockDatastore.ContentIterCollect(ctx, iter)
+
+			So(err, ShouldNotBeNil)
+			So(resp, ShouldBeNil)
+			So(mock.ExpectationsWereMet(), ShouldBeNil)
+		})
+
+		Convey("when the iterator has results and returns slice of ImportedContent", func() {
+			rs := sqlmock.NewRows([]string{"i.id", "i.created_at", "i.content_name", "i.content_type", "i.link", "i.overview",
+				"i.source", "q.matching_tags"}).
+				AddRow(icObj.ID, icObj.CreatedAt, icObj.ContentName, icObj.ContentType, icObj.Link,
+					icObj.Overview, icObj.Source, pq.Array(icObj.Tags)).
+				AddRow(icObj.ID, icObj.CreatedAt, icObj.ContentName, icObj.ContentType, icObj.Link,
+					icObj.Overview, icObj.Source, pq.Array(icObj.Tags))
+
+			// Convert mocked rows to sql.Rows
+			mock.ExpectQuery("SELECT").WillReturnRows(rs)
+			rs1, _ := db.Query("SELECT")
+
+			iter := &contentIter{
+				ctx:  ctx,
+				rows: rs1,
+			}
+
+			resp, err := mockDatastore.ContentIterCollect(ctx, iter)
+
+			So(err, ShouldBeNil)
+			So(resp, ShouldNotBeNil)
+			So(resp, ShouldResemble, []*model.ImportedContent{&icObj, &icObj})
+			So(mock.ExpectationsWereMet(), ShouldBeNil)
+		})
+
+	})
+}
+
+func TestDelphisDB_TagIterCollect(t *testing.T) {
+	ctx := context.Background()
+	discussionID := "discussion1"
+
+	tagObj := model.Tag{
+		ID:  discussionID,
+		Tag: "tag",
+	}
+
+	Convey("TagIterCollect", t, func() {
+		db, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
+		assert.Nil(t, err, "Failed setting up sqlmock db")
+
+		gormDB, _ := gorm.Open("postgres", db)
+		mockDatastore := &delphisDB{
+			dbConfig:  config.TablesConfig{},
+			sql:       gormDB,
+			pg:        db,
+			prepStmts: &dbPrepStmts{},
+			dynamo:    nil,
+			encoder:   nil,
+		}
+		defer db.Close()
+
+		Convey("when the iterator fails to close", func() {
+			iter := &tagIter{
+				err: fmt.Errorf("error"),
+			}
+
+			resp, err := mockDatastore.TagIterCollect(ctx, iter)
+
+			So(err, ShouldNotBeNil)
+			So(resp, ShouldBeNil)
+			So(mock.ExpectationsWereMet(), ShouldBeNil)
+		})
+
+		Convey("when the iterator has results and returns slice of Tags", func() {
+			rs := sqlmock.NewRows([]string{"discussion_id", "tag", "created_at"}).
+				AddRow(tagObj.ID, tagObj.Tag, tagObj.CreatedAt).
+				AddRow(tagObj.ID, tagObj.Tag, tagObj.CreatedAt)
+
+			// Convert mocked rows to sql.Rows
+			mock.ExpectQuery("SELECT").WillReturnRows(rs)
+			rs1, _ := db.Query("SELECT")
+
+			iter := &tagIter{
+				ctx:  ctx,
+				rows: rs1,
+			}
+
+			resp, err := mockDatastore.TagIterCollect(ctx, iter)
+
+			So(err, ShouldBeNil)
+			So(resp, ShouldNotBeNil)
+			So(resp, ShouldResemble, []*model.Tag{&tagObj, &tagObj})
+			So(mock.ExpectationsWereMet(), ShouldBeNil)
+		})
+
+	})
+}

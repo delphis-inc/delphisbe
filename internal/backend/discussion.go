@@ -3,14 +3,11 @@ package backend
 import (
 	"context"
 	"fmt"
-	"io"
 	"time"
 
 	"go.uber.org/multierr"
 
 	"github.com/sirupsen/logrus"
-
-	"github.com/nedrocks/delphisbe/internal/datastore"
 
 	"github.com/nedrocks/delphisbe/graph/model"
 	"github.com/nedrocks/delphisbe/internal/util"
@@ -64,10 +61,10 @@ func (d *delphisBackend) UpdateDiscussion(ctx context.Context, id string, input 
 	discObj, err := d.db.GetDiscussionByID(ctx, id)
 	if err != nil {
 		logrus.WithError(err).Error("failed to get discussion by ID")
+		return nil, err
 	}
 
 	updateDiscussionObj(discObj, input)
-	logrus.Debugf("Discussion: %+v\n", discObj)
 
 	return d.db.UpsertDiscussion(ctx, *discObj)
 }
@@ -86,7 +83,7 @@ func (d *delphisBackend) GetDiscussionByModeratorID(ctx context.Context, moderat
 
 func (d *delphisBackend) GetDiscussionsForAutoPost(ctx context.Context) ([]*model.DiscussionAutoPost, error) {
 	iter := d.db.GetDiscussionsAutoPost(ctx)
-	return d.iterToDiscussionsAutoPost(ctx, iter)
+	return d.db.DiscussionAutoPostIterCollect(ctx, iter)
 }
 
 func (d *delphisBackend) ListDiscussions(ctx context.Context) (*model.DiscussionsConnection, error) {
@@ -131,7 +128,7 @@ func (d *delphisBackend) UnSubscribeFromDiscussion(ctx context.Context, subscrib
 
 func (d *delphisBackend) GetDiscussionTags(ctx context.Context, id string) ([]*model.Tag, error) {
 	iter := d.db.GetDiscussionTags(ctx, id)
-	return d.iterToTags(ctx, iter)
+	return d.db.TagIterCollect(ctx, iter)
 }
 
 func (d *delphisBackend) PutDiscussionTags(ctx context.Context, discussionID string, tags []string) ([]*model.Tag, error) {
@@ -216,46 +213,6 @@ func (d *delphisBackend) DeleteDiscussionTags(ctx context.Context, discussionID 
 	}
 
 	return deletedTags, nil
-}
-
-func (d *delphisBackend) iterToDiscussionsAutoPost(ctx context.Context, iter datastore.AutoPostDiscussionIter) ([]*model.DiscussionAutoPost, error) {
-	var discs []*model.DiscussionAutoPost
-	disc := model.DiscussionAutoPost{}
-
-	defer iter.Close()
-
-	for iter.Next(&disc) {
-		tempDisc := disc
-
-		discs = append(discs, &tempDisc)
-	}
-
-	if err := iter.Close(); err != nil && err != io.EOF {
-		logrus.WithError(err).Error("failed to close iter")
-		return nil, err
-	}
-
-	return discs, nil
-}
-
-func (d *delphisBackend) iterToTags(ctx context.Context, iter datastore.TagIter) ([]*model.Tag, error) {
-	var tags []*model.Tag
-	tag := model.Tag{}
-
-	defer iter.Close()
-
-	for iter.Next(&tag) {
-		tempTag := tag
-
-		tags = append(tags, &tempTag)
-	}
-
-	if err := iter.Close(); err != nil && err != io.EOF {
-		logrus.WithError(err).Error("failed to close iter")
-		return nil, err
-	}
-
-	return tags, nil
 }
 
 func updateDiscussionObj(disc *model.Discussion, input model.DiscussionInput) {
