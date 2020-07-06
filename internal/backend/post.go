@@ -400,6 +400,42 @@ func (d *delphisBackend) GetMentionedEntities(ctx context.Context, entityIDs []s
 	return entities, nil
 }
 
+func (d *delphisBackend) GetPostByID(ctx context.Context, id string) (*model.Post, error) {
+	return d.db.GetPostByID(ctx, id)
+}
+
+func (d *delphisBackend) DeletePostByID(ctx context.Context, discussionID string, postID string, requestingUserID string) (*model.Post, error) {
+	disc, err := d.GetDiscussionByID(ctx, discussionID)
+	if err != nil || disc == nil {
+		return nil, fmt.Errorf("Discussion not found")
+	}
+
+	post, err := d.GetPostByID(ctx, postID)
+	if err != nil || post == nil || post.ParticipantID == nil {
+		return nil, fmt.Errorf("Post not found")
+	}
+
+	participant, err := d.GetParticipantByID(ctx, *post.ParticipantID)
+	if err != nil || participant == nil {
+		return nil, fmt.Errorf("Participant not found")
+	}
+
+	isModerator := disc.ModeratorID != nil && *disc.ModeratorID == requestingUserID
+	isParticipant := participant.UserID != nil && *participant.UserID == requestingUserID
+
+	// Only the moderator or author can delete a post
+	if !isModerator && !isParticipant {
+		return nil, fmt.Errorf("Only moderator or author can delete a post")
+	}
+
+	deletedReasonCode := model.PostDeletedReasonModeratorRemoved
+	if isParticipant {
+		deletedReasonCode = model.PostDeletedReasonParticipantRemoved
+	}
+
+	return d.db.DeletePostByID(ctx, postID, deletedReasonCode)
+}
+
 func (d *delphisBackend) GetNewDiscussionConciergePosts(ctx context.Context, userID string, discussionID string) ([]*model.Post, error) {
 	var posts []*model.Post
 

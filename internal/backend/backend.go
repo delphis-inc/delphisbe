@@ -57,6 +57,7 @@ type DelphisBackend interface {
 	GetPostsByDiscussionID(ctx context.Context, userID string, discussionID string) ([]*model.Post, error)
 	GetLastPostByDiscussionID(ctx context.Context, discussionID string, minutes int) (*model.Post, error)
 	GetPostContentByID(ctx context.Context, id string) (*model.PostContent, error)
+	DeletePostByID(ctx context.Context, discussionID string, postID string, requestingUserID string) (*model.Post, error)
 	GetUserProfileByID(ctx context.Context, id string) (*model.UserProfile, error)
 	GetUserProfileByUserID(ctx context.Context, userID string) (*model.UserProfile, error)
 	CreateUser(ctx context.Context) (*model.User, error)

@@ -10,6 +10,7 @@ type dbPrepStmts struct {
 	getLastPostByDiscussionIDStmt        *sql2.Stmt
 	getPostsByDiscussionIDFromCursorStmt *sql2.Stmt
 	putPostStmt                          *sql2.Stmt
+	deletePostByIDStmt                   *sql2.Stmt
 
 	// PostContents
 	putPostContentsStmt *sql2.Stmt
@@ -131,6 +132,26 @@ const getPostsByDiscussionIDFromCursorString = `
 		AND p.created_at < $2
 		ORDER BY p.created_at desc
 		LIMIT $3;`
+
+const deletePostByIDString = `
+		UPDATE posts
+		SET deleted_at = now(),
+			deleted_reason_code = $2
+		WHERE id = $1
+		RETURNING 
+			id,
+			created_at,
+			updated_at,
+			deleted_at,
+			deleted_reason_code,
+			discussion_id,
+			participant_id,
+			post_content_id,
+			quoted_post_id,
+			media_id,
+			imported_content_id,
+			post_type;
+`
 
 const getLastPostByDiscussionIDStmt = `
 		SELECT p.id,

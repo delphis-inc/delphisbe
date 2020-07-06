@@ -208,6 +208,7 @@ type ComplexityRoot struct {
 		CreateFlairTemplate                  func(childComplexity int, displayName *string, imageURL *string, source string) int
 		DeleteDiscussionFlairTemplatesAccess func(childComplexity int, discussionID string, flairTemplateIDs []string) int
 		DeleteDiscussionTags                 func(childComplexity int, discussionID string, tags []string) int
+		DeletePost                           func(childComplexity int, discussionID string, postID string) int
 		InviteUserToDiscussion               func(childComplexity int, discussionID string, userID string, invitingParticipantID string) int
 		PostImportedContent                  func(childComplexity int, discussionID string, participantID string, contentID string) int
 		RemoveFlair                          func(childComplexity int, id string) int
@@ -472,6 +473,7 @@ type MutationResolver interface {
 	RespondToInvite(ctx context.Context, inviteID string, response model.InviteRequestStatus, discussionParticipantInput model.AddDiscussionParticipantInput) (*model.DiscussionInvite, error)
 	RequestAccessToDiscussion(ctx context.Context, discussionID string) (*model.DiscussionAccessRequest, error)
 	RespondToRequestAccess(ctx context.Context, requestID string, response model.InviteRequestStatus) (*model.DiscussionAccessRequest, error)
+	DeletePost(ctx context.Context, discussionID string, postID string) (*model.Post, error)
 }
 type ParticipantResolver interface {
 	Discussion(ctx context.Context, obj *model.Participant) (*model.Discussion, error)
@@ -1309,6 +1311,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Mutation.DeleteDiscussionTags(childComplexity, args["discussionID"].(string), args["tags"].([]string)), true
+
+	case "Mutation.deletePost":
+		if e.complexity.Mutation.DeletePost == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_deletePost_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.DeletePost(childComplexity, args["discussionID"].(string), args["postID"].(string)), true
 
 	case "Mutation.inviteUserToDiscussion":
 		if e.complexity.Mutation.InviteUserToDiscussion == nil {
@@ -2649,6 +2663,9 @@ type Mutation {
 
   requestAccessToDiscussion(discussionID: ID!): DiscussionAccessRequest!
   respondToRequestAccess(requestID: ID!, response: InviteRequestStatus!): DiscussionAccessRequest!
+
+  # Posts
+  deletePost(discussionID: ID!, postID: ID!): Post!
 }
 
 type Subscription {
@@ -3044,6 +3061,28 @@ func (ec *executionContext) field_Mutation_deleteDiscussionTags_args(ctx context
 		}
 	}
 	args["tags"] = arg1
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_deletePost_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 string
+	if tmp, ok := rawArgs["discussionID"]; ok {
+		arg0, err = ec.unmarshalNID2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["discussionID"] = arg0
+	var arg1 string
+	if tmp, ok := rawArgs["postID"]; ok {
+		arg1, err = ec.unmarshalNID2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["postID"] = arg1
 	return args, nil
 }
 
@@ -7278,6 +7317,47 @@ func (ec *executionContext) _Mutation_respondToRequestAccess(ctx context.Context
 	res := resTmp.(*model.DiscussionAccessRequest)
 	fc.Result = res
 	return ec.marshalNDiscussionAccessRequest2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐDiscussionAccessRequest(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Mutation_deletePost(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "Mutation",
+		Field:    field,
+		Args:     nil,
+		IsMethod: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Mutation_deletePost_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().DeletePost(rctx, args["discussionID"].(string), args["postID"].(string))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.Post)
+	fc.Result = res
+	return ec.marshalNPost2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐPost(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _PageInfo_startCursor(ctx context.Context, field graphql.CollectedField, obj *model.PageInfo) (ret graphql.Marshaler) {
@@ -12933,6 +13013,11 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			}
 		case "respondToRequestAccess":
 			out.Values[i] = ec._Mutation_respondToRequestAccess(ctx, field)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "deletePost":
+			out.Values[i] = ec._Mutation_deletePost(ctx, field)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}

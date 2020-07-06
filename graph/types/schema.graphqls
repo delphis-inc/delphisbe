@@ -105,6 +105,9 @@ type Mutation {
 
   requestAccessToDiscussion(discussionID: ID!): DiscussionAccessRequest!
   respondToRequestAccess(requestID: ID!, response: InviteRequestStatus!): DiscussionAccessRequest!
+
+  # Posts
+  deletePost(discussionID: ID!, postID: ID!): Post!
 }
 
 type Subscription {

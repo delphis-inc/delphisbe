@@ -54,6 +54,7 @@ type Datastore interface {
 	GetPostContentByID(ctx context.Context, id string) (*model.PostContent, error)
 	PutPost(ctx context.Context, tx *sql2.Tx, post model.Post) (*model.Post, error)
 	PutPostContent(ctx context.Context, tx *sql2.Tx, postContent model.PostContent) error
+	DeletePostByID(ctx context.Context, postID string, deletedReasonCode model.PostDeletedReason) (*model.Post, error)
 	GetUserProfileByID(ctx context.Context, id string) (*model.UserProfile, error)
 	GetUserProfileByUserID(ctx context.Context, userID string) (*model.UserProfile, error)
 	GetSocialInfosByUserProfileID(ctx context.Context, userProfileID string) ([]model.SocialInfo, error)
@@ -259,6 +260,10 @@ func (d *delphisDB) initializeStatements(ctx context.Context) (err error) {
 	if d.prepStmts.putPostStmt, err = d.pg.PrepareContext(ctx, putPostString); err != nil {
 		logrus.WithError(err).Error("failed to prepare putPostStmt")
 		return errors.Wrap(err, "failed to prepare putPostStmt")
+	}
+	if d.prepStmts.deletePostByIDStmt, err = d.pg.PrepareContext(ctx, deletePostByIDString); err != nil {
+		logrus.WithError(err).Error("failed to prepare deletePostByIDStmt")
+		return errors.Wrap(err, "failed to prepare deletePostByIDStmt")
 	}
 
 	// POST CONTENTS
