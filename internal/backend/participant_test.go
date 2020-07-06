@@ -421,7 +421,9 @@ func TestDelphisBackend_BanParticipant(t *testing.T) {
 	anonParObj := test_utils.TestParticipant()
 	discussionObj := test_utils.TestDiscussion()
 	discussionID := test_utils.DiscussionID
-	requestingUserID := *discussionObj.ModeratorID
+	moderatorObj := test_utils.TestModerator()
+	userProfileObj := test_utils.TestUserProfile()
+	requestingUserID := *userProfileObj.UserID
 
 	anonParObj.IsAnonymous = true
 
@@ -458,6 +460,50 @@ func TestDelphisBackend_BanParticipant(t *testing.T) {
 		})
 
 		mockDB.On("GetDiscussionByID", ctx, discussionID).Return(&discussionObj, nil)
+
+		Convey("when the moderator is not found", func() {
+			Convey("when an error is returned", func() {
+				mockDB.On("GetModeratorByID", ctx, *discussionObj.ModeratorID).Return(nil, fmt.Errorf("sth"))
+
+				resp, err := backendObj.BanParticipant(ctx, discussionID, participantID, requestingUserID)
+
+				So(err, ShouldNotBeNil)
+				So(resp, ShouldBeNil)
+			})
+
+			Convey("when the object is nil", func() {
+				mockDB.On("GetModeratorByID", ctx, *discussionObj.ModeratorID).Return(nil, nil)
+
+				resp, err := backendObj.BanParticipant(ctx, discussionID, participantID, requestingUserID)
+
+				So(err, ShouldNotBeNil)
+				So(resp, ShouldBeNil)
+			})
+		})
+
+		mockDB.On("GetModeratorByID", ctx, *discussionObj.ModeratorID).Return(&moderatorObj, nil)
+
+		Convey("when the user profile is not found", func() {
+			Convey("when an error is returned", func() {
+				mockDB.On("GetUserProfileByID", ctx, *moderatorObj.UserProfileID).Return(nil, fmt.Errorf("sth"))
+
+				resp, err := backendObj.BanParticipant(ctx, discussionID, participantID, requestingUserID)
+
+				So(err, ShouldNotBeNil)
+				So(resp, ShouldBeNil)
+			})
+
+			Convey("when the object is nil", func() {
+				mockDB.On("GetUserProfileByID", ctx, *moderatorObj.UserProfileID).Return(nil, nil)
+
+				resp, err := backendObj.BanParticipant(ctx, discussionID, participantID, requestingUserID)
+
+				So(err, ShouldNotBeNil)
+				So(resp, ShouldBeNil)
+			})
+		})
+
+		mockDB.On("GetUserProfileByID", ctx, *moderatorObj.UserProfileID).Return(&userProfileObj, nil)
 
 		Convey("when the requesting user is not the moderator", func() {
 			resp, err := backendObj.BanParticipant(ctx, discussionID, participantID, "baduserid")

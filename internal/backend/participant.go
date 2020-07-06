@@ -92,11 +92,21 @@ func (d *delphisBackend) CreateParticipantForDiscussion(ctx context.Context, dis
 
 func (d *delphisBackend) BanParticipant(ctx context.Context, discussionID string, participantID string, requestingUserID string) (*model.Participant, error) {
 	discussionObj, err := d.GetDiscussionByID(ctx, discussionID)
-	if err != nil || discussionObj == nil {
+	if err != nil || discussionObj == nil || discussionObj.ModeratorID == nil {
 		return nil, fmt.Errorf("Failed to retrieve discussion")
 	}
 
-	if discussionObj.ModeratorID == nil || requestingUserID != *discussionObj.ModeratorID {
+	moderatorObj, err := d.GetModeratorByID(ctx, *discussionObj.ModeratorID)
+	if err != nil || moderatorObj == nil || moderatorObj.UserProfileID == nil {
+		return nil, fmt.Errorf("Failed to retrieve discussion")
+	}
+
+	userProfile, err := d.GetUserProfileByID(ctx, *moderatorObj.UserProfileID)
+	if err != nil || userProfile == nil || userProfile.UserID == nil {
+		return nil, fmt.Errorf("Failed to retrieve discussion")
+	}
+
+	if *userProfile.UserID != requestingUserID {
 		return nil, fmt.Errorf("Only the moderator may ban users")
 	}
 
