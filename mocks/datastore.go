@@ -248,6 +248,29 @@ func (_m *Datastore) DeleteDiscussionUserAccess(ctx context.Context, tx *sql.Tx,
 	return r0, r1
 }
 
+// DeletePostByID provides a mock function with given fields: ctx, postID, deletedReasonCode
+func (_m *Datastore) DeletePostByID(ctx context.Context, postID string, deletedReasonCode model.PostDeletedReason) (*model.Post, error) {
+	ret := _m.Called(ctx, postID, deletedReasonCode)
+
+	var r0 *model.Post
+	if rf, ok := ret.Get(0).(func(context.Context, string, model.PostDeletedReason) *model.Post); ok {
+		r0 = rf(ctx, postID, deletedReasonCode)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*model.Post)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(context.Context, string, model.PostDeletedReason) error); ok {
+		r1 = rf(ctx, postID, deletedReasonCode)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // DiscussionAutoPostIterCollect provides a mock function with given fields: ctx, iter
 func (_m *Datastore) DiscussionAutoPostIterCollect(ctx context.Context, iter datastore.AutoPostDiscussionIter) ([]*model.DiscussionAutoPost, error) {
 	ret := _m.Called(ctx, iter)

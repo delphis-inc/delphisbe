@@ -136,7 +136,10 @@ const getPostsByDiscussionIDFromCursorString = `
 const deletePostByIDString = `
 		UPDATE posts
 		SET deleted_at = now(),
-			deleted_reason_code = $2
+			deleted_reason_code = $2,
+			quoted_post_id = nil,
+			media_id = nil,
+			imported_content_id = nil,
 		WHERE id = $1
 		RETURNING 
 			id,
@@ -146,10 +149,6 @@ const deletePostByIDString = `
 			deleted_reason_code,
 			discussion_id,
 			participant_id,
-			post_content_id,
-			quoted_post_id,
-			media_id,
-			imported_content_id,
 			post_type;
 `
 
