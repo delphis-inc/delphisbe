@@ -78,10 +78,10 @@ func TestDelphisDB_GetParticipantByID(t *testing.T) {
 
 		Convey("when query execution succeeds and returns a discussions", func() {
 			rs := sqlmock.NewRows([]string{"id", "participant_id", "created_at", "updated_at", "deleted_at", "discussion_id",
-				"viewer_id", "user_id", "flair_id", "is_anonymous", "gradient_color", "has_joined"}).
+				"viewer_id", "user_id", "flair_id", "is_anonymous", "gradient_color", "has_joined", "is_banned"}).
 				AddRow(parObj.ID, parObj.ParticipantID, parObj.CreatedAt, parObj.UpdatedAt, parObj.DeletedAt,
 					parObj.DiscussionID, parObj.ViewerID, parObj.UserID, parObj.FlairID,
-					parObj.IsAnonymous, parObj.GradientColor, parObj.HasJoined)
+					parObj.IsAnonymous, parObj.GradientColor, parObj.HasJoined, parObj.IsBanned)
 
 			mock.ExpectQuery(expectedQueryString).WithArgs(parObj.ID).WillReturnRows(rs)
 
@@ -117,6 +117,7 @@ func TestDelphisDB_GetParticipantsByIDs(t *testing.T) {
 		IsAnonymous:   false,
 		CreatedAt:     now,
 		UpdatedAt:     now,
+		IsBanned:      false,
 	}
 
 	participants := []model.Participant{parObj, parObj}
@@ -139,7 +140,6 @@ func TestDelphisDB_GetParticipantsByIDs(t *testing.T) {
 		defer db.Close()
 
 		expectedQueryString := `SELECT * FROM "participants" WHERE "participants"."deleted_at" IS NULL AND (("participants"."id" IN ($1,$2)))`
-		//expectedModQueryString := `SELECT * FROM "moderators"  WHERE "moderators"."deleted_at" IS NULL AND (("id" IN ($1)))`
 
 		Convey("when query execution returns an error", func() {
 			mock.ExpectQuery(expectedQueryString).WithArgs(participantIDs[0], participantIDs[1]).WillReturnError(fmt.Errorf("error"))
@@ -163,13 +163,13 @@ func TestDelphisDB_GetParticipantsByIDs(t *testing.T) {
 
 		Convey("when query execution succeeds and returns a discussions", func() {
 			rs := sqlmock.NewRows([]string{"id", "participant_id", "created_at", "updated_at", "deleted_at", "discussion_id",
-				"viewer_id", "user_id", "flair_id", "is_anonymous", "gradient_color", "has_joined"}).
+				"viewer_id", "user_id", "flair_id", "is_anonymous", "gradient_color", "has_joined", "is_banned"}).
 				AddRow(parObj.ID, parObj.ParticipantID, parObj.CreatedAt, parObj.UpdatedAt, parObj.DeletedAt,
 					parObj.DiscussionID, parObj.ViewerID, parObj.UserID, parObj.FlairID,
-					parObj.IsAnonymous, parObj.GradientColor, parObj.HasJoined).
+					parObj.IsAnonymous, parObj.GradientColor, parObj.HasJoined, parObj.IsBanned).
 				AddRow(parObj.ID, parObj.ParticipantID, parObj.CreatedAt, parObj.UpdatedAt, parObj.DeletedAt,
 					parObj.DiscussionID, parObj.ViewerID, parObj.UserID, parObj.FlairID,
-					parObj.IsAnonymous, parObj.GradientColor, parObj.HasJoined)
+					parObj.IsAnonymous, parObj.GradientColor, parObj.HasJoined, parObj.IsBanned)
 
 			mock.ExpectQuery(expectedQueryString).WithArgs(participantIDs[0], participantIDs[1]).WillReturnRows(rs)
 
@@ -210,6 +210,7 @@ func TestDelphisDB_GetParticipantsByDiscussionID(t *testing.T) {
 		IsAnonymous:   false,
 		CreatedAt:     now,
 		UpdatedAt:     now,
+		IsBanned:      true,
 	}
 
 	Convey("GetParticipantsByDiscussionID", t, func() {
@@ -229,7 +230,6 @@ func TestDelphisDB_GetParticipantsByDiscussionID(t *testing.T) {
 		defer db.Close()
 
 		expectedQueryString := `SELECT * FROM "participants" WHERE "participants"."deleted_at" IS NULL AND (("participants"."discussion_id" = $1)) ORDER BY participant_id desc`
-		//expectedModQueryString := `SELECT * FROM "moderators"  WHERE "moderators"."deleted_at" IS NULL AND (("id" IN ($1)))`
 
 		Convey("when query execution returns an error", func() {
 			mock.ExpectQuery(expectedQueryString).WithArgs(parObj.DiscussionID).WillReturnError(fmt.Errorf("error"))
@@ -253,13 +253,13 @@ func TestDelphisDB_GetParticipantsByDiscussionID(t *testing.T) {
 
 		Convey("when query execution succeeds and returns a discussions", func() {
 			rs := sqlmock.NewRows([]string{"id", "participant_id", "created_at", "updated_at", "deleted_at", "discussion_id",
-				"viewer_id", "user_id", "flair_id", "is_anonymous", "gradient_color", "has_joined"}).
+				"viewer_id", "user_id", "flair_id", "is_anonymous", "gradient_color", "has_joined", "is_banned"}).
 				AddRow(parObj.ID, parObj.ParticipantID, parObj.CreatedAt, parObj.UpdatedAt, parObj.DeletedAt,
 					parObj.DiscussionID, parObj.ViewerID, parObj.UserID, parObj.FlairID,
-					parObj.IsAnonymous, parObj.GradientColor, parObj.HasJoined).
+					parObj.IsAnonymous, parObj.GradientColor, parObj.HasJoined, parObj.IsBanned).
 				AddRow(parObj.ID, parObj.ParticipantID, parObj.CreatedAt, parObj.UpdatedAt, parObj.DeletedAt,
 					parObj.DiscussionID, parObj.ViewerID, parObj.UserID, parObj.FlairID,
-					parObj.IsAnonymous, parObj.GradientColor, parObj.HasJoined)
+					parObj.IsAnonymous, parObj.GradientColor, parObj.HasJoined, parObj.IsBanned)
 
 			mock.ExpectQuery(expectedQueryString).WithArgs(parObj.DiscussionID).WillReturnRows(rs)
 
@@ -295,6 +295,7 @@ func TestDelphisDB_GetParticipantsByDiscussionIDUserID(t *testing.T) {
 		IsAnonymous:   false,
 		CreatedAt:     now,
 		UpdatedAt:     now,
+		IsBanned:      false,
 	}
 
 	Convey("GetParticipantsByDiscussionIDUserID", t, func() {
@@ -314,7 +315,6 @@ func TestDelphisDB_GetParticipantsByDiscussionIDUserID(t *testing.T) {
 		defer db.Close()
 
 		expectedQueryString := `SELECT * FROM "participants" WHERE "participants"."deleted_at" IS NULL AND (("participants"."discussion_id" = $1) AND ("participants"."user_id" = $2)) ORDER BY participant_id desc LIMIT 2`
-		//expectedModQueryString := `SELECT * FROM "moderators"  WHERE "moderators"."deleted_at" IS NULL AND (("id" IN ($1)))`
 
 		Convey("when query execution returns an error", func() {
 			mock.ExpectQuery(expectedQueryString).WithArgs(parObj.DiscussionID, parObj.UserID).WillReturnError(fmt.Errorf("error"))
@@ -338,13 +338,13 @@ func TestDelphisDB_GetParticipantsByDiscussionIDUserID(t *testing.T) {
 
 		Convey("when query execution succeeds and returns a discussions", func() {
 			rs := sqlmock.NewRows([]string{"id", "participant_id", "created_at", "updated_at", "deleted_at", "discussion_id",
-				"viewer_id", "user_id", "flair_id", "is_anonymous", "gradient_color", "has_joined"}).
+				"viewer_id", "user_id", "flair_id", "is_anonymous", "gradient_color", "has_joined", "is_banned"}).
 				AddRow(parObj.ID, parObj.ParticipantID, parObj.CreatedAt, parObj.UpdatedAt, parObj.DeletedAt,
 					parObj.DiscussionID, parObj.ViewerID, parObj.UserID, parObj.FlairID,
-					parObj.IsAnonymous, parObj.GradientColor, parObj.HasJoined).
+					parObj.IsAnonymous, parObj.GradientColor, parObj.HasJoined, parObj.IsBanned).
 				AddRow(parObj.ID, parObj.ParticipantID, parObj.CreatedAt, parObj.UpdatedAt, parObj.DeletedAt,
 					parObj.DiscussionID, parObj.ViewerID, parObj.UserID, parObj.FlairID,
-					parObj.IsAnonymous, parObj.GradientColor, parObj.HasJoined)
+					parObj.IsAnonymous, parObj.GradientColor, parObj.HasJoined, parObj.IsBanned)
 
 			mock.ExpectQuery(expectedQueryString).WithArgs(parObj.DiscussionID, parObj.UserID).WillReturnRows(rs)
 
@@ -380,6 +380,7 @@ func TestDelphisDB_UpsertParticipant(t *testing.T) {
 		IsAnonymous:   false,
 		CreatedAt:     now,
 		UpdatedAt:     now,
+		IsBanned:      true,
 	}
 
 	Convey("UpsertParticipant", t, func() {
@@ -397,10 +398,10 @@ func TestDelphisDB_UpsertParticipant(t *testing.T) {
 		defer db.Close()
 
 		expectedFindQueryStr := `SELECT * FROM "participants" WHERE "participants"."deleted_at" IS NULL AND (("participants"."id" = $1)) ORDER BY "participants"."id" ASC LIMIT 1`
-		createQueryStr := `INSERT INTO "participants" ("id","participant_id","created_at","updated_at","deleted_at","discussion_id","viewer_id","flair_id","gradient_color","user_id","has_joined","is_anonymous") VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12) RETURNING "participants"."id"`
-		expectedNewObjectRow := sqlmock.NewRows([]string{"id", "participant_id", "created_at", "updated_at", "deleted_at", "discussion_id", "viewer_id", "flair_id", "gradient_color", "user_id", "has_joined", "is_anonymous"}).
-			AddRow(parObj.ID, parObj.ParticipantID, parObj.CreatedAt, parObj.UpdatedAt, parObj.DeletedAt, parObj.DiscussionID, parObj.ViewerID, parObj.FlairID, parObj.GradientColor, parObj.UserID, parObj.HasJoined, parObj.IsAnonymous)
-		expectedUpdateStr := `UPDATE "participants" SET "flair_id" = $1, "gradient_color" = $2, "has_joined" = $3, "updated_at" = $4 WHERE "participants"."deleted_at" IS NULL AND "participants"."id" = $5`
+		createQueryStr := `INSERT INTO "participants" ("id","participant_id","created_at","updated_at","deleted_at","discussion_id","viewer_id","flair_id","gradient_color","user_id","is_banned","has_joined","is_anonymous") VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13) RETURNING "participants"."id"`
+		expectedNewObjectRow := sqlmock.NewRows([]string{"id", "participant_id", "created_at", "updated_at", "deleted_at", "discussion_id", "viewer_id", "flair_id", "gradient_color", "user_id", "is_banned", "has_joined", "is_anonymous"}).
+			AddRow(parObj.ID, parObj.ParticipantID, parObj.CreatedAt, parObj.UpdatedAt, parObj.DeletedAt, parObj.DiscussionID, parObj.ViewerID, parObj.FlairID, parObj.GradientColor, parObj.UserID, parObj.IsBanned, parObj.HasJoined, parObj.IsAnonymous)
+		expectedUpdateStr := `UPDATE "participants" SET "flair_id" = $1, "gradient_color" = $2, "has_joined" = $3, "is_banned" = $4, "updated_at" = $5 WHERE "participants"."deleted_at" IS NULL AND "participants"."id" = $6`
 		expectedPostUpdateSelectStr := `SELECT * FROM "participants" WHERE "participants"."deleted_at" IS NULL AND "participants"."id" = $1 ORDER BY "participants"."id" ASC LIMIT 1`
 
 		Convey("when find query fails with a non-not-found-error the function should return the error", func() {
@@ -423,7 +424,7 @@ func TestDelphisDB_UpsertParticipant(t *testing.T) {
 				mock.ExpectBegin()
 				mock.ExpectQuery(createQueryStr).WithArgs(
 					parObj.ID, parObj.ParticipantID, parObj.CreatedAt, parObj.UpdatedAt, parObj.DeletedAt,
-					parObj.DiscussionID, parObj.ViewerID, parObj.FlairID, parObj.GradientColor, parObj.UserID,
+					parObj.DiscussionID, parObj.ViewerID, parObj.FlairID, parObj.GradientColor, parObj.UserID, parObj.IsBanned,
 					parObj.HasJoined, parObj.IsAnonymous,
 				).WillReturnError(expectedError)
 
@@ -439,7 +440,7 @@ func TestDelphisDB_UpsertParticipant(t *testing.T) {
 				mock.ExpectBegin()
 				mock.ExpectQuery(createQueryStr).WithArgs(
 					parObj.ID, parObj.ParticipantID, parObj.CreatedAt, parObj.UpdatedAt, parObj.DeletedAt,
-					parObj.DiscussionID, parObj.ViewerID, parObj.FlairID, parObj.GradientColor, parObj.UserID,
+					parObj.DiscussionID, parObj.ViewerID, parObj.FlairID, parObj.GradientColor, parObj.UserID, parObj.IsBanned,
 					parObj.HasJoined, parObj.IsAnonymous,
 				).WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(parObj.ID))
 				mock.ExpectCommit()
@@ -460,7 +461,7 @@ func TestDelphisDB_UpsertParticipant(t *testing.T) {
 				mock.ExpectQuery(expectedFindQueryStr).WithArgs(parObj.ID).WillReturnRows(expectedNewObjectRow)
 				mock.ExpectBegin()
 				mock.ExpectExec(expectedUpdateStr).WithArgs(
-					parObj.FlairID, parObj.GradientColor, parObj.HasJoined, sqlmock.AnyArg(), parObj.ID,
+					parObj.FlairID, parObj.GradientColor, parObj.HasJoined, parObj.IsBanned, sqlmock.AnyArg(), parObj.ID,
 				).WillReturnError(expectedError)
 
 				resp, err := mockDatastore.UpsertParticipant(ctx, parObj)
@@ -474,16 +475,16 @@ func TestDelphisDB_UpsertParticipant(t *testing.T) {
 				mock.ExpectQuery(expectedFindQueryStr).WithArgs(parObj.ID).WillReturnRows(expectedNewObjectRow)
 				mock.ExpectBegin()
 				mock.ExpectExec(expectedUpdateStr).WithArgs(
-					parObj.FlairID, parObj.GradientColor, parObj.HasJoined, sqlmock.AnyArg(), parObj.ID,
+					parObj.FlairID, parObj.GradientColor, parObj.HasJoined, parObj.IsBanned, sqlmock.AnyArg(), parObj.ID,
 				).WillReturnResult(sqlmock.NewResult(0, 1))
 				mock.ExpectCommit()
 				mock.ExpectQuery(expectedPostUpdateSelectStr).WithArgs(parObj.ID).
 					WillReturnRows(sqlmock.NewRows([]string{"id", "participant_id", "created_at", "updated_at",
 						"deleted_at", "discussion_id", "viewer_id", "flair_id", "gradient_color", "user_id",
-						"has_joined", "is_anonymous"}).
+						"has_joined", "is_anonymous", "is_banned"}).
 						AddRow(parObj.ID, parObj.ParticipantID, parObj.CreatedAt, parObj.UpdatedAt,
 							parObj.DeletedAt, parObj.DiscussionID, parObj.ViewerID, parObj.FlairID,
-							parObj.GradientColor, parObj.UserID, parObj.HasJoined, parObj.IsAnonymous))
+							parObj.GradientColor, parObj.UserID, parObj.HasJoined, parObj.IsAnonymous, parObj.IsBanned))
 
 				resp, err := mockDatastore.UpsertParticipant(ctx, parObj)
 
@@ -602,82 +603,4 @@ func TestDelphisDB_GetTotalParticipantCountByDiscussionID(t *testing.T) {
 			So(mock.ExpectationsWereMet(), ShouldBeNil)
 		})
 	})
-}
-
-func Test_MarshalParticipant(t *testing.T) {
-	// type args struct {
-	// 	participant model.Participant
-	// }
-
-	// haveParticipantObj := model.Participant{
-	// 	ParticipantID:                     11111,
-	// 	CreatedAt:                         time.Now(),
-	// 	UpdatedAt:                         time.Now(),
-	// 	DiscussionID:                      "12345",
-	// 	ViewerID:                          "54321",
-	// 	DiscussionNotificationPreferences: model.ParticipantNotificationPreferences{},
-	// 	Viewer:                            &model.Viewer{},
-	// 	Discussion:                        &model.Discussion{},
-	// 	Posts:                             &model.PostsConnection{},
-	// 	UserID:                            "22222",
-	// 	User:                              &model.User{},
-	// }
-
-	// datastoreObj := NewDatastore(config.DBConfig{})
-
-	// tests := []struct {
-	// 	name string
-	// 	args args
-	// 	want map[string]*dynamodb.AttributeValue
-	// }{
-	// 	{
-	// 		name: "fully filled object",
-	// 		args: args{
-	// 			participant: haveParticipantObj,
-	// 		},
-	// 		want: map[string]*dynamodb.AttributeValue{
-	// 			"ParticipantID": {
-	// 				N: aws.String(strconv.Itoa(haveParticipantObj.ParticipantID)),
-	// 			},
-	// 			"CreatedAt": {
-	// 				S: aws.String(haveParticipantObj.CreatedAt.Format(time.RFC3339Nano)),
-	// 			},
-	// 			"UpdatedAt": {
-	// 				S: aws.String(haveParticipantObj.UpdatedAt.Format(time.RFC3339Nano)),
-	// 			},
-	// 			"DeletedAt": {
-	// 				NULL: aws.Bool(true),
-	// 			},
-	// 			"DiscussionID": {
-	// 				S: aws.String(haveParticipantObj.DiscussionID),
-	// 			},
-	// 			"ViewerID": {
-	// 				S: aws.String(haveParticipantObj.ViewerID),
-	// 			},
-	// 			"DiscussionNotificationPreferences": {
-	// 				M: map[string]*dynamodb.AttributeValue{
-	// 					"ID": {
-	// 						NULL: aws.Bool(true),
-	// 					},
-	// 				},
-	// 			},
-	// 			"UserID": {
-	// 				S: aws.String(haveParticipantObj.UserID),
-	// 			},
-	// 		},
-	// 	},
-	// }
-
-	// for _, tt := range tests {
-	// 	t.Run(tt.name, func(t *testing.T) {
-	// 		marshaled, err := datastoreObj.marshalMap(tt.args.participant)
-	// 		if err != nil {
-	// 			t.Errorf("Caught an error marshaling: %+v", err)
-	// 			return
-	// 		}
-	// 		if !reflect.DeepEqual(marshaled, tt.want) {
-	// 			t.Errorf("These objects did not match. Got: %+v\n\n Want: %+v", marshaled, tt.want)
-	// 		}
-	// 	})
-	// }
 }

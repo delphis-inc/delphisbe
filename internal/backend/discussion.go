@@ -232,7 +232,7 @@ func updateDiscussionObj(disc *model.Discussion, input model.DiscussionInput) {
 		disc.PublicAccess = *input.PublicAccess
 	}
 	if input.IconURL != nil {
-		disc.IconURL = *input.IconURL
+		disc.IconURL = input.IconURL
 	}
 }
 

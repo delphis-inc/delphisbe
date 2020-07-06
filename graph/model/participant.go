@@ -21,6 +21,8 @@ type Participant struct {
 	UserID *string `json:"userID" gorm:"type:varchar(36);"`
 	User   *User   `json:"user" dynamodbav:"-" gorm:"foreignKey:UserID;"`
 
+	IsBanned bool `json:"isBanned" gorm:"type:boolean;"`
+
 	HasJoined   bool `json:"hasJoined" gorm:"type:boolean;"`
 	IsAnonymous bool `json:"isAnonymous"`
 }

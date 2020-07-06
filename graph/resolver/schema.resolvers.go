@@ -54,6 +54,8 @@ func (r *mutationResolver) AddPost(ctx context.Context, discussionID string, par
 		return nil, err
 	} else if participant == nil {
 		return nil, fmt.Errorf("Could not find Participant with ID %s", participantID)
+	} else if participant.IsBanned {
+		return nil, fmt.Errorf("Banned")
 	}
 
 	// Verify that the posting participant belongs to the logged-in user
@@ -561,6 +563,15 @@ func (r *mutationResolver) DeletePost(ctx context.Context, discussionID string, 
 	}
 
 	return r.DAOManager.DeletePostByID(ctx, discussionID, postID, authedUser.UserID)
+}
+
+func (r *mutationResolver) BanParticipant(ctx context.Context, discussionID string, participantID string) (*model.Participant, error) {
+	authedUser := auth.GetAuthedUser(ctx)
+	if authedUser == nil {
+		return nil, fmt.Errorf("Need auth")
+	}
+
+	return r.DAOManager.BanParticipant(ctx, discussionID, participantID, authedUser.UserID)
 }
 
 func (r *queryResolver) Discussion(ctx context.Context, id string) (*model.Discussion, error) {

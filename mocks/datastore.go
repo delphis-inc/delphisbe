@@ -179,6 +179,27 @@ func (_m *Datastore) CreateOrUpdateUserProfile(ctx context.Context, userProfile 
 	return r0, r1, r2
 }
 
+// DeleteAllParticipantPosts provides a mock function with given fields: ctx, discussionID, participantID, deletedReasonCode
+func (_m *Datastore) DeleteAllParticipantPosts(ctx context.Context, discussionID string, participantID string, deletedReasonCode model.PostDeletedReason) (int, error) {
+	ret := _m.Called(ctx, discussionID, participantID, deletedReasonCode)
+
+	var r0 int
+	if rf, ok := ret.Get(0).(func(context.Context, string, string, model.PostDeletedReason) int); ok {
+		r0 = rf(ctx, discussionID, participantID, deletedReasonCode)
+	} else {
+		r0 = ret.Get(0).(int)
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(context.Context, string, string, model.PostDeletedReason) error); ok {
+		r1 = rf(ctx, discussionID, participantID, deletedReasonCode)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // DeleteDiscussionFlairTemplatesAccess provides a mock function with given fields: ctx, tx, discussionID, flairTemplateID
 func (_m *Datastore) DeleteDiscussionFlairTemplatesAccess(ctx context.Context, tx *sql.Tx, discussionID string, flairTemplateID string) (*model.DiscussionFlairTemplateAccess, error) {
 	ret := _m.Called(ctx, tx, discussionID, flairTemplateID)

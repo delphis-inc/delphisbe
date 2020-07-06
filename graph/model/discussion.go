@@ -27,7 +27,7 @@ type Discussion struct {
 	AutoPost        bool             `json:"auto_post"`
 	IdleMinutes     int              `json:"idle_minutes"`
 	PublicAccess    bool             `json:"publicAccess"`
-	IconURL         string           `json:"icon_url"`
+	IconURL         *string          `json:"icon_url"`
 }
 
 func (Discussion) IsEntity() {}

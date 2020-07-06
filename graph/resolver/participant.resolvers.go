@@ -24,6 +24,10 @@ func (r *participantResolver) Discussion(ctx context.Context, obj *model.Partici
 }
 
 func (r *participantResolver) Viewer(ctx context.Context, obj *model.Participant) (*model.Viewer, error) {
+	if obj.IsBanned {
+		return nil, nil
+	}
+
 	if obj.Viewer == nil && obj.ViewerID != nil {
 		viewerObj, err := r.DAOManager.GetViewerByID(ctx, *obj.ViewerID)
 
@@ -41,6 +45,10 @@ func (r *participantResolver) DiscussionNotificationPreferences(ctx context.Cont
 }
 
 func (r *participantResolver) Posts(ctx context.Context, obj *model.Participant) ([]*model.Post, error) {
+	if obj.IsBanned {
+		return nil, nil
+	}
+
 	if obj.DiscussionID == nil {
 		return nil, nil
 	}
@@ -63,6 +71,10 @@ func (r *participantResolver) Posts(ctx context.Context, obj *model.Participant)
 }
 
 func (r *participantResolver) Flair(ctx context.Context, obj *model.Participant) (*model.Flair, error) {
+	if obj.IsBanned {
+		return nil, nil
+	}
+
 	if obj.Flair == nil && obj.FlairID != nil {
 		return r.DAOManager.GetFlairByID(ctx, *obj.FlairID)
 	}
@@ -70,6 +82,10 @@ func (r *participantResolver) Flair(ctx context.Context, obj *model.Participant)
 }
 
 func (r *participantResolver) UserProfile(ctx context.Context, obj *model.Participant) (*model.UserProfile, error) {
+	if obj.IsBanned {
+		return nil, nil
+	}
+
 	if obj.IsAnonymous || obj.UserID == nil {
 		return nil, nil
 	}

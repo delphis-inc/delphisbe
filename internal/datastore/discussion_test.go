@@ -16,6 +16,8 @@ import (
 	"github.com/nedrocks/delphisbe/graph/model"
 )
 
+var emptyString = ""
+
 func TestDelphisDB_GetDiscussionByID(t *testing.T) {
 	ctx := context.Background()
 	now := time.Now()
@@ -31,7 +33,7 @@ func TestDelphisDB_GetDiscussionByID(t *testing.T) {
 		AutoPost:      false,
 		IdleMinutes:   120,
 		PublicAccess:  false,
-		IconURL:       "",
+		IconURL:       &emptyString,
 	}
 	modObj := model.Moderator{
 		ID:        modID,
@@ -122,7 +124,7 @@ func TestDelphisDB_GetDiscussionsByIDs(t *testing.T) {
 		AutoPost:      false,
 		IdleMinutes:   120,
 		PublicAccess:  false,
-		IconURL:       "",
+		IconURL:       &emptyString,
 	}
 	discObj2 := model.Discussion{
 		ID:            "discussion2",
@@ -135,7 +137,7 @@ func TestDelphisDB_GetDiscussionsByIDs(t *testing.T) {
 		AutoPost:      false,
 		IdleMinutes:   120,
 		PublicAccess:  false,
-		IconURL:       "",
+		IconURL:       &emptyString,
 	}
 	modObj := model.Moderator{
 		ID:        modID,
@@ -244,7 +246,7 @@ func TestDelphisDB_GetDiscussionByModeratorID(t *testing.T) {
 		AutoPost:      false,
 		IdleMinutes:   120,
 		PublicAccess:  false,
-		IconURL:       "",
+		IconURL:       &emptyString,
 	}
 
 	Convey("GetDiscussionByModeratorID", t, func() {
@@ -382,7 +384,7 @@ func TestDelphisDB_ListDiscussions(t *testing.T) {
 		AutoPost:      false,
 		IdleMinutes:   120,
 		PublicAccess:  false,
-		IconURL:       "",
+		IconURL:       &emptyString,
 	}
 	modObj := model.Moderator{
 		ID:        modID,
@@ -463,6 +465,7 @@ func TestDelphisDB_UpsertDiscussion(t *testing.T) {
 	ctx := context.Background()
 	now := time.Now()
 	modID := "modID"
+	iconURL := "http://"
 	discObj := model.Discussion{
 		ID:            "discussion1",
 		CreatedAt:     now,
@@ -474,7 +477,7 @@ func TestDelphisDB_UpsertDiscussion(t *testing.T) {
 		AutoPost:      false,
 		IdleMinutes:   120,
 		PublicAccess:  false,
-		IconURL:       "http://",
+		IconURL:       &iconURL,
 	}
 	modObj := model.Moderator{
 		ID:        modID,

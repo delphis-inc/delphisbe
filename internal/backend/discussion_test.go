@@ -677,7 +677,7 @@ func TestDelphisBackend_UpdateDiscussionObj(t *testing.T) {
 			So(disc.AutoPost, ShouldResemble, *discInput.AutoPost)
 			So(disc.IdleMinutes, ShouldResemble, *discInput.IdleMinutes)
 			So(disc.PublicAccess, ShouldResemble, *discInput.PublicAccess)
-			So(disc.IconURL, ShouldResemble, *discInput.IconURL)
+			So(*disc.IconURL, ShouldResemble, *discInput.IconURL)
 
 		})
 	})

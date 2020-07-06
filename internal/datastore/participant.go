@@ -85,6 +85,7 @@ func (d *delphisDB) UpsertParticipant(ctx context.Context, participant model.Par
 			UpdatedAt:     time.Now(),
 			GradientColor: participant.GradientColor,
 			HasJoined:     participant.HasJoined,
+			IsBanned:      participant.IsBanned,
 		}).First(&found).Error; err != nil {
 			logrus.WithError(err).Errorf("UpsertParticipant::Failed updating Participant object")
 			return nil, err

@@ -14,6 +14,7 @@ func mockPreparedStatements(mock sqlmock.Sqlmock) {
 	mock.ExpectPrepare(getPostsByDiscussionIDFromCursorString)
 	mock.ExpectPrepare(putPostString)
 	mock.ExpectPrepare(deletePostByIDString)
+	mock.ExpectPrepare(deletePostByParticipantIDDiscussionIDString)
 	mock.ExpectPrepare(putPostContentsString)
 	mock.ExpectPrepare(putActivityString)
 	mock.ExpectPrepare(putMediaRecordString)
