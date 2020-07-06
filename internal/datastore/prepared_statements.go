@@ -137,9 +137,9 @@ const deletePostByIDString = `
 		UPDATE posts
 		SET deleted_at = now(),
 			deleted_reason_code = $2,
-			quoted_post_id = nil,
-			media_id = nil,
-			imported_content_id = nil,
+			quoted_post_id = null,
+			media_id = null,
+			imported_content_id = null,
 		WHERE id = $1
 		RETURNING 
 			id,

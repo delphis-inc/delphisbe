@@ -480,6 +480,82 @@ func TestDelphisDB_GetLastPostByDiscussionID(t *testing.T) {
 	})
 }
 
+func TestDelphisDB_DeletePostByID(t *testing.T) {
+	ctx := context.Background()
+	now := time.Now()
+	discussionID := "discussion1"
+	participantID := "participant1"
+	postID := "post1"
+	reasonCode := model.PostDeletedReasonParticipantRemoved
+	postObject := model.Post{
+		ID:                "post1",
+		CreatedAt:         now,
+		UpdatedAt:         now,
+		DeletedAt:         &now,
+		DeletedReasonCode: &reasonCode,
+		DiscussionID:      &discussionID,
+		ParticipantID:     &participantID,
+		PostContent:       nil,
+		QuotedPostID:      nil,
+		PostType:          model.PostTypeStandard,
+	}
+
+	Convey("DeletePostById", t, func() {
+		db, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
+
+		assert.Nil(t, err, "Failed setting up sqlmock db")
+
+		gormDB, _ := gorm.Open("postgres", db)
+		mockDatastore := &delphisDB{
+			dbConfig:  config.TablesConfig{},
+			sql:       gormDB,
+			pg:        db,
+			prepStmts: &dbPrepStmts{},
+			dynamo:    nil,
+			encoder:   nil,
+		}
+		defer db.Close()
+
+		Convey("when preparing statements returns an error", func() {
+			mockPreparedStatementsWithError(mock)
+
+			resp, err := mockDatastore.DeletePostByID(ctx, postID, reasonCode)
+
+			So(err, ShouldNotBeNil)
+			So(resp, ShouldBeNil)
+			So(mock.ExpectationsWereMet(), ShouldBeNil)
+		})
+
+		Convey("when query execution returns an error", func() {
+			mockPreparedStatements(mock)
+			mock.ExpectQuery(deletePostByIDString).WithArgs(postID, reasonCode).WillReturnError(fmt.Errorf("error"))
+
+			resp, err := mockDatastore.DeletePostByID(ctx, postID, reasonCode)
+
+			So(err, ShouldNotBeNil)
+			So(resp, ShouldBeNil)
+			So(mock.ExpectationsWereMet(), ShouldBeNil)
+		})
+
+		Convey("when deletion succeeds and returns a post", func() {
+			mockPreparedStatements(mock)
+			rs := sqlmock.NewRows([]string{"p.id", "p.created_at", "p.updated_at", "p.deleted_at", "p.deleted_reason_code", "p.discussion_id", "p.participant_id",
+				"p.post_type"}).
+				AddRow(postObject.ID, postObject.CreatedAt, postObject.UpdatedAt, postObject.DeletedAt, postObject.DeletedReasonCode, postObject.DiscussionID,
+					postObject.ParticipantID, postObject.PostType)
+
+			mock.ExpectQuery(deletePostByIDString).WithArgs(postID, reasonCode).WillReturnRows(rs)
+
+			resp, err := mockDatastore.DeletePostByID(ctx, postID, reasonCode)
+
+			So(err, ShouldBeNil)
+			So(resp, ShouldNotBeNil)
+			So(resp, ShouldResemble, &postObject)
+			So(mock.ExpectationsWereMet(), ShouldBeNil)
+		})
+	})
+}
+
 func TestDelphisDB_GetPostByID(t *testing.T) {
 	ctx := context.Background()
 	now := time.Now()
