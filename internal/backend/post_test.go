@@ -28,6 +28,138 @@ type mockPostIter struct{}
 func (m *mockPostIter) Next(post *model.Post) bool { return true }
 func (m *mockPostIter) Close() error               { return fmt.Errorf("error") }
 
+func TestDelphisBackend_DeletePostByID(t *testing.T) {
+	ctx := context.Background()
+
+	discussionID := test_utils.DiscussionID
+	participantID := test_utils.ParticipantID
+
+	postObj := test_utils.TestPost()
+	participantObj := test_utils.TestParticipant()
+	userObj := test_utils.TestUser()
+	profile := test_utils.TestUserProfile()
+	discObj := test_utils.TestDiscussion()
+
+	userObj.UserProfile = &profile
+
+	//tx := sql.Tx{}
+
+	Convey("DeletePostByID", t, func() {
+		now := time.Now()
+		cacheObj := cache.NewInMemoryCache()
+		authObj := auth.NewDelphisAuth(nil)
+		mockDB := &mocks.Datastore{}
+		backendObj := &delphisBackend{
+			db:              mockDB,
+			auth:            authObj,
+			cache:           cacheObj,
+			discussionMutex: sync.Mutex{},
+			config:          config.Config{},
+			timeProvider:    &util.FrozenTime{NowTime: now},
+		}
+
+		Convey("when the discussion is not found", func() {
+			Convey("because it returns nil", func() {
+				mockDB.On("GetDiscussionByID", ctx, discussionID).Return(nil, nil)
+
+				resp, err := backendObj.DeletePostByID(ctx, discussionID, postObj.ID, userObj.ID)
+
+				So(err, ShouldNotBeNil)
+				So(resp, ShouldBeNil)
+			})
+			Convey("because it reutrns an error", func() {
+				mockDB.On("GetDiscussionByID", ctx, discussionID).Return(&discObj, fmt.Errorf("sth"))
+
+				resp, err := backendObj.DeletePostByID(ctx, discussionID, postObj.ID, userObj.ID)
+
+				So(err, ShouldNotBeNil)
+				So(resp, ShouldBeNil)
+			})
+		})
+
+		mockDB.On("GetDiscussionByID", ctx, discussionID).Return(&discObj, nil)
+
+		Convey("when the post is not found", func() {
+			Convey("because it returns nil", func() {
+				mockDB.On("GetPostByID", ctx, postObj.ID).Return(nil, nil)
+
+				resp, err := backendObj.DeletePostByID(ctx, discussionID, postObj.ID, userObj.ID)
+
+				So(err, ShouldNotBeNil)
+				So(resp, ShouldBeNil)
+			})
+
+			Convey("because it returns an error", func() {
+				mockDB.On("GetPostByID", ctx, postObj.ID).Return(&postObj, fmt.Errorf("sth"))
+
+				resp, err := backendObj.DeletePostByID(ctx, discussionID, postObj.ID, userObj.ID)
+
+				So(err, ShouldNotBeNil)
+				So(resp, ShouldBeNil)
+			})
+		})
+
+		mockDB.On("GetPostByID", ctx, postObj.ID).Return(&postObj, nil)
+
+		Convey("when the participant is not found", func() {
+			Convey("because it returns nil", func() {
+				mockDB.On("GetParticipantByID", ctx, participantID).Return(nil, nil)
+
+				resp, err := backendObj.DeletePostByID(ctx, discussionID, postObj.ID, userObj.ID)
+
+				So(err, ShouldNotBeNil)
+				So(resp, ShouldBeNil)
+			})
+			Convey("because it returns an error", func() {
+				mockDB.On("GetParticipantByID", ctx, participantID).Return(&participantObj, fmt.Errorf("sth"))
+
+				resp, err := backendObj.DeletePostByID(ctx, discussionID, postObj.ID, userObj.ID)
+
+				So(err, ShouldNotBeNil)
+				So(resp, ShouldBeNil)
+			})
+		})
+
+		mockDB.On("GetParticipantByID", ctx, participantID).Return(&participantObj, nil)
+
+		Convey("when userID is not moderator or participant", func() {
+			resp, err := backendObj.DeletePostByID(ctx, discussionID, postObj.ID, "baduserid")
+
+			So(err, ShouldNotBeNil)
+			So(resp, ShouldBeNil)
+		})
+
+		Convey("when post is already deleted", func() {
+			postObj.DeletedAt = &now
+
+			resp, err := backendObj.DeletePostByID(ctx, discussionID, postObj.ID, *discObj.ModeratorID)
+
+			So(err, ShouldBeNil)
+			So(resp, ShouldNotBeNil)
+		})
+
+		postObj.DeletedAt = nil
+
+		Convey("when user is moderator", func() {
+			mockDB.On("DeletePostByID", ctx, postObj.ID, model.PostDeletedReasonModeratorRemoved).Return(&postObj, nil)
+
+			resp, err := backendObj.DeletePostByID(ctx, discussionID, postObj.ID, *discObj.ModeratorID)
+
+			So(err, ShouldBeNil)
+			So(resp, ShouldNotBeNil)
+		})
+
+		Convey("when user is participant", func() {
+			mockDB.On("DeletePostByID", ctx, postObj.ID, model.PostDeletedReasonParticipantRemoved).Return(&postObj, nil)
+
+			resp, err := backendObj.DeletePostByID(ctx, discussionID, postObj.ID, *participantObj.UserID)
+
+			So(err, ShouldBeNil)
+			So(resp, ShouldNotBeNil)
+		})
+	})
+}
+
 func TestDelphisBackend_CreatePost(t *testing.T) {
 	ctx := context.Background()
 

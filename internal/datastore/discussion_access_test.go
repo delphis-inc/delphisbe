@@ -336,7 +336,7 @@ func TestDelphisDB_UpsertDiscussionFlairTemplatesAccess(t *testing.T) {
 			mock.ExpectBegin()
 			mockPreparedStatementsWithError(mock)
 
-			tx, err := mockDatastore.BeginTx(ctx)
+			tx, _ := mockDatastore.BeginTx(ctx)
 			resp, err := mockDatastore.UpsertDiscussionFlairTemplatesAccess(ctx, tx, discussionID, flairTemplateID)
 
 			So(err, ShouldNotBeNil)
@@ -350,7 +350,7 @@ func TestDelphisDB_UpsertDiscussionFlairTemplatesAccess(t *testing.T) {
 			mock.ExpectPrepare(upsertDiscussionFlairAccessString)
 			mock.ExpectQuery(upsertDiscussionFlairAccessString).WithArgs(discussionID, flairTemplateID).WillReturnError(fmt.Errorf("error"))
 
-			tx, err := mockDatastore.BeginTx(ctx)
+			tx, _ := mockDatastore.BeginTx(ctx)
 			resp, err := mockDatastore.UpsertDiscussionFlairTemplatesAccess(ctx, tx, discussionID, flairTemplateID)
 
 			So(err, ShouldNotBeNil)
@@ -364,7 +364,7 @@ func TestDelphisDB_UpsertDiscussionFlairTemplatesAccess(t *testing.T) {
 			mock.ExpectPrepare(upsertDiscussionFlairAccessString)
 			mock.ExpectQuery(upsertDiscussionFlairAccessString).WithArgs(discussionID, flairTemplateID).WillReturnError(sql.ErrNoRows)
 
-			tx, err := mockDatastore.BeginTx(ctx)
+			tx, _ := mockDatastore.BeginTx(ctx)
 			resp, err := mockDatastore.UpsertDiscussionFlairTemplatesAccess(ctx, tx, discussionID, flairTemplateID)
 
 			So(err, ShouldBeNil)
@@ -382,7 +382,7 @@ func TestDelphisDB_UpsertDiscussionFlairTemplatesAccess(t *testing.T) {
 			mock.ExpectPrepare(upsertDiscussionFlairAccessString)
 			mock.ExpectQuery(upsertDiscussionFlairAccessString).WithArgs(discussionID, flairTemplateID).WillReturnRows(rs)
 
-			tx, err := mockDatastore.BeginTx(ctx)
+			tx, _ := mockDatastore.BeginTx(ctx)
 			resp, err := mockDatastore.UpsertDiscussionFlairTemplatesAccess(ctx, tx, discussionID, flairTemplateID)
 
 			So(err, ShouldBeNil)
@@ -422,7 +422,7 @@ func TestDelphisDB_UpsertDiscussionUserAccess(t *testing.T) {
 			mock.ExpectBegin()
 			mockPreparedStatementsWithError(mock)
 
-			tx, err := mockDatastore.BeginTx(ctx)
+			tx, _ := mockDatastore.BeginTx(ctx)
 			resp, err := mockDatastore.UpsertDiscussionUserAccess(ctx, tx, discussionID, userID)
 
 			So(err, ShouldNotBeNil)
@@ -436,7 +436,7 @@ func TestDelphisDB_UpsertDiscussionUserAccess(t *testing.T) {
 			mock.ExpectPrepare(upsertDiscussionUserAccessString)
 			mock.ExpectQuery(upsertDiscussionUserAccessString).WithArgs(discussionID, userID).WillReturnError(fmt.Errorf("error"))
 
-			tx, err := mockDatastore.BeginTx(ctx)
+			tx, _ := mockDatastore.BeginTx(ctx)
 			resp, err := mockDatastore.UpsertDiscussionUserAccess(ctx, tx, discussionID, userID)
 
 			So(err, ShouldNotBeNil)
@@ -450,7 +450,7 @@ func TestDelphisDB_UpsertDiscussionUserAccess(t *testing.T) {
 			mock.ExpectPrepare(upsertDiscussionUserAccessString)
 			mock.ExpectQuery(upsertDiscussionUserAccessString).WithArgs(discussionID, userID).WillReturnError(sql.ErrNoRows)
 
-			tx, err := mockDatastore.BeginTx(ctx)
+			tx, _ := mockDatastore.BeginTx(ctx)
 			resp, err := mockDatastore.UpsertDiscussionUserAccess(ctx, tx, discussionID, userID)
 
 			So(err, ShouldBeNil)
@@ -468,7 +468,7 @@ func TestDelphisDB_UpsertDiscussionUserAccess(t *testing.T) {
 			mock.ExpectPrepare(upsertDiscussionUserAccessString)
 			mock.ExpectQuery(upsertDiscussionUserAccessString).WithArgs(discussionID, userID).WillReturnRows(rs)
 
-			tx, err := mockDatastore.BeginTx(ctx)
+			tx, _ := mockDatastore.BeginTx(ctx)
 			resp, err := mockDatastore.UpsertDiscussionUserAccess(ctx, tx, discussionID, userID)
 
 			So(err, ShouldBeNil)
@@ -508,7 +508,7 @@ func TestDelphisDB_DeleteDiscussionFlairTemplatesAccess(t *testing.T) {
 			mock.ExpectBegin()
 			mockPreparedStatementsWithError(mock)
 
-			tx, err := mockDatastore.BeginTx(ctx)
+			tx, _ := mockDatastore.BeginTx(ctx)
 			resp, err := mockDatastore.DeleteDiscussionFlairTemplatesAccess(ctx, tx, discussionID, flairTemplateID)
 
 			So(err, ShouldNotBeNil)
@@ -522,7 +522,7 @@ func TestDelphisDB_DeleteDiscussionFlairTemplatesAccess(t *testing.T) {
 			mock.ExpectPrepare(deleteDiscussionFlairAccessString)
 			mock.ExpectQuery(deleteDiscussionFlairAccessString).WithArgs(discussionID, flairTemplateID).WillReturnError(fmt.Errorf("error"))
 
-			tx, err := mockDatastore.BeginTx(ctx)
+			tx, _ := mockDatastore.BeginTx(ctx)
 			resp, err := mockDatastore.DeleteDiscussionFlairTemplatesAccess(ctx, tx, discussionID, flairTemplateID)
 
 			So(err, ShouldNotBeNil)

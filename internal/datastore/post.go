@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"fmt"
 	"io"
 	"time"
 
@@ -200,6 +201,41 @@ func (d *delphisDB) GetLastPostByDiscussionID(ctx context.Context, discussionID 
 	}
 
 	post.PostContent = &postContent
+
+	return &post, nil
+}
+
+func (d *delphisDB) DeletePostByID(ctx context.Context, postID string, deletedReasonCode model.PostDeletedReason) (*model.Post, error) {
+	logrus.Debug("DeletePost::SQL Query")
+
+	if err := d.initializeStatements(ctx); err != nil {
+		logrus.WithError(err).Error("DeletePost::Failed to initialize statements")
+		return nil, err
+	}
+
+	fmt.Printf("deletedReasonCode: %+v, as string: %+v", deletedReasonCode, string(deletedReasonCode))
+	post := model.Post{}
+	if err := d.prepStmts.deletePostByIDStmt.QueryRowContext(
+		ctx,
+		postID,
+		string(deletedReasonCode),
+	).Scan(
+		&post.ID,
+		&post.CreatedAt,
+		&post.UpdatedAt,
+		&post.DeletedAt,
+		&post.DeletedReasonCode,
+		&post.DiscussionID,
+		&post.ParticipantID,
+		&post.PostType,
+	); err != nil {
+		logrus.WithError(err).Error("failed to execute deletePostByIDStmt")
+		return nil, err
+	}
+
+	post.MediaID = nil
+	post.PostContentID = nil
+	post.QuotedPostID = nil
 
 	return &post, nil
 }

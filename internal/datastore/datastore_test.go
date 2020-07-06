@@ -3,7 +3,6 @@ package datastore
 import (
 	"context"
 	"fmt"
-	"sync"
 	"testing"
 
 	"github.com/DATA-DOG/go-sqlmock"
@@ -12,11 +11,6 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 	"github.com/stretchr/testify/assert"
 )
-
-type testBackend struct {
-	db              Datastore
-	discussionMutex sync.Mutex
-}
 
 func TestDelphisDB_InitializeStatements(t *testing.T) {
 	ctx := context.Background()

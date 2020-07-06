@@ -554,6 +554,15 @@ func (r *mutationResolver) RespondToRequestAccess(ctx context.Context, requestID
 	return r.DAOManager.RespondToRequestAccess(ctx, requestID, response, nonAnonUserID)
 }
 
+func (r *mutationResolver) DeletePost(ctx context.Context, discussionID string, postID string) (*model.Post, error) {
+	authedUser := auth.GetAuthedUser(ctx)
+	if authedUser == nil {
+		return nil, fmt.Errorf("Need auth")
+	}
+
+	return r.DAOManager.DeletePostByID(ctx, discussionID, postID, authedUser.UserID)
+}
+
 func (r *queryResolver) Discussion(ctx context.Context, id string) (*model.Discussion, error) {
 	return r.resolveDiscussionByID(ctx, id)
 }
