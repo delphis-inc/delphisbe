@@ -108,6 +108,9 @@ type Mutation {
 
   # Posts
   deletePost(discussionID: ID!, postID: ID!): Post!
+
+  # Banning
+  banParticipant(discussionID: ID!, participantID: ID!): Participant!
 }
 
 type Subscription {

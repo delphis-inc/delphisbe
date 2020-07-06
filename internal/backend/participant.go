@@ -90,6 +90,47 @@ func (d *delphisBackend) CreateParticipantForDiscussion(ctx context.Context, dis
 	return &participantObj, nil
 }
 
+func (d *delphisBackend) BanParticipant(ctx context.Context, discussionID string, participantID string, requestingUserID string) (*model.Participant, error) {
+	discussionObj, err := d.GetDiscussionByID(ctx, discussionID)
+	if err != nil || discussionObj == nil {
+		return nil, fmt.Errorf("Failed to retrieve discussion")
+	}
+
+	if discussionObj.ModeratorID == nil || requestingUserID != *discussionObj.ModeratorID {
+		return nil, fmt.Errorf("Only the moderator may ban users")
+	}
+
+	participantObj, err := d.GetParticipantByID(ctx, participantID)
+	if err != nil || participantObj == nil {
+		return nil, fmt.Errorf("Failed to retreive participant")
+	}
+
+	if participantObj.DiscussionID == nil || *participantObj.DiscussionID != discussionID {
+		return nil, fmt.Errorf("Participant is not part of this discussion")
+	}
+
+	if participantObj.IsBanned {
+		return participantObj, nil
+	}
+
+	participantObj.IsBanned = true
+	updatedParticipant, err := d.db.UpsertParticipant(ctx, *participantObj)
+
+	if err != nil {
+		logrus.WithError(err).Error("Failed to update participant")
+		return nil, err
+	}
+
+	_, err = d.db.DeleteAllParticipantPosts(ctx, discussionID, participantID, model.PostDeletedReasonParticipantRemoved)
+
+	if err != nil {
+		logrus.WithError(err).Error("Failed to delete participant posts.")
+		// Do not return error here.
+	}
+
+	return updatedParticipant, nil
+}
+
 func (d *delphisBackend) GetParticipantsByDiscussionID(ctx context.Context, id string) ([]model.Participant, error) {
 	return d.db.GetParticipantsByDiscussionID(ctx, id)
 }

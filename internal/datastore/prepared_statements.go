@@ -5,12 +5,13 @@ import sql2 "database/sql"
 // Prepared Statements
 type dbPrepStmts struct {
 	// Post
-	getPostByIDStmt                      *sql2.Stmt
-	getPostsByDiscussionIDStmt           *sql2.Stmt
-	getLastPostByDiscussionIDStmt        *sql2.Stmt
-	getPostsByDiscussionIDFromCursorStmt *sql2.Stmt
-	putPostStmt                          *sql2.Stmt
-	deletePostByIDStmt                   *sql2.Stmt
+	getPostByIDStmt                           *sql2.Stmt
+	getPostsByDiscussionIDStmt                *sql2.Stmt
+	getLastPostByDiscussionIDStmt             *sql2.Stmt
+	getPostsByDiscussionIDFromCursorStmt      *sql2.Stmt
+	putPostStmt                               *sql2.Stmt
+	deletePostByIDStmt                        *sql2.Stmt
+	deletePostByParticipantIDDiscussionIDStmt *sql2.Stmt
 
 	// PostContents
 	putPostContentsStmt *sql2.Stmt
@@ -150,6 +151,18 @@ const deletePostByIDString = `
 			discussion_id,
 			participant_id,
 			post_type;
+`
+
+const deletePostByParticipantIDDiscussionIDString = `
+		UPDATE posts
+		SET deleted_at = now(),
+			deleted_reason_code = $3
+			quoted_post_id = null,
+			media_id = null,
+			imported_content_id = null
+		WHERE discussion_id = $1 AND
+			participant_id = $2
+		RETURNING id;
 `
 
 const getLastPostByDiscussionIDStmt = `

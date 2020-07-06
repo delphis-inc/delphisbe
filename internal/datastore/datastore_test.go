@@ -52,7 +52,8 @@ func TestDelphisDB_InitializeStatements(t *testing.T) {
 				Name: "getPostsByDiscussionIDString",
 				Test: getPostsByDiscussionIDString,
 			},
-			{Name: "getLastPostByDiscussionIDStmt",
+			{
+				Name: "getLastPostByDiscussionIDStmt",
 				Test: getLastPostByDiscussionIDStmt,
 			},
 			{
@@ -66,6 +67,14 @@ func TestDelphisDB_InitializeStatements(t *testing.T) {
 			{
 				Name: "putPostContentsString",
 				Test: putPostContentsString,
+			},
+			{
+				Name: "deletePostByIDString",
+				Test: deletePostByIDString,
+			},
+			{
+				Name: "deletePostByParticipantIDDiscussionIDString",
+				Test: deletePostByParticipantIDDiscussionIDString,
 			},
 			{
 				Name: "putActivityString",

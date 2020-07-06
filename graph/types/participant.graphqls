@@ -20,5 +20,6 @@ type Participant implements Entity{
     hasJoined: Boolean!
 
     userProfile: UserProfile
-}
 
+    isBanned: Boolean!
+}

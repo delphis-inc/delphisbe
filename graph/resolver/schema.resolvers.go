@@ -563,6 +563,15 @@ func (r *mutationResolver) DeletePost(ctx context.Context, discussionID string, 
 	return r.DAOManager.DeletePostByID(ctx, discussionID, postID, authedUser.UserID)
 }
 
+func (r *mutationResolver) BanParticipant(ctx context.Context, discussionID string, participantID string) (*model.Participant, error) {
+	authedUser := auth.GetAuthedUser(ctx)
+	if authedUser == nil {
+		return nil, fmt.Errorf("Need auth")
+	}
+
+	return r.DAOManager.BanParticipant(ctx, discussionID, participantID, authedUser.UserID)
+}
+
 func (r *queryResolver) Discussion(ctx context.Context, id string) (*model.Discussion, error) {
 	return r.resolveDiscussionByID(ctx, id)
 }

@@ -556,6 +556,64 @@ func TestDelphisDB_DeletePostByID(t *testing.T) {
 	})
 }
 
+func TestDelphisDB_DeleteAllParticipantPosts(t *testing.T) {
+	ctx := context.Background()
+	discussionID := "discussion1"
+	participantID := "participant1"
+	reasonCode := model.PostDeletedReasonParticipantRemoved
+
+	Convey("DeleteAllParticipantPosts", t, func() {
+		db, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
+
+		assert.Nil(t, err, "Failed setting up sqlmock db")
+
+		gormDB, _ := gorm.Open("postgres", db)
+		mockDatastore := &delphisDB{
+			dbConfig:  config.TablesConfig{},
+			sql:       gormDB,
+			pg:        db,
+			prepStmts: &dbPrepStmts{},
+			dynamo:    nil,
+			encoder:   nil,
+		}
+		defer db.Close()
+
+		Convey("when preparing statements returns an error", func() {
+			mockPreparedStatementsWithError(mock)
+
+			numReturned, err := mockDatastore.DeleteAllParticipantPosts(ctx, discussionID, participantID, reasonCode)
+
+			So(err, ShouldNotBeNil)
+			So(numReturned, ShouldEqual, 0)
+			So(mock.ExpectationsWereMet(), ShouldBeNil)
+		})
+
+		Convey("when query execution returns an error", func() {
+			mockPreparedStatements(mock)
+			mock.ExpectQuery(deletePostByParticipantIDDiscussionIDString).WithArgs(discussionID, participantID, reasonCode).WillReturnError(fmt.Errorf("error"))
+
+			numReturned, err := mockDatastore.DeleteAllParticipantPosts(ctx, discussionID, participantID, reasonCode)
+
+			So(err, ShouldNotBeNil)
+			So(numReturned, ShouldEqual, 0)
+			So(mock.ExpectationsWereMet(), ShouldBeNil)
+		})
+
+		Convey("when deletion succeeds", func() {
+			mockPreparedStatements(mock)
+			rs := sqlmock.NewRows([]string{"id"}).AddRow("1").AddRow("2").AddRow("3")
+
+			mock.ExpectQuery(deletePostByParticipantIDDiscussionIDString).WithArgs(discussionID, participantID, reasonCode).WillReturnRows(rs)
+
+			numReturned, err := mockDatastore.DeleteAllParticipantPosts(ctx, discussionID, participantID, reasonCode)
+
+			So(err, ShouldBeNil)
+			So(numReturned, ShouldEqual, 3)
+			So(mock.ExpectationsWereMet(), ShouldBeNil)
+		})
+	})
+}
+
 func TestDelphisDB_GetPostByID(t *testing.T) {
 	ctx := context.Background()
 	now := time.Now()

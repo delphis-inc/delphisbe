@@ -413,6 +413,140 @@ func TestDelphisBackend_UnassignFlair(t *testing.T) {
 	})
 }
 
+func TestDelphisBackend_BanParticipant(t *testing.T) {
+	ctx := context.Background()
+	now := time.Now()
+
+	participantID := test_utils.ParticipantID
+	anonParObj := test_utils.TestParticipant()
+	discussionObj := test_utils.TestDiscussion()
+	discussionID := test_utils.DiscussionID
+	requestingUserID := *discussionObj.ModeratorID
+
+	anonParObj.IsAnonymous = true
+
+	Convey("BanParticipant", t, func() {
+		cacheObj := cache.NewInMemoryCache()
+		authObj := auth.NewDelphisAuth(nil)
+		mockDB := &mocks.Datastore{}
+		backendObj := &delphisBackend{
+			db:              mockDB,
+			auth:            authObj,
+			cache:           cacheObj,
+			discussionMutex: sync.Mutex{},
+			config:          config.Config{},
+			timeProvider:    &util.FrozenTime{NowTime: now},
+		}
+
+		Convey("when discussion is not found", func() {
+			Convey("when an error is returned", func() {
+				mockDB.On("GetDiscussionByID", ctx, discussionID).Return(nil, fmt.Errorf("sth"))
+
+				resp, err := backendObj.BanParticipant(ctx, discussionID, participantID, requestingUserID)
+
+				So(err, ShouldNotBeNil)
+				So(resp, ShouldBeNil)
+			})
+			Convey("when nil is returned", func() {
+				mockDB.On("GetDiscussionByID", ctx, discussionID).Return(nil, nil)
+
+				resp, err := backendObj.BanParticipant(ctx, discussionID, participantID, requestingUserID)
+
+				So(err, ShouldNotBeNil)
+				So(resp, ShouldBeNil)
+			})
+		})
+
+		mockDB.On("GetDiscussionByID", ctx, discussionID).Return(&discussionObj, nil)
+
+		Convey("when the requesting user is not the moderator", func() {
+			resp, err := backendObj.BanParticipant(ctx, discussionID, participantID, "baduserid")
+
+			So(err, ShouldNotBeNil)
+			So(resp, ShouldBeNil)
+		})
+
+		Convey("when the participant is not found", func() {
+			Convey("when an error is returned", func() {
+				mockDB.On("GetParticipantByID", ctx, participantID).Return(nil, fmt.Errorf("sth"))
+
+				resp, err := backendObj.BanParticipant(ctx, discussionID, participantID, requestingUserID)
+
+				So(err, ShouldNotBeNil)
+				So(resp, ShouldBeNil)
+			})
+			Convey("when response is nil", func() {
+				mockDB.On("GetParticipantByID", ctx, participantID).Return(nil, nil)
+
+				resp, err := backendObj.BanParticipant(ctx, discussionID, participantID, requestingUserID)
+
+				So(err, ShouldNotBeNil)
+				So(resp, ShouldBeNil)
+			})
+		})
+
+		mockDB.On("GetParticipantByID", ctx, participantID).Return(&anonParObj, nil)
+
+		Convey("when participant is not part of the discussion", func() {
+			badDiscussion := "baddiscussion"
+			anonParObj.DiscussionID = &badDiscussion
+
+			resp, err := backendObj.BanParticipant(ctx, discussionID, participantID, requestingUserID)
+
+			So(err, ShouldNotBeNil)
+			So(resp, ShouldBeNil)
+		})
+
+		anonParObj.DiscussionID = &discussionID
+
+		Convey("when participant is already banned", func() {
+			anonParObj.IsBanned = true
+
+			resp, err := backendObj.BanParticipant(ctx, discussionID, participantID, requestingUserID)
+
+			So(err, ShouldBeNil)
+			So(resp, ShouldNotBeNil)
+		})
+
+		anonParObj.IsBanned = false
+
+		Convey("when upsert fails", func() {
+			expected := anonParObj
+			expected.IsBanned = true
+			mockDB.On("UpsertParticipant", ctx, expected).Return(nil, fmt.Errorf("sth"))
+
+			resp, err := backendObj.BanParticipant(ctx, discussionID, participantID, requestingUserID)
+
+			So(err, ShouldNotBeNil)
+			So(resp, ShouldBeNil)
+		})
+
+		Convey("when upsert happens", func() {
+			expected := anonParObj
+			expected.IsBanned = true
+			mockDB.On("UpsertParticipant", ctx, expected).Return(&expected, nil)
+
+			Convey("when delete posts fails", func() {
+				mockDB.On("DeleteAllParticipantPosts", ctx, discussionID, participantID, model.PostDeletedReasonParticipantRemoved).Return(0, fmt.Errorf("sth"))
+
+				resp, err := backendObj.BanParticipant(ctx, discussionID, participantID, requestingUserID)
+
+				So(err, ShouldBeNil)
+				So(resp, ShouldEqual, &expected)
+			})
+
+			Convey("when delete posts succeeds", func() {
+				mockDB.On("DeleteAllParticipantPosts", ctx, discussionID, participantID, model.PostDeletedReasonParticipantRemoved).Return(1, nil)
+
+				resp, err := backendObj.BanParticipant(ctx, discussionID, participantID, requestingUserID)
+
+				So(err, ShouldBeNil)
+				So(resp, ShouldEqual, &expected)
+			})
+		})
+	})
+}
+
 func TestDelphisBackend_UpdateParticipant(t *testing.T) {
 	ctx := context.Background()
 	now := time.Now()
@@ -427,7 +561,7 @@ func TestDelphisBackend_UpdateParticipant(t *testing.T) {
 		Anon: &anonParObj,
 	}
 
-	Convey("UnassignFlair", t, func() {
+	Convey("UpdateParticipant", t, func() {
 		cacheObj := cache.NewInMemoryCache()
 		authObj := auth.NewDelphisAuth(nil)
 		mockDB := &mocks.Datastore{}

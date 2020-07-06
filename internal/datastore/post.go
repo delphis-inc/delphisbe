@@ -4,7 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"errors"
-	"fmt"
 	"io"
 	"time"
 
@@ -46,8 +45,6 @@ func (d *delphisDB) PutPost(ctx context.Context, tx *sql.Tx, post model.Post) (*
 		logrus.WithError(err).Error("failed to execute putPostStmt")
 		return nil, err
 	}
-
-	logrus.Infof("Post: %v\n", post)
 
 	return &post, nil
 }
@@ -213,7 +210,6 @@ func (d *delphisDB) DeletePostByID(ctx context.Context, postID string, deletedRe
 		return nil, err
 	}
 
-	fmt.Printf("deletedReasonCode: %+v, as string: %+v", deletedReasonCode, string(deletedReasonCode))
 	post := model.Post{}
 	if err := d.prepStmts.deletePostByIDStmt.QueryRowContext(
 		ctx,
@@ -238,6 +234,35 @@ func (d *delphisDB) DeletePostByID(ctx context.Context, postID string, deletedRe
 	post.QuotedPostID = nil
 
 	return &post, nil
+}
+
+func (d *delphisDB) DeleteAllParticipantPosts(ctx context.Context, discussionID string, participantID string, deletedReasonCode model.PostDeletedReason) (int, error) {
+	logrus.Debug("DeleteAllParticipantPosts::SQL Query")
+
+	if err := d.initializeStatements(ctx); err != nil {
+		logrus.WithError(err).Error("DeleteAllParticipantPosts::Failed to initialize statements")
+		return 0, err
+	}
+
+	rows, err := d.prepStmts.deletePostByParticipantIDDiscussionIDStmt.QueryContext(
+		ctx,
+		discussionID,
+		participantID,
+		string(deletedReasonCode),
+	)
+	if err != nil {
+		logrus.WithError(err).Error("Failed to delete all participant posts")
+		return 0, err
+	}
+
+	numReturned := 0
+	for rows.Next() {
+		numReturned = numReturned + 1
+	}
+
+	rows.Close()
+
+	return numReturned, nil
 }
 
 func (d *delphisDB) GetPostByID(ctx context.Context, postID string) (*model.Post, error) {

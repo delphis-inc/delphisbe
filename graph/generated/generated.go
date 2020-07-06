@@ -202,6 +202,7 @@ type ComplexityRoot struct {
 		AddDiscussionTags                    func(childComplexity int, discussionID string, tags []string) int
 		AddPost                              func(childComplexity int, discussionID string, participantID string, postContent model.PostContentInput) int
 		AssignFlair                          func(childComplexity int, participantID string, flairID string) int
+		BanParticipant                       func(childComplexity int, discussionID string, participantID string) int
 		ConciergeMutation                    func(childComplexity int, discussionID string, mutationID string, selectedOptions []string) int
 		CreateDiscussion                     func(childComplexity int, anonymityType model.AnonymityType, title string, publicAccess *bool) int
 		CreateFlair                          func(childComplexity int, userID string, templateID string) int
@@ -237,6 +238,7 @@ type ComplexityRoot struct {
 		HasJoined                         func(childComplexity int) int
 		ID                                func(childComplexity int) int
 		IsAnonymous                       func(childComplexity int) int
+		IsBanned                          func(childComplexity int) int
 		ParticipantID                     func(childComplexity int) int
 		Posts                             func(childComplexity int) int
 		UserProfile                       func(childComplexity int) int
@@ -474,6 +476,7 @@ type MutationResolver interface {
 	RequestAccessToDiscussion(ctx context.Context, discussionID string) (*model.DiscussionAccessRequest, error)
 	RespondToRequestAccess(ctx context.Context, requestID string, response model.InviteRequestStatus) (*model.DiscussionAccessRequest, error)
 	DeletePost(ctx context.Context, discussionID string, postID string) (*model.Post, error)
+	BanParticipant(ctx context.Context, discussionID string, participantID string) (*model.Participant, error)
 }
 type ParticipantResolver interface {
 	Discussion(ctx context.Context, obj *model.Participant) (*model.Discussion, error)
@@ -1240,6 +1243,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Mutation.AssignFlair(childComplexity, args["participantID"].(string), args["flairID"].(string)), true
 
+	case "Mutation.banParticipant":
+		if e.complexity.Mutation.BanParticipant == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_banParticipant_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.BanParticipant(childComplexity, args["discussionID"].(string), args["participantID"].(string)), true
+
 	case "Mutation.conciergeMutation":
 		if e.complexity.Mutation.ConciergeMutation == nil {
 			break
@@ -1537,6 +1552,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Participant.IsAnonymous(childComplexity), true
+
+	case "Participant.isBanned":
+		if e.complexity.Participant.IsBanned == nil {
+			break
+		}
+
+		return e.complexity.Participant.IsBanned(childComplexity), true
 
 	case "Participant.participantID":
 		if e.complexity.Participant.ParticipantID == nil {
@@ -2480,8 +2502,9 @@ type MediaSize {
     hasJoined: Boolean!
 
     userProfile: UserProfile
-}
 
+    isBanned: Boolean!
+}
 `, BuiltIn: false},
 	&ast.Source{Name: "graph/types/participant_notification_preferences.graphqls", Input: `type ParticipantNotificationPreferences {
     id: ID!
@@ -2666,6 +2689,9 @@ type Mutation {
 
   # Posts
   deletePost(discussionID: ID!, postID: ID!): Post!
+
+  # Banning
+  banParticipant(discussionID: ID!, participantID: ID!): Participant!
 }
 
 type Subscription {
@@ -2905,6 +2931,28 @@ func (ec *executionContext) field_Mutation_assignFlair_args(ctx context.Context,
 		}
 	}
 	args["flairID"] = arg1
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_banParticipant_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 string
+	if tmp, ok := rawArgs["discussionID"]; ok {
+		arg0, err = ec.unmarshalNID2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["discussionID"] = arg0
+	var arg1 string
+	if tmp, ok := rawArgs["participantID"]; ok {
+		arg1, err = ec.unmarshalNID2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["participantID"] = arg1
 	return args, nil
 }
 
@@ -7360,6 +7408,47 @@ func (ec *executionContext) _Mutation_deletePost(ctx context.Context, field grap
 	return ec.marshalNPost2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐPost(ctx, field.Selections, res)
 }
 
+func (ec *executionContext) _Mutation_banParticipant(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "Mutation",
+		Field:    field,
+		Args:     nil,
+		IsMethod: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Mutation_banParticipant_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().BanParticipant(rctx, args["discussionID"].(string), args["participantID"].(string))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.Participant)
+	fc.Result = res
+	return ec.marshalNParticipant2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐParticipant(ctx, field.Selections, res)
+}
+
 func (ec *executionContext) _PageInfo_startCursor(ctx context.Context, field graphql.CollectedField, obj *model.PageInfo) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -7810,6 +7899,40 @@ func (ec *executionContext) _Participant_userProfile(ctx context.Context, field 
 	res := resTmp.(*model.UserProfile)
 	fc.Result = res
 	return ec.marshalOUserProfile2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐUserProfile(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Participant_isBanned(ctx context.Context, field graphql.CollectedField, obj *model.Participant) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "Participant",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.IsBanned, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(bool)
+	fc.Result = res
+	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _ParticipantNotificationPreferences_id(ctx context.Context, field graphql.CollectedField, obj *model.ParticipantNotificationPreferences) (ret graphql.Marshaler) {
@@ -13021,6 +13144,11 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
+		case "banParticipant":
+			out.Values[i] = ec._Mutation_banParticipant(ctx, field)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -13165,6 +13293,11 @@ func (ec *executionContext) _Participant(ctx context.Context, sel ast.SelectionS
 				res = ec._Participant_userProfile(ctx, field, obj)
 				return res
 			})
+		case "isBanned":
+			out.Values[i] = ec._Participant_isBanned(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&invalids, 1)
+			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
