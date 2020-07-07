@@ -16,20 +16,20 @@ func (r *postResolver) IsDeleted(ctx context.Context, obj *model.Post) (bool, er
 	return obj.DeletedAt != nil, nil
 }
 
-func (r *postResolver) Content(ctx context.Context, obj *model.Post) (string, error) {
+func (r *postResolver) Content(ctx context.Context, obj *model.Post) (*string, error) {
 	if obj.PostContent == nil && obj.PostContentID != nil {
 		postContent, err := r.DAOManager.GetPostContentByID(ctx, *obj.PostContentID)
 		if err != nil {
-			return "", err
+			return nil, err
 		}
 		obj.PostContent = postContent
 	}
 	if obj.PostContent == nil {
 		// If it is still nil we should return an empty string I guess?
 		logrus.Errorf("PostContent is nil for post ID: %s", obj.ID)
-		return "", nil
+		return nil, nil
 	}
-	return obj.PostContent.Content, nil
+	return &obj.PostContent.Content, nil
 }
 
 func (r *postResolver) Discussion(ctx context.Context, obj *model.Post) (*model.Discussion, error) {
@@ -66,6 +66,10 @@ func (r *postResolver) UpdatedAt(ctx context.Context, obj *model.Post) (string, 
 }
 
 func (r *postResolver) MentionedEntities(ctx context.Context, obj *model.Post) ([]model.Entity, error) {
+	if obj.DeletedAt != nil {
+		return nil, nil
+	}
+
 	if len(obj.PostContent.MentionedEntities) == 0 {
 		return nil, nil
 	}
@@ -89,6 +93,10 @@ func (r *postResolver) MentionedEntities(ctx context.Context, obj *model.Post) (
 }
 
 func (r *postResolver) Media(ctx context.Context, obj *model.Post) (*model.Media, error) {
+	if obj.DeletedAt != nil {
+		return nil, nil
+	}
+
 	if obj.MediaID != nil {
 		return r.DAOManager.GetMediaRecord(ctx, *obj.MediaID)
 	}
@@ -96,6 +104,10 @@ func (r *postResolver) Media(ctx context.Context, obj *model.Post) (*model.Media
 }
 
 func (r *postResolver) ImportedContent(ctx context.Context, obj *model.Post) (*model.ImportedContent, error) {
+	if obj.DeletedAt != nil {
+		return nil, nil
+	}
+
 	if obj.ImportedContentID != nil {
 		return r.DAOManager.GetImportedContentByID(ctx, *obj.ImportedContentID)
 	}

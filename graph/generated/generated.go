@@ -494,7 +494,7 @@ type ParticipantsConnectionResolver interface {
 type PostResolver interface {
 	IsDeleted(ctx context.Context, obj *model.Post) (bool, error)
 
-	Content(ctx context.Context, obj *model.Post) (string, error)
+	Content(ctx context.Context, obj *model.Post) (*string, error)
 	Discussion(ctx context.Context, obj *model.Post) (*model.Discussion, error)
 	Participant(ctx context.Context, obj *model.Post) (*model.Participant, error)
 	CreatedAt(ctx context.Context, obj *model.Post) (string, error)
@@ -2527,9 +2527,9 @@ type MediaSize {
     id: ID!
     isDeleted: Boolean!
     deletedReasonCode: PostDeletedReason
-    content: String!
+    content: String
     discussion: Discussion!
-    participant: Participant!
+    participant: Participant
     createdAt: String!
     updatedAt: String!
     quotedPost: Post
@@ -8349,14 +8349,11 @@ func (ec *executionContext) _Post_content(ctx context.Context, field graphql.Col
 		return graphql.Null
 	}
 	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
 		return graphql.Null
 	}
-	res := resTmp.(string)
+	res := resTmp.(*string)
 	fc.Result = res
-	return ec.marshalNString2string(ctx, field.Selections, res)
+	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Post_discussion(ctx context.Context, field graphql.CollectedField, obj *model.Post) (ret graphql.Marshaler) {
@@ -8417,14 +8414,11 @@ func (ec *executionContext) _Post_participant(ctx context.Context, field graphql
 		return graphql.Null
 	}
 	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
 		return graphql.Null
 	}
 	res := resTmp.(*model.Participant)
 	fc.Result = res
-	return ec.marshalNParticipant2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐParticipant(ctx, field.Selections, res)
+	return ec.marshalOParticipant2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐParticipant(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Post_createdAt(ctx context.Context, field graphql.CollectedField, obj *model.Post) (ret graphql.Marshaler) {
@@ -13477,9 +13471,6 @@ func (ec *executionContext) _Post(ctx context.Context, sel ast.SelectionSet, obj
 					}
 				}()
 				res = ec._Post_content(ctx, field, obj)
-				if res == graphql.Null {
-					atomic.AddUint32(&invalids, 1)
-				}
 				return res
 			})
 		case "discussion":
@@ -13505,9 +13496,6 @@ func (ec *executionContext) _Post(ctx context.Context, sel ast.SelectionSet, obj
 					}
 				}()
 				res = ec._Post_participant(ctx, field, obj)
-				if res == graphql.Null {
-					atomic.AddUint32(&invalids, 1)
-				}
 				return res
 			})
 		case "createdAt":

@@ -2,9 +2,9 @@ type Post{
     id: ID!
     isDeleted: Boolean!
     deletedReasonCode: PostDeletedReason
-    content: String!
+    content: String
     discussion: Discussion!
-    participant: Participant!
+    participant: Participant
     createdAt: String!
     updatedAt: String!
     quotedPost: Post

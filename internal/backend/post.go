@@ -410,6 +410,16 @@ func (d *delphisBackend) DeletePostByID(ctx context.Context, discussionID string
 		return nil, fmt.Errorf("Discussion not found")
 	}
 
+	moderatorObj, err := d.GetModeratorByID(ctx, *disc.ModeratorID)
+	if err != nil || moderatorObj == nil || moderatorObj.UserProfileID == nil {
+		return nil, fmt.Errorf("Failed to retrieve discussion")
+	}
+
+	userProfile, err := d.GetUserProfileByID(ctx, *moderatorObj.UserProfileID)
+	if err != nil || userProfile == nil || userProfile.UserID == nil {
+		return nil, fmt.Errorf("Failed to retrieve discussion")
+	}
+
 	post, err := d.GetPostByID(ctx, postID)
 	if err != nil || post == nil || post.ParticipantID == nil {
 		return nil, fmt.Errorf("Post not found")
@@ -420,7 +430,7 @@ func (d *delphisBackend) DeletePostByID(ctx context.Context, discussionID string
 		return nil, fmt.Errorf("Participant not found")
 	}
 
-	isModerator := disc.ModeratorID != nil && *disc.ModeratorID == requestingUserID
+	isModerator := *userProfile.UserID == requestingUserID
 	isParticipant := participant.UserID != nil && *participant.UserID == requestingUserID
 
 	// Only the moderator or author can delete a post

@@ -68,8 +68,10 @@ func (r *discussionResolver) Participants(ctx context.Context, obj *model.Discus
 
 		particPointers := make([]*model.Participant, 0)
 		for i, elem := range participants {
-			elem.Discussion = obj
-			particPointers = append(particPointers, &participants[i])
+			if !elem.IsBanned {
+				elem.Discussion = obj
+				particPointers = append(particPointers, &participants[i])
+			}
 		}
 
 		obj.Participants = particPointers

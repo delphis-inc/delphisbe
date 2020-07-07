@@ -419,6 +419,8 @@ func TestDelphisBackend_BanParticipant(t *testing.T) {
 
 	participantID := test_utils.ParticipantID
 	anonParObj := test_utils.TestParticipant()
+	participantUserID := "participant_user_id"
+	anonParObj.UserID = &participantUserID
 	discussionObj := test_utils.TestDiscussion()
 	discussionID := test_utils.DiscussionID
 	moderatorObj := test_utils.TestModerator()
@@ -544,6 +546,17 @@ func TestDelphisBackend_BanParticipant(t *testing.T) {
 		})
 
 		anonParObj.DiscussionID = &discussionID
+
+		Convey("when moderator attempts to ban themselves", func() {
+			anonParObj.UserID = userProfileObj.UserID
+
+			resp, err := backendObj.BanParticipant(ctx, discussionID, participantID, requestingUserID)
+
+			So(err, ShouldNotBeNil)
+			So(resp, ShouldBeNil)
+		})
+
+		anonParObj.UserID = &participantUserID
 
 		Convey("when participant is already banned", func() {
 			anonParObj.IsBanned = true
