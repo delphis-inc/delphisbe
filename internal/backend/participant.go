@@ -68,6 +68,7 @@ func (d *delphisBackend) CreateParticipantForDiscussion(ctx context.Context, dis
 
 	participantObj.HasJoined = discussionParticipantInput.HasJoined != nil && *discussionParticipantInput.HasJoined
 	participantObj.IsAnonymous = discussionParticipantInput.IsAnonymous
+	participantObj.InviterParticipantID = discussionParticipantInput.InviterParticipantID
 
 	viewerObj, err := d.CreateViewerForDiscussion(ctx, discussionID, userID)
 
@@ -192,6 +193,10 @@ func (d *delphisBackend) UnassignFlair(ctx context.Context, participant model.Pa
 
 func (d *delphisBackend) GetTotalParticipantCountByDiscussionID(ctx context.Context, discussionID string) int {
 	return d.db.GetTotalParticipantCountByDiscussionID(ctx, discussionID)
+}
+
+func (d *delphisBackend) GetParticipantByDiscussionIDParticipantID(ctx context.Context, discussionID string, participantID int) (*model.Participant, error) {
+	return d.db.GetParticipantByDiscussionIDParticipantID(ctx, discussionID, participantID)
 }
 
 func (d *delphisBackend) UpdateParticipant(ctx context.Context, participants UserDiscussionParticipants, currentParticipantID string, input model.UpdateParticipantInput) (*model.Participant, error) {

@@ -65,6 +65,22 @@ func (d *delphisDB) GetParticipantsByDiscussionIDUserID(ctx context.Context, dis
 	return participants, nil
 }
 
+func (d *delphisDB) GetParticipantByDiscussionIDParticipantID(ctx context.Context, discussionID string, participantID int) (*model.Participant, error) {
+	logrus.Debugf("GetParticipantsByDiscussionIDParticipantID::SQL Query")
+	participants := []model.Participant{}
+	if err := d.sql.Where(&model.Participant{DiscussionID: &discussionID, ParticipantID: participantID}).Order("participant_id desc").Limit(1).Find(&participants).Error; err != nil {
+		if gorm.IsRecordNotFoundError(err) {
+			return nil, nil
+		}
+		logrus.WithError(err).Errorf("GetParticipantsByDiscussionIDParticipantID::Failed to get participant by discussion ID and user ID")
+		return nil, err
+	}
+	if len(participants) > 0 {
+		return &participants[0], nil
+	}
+	return nil, nil
+}
+
 func (d *delphisDB) UpsertParticipant(ctx context.Context, participant model.Participant) (*model.Participant, error) {
 	logrus.Debug("UpsertParticipant::SQL Create")
 	found := model.Participant{}
@@ -80,12 +96,13 @@ func (d *delphisDB) UpsertParticipant(ctx context.Context, participant model.Par
 		}
 	} else {
 		if err := d.sql.Model(&participant).Updates(model.Participant{
-			FlairID:       participant.FlairID,
-			IsAnonymous:   participant.IsAnonymous,
-			UpdatedAt:     time.Now(),
-			GradientColor: participant.GradientColor,
-			HasJoined:     participant.HasJoined,
-			IsBanned:      participant.IsBanned,
+			FlairID:              participant.FlairID,
+			IsAnonymous:          participant.IsAnonymous,
+			UpdatedAt:            time.Now(),
+			GradientColor:        participant.GradientColor,
+			HasJoined:            participant.HasJoined,
+			IsBanned:             participant.IsBanned,
+			InviterParticipantID: participant.InviterParticipantID,
 		}).First(&found).Error; err != nil {
 			logrus.WithError(err).Errorf("UpsertParticipant::Failed updating Participant object")
 			return nil, err

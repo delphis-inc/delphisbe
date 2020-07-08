@@ -81,6 +81,16 @@ func (r *participantResolver) Flair(ctx context.Context, obj *model.Participant)
 	return obj.Flair, nil
 }
 
+func (r *participantResolver) Inviter(ctx context.Context, obj *model.Participant) (*model.Participant, error) {
+	inviter, err := r.DAOManager.GetParticipantByDiscussionIDParticipantID(ctx, *obj.DiscussionID, obj.InviterParticipantID)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return inviter, nil
+}
+
 func (r *participantResolver) UserProfile(ctx context.Context, obj *model.Participant) (*model.UserProfile, error) {
 	if obj.IsBanned {
 		return nil, nil

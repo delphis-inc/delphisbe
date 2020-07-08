@@ -1,0 +1,1 @@
+ALTER TABLE participants ADD COLUMN IF NOT EXISTS inviter_participant_id INT DEFAULT 0 NOT NULL;

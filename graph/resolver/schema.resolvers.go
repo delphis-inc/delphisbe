@@ -140,7 +140,7 @@ func (r *mutationResolver) CreateDiscussion(ctx context.Context, anonymityType m
 	}
 
 	trueObj := true
-	_, err = r.DAOManager.CreateParticipantForDiscussion(ctx, discussionObj.ID, authedUser.UserID, model.AddDiscussionParticipantInput{HasJoined: &trueObj})
+	_, err = r.DAOManager.CreateParticipantForDiscussion(ctx, discussionObj.ID, authedUser.UserID, model.AddDiscussionParticipantInput{HasJoined: &trueObj, InviterParticipantID: 0})
 
 	if err != nil {
 		return nil, err

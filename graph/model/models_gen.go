@@ -18,10 +18,11 @@ type Entity interface {
 }
 
 type AddDiscussionParticipantInput struct {
-	GradientColor *GradientColor `json:"gradientColor"`
-	FlairID       *string        `json:"flairID"`
-	HasJoined     *bool          `json:"hasJoined"`
-	IsAnonymous   bool           `json:"isAnonymous"`
+	GradientColor        *GradientColor `json:"gradientColor"`
+	FlairID              *string        `json:"flairID"`
+	HasJoined            *bool          `json:"hasJoined"`
+	IsAnonymous          bool           `json:"isAnonymous"`
+	InviterParticipantID int            `json:"inviterParticipantID"`
 }
 
 type ConciergeContent struct {

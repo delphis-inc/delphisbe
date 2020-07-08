@@ -1,4 +1,4 @@
-type Participant implements Entity{
+type Participant implements Entity {
     # The UUID for this participant.
     id: ID!
     # Fetching a participant directly is okay because we have no link back to who the user is.
@@ -16,6 +16,7 @@ type Participant implements Entity{
     gradientColor: GradientColor
     # The flair that has been assigned to this participant if any
     flair: Flair
+    inviter: Participant!
 
     hasJoined: Boolean!
 

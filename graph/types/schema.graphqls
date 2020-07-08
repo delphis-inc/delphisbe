@@ -28,6 +28,7 @@ input AddDiscussionParticipantInput {
   flairID: ID
   hasJoined: Boolean
   isAnonymous: Boolean!
+  inviterParticipantID: Int!
 }
 
 # TODO: implement

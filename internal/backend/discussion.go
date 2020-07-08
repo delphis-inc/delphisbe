@@ -43,7 +43,7 @@ func (d *delphisBackend) CreateNewDiscussion(ctx context.Context, creatingUser *
 
 	// Create concierge participant
 	trueObj := true
-	if _, err := d.CreateParticipantForDiscussion(ctx, discussionObj.ID, model.ConciergeUser, model.AddDiscussionParticipantInput{HasJoined: &trueObj}); err != nil {
+	if _, err := d.CreateParticipantForDiscussion(ctx, discussionObj.ID, model.ConciergeUser, model.AddDiscussionParticipantInput{HasJoined: &trueObj, InviterParticipantID: 0}); err != nil {
 		logrus.WithError(err).Error("failed to create concierge user")
 		return nil, err
 	}
