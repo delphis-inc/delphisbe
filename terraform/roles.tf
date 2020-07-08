@@ -137,6 +137,35 @@ resource "aws_iam_policy" "secrets-manager" {
 EOF
 }
 
+resource "aws_iam_policy" "github-actions-deployment" {
+  name        = "delphis-github-actions-ecs-deployment"
+  description = "Policy that allows Github Actions to deploy ECS"
+  policy      = <<EOF
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Effect": "Allow",
+            "Action": [
+                "ecs:DeregisterTaskDefinition",
+                "ecs:DescribeServices",
+                "ecs:DescribeTaskDefinition",
+                "ecs:DescribeTasks",
+                "ecs:ListTasks",
+                "ecs:ListTaskDefinitions",
+                "ecs:RegisterTaskDefinition",
+                "ecs:StartTask",
+                "ecs:StopTask",
+                "ecs:UpdateService",
+                "iam:PassRole"
+            ],
+            "Resource": "*"
+        }
+    ]
+}
+EOF
+}
+
 resource "aws_iam_role_policy_attachment" "ecs-task-role-policy-attachment-secrets-manager" {
   role       = aws_iam_role.ecs_task_role.name
   policy_arn = aws_iam_policy.secrets-manager.arn
@@ -152,4 +181,15 @@ resource "aws_iam_policy_attachment" "zapier_sqs" {
   users      = [aws_iam_user.zapier_sqs.name]
   roles      = [aws_iam_role.ecs_task_role.name]
   policy_arn = "arn:aws:iam::aws:policy/AmazonSQSFullAccess"
+}
+
+// Zapier user for consuming SQS
+resource "aws_iam_user" "github-action-deploy" {
+  name = "github-action-deploy"
+}
+
+resource "aws_iam_policy_attachment" "github-action-attach" {
+  name       = "github-action-attach"
+  users      = [aws_iam_user.github-action-deploy.name]
+  policy_arn = aws_iam_policy.github-actions-deployment.arn
 }
