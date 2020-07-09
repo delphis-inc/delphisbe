@@ -82,7 +82,7 @@ func (r *participantResolver) Flair(ctx context.Context, obj *model.Participant)
 }
 
 func (r *participantResolver) Inviter(ctx context.Context, obj *model.Participant) (*model.Participant, error) {
-	inviter, err := r.DAOManager.GetParticipantByDiscussionIDParticipantID(ctx, *obj.DiscussionID, obj.InviterParticipantID)
+	inviter, err := r.DAOManager.GetParticipantByDiscussionIDParticipantID(ctx, *obj.DiscussionID, *obj.InviterParticipantID)
 
 	if err != nil {
 		return nil, err

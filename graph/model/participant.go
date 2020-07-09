@@ -22,7 +22,7 @@ type Participant struct {
 	IsBanned             bool             `json:"isBanned" gorm:"type:boolean;"`
 	HasJoined            bool             `json:"hasJoined" gorm:"type:boolean;"`
 	IsAnonymous          bool             `json:"isAnonymous"`
-	InviterParticipantID int              `json:"inviterParticipantID" dynamodbav:"-"`
+	InviterParticipantID *int             `json:"inviterParticipantID" dynamodbav:"-"`
 	Inviter              *Participant     `json:"inviter"`
 }
 

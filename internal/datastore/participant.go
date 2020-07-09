@@ -68,7 +68,7 @@ func (d *delphisDB) GetParticipantsByDiscussionIDUserID(ctx context.Context, dis
 func (d *delphisDB) GetParticipantByDiscussionIDParticipantID(ctx context.Context, discussionID string, participantID int) (*model.Participant, error) {
 	logrus.Debugf("GetParticipantsByDiscussionIDParticipantID::SQL Query")
 	participants := []model.Participant{}
-	if err := d.sql.Where(&model.Participant{DiscussionID: &discussionID, ParticipantID: participantID}).Order("participant_id desc").Limit(1).Find(&participants).Error; err != nil {
+	if err := d.sql.Where(`"participants"."discussion_id" = ? AND "participants"."participant_id" = ?`, discussionID, participantID).Limit(1).Find(&participants).Error; err != nil {
 		if gorm.IsRecordNotFoundError(err) {
 			return nil, nil
 		}
