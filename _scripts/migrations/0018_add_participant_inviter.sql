@@ -1,0 +1,2 @@
+ALTER TABLE participants ADD COLUMN IF NOT EXISTS inviter_id varchar(36);
+ALTER TABLE participants ADD CONSTRAINT participants_inviter_id_c24f6d2e8abc FOREIGN KEY (inviter_id) REFERENCES participants (id) MATCH FULL;

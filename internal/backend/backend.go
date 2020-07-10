@@ -46,6 +46,7 @@ type DelphisBackend interface {
 	GetParticipantsByDiscussionID(ctx context.Context, id string) ([]model.Participant, error)
 	GetParticipantByID(ctx context.Context, id string) (*model.Participant, error)
 	GetParticipantsByIDs(ctx context.Context, ids []string) (map[string]*model.Participant, error)
+	GetModeratorParticipantsByDiscussionID(ctx context.Context, discussionID string) (*UserDiscussionParticipants, error)
 	GetTotalParticipantCountByDiscussionID(ctx context.Context, discussionID string) int
 	BanParticipant(ctx context.Context, discussionID string, participantID string, requestingUserID string) (*model.Participant, error)
 	UpdateParticipant(ctx context.Context, participants UserDiscussionParticipants, currentParticipantID string, input model.UpdateParticipantInput) (*model.Participant, error)

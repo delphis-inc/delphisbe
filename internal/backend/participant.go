@@ -169,6 +169,25 @@ func (d *delphisBackend) GetParticipantsByDiscussionIDUserID(ctx context.Context
 	return participantResponse, nil
 }
 
+func (d *delphisBackend) GetModeratorParticipantsByDiscussionID(ctx context.Context, discussionID string) (*UserDiscussionParticipants, error) {
+	participants, err := d.db.GetModeratorParticipantsByDiscussionID(ctx, discussionID)
+	if err != nil {
+		return nil, err
+	}
+
+	participantResponse := &UserDiscussionParticipants{}
+
+	for i, participant := range participants {
+		if participant.IsAnonymous && participantResponse.Anon == nil {
+			participantResponse.Anon = &participants[i]
+		}
+		if !participant.IsAnonymous && participantResponse.NonAnon == nil {
+			participantResponse.NonAnon = &participants[i]
+		}
+	}
+	return participantResponse, nil
+}
+
 func (d *delphisBackend) GetParticipantByID(ctx context.Context, id string) (*model.Participant, error) {
 	participant, err := d.db.GetParticipantByID(ctx, id)
 	if err != nil {

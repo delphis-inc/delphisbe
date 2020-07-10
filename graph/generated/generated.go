@@ -237,6 +237,7 @@ type ComplexityRoot struct {
 		GradientColor                     func(childComplexity int) int
 		HasJoined                         func(childComplexity int) int
 		ID                                func(childComplexity int) int
+		Inviter                           func(childComplexity int) int
 		IsAnonymous                       func(childComplexity int) int
 		IsBanned                          func(childComplexity int) int
 		ParticipantID                     func(childComplexity int) int
@@ -485,6 +486,7 @@ type ParticipantResolver interface {
 	Posts(ctx context.Context, obj *model.Participant) ([]*model.Post, error)
 
 	Flair(ctx context.Context, obj *model.Participant) (*model.Flair, error)
+	Inviter(ctx context.Context, obj *model.Participant) (*model.Participant, error)
 
 	UserProfile(ctx context.Context, obj *model.Participant) (*model.UserProfile, error)
 }
@@ -1546,6 +1548,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Participant.ID(childComplexity), true
 
+	case "Participant.inviter":
+		if e.complexity.Participant.Inviter == nil {
+			break
+		}
+
+		return e.complexity.Participant.Inviter(childComplexity), true
+
 	case "Participant.isAnonymous":
 		if e.complexity.Participant.IsAnonymous == nil {
 			break
@@ -2499,6 +2508,7 @@ type MediaSize {
     # The flair that has been assigned to this participant if any
     flair: Flair
 
+    inviter: Participant!
     hasJoined: Boolean!
 
     userProfile: UserProfile
@@ -7834,6 +7844,40 @@ func (ec *executionContext) _Participant_flair(ctx context.Context, field graphq
 	res := resTmp.(*model.Flair)
 	fc.Result = res
 	return ec.marshalOFlair2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐFlair(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Participant_inviter(ctx context.Context, field graphql.CollectedField, obj *model.Participant) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "Participant",
+		Field:    field,
+		Args:     nil,
+		IsMethod: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Participant().Inviter(rctx, obj)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.Participant)
+	fc.Result = res
+	return ec.marshalNParticipant2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐParticipant(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Participant_hasJoined(ctx context.Context, field graphql.CollectedField, obj *model.Participant) (ret graphql.Marshaler) {
@@ -13269,6 +13313,20 @@ func (ec *executionContext) _Participant(ctx context.Context, sel ast.SelectionS
 					}
 				}()
 				res = ec._Participant_flair(ctx, field, obj)
+				return res
+			})
+		case "inviter":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Participant_inviter(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
 				return res
 			})
 		case "hasJoined":
