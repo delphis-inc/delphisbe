@@ -81,6 +81,27 @@ func (r *participantResolver) Flair(ctx context.Context, obj *model.Participant)
 	return obj.Flair, nil
 }
 
+func (r *participantResolver) Inviter(ctx context.Context, obj *model.Participant) (*model.Participant, error) {
+	if obj.InviterID == nil {
+		// By default the inviter is the moderator
+		inviter, err := r.DAOManager.GetModeratorParticipantsByDiscussionID(ctx, *obj.DiscussionID)
+		if err != nil {
+			return nil, err
+		}
+		if inviter == nil {
+			return nil, fmt.Errorf("Could not retrieve discussion's moderator")
+		}
+
+		return inviter.Anon, nil
+	}
+
+	inviter, err := r.DAOManager.GetParticipantByID(ctx, *obj.InviterID)
+	if err != nil {
+		return nil, err
+	}
+	return inviter, nil
+}
+
 func (r *participantResolver) UserProfile(ctx context.Context, obj *model.Participant) (*model.UserProfile, error) {
 	if obj.IsBanned {
 		return nil, nil

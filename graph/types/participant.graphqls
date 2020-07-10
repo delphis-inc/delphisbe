@@ -17,6 +17,7 @@ type Participant implements Entity{
     # The flair that has been assigned to this participant if any
     flair: Flair
 
+    inviter: Participant!
     hasJoined: Boolean!
 
     userProfile: UserProfile

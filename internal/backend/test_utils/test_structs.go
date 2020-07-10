@@ -7,6 +7,7 @@ import (
 const ProfileID = "profileID"
 const DisplayName = "displayName"
 const UserID = "userID"
+const InviterID = "InviterID"
 const DiscussionID = "discussionID"
 const TwitterHandle = "twitterHandle"
 const Token = "token"
@@ -56,6 +57,7 @@ func TestParticipant() model.Participant {
 	flairID := FlairID
 	gradientColor := GradientColor
 	userID := UserID
+	inviterID := InviterID
 
 	return model.Participant{
 		ID:            ParticipantID,
@@ -67,6 +69,7 @@ func TestParticipant() model.Participant {
 		UserID:        &userID,
 		HasJoined:     false,
 		IsAnonymous:   false,
+		InviterID:     &inviterID,
 	}
 }
 
