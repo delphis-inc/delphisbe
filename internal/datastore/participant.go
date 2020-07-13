@@ -71,7 +71,7 @@ func (d *delphisDB) GetModeratorParticipantsByDiscussionID(ctx context.Context, 
 	joinUserProfiles := "JOIN user_profiles ON user_profiles.user_id = participants.user_id"
 	joinModerators := "JOIN moderators ON user_profiles.id = moderators.user_profile_id"
 	joinDiscussions := "JOIN discussions ON participants.discussion_id = discussions.id"
-	if err := d.sql.Joins(joinUserProfiles).Joins(joinModerators).Joins(joinDiscussions).Where(`"discussions"."id" = ?`, &discussionID).Order("participant_id desc").Limit(2).Find(&participants).Error; err != nil {
+	if err := d.sql.Joins(joinUserProfiles).Joins(joinModerators).Joins(joinDiscussions).Where(`("discussions"."moderator_id" = "moderators"."id") AND "discussions"."id" = ?`, &discussionID).Order("participant_id desc").Limit(2).Find(&participants).Error; err != nil {
 		if gorm.IsRecordNotFoundError(err) {
 			return nil, nil
 		}

@@ -403,7 +403,7 @@ func TestDelphisDB_GetModeratorParticipantsByDiscussionID(t *testing.T) {
 		joinUserProfiles := "JOIN user_profiles ON user_profiles.user_id = participants.user_id"
 		joinModerators := "JOIN moderators ON user_profiles.id = moderators.user_profile_id"
 		joinDiscussions := "JOIN discussions ON participants.discussion_id = discussions.id"
-		expectedQueryString := `SELECT "participants".* FROM "participants" ` + joinUserProfiles + ` ` + joinModerators + ` ` + joinDiscussions + ` WHERE "participants"."deleted_at" IS NULL AND (("discussions"."id" = $1)) ORDER BY participant_id desc LIMIT 2`
+		expectedQueryString := `SELECT "participants".* FROM "participants" ` + joinUserProfiles + ` ` + joinModerators + ` ` + joinDiscussions + ` WHERE "participants"."deleted_at" IS NULL AND ((("discussions"."moderator_id" = "moderators"."id") AND "discussions"."id" = $1)) ORDER BY participant_id desc LIMIT 2`
 
 		Convey("when query execution returns an error", func() {
 			mock.ExpectQuery(expectedQueryString).WithArgs(parObj.DiscussionID).WillReturnError(fmt.Errorf("error"))
