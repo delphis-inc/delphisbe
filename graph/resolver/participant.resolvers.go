@@ -92,7 +92,14 @@ func (r *participantResolver) Inviter(ctx context.Context, obj *model.Participan
 			return nil, fmt.Errorf("Could not retrieve discussion's moderator")
 		}
 
-		return inviter.NonAnon, nil
+		if inviter.NonAnon != nil {
+			return inviter.NonAnon, nil
+		} else if inviter.Anon != nil {
+			return inviter.Anon, nil
+		}
+
+		// We have a problem here
+		return nil, nil
 	}
 
 	inviter, err := r.DAOManager.GetParticipantByID(ctx, *obj.InviterID)
