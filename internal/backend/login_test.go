@@ -9,13 +9,13 @@ import (
 
 	"github.com/dghubble/go-twitter/twitter"
 
-	"github.com/nedrocks/delphisbe/internal/backend/test_utils"
+	"github.com/delphis-inc/delphisbe/internal/backend/test_utils"
 
-	"github.com/nedrocks/delphisbe/internal/auth"
-	"github.com/nedrocks/delphisbe/internal/cache"
-	"github.com/nedrocks/delphisbe/internal/config"
-	"github.com/nedrocks/delphisbe/internal/util"
-	"github.com/nedrocks/delphisbe/mocks"
+	"github.com/delphis-inc/delphisbe/internal/auth"
+	"github.com/delphis-inc/delphisbe/internal/cache"
+	"github.com/delphis-inc/delphisbe/internal/config"
+	"github.com/delphis-inc/delphisbe/internal/util"
+	"github.com/delphis-inc/delphisbe/mocks"
 	. "github.com/smartystreets/goconvey/convey"
 	"github.com/stretchr/testify/mock"
 )

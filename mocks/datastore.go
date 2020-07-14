@@ -3,9 +3,9 @@
 package mocks
 
 import context "context"
-import datastore "github.com/nedrocks/delphisbe/internal/datastore"
+import datastore "github.com/delphis-inc/delphisbe/internal/datastore"
 import mock "github.com/stretchr/testify/mock"
-import model "github.com/nedrocks/delphisbe/graph/model"
+import model "github.com/delphis-inc/delphisbe/graph/model"
 import sql "database/sql"
 import time "time"
 

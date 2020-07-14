@@ -4,8 +4,8 @@ import (
 	"context"
 	"time"
 
+	"github.com/delphis-inc/delphisbe/graph/model"
 	"github.com/jinzhu/gorm"
-	"github.com/nedrocks/delphisbe/graph/model"
 	"github.com/sirupsen/logrus"
 )
 

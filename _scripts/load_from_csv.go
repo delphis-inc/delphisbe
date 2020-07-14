@@ -2,9 +2,9 @@ package main
 
 import (
 	"bufio"
-	"os"
-	"fmt"
 	"encoding/csv"
+	"fmt"
+	"os"
 
 	"github.com/aws/aws-sdk-go/aws/credentials/endpointcreds"
 
@@ -12,15 +12,15 @@ import (
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
 
-	"github.com/nedrocks/delphisbe/_scripts/csv_loaders"
-	"github.com/nedrocks/delphisbe/internal/backend"
-	"github.com/nedrocks/delphisbe/internal/config"
-	"github.com/nedrocks/delphisbe/internal/secrets"
+	"github.com/delphis-inc/delphisbe/_scripts/csv_loaders"
+	"github.com/delphis-inc/delphisbe/internal/backend"
+	"github.com/delphis-inc/delphisbe/internal/config"
+	"github.com/delphis-inc/delphisbe/internal/secrets"
 	"github.com/sirupsen/logrus"
 )
 
 var CsvLoaderFuncs = map[string]func(db backend.DelphisBackend, reader *csv.Reader){
-	"flair": csv_loaders.CreateFlair,
+	"flair":          csv_loaders.CreateFlair,
 	"flair_template": csv_loaders.CreateFlairTemplate,
 }
 

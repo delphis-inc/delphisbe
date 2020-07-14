@@ -6,15 +6,15 @@ import (
 	"sync"
 	"time"
 
-	"github.com/nedrocks/delphisbe/internal/mediadb"
+	"github.com/delphis-inc/delphisbe/internal/mediadb"
 
 	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/nedrocks/delphisbe/graph/model"
-	"github.com/nedrocks/delphisbe/internal/auth"
-	"github.com/nedrocks/delphisbe/internal/cache"
-	"github.com/nedrocks/delphisbe/internal/config"
-	"github.com/nedrocks/delphisbe/internal/datastore"
-	"github.com/nedrocks/delphisbe/internal/util"
+	"github.com/delphis-inc/delphisbe/graph/model"
+	"github.com/delphis-inc/delphisbe/internal/auth"
+	"github.com/delphis-inc/delphisbe/internal/cache"
+	"github.com/delphis-inc/delphisbe/internal/config"
+	"github.com/delphis-inc/delphisbe/internal/datastore"
+	"github.com/delphis-inc/delphisbe/internal/util"
 )
 
 type DelphisBackend interface {

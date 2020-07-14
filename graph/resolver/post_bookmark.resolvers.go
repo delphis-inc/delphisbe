@@ -7,8 +7,8 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/nedrocks/delphisbe/graph/generated"
-	"github.com/nedrocks/delphisbe/graph/model"
+	"github.com/delphis-inc/delphisbe/graph/generated"
+	"github.com/delphis-inc/delphisbe/graph/model"
 )
 
 func (r *postBookmarkResolver) Discussion(ctx context.Context, obj *model.PostBookmark) (*model.Discussion, error) {

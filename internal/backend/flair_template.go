@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/nedrocks/delphisbe/graph/model"
-	"github.com/nedrocks/delphisbe/internal/util"
+	"github.com/delphis-inc/delphisbe/graph/model"
+	"github.com/delphis-inc/delphisbe/internal/util"
 )
 
 func (d *delphisBackend) ListFlairTemplates(ctx context.Context, query *string) ([]*model.FlairTemplate, error) {

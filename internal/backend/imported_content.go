@@ -6,10 +6,10 @@ import (
 
 	"go.uber.org/multierr"
 
-	"github.com/nedrocks/delphisbe/internal/util"
+	"github.com/delphis-inc/delphisbe/internal/util"
 	"github.com/sirupsen/logrus"
 
-	"github.com/nedrocks/delphisbe/graph/model"
+	"github.com/delphis-inc/delphisbe/graph/model"
 )
 
 func (d *delphisBackend) GetUpcomingImportedContentByDiscussionID(ctx context.Context, discussionID string) ([]*model.ImportedContent, error) {

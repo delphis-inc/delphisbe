@@ -3,7 +3,7 @@ package dbmodel
 import (
 	"time"
 
-	"github.com/nedrocks/delphisbe/graph/model"
+	"github.com/delphis-inc/delphisbe/graph/model"
 )
 
 type Discussion struct {

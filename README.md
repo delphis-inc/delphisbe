@@ -1,4 +1,4 @@
-![Delphis Backend Build](https://github.com/nedrocks/delphisbe/workflows/Delphis%20Backend%20Build/badge.svg)
+![Delphis Backend Build](https://github.com/delphis-inc/delphisbe/workflows/Delphis%20Backend%20Build/badge.svg)
 
 # delphisbe
 Backend monolith for delphis

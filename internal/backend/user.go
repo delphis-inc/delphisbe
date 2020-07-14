@@ -4,8 +4,8 @@ import (
 	"context"
 	"time"
 
-	"github.com/nedrocks/delphisbe/graph/model"
-	"github.com/nedrocks/delphisbe/internal/util"
+	"github.com/delphis-inc/delphisbe/graph/model"
+	"github.com/delphis-inc/delphisbe/internal/util"
 )
 
 func (d *delphisBackend) GetUserByID(ctx context.Context, userID string) (*model.User, error) {

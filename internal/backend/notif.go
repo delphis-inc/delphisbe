@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"sort"
 
-	"github.com/nedrocks/delphisbe/graph/model"
-	"github.com/nedrocks/delphisbe/internal/notif"
+	"github.com/delphis-inc/delphisbe/graph/model"
+	"github.com/delphis-inc/delphisbe/internal/notif"
 	"github.com/sirupsen/logrus"
 )
 

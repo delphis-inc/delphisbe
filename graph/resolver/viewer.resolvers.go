@@ -7,8 +7,8 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/nedrocks/delphisbe/graph/generated"
-	"github.com/nedrocks/delphisbe/graph/model"
+	"github.com/delphis-inc/delphisbe/graph/generated"
+	"github.com/delphis-inc/delphisbe/graph/model"
 )
 
 func (r *viewerResolver) NotificationPreferences(ctx context.Context, obj *model.Viewer) (model.DiscussionNotificationPreferences, error) {

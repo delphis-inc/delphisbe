@@ -3,7 +3,7 @@ package backend
 import (
 	"context"
 
-	"github.com/nedrocks/delphisbe/graph/model"
+	"github.com/delphis-inc/delphisbe/graph/model"
 )
 
 func (d *delphisBackend) GetUserProfileByUserID(ctx context.Context, userID string) (*model.UserProfile, error) {

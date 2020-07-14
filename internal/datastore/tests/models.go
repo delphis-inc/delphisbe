@@ -1,7 +1,7 @@
 package tests
 
 import (
-	"github.com/nedrocks/delphisbe/graph/model"
+	"github.com/delphis-inc/delphisbe/graph/model"
 )
 
 //const (

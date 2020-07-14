@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/nedrocks/delphisbe/graph/model"
+	"github.com/delphis-inc/delphisbe/graph/model"
 )
 
 // This is stupid for now but we will make it smarter

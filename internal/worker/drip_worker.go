@@ -5,14 +5,14 @@ import (
 	"encoding/json"
 	"sync"
 
-	"github.com/nedrocks/delphisbe/graph/model"
+	"github.com/delphis-inc/delphisbe/graph/model"
 
-	"github.com/nedrocks/delphisbe/internal/config"
+	"github.com/delphis-inc/delphisbe/internal/config"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/sirupsen/logrus"
 
-	"github.com/nedrocks/delphisbe/internal/backend"
+	"github.com/delphis-inc/delphisbe/internal/backend"
 
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/sqs"

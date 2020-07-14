@@ -6,8 +6,8 @@ import (
 	"testing"
 
 	"github.com/DATA-DOG/go-sqlmock"
+	"github.com/delphis-inc/delphisbe/internal/config"
 	"github.com/jinzhu/gorm"
-	"github.com/nedrocks/delphisbe/internal/config"
 	. "github.com/smartystreets/goconvey/convey"
 	"github.com/stretchr/testify/assert"
 )

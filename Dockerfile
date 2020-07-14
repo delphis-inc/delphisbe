@@ -14,7 +14,7 @@ RUN adduser \
     --no-create-home \    
     --uid "${UID}" \    
     "${USER}"
-WORKDIR $GOPATH/src/github.com/nedrocks/delphisbe/
+WORKDIR $GOPATH/src/github.com/delphis-inc/delphisbe/
 COPY . .
 RUN go mod download
 RUN go mod verify

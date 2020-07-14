@@ -8,12 +8,12 @@ import (
 	"time"
 
 	"github.com/DATA-DOG/go-sqlmock"
+	"github.com/delphis-inc/delphisbe/internal/config"
 	"github.com/jinzhu/gorm"
-	"github.com/nedrocks/delphisbe/internal/config"
 	. "github.com/smartystreets/goconvey/convey"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/nedrocks/delphisbe/graph/model"
+	"github.com/delphis-inc/delphisbe/graph/model"
 )
 
 var emptyString = ""

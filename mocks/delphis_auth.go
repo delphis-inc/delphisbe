@@ -2,7 +2,7 @@
 
 package mocks
 
-import auth "github.com/nedrocks/delphisbe/internal/auth"
+import auth "github.com/delphis-inc/delphisbe/internal/auth"
 import context "context"
 import mock "github.com/stretchr/testify/mock"
 

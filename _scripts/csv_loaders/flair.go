@@ -1,11 +1,11 @@
 package csv_loaders
 
 import (
+	"encoding/csv"
 	"io"
 	"strings"
-	"encoding/csv"
 
-	"github.com/nedrocks/delphisbe/internal/backend"
+	"github.com/delphis-inc/delphisbe/internal/backend"
 	"github.com/sirupsen/logrus"
 )
 
@@ -15,15 +15,15 @@ func CreateFlair(db backend.DelphisBackend, reader *csv.Reader) {
 
 	// Get and validate header row
 	var header [2]string
-	row, err := reader.Read();
+	row, err := reader.Read()
 	if err != nil {
 		logrus.Fatal(err)
 	}
 	copy(header[:], row)
 	if header != expectedHeader {
 		logrus.WithFields(logrus.Fields{
-		  "header": header,
-		  "expectedHeader": expectedHeader,
+			"header":         header,
+			"expectedHeader": expectedHeader,
 		}).Fatal("Invalid header row")
 	}
 
@@ -38,7 +38,7 @@ func CreateFlair(db backend.DelphisBackend, reader *csv.Reader) {
 		}
 
 		logrus.Debugf("Creating flair: %v\n", strings.Join(data, ","))
-		userID     := data[0]
+		userID := data[0]
 		templateID := data[1]
 		flair, err := db.CreateFlair(nil, userID, templateID)
 		if err != nil || flair == nil {
