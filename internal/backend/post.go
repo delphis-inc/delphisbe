@@ -235,23 +235,23 @@ func (d *delphisBackend) PutImportedContentQueue(ctx context.Context, discussion
 	return icObj, nil
 }
 
-func (d *delphisBackend) NotifySubscribersOfCreatedPost(ctx context.Context, post *model.Post, discussionID string) error {
-	cacheKey := fmt.Sprintf(discussionSubscriberKey, discussionID)
+func (d *delphisBackend) notifySubscribersOfEvent(ctx context.Context, event *model.DiscussionSubscriptionEvent, discussionID string) error {
+	cacheKey := fmt.Sprintf(discussionEventSubscriberKey, discussionID)
 	d.discussionMutex.Lock()
 	defer d.discussionMutex.Unlock()
 	currentSubsIface, found := d.cache.Get(cacheKey)
 	if !found {
-		currentSubsIface = map[string]chan *model.Post{}
+		currentSubsIface = map[string]chan *model.DiscussionSubscriptionEvent{}
 	}
-	var currentSubs map[string]chan *model.Post
+	var currentSubs map[string]chan *model.DiscussionSubscriptionEvent
 	var ok bool
-	if currentSubs, ok = currentSubsIface.(map[string]chan *model.Post); !ok {
-		currentSubs = map[string]chan *model.Post{}
+	if currentSubs, ok = currentSubsIface.(map[string]chan *model.DiscussionSubscriptionEvent); !ok {
+		currentSubs = map[string]chan *model.DiscussionSubscriptionEvent{}
 	}
 	for userID, channel := range currentSubs {
 		if channel != nil {
 			select {
-			case channel <- post:
+			case channel <- event:
 				logrus.Debugf("Sent message to channel for user ID: %s", userID)
 			default:
 				logrus.Debugf("No message was sent. Unsubscribing the user")
@@ -261,6 +261,30 @@ func (d *delphisBackend) NotifySubscribersOfCreatedPost(ctx context.Context, pos
 	}
 	d.cache.Set(cacheKey, currentSubs, time.Hour)
 	return nil
+}
+
+func (d *delphisBackend) NotifySubscribersOfCreatedPost(ctx context.Context, post *model.Post, discussionID string) error {
+	event := &model.DiscussionSubscriptionEvent{
+		EventType: model.DiscussionSubscriptionEventTypePostAdded,
+		Entity:    post,
+	}
+	return d.notifySubscribersOfEvent(ctx, event, discussionID)
+}
+
+func (d *delphisBackend) NotifySubscribersOfDeletedPost(ctx context.Context, post *model.Post, discussionID string) error {
+	event := &model.DiscussionSubscriptionEvent{
+		EventType: model.DiscussionSubscriptionEventTypePostDeleted,
+		Entity:    post,
+	}
+	return d.notifySubscribersOfEvent(ctx, event, discussionID)
+}
+
+func (d *delphisBackend) NotifySubscribersOfBannedParticipant(ctx context.Context, participant *model.Participant, discussionID string) error {
+	event := &model.DiscussionSubscriptionEvent{
+		EventType: model.DiscussionSubscriptionEventTypeParticipantBanned,
+		Entity:    participant,
+	}
+	return d.notifySubscribersOfEvent(ctx, event, discussionID)
 }
 
 func (d *delphisBackend) GetPostsByDiscussionID(ctx context.Context, userID string, discussionID string) ([]*model.Post, error) {

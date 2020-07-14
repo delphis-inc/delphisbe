@@ -4,6 +4,7 @@ import "time"
 
 type Participant struct {
 	Entity
+	DiscussionSubscriptionEntity
 	ID            string           `json:"id" gorm:"type:varchar(36);"`
 	ParticipantID int              `json:"participantID" dynamodbav:"ParticipantID"`
 	CreatedAt     time.Time        `json:"createdAt" gorm:"not null;default:CURRENT_TIMESTAMP;"`

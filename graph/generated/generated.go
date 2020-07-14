@@ -149,6 +149,11 @@ type ComplexityRoot struct {
 		VipInviteLinkURL func(childComplexity int) int
 	}
 
+	DiscussionSubscriptionEvent struct {
+		Entity    func(childComplexity int) int
+		EventType func(childComplexity int) int
+	}
+
 	Flair struct {
 		DisplayName func(childComplexity int) int
 		ID          func(childComplexity int) int
@@ -321,7 +326,8 @@ type ComplexityRoot struct {
 	}
 
 	Subscription struct {
-		PostAdded func(childComplexity int, discussionID string) int
+		OnDiscussionEvent func(childComplexity int, discussionID string) int
+		PostAdded         func(childComplexity int, discussionID string) int
 	}
 
 	Tag struct {
@@ -522,6 +528,7 @@ type QueryResolver interface {
 }
 type SubscriptionResolver interface {
 	PostAdded(ctx context.Context, discussionID string) (<-chan *model.Post, error)
+	OnDiscussionEvent(ctx context.Context, discussionID string) (<-chan *model.DiscussionSubscriptionEvent, error)
 }
 type TagResolver interface {
 	CreatedAt(ctx context.Context, obj *model.Tag) (string, error)
@@ -981,6 +988,20 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.DiscussionLinkAccess.VipInviteLinkURL(childComplexity), true
+
+	case "DiscussionSubscriptionEvent.entity":
+		if e.complexity.DiscussionSubscriptionEvent.Entity == nil {
+			break
+		}
+
+		return e.complexity.DiscussionSubscriptionEvent.Entity(childComplexity), true
+
+	case "DiscussionSubscriptionEvent.eventType":
+		if e.complexity.DiscussionSubscriptionEvent.EventType == nil {
+			break
+		}
+
+		return e.complexity.DiscussionSubscriptionEvent.EventType(childComplexity), true
 
 	case "Flair.displayName":
 		if e.complexity.Flair.DisplayName == nil {
@@ -1899,6 +1920,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Query.User(childComplexity, args["id"].(string)), true
 
+	case "Subscription.onDiscussionEvent":
+		if e.complexity.Subscription.OnDiscussionEvent == nil {
+			break
+		}
+
+		args, err := ec.field_Subscription_onDiscussionEvent_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Subscription.OnDiscussionEvent(childComplexity, args["discussionID"].(string)), true
+
 	case "Subscription.postAdded":
 		if e.complexity.Subscription.PostAdded == nil {
 			break
@@ -2358,6 +2391,20 @@ type DiscussionLinkAccess {
 # }
 `, BuiltIn: false},
 	&ast.Source{Name: "graph/types/discussion_notification_preferences.graphqls", Input: `union DiscussionNotificationPreferences = ViewerNotificationPreferences | ParticipantNotificationPreferences`, BuiltIn: false},
+	&ast.Source{Name: "graph/types/discussion_subscription.graphqls", Input: `interface DiscussionSubscriptionEntity {
+    id: ID!
+}
+
+enum DiscussionSubscriptionEventType {
+    POST_ADDED,
+    POST_DELETED,
+    PARTICIPANT_BANNED
+}
+
+type DiscussionSubscriptionEvent {
+    eventType: DiscussionSubscriptionEventType!
+    entity: DiscussionSubscriptionEntity!
+}`, BuiltIn: false},
 	&ast.Source{Name: "graph/types/entity.graphqls", Input: `interface Entity {
     id: ID!
 }
@@ -2489,7 +2536,7 @@ type MediaSize {
     endCursor: ID
     hasNextPage: Boolean!
 }`, BuiltIn: false},
-	&ast.Source{Name: "graph/types/participant.graphqls", Input: `type Participant implements Entity{
+	&ast.Source{Name: "graph/types/participant.graphqls", Input: `type Participant implements Entity & DiscussionSubscriptionEntity {
     # The UUID for this participant.
     id: ID!
     # Fetching a participant directly is okay because we have no link back to who the user is.
@@ -2533,7 +2580,7 @@ type MediaSize {
     cursor: ID!
     node: Participant
 }`, BuiltIn: false},
-	&ast.Source{Name: "graph/types/post.graphqls", Input: `type Post{
+	&ast.Source{Name: "graph/types/post.graphqls", Input: `type Post implements DiscussionSubscriptionEntity {
     id: ID!
     isDeleted: Boolean!
     deletedReasonCode: PostDeletedReason
@@ -2706,6 +2753,7 @@ type Mutation {
 
 type Subscription {
   postAdded(discussionID: String!): Post
+  onDiscussionEvent(discussionID: String!): DiscussionSubscriptionEvent
 }
 `, BuiltIn: false},
 	&ast.Source{Name: "graph/types/sudo_user.graphqls", Input: `# A SudoUser describes the unlocked version of a user. Due to implementation
@@ -2861,7 +2909,7 @@ func (ec *executionContext) field_Mutation_addDiscussionParticipant_args(ctx con
 	args["userID"] = arg1
 	var arg2 model.AddDiscussionParticipantInput
 	if tmp, ok := rawArgs["discussionParticipantInput"]; ok {
-		arg2, err = ec.unmarshalNAddDiscussionParticipantInput2githubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐAddDiscussionParticipantInput(ctx, tmp)
+		arg2, err = ec.unmarshalNAddDiscussionParticipantInput2githubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐAddDiscussionParticipantInput(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -2913,7 +2961,7 @@ func (ec *executionContext) field_Mutation_addPost_args(ctx context.Context, raw
 	args["participantID"] = arg1
 	var arg2 model.PostContentInput
 	if tmp, ok := rawArgs["postContent"]; ok {
-		arg2, err = ec.unmarshalNPostContentInput2githubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐPostContentInput(ctx, tmp)
+		arg2, err = ec.unmarshalNPostContentInput2githubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐPostContentInput(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -3001,7 +3049,7 @@ func (ec *executionContext) field_Mutation_createDiscussion_args(ctx context.Con
 	args := map[string]interface{}{}
 	var arg0 model.AnonymityType
 	if tmp, ok := rawArgs["anonymityType"]; ok {
-		arg0, err = ec.unmarshalNAnonymityType2githubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐAnonymityType(ctx, tmp)
+		arg0, err = ec.unmarshalNAnonymityType2githubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐAnonymityType(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -3259,7 +3307,7 @@ func (ec *executionContext) field_Mutation_respondToInvite_args(ctx context.Cont
 	args["inviteID"] = arg0
 	var arg1 model.InviteRequestStatus
 	if tmp, ok := rawArgs["response"]; ok {
-		arg1, err = ec.unmarshalNInviteRequestStatus2githubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐInviteRequestStatus(ctx, tmp)
+		arg1, err = ec.unmarshalNInviteRequestStatus2githubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐInviteRequestStatus(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -3267,7 +3315,7 @@ func (ec *executionContext) field_Mutation_respondToInvite_args(ctx context.Cont
 	args["response"] = arg1
 	var arg2 model.AddDiscussionParticipantInput
 	if tmp, ok := rawArgs["discussionParticipantInput"]; ok {
-		arg2, err = ec.unmarshalNAddDiscussionParticipantInput2githubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐAddDiscussionParticipantInput(ctx, tmp)
+		arg2, err = ec.unmarshalNAddDiscussionParticipantInput2githubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐAddDiscussionParticipantInput(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -3289,7 +3337,7 @@ func (ec *executionContext) field_Mutation_respondToRequestAccess_args(ctx conte
 	args["requestID"] = arg0
 	var arg1 model.InviteRequestStatus
 	if tmp, ok := rawArgs["response"]; ok {
-		arg1, err = ec.unmarshalNInviteRequestStatus2githubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐInviteRequestStatus(ctx, tmp)
+		arg1, err = ec.unmarshalNInviteRequestStatus2githubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐInviteRequestStatus(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -3347,7 +3395,7 @@ func (ec *executionContext) field_Mutation_updateDiscussion_args(ctx context.Con
 	args["discussionID"] = arg0
 	var arg1 model.DiscussionInput
 	if tmp, ok := rawArgs["input"]; ok {
-		arg1, err = ec.unmarshalNDiscussionInput2githubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐDiscussionInput(ctx, tmp)
+		arg1, err = ec.unmarshalNDiscussionInput2githubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐDiscussionInput(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -3377,7 +3425,7 @@ func (ec *executionContext) field_Mutation_updateParticipant_args(ctx context.Co
 	args["participantID"] = arg1
 	var arg2 model.UpdateParticipantInput
 	if tmp, ok := rawArgs["updateInput"]; ok {
-		arg2, err = ec.unmarshalNUpdateParticipantInput2githubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐUpdateParticipantInput(ctx, tmp)
+		arg2, err = ec.unmarshalNUpdateParticipantInput2githubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐUpdateParticipantInput(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -3399,7 +3447,7 @@ func (ec *executionContext) field_Mutation_upsertUserDevice_args(ctx context.Con
 	args["userID"] = arg0
 	var arg1 model.Platform
 	if tmp, ok := rawArgs["platform"]; ok {
-		arg1, err = ec.unmarshalNPlatform2githubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐPlatform(ctx, tmp)
+		arg1, err = ec.unmarshalNPlatform2githubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐPlatform(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -3480,6 +3528,20 @@ func (ec *executionContext) field_Query_user_args(ctx context.Context, rawArgs m
 	return args, nil
 }
 
+func (ec *executionContext) field_Subscription_onDiscussionEvent_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 string
+	if tmp, ok := rawArgs["discussionID"]; ok {
+		arg0, err = ec.unmarshalNString2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["discussionID"] = arg0
+	return args, nil
+}
+
 func (ec *executionContext) field_Subscription_postAdded_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
@@ -3499,7 +3561,7 @@ func (ec *executionContext) field_User_discussionInvites_args(ctx context.Contex
 	args := map[string]interface{}{}
 	var arg0 model.InviteRequestStatus
 	if tmp, ok := rawArgs["status"]; ok {
-		arg0, err = ec.unmarshalNInviteRequestStatus2githubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐInviteRequestStatus(ctx, tmp)
+		arg0, err = ec.unmarshalNInviteRequestStatus2githubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐInviteRequestStatus(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -3634,7 +3696,7 @@ func (ec *executionContext) _ConciergeContent_options(ctx context.Context, field
 	}
 	res := resTmp.([]*model.ConciergeOption)
 	fc.Result = res
-	return ec.marshalOConciergeOption2ᚕᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐConciergeOptionᚄ(ctx, field.Selections, res)
+	return ec.marshalOConciergeOption2ᚕᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐConciergeOptionᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _ConciergeOption_text(ctx context.Context, field graphql.CollectedField, obj *model.ConciergeOption) (ret graphql.Marshaler) {
@@ -4039,7 +4101,7 @@ func (ec *executionContext) _Discussion_moderator(ctx context.Context, field gra
 	}
 	res := resTmp.(*model.Moderator)
 	fc.Result = res
-	return ec.marshalNModerator2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐModerator(ctx, field.Selections, res)
+	return ec.marshalNModerator2ᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐModerator(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Discussion_anonymityType(ctx context.Context, field graphql.CollectedField, obj *model.Discussion) (ret graphql.Marshaler) {
@@ -4073,7 +4135,7 @@ func (ec *executionContext) _Discussion_anonymityType(ctx context.Context, field
 	}
 	res := resTmp.(model.AnonymityType)
 	fc.Result = res
-	return ec.marshalNAnonymityType2githubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐAnonymityType(ctx, field.Selections, res)
+	return ec.marshalNAnonymityType2githubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐAnonymityType(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Discussion_posts(ctx context.Context, field graphql.CollectedField, obj *model.Discussion) (ret graphql.Marshaler) {
@@ -4104,7 +4166,7 @@ func (ec *executionContext) _Discussion_posts(ctx context.Context, field graphql
 	}
 	res := resTmp.([]*model.Post)
 	fc.Result = res
-	return ec.marshalOPost2ᚕᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐPostᚄ(ctx, field.Selections, res)
+	return ec.marshalOPost2ᚕᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐPostᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Discussion_postsConnection(ctx context.Context, field graphql.CollectedField, obj *model.Discussion) (ret graphql.Marshaler) {
@@ -4145,7 +4207,7 @@ func (ec *executionContext) _Discussion_postsConnection(ctx context.Context, fie
 	}
 	res := resTmp.(*model.PostsConnection)
 	fc.Result = res
-	return ec.marshalNPostsConnection2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐPostsConnection(ctx, field.Selections, res)
+	return ec.marshalNPostsConnection2ᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐPostsConnection(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Discussion_iconURL(ctx context.Context, field graphql.CollectedField, obj *model.Discussion) (ret graphql.Marshaler) {
@@ -4207,7 +4269,7 @@ func (ec *executionContext) _Discussion_participants(ctx context.Context, field 
 	}
 	res := resTmp.([]*model.Participant)
 	fc.Result = res
-	return ec.marshalOParticipant2ᚕᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐParticipantᚄ(ctx, field.Selections, res)
+	return ec.marshalOParticipant2ᚕᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐParticipantᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Discussion_title(ctx context.Context, field graphql.CollectedField, obj *model.Discussion) (ret graphql.Marshaler) {
@@ -4340,7 +4402,7 @@ func (ec *executionContext) _Discussion_meParticipant(ctx context.Context, field
 	}
 	res := resTmp.(*model.Participant)
 	fc.Result = res
-	return ec.marshalOParticipant2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐParticipant(ctx, field.Selections, res)
+	return ec.marshalOParticipant2ᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐParticipant(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Discussion_meAvailableParticipants(ctx context.Context, field graphql.CollectedField, obj *model.Discussion) (ret graphql.Marshaler) {
@@ -4371,7 +4433,7 @@ func (ec *executionContext) _Discussion_meAvailableParticipants(ctx context.Cont
 	}
 	res := resTmp.([]*model.Participant)
 	fc.Result = res
-	return ec.marshalOParticipant2ᚕᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐParticipantᚄ(ctx, field.Selections, res)
+	return ec.marshalOParticipant2ᚕᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐParticipantᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Discussion_autoPost(ctx context.Context, field graphql.CollectedField, obj *model.Discussion) (ret graphql.Marshaler) {
@@ -4470,7 +4532,7 @@ func (ec *executionContext) _Discussion_tags(ctx context.Context, field graphql.
 	}
 	res := resTmp.([]*model.Tag)
 	fc.Result = res
-	return ec.marshalOTag2ᚕᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐTagᚄ(ctx, field.Selections, res)
+	return ec.marshalOTag2ᚕᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐTagᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Discussion_upcomingContent(ctx context.Context, field graphql.CollectedField, obj *model.Discussion) (ret graphql.Marshaler) {
@@ -4501,7 +4563,7 @@ func (ec *executionContext) _Discussion_upcomingContent(ctx context.Context, fie
 	}
 	res := resTmp.([]*model.ImportedContent)
 	fc.Result = res
-	return ec.marshalOImportedContent2ᚕᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐImportedContentᚄ(ctx, field.Selections, res)
+	return ec.marshalOImportedContent2ᚕᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐImportedContentᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Discussion_flairTemplates(ctx context.Context, field graphql.CollectedField, obj *model.Discussion) (ret graphql.Marshaler) {
@@ -4532,7 +4594,7 @@ func (ec *executionContext) _Discussion_flairTemplates(ctx context.Context, fiel
 	}
 	res := resTmp.([]*model.FlairTemplate)
 	fc.Result = res
-	return ec.marshalOFlairTemplate2ᚕᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐFlairTemplateᚄ(ctx, field.Selections, res)
+	return ec.marshalOFlairTemplate2ᚕᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐFlairTemplateᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Discussion_accessRequests(ctx context.Context, field graphql.CollectedField, obj *model.Discussion) (ret graphql.Marshaler) {
@@ -4563,7 +4625,7 @@ func (ec *executionContext) _Discussion_accessRequests(ctx context.Context, fiel
 	}
 	res := resTmp.([]*model.DiscussionAccessRequest)
 	fc.Result = res
-	return ec.marshalODiscussionAccessRequest2ᚕᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐDiscussionAccessRequestᚄ(ctx, field.Selections, res)
+	return ec.marshalODiscussionAccessRequest2ᚕᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐDiscussionAccessRequestᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Discussion_discussionLinksAccess(ctx context.Context, field graphql.CollectedField, obj *model.Discussion) (ret graphql.Marshaler) {
@@ -4597,7 +4659,7 @@ func (ec *executionContext) _Discussion_discussionLinksAccess(ctx context.Contex
 	}
 	res := resTmp.(*model.DiscussionLinkAccess)
 	fc.Result = res
-	return ec.marshalNDiscussionLinkAccess2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐDiscussionLinkAccess(ctx, field.Selections, res)
+	return ec.marshalNDiscussionLinkAccess2ᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐDiscussionLinkAccess(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _DiscussionAccessRequest_id(ctx context.Context, field graphql.CollectedField, obj *model.DiscussionAccessRequest) (ret graphql.Marshaler) {
@@ -4665,7 +4727,7 @@ func (ec *executionContext) _DiscussionAccessRequest_user(ctx context.Context, f
 	}
 	res := resTmp.(*model.User)
 	fc.Result = res
-	return ec.marshalNUser2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐUser(ctx, field.Selections, res)
+	return ec.marshalNUser2ᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐUser(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _DiscussionAccessRequest_discussion(ctx context.Context, field graphql.CollectedField, obj *model.DiscussionAccessRequest) (ret graphql.Marshaler) {
@@ -4699,7 +4761,7 @@ func (ec *executionContext) _DiscussionAccessRequest_discussion(ctx context.Cont
 	}
 	res := resTmp.(*model.Discussion)
 	fc.Result = res
-	return ec.marshalNDiscussion2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐDiscussion(ctx, field.Selections, res)
+	return ec.marshalNDiscussion2ᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐDiscussion(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _DiscussionAccessRequest_createdAt(ctx context.Context, field graphql.CollectedField, obj *model.DiscussionAccessRequest) (ret graphql.Marshaler) {
@@ -4835,7 +4897,7 @@ func (ec *executionContext) _DiscussionAccessRequest_status(ctx context.Context,
 	}
 	res := resTmp.(model.InviteRequestStatus)
 	fc.Result = res
-	return ec.marshalNInviteRequestStatus2githubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐInviteRequestStatus(ctx, field.Selections, res)
+	return ec.marshalNInviteRequestStatus2githubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐInviteRequestStatus(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _DiscussionFlairTemplateAccess_id(ctx context.Context, field graphql.CollectedField, obj *model.DiscussionFlairTemplateAccess) (ret graphql.Marshaler) {
@@ -4903,7 +4965,7 @@ func (ec *executionContext) _DiscussionFlairTemplateAccess_discussion(ctx contex
 	}
 	res := resTmp.(*model.Discussion)
 	fc.Result = res
-	return ec.marshalNDiscussion2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐDiscussion(ctx, field.Selections, res)
+	return ec.marshalNDiscussion2ᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐDiscussion(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _DiscussionFlairTemplateAccess_flairTemplate(ctx context.Context, field graphql.CollectedField, obj *model.DiscussionFlairTemplateAccess) (ret graphql.Marshaler) {
@@ -4937,7 +4999,7 @@ func (ec *executionContext) _DiscussionFlairTemplateAccess_flairTemplate(ctx con
 	}
 	res := resTmp.(*model.FlairTemplate)
 	fc.Result = res
-	return ec.marshalNFlairTemplate2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐFlairTemplate(ctx, field.Selections, res)
+	return ec.marshalNFlairTemplate2ᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐFlairTemplate(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _DiscussionFlairTemplateAccess_createdAt(ctx context.Context, field graphql.CollectedField, obj *model.DiscussionFlairTemplateAccess) (ret graphql.Marshaler) {
@@ -5107,7 +5169,7 @@ func (ec *executionContext) _DiscussionInvite_discussion(ctx context.Context, fi
 	}
 	res := resTmp.(*model.Discussion)
 	fc.Result = res
-	return ec.marshalNDiscussion2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐDiscussion(ctx, field.Selections, res)
+	return ec.marshalNDiscussion2ᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐDiscussion(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _DiscussionInvite_invitingParticipant(ctx context.Context, field graphql.CollectedField, obj *model.DiscussionInvite) (ret graphql.Marshaler) {
@@ -5141,7 +5203,7 @@ func (ec *executionContext) _DiscussionInvite_invitingParticipant(ctx context.Co
 	}
 	res := resTmp.(*model.Participant)
 	fc.Result = res
-	return ec.marshalNParticipant2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐParticipant(ctx, field.Selections, res)
+	return ec.marshalNParticipant2ᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐParticipant(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _DiscussionInvite_createdAt(ctx context.Context, field graphql.CollectedField, obj *model.DiscussionInvite) (ret graphql.Marshaler) {
@@ -5277,7 +5339,7 @@ func (ec *executionContext) _DiscussionInvite_status(ctx context.Context, field 
 	}
 	res := resTmp.(model.InviteRequestStatus)
 	fc.Result = res
-	return ec.marshalNInviteRequestStatus2githubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐInviteRequestStatus(ctx, field.Selections, res)
+	return ec.marshalNInviteRequestStatus2githubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐInviteRequestStatus(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _DiscussionLinkAccess_discussionID(ctx context.Context, field graphql.CollectedField, obj *model.DiscussionLinkAccess) (ret graphql.Marshaler) {
@@ -5482,6 +5544,74 @@ func (ec *executionContext) _DiscussionLinkAccess_isDeleted(ctx context.Context,
 	res := resTmp.(bool)
 	fc.Result = res
 	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _DiscussionSubscriptionEvent_eventType(ctx context.Context, field graphql.CollectedField, obj *model.DiscussionSubscriptionEvent) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "DiscussionSubscriptionEvent",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.EventType, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(model.DiscussionSubscriptionEventType)
+	fc.Result = res
+	return ec.marshalNDiscussionSubscriptionEventType2githubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐDiscussionSubscriptionEventType(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _DiscussionSubscriptionEvent_entity(ctx context.Context, field graphql.CollectedField, obj *model.DiscussionSubscriptionEvent) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "DiscussionSubscriptionEvent",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Entity, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(model.DiscussionSubscriptionEntity)
+	fc.Result = res
+	return ec.marshalNDiscussionSubscriptionEntity2githubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐDiscussionSubscriptionEntity(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Flair_id(ctx context.Context, field graphql.CollectedField, obj *model.Flair) (ret graphql.Marshaler) {
@@ -6143,7 +6273,7 @@ func (ec *executionContext) _Media_deletedReasonCode(ctx context.Context, field 
 	}
 	res := resTmp.(*model.PostDeletedReason)
 	fc.Result = res
-	return ec.marshalOPostDeletedReason2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐPostDeletedReason(ctx, field.Selections, res)
+	return ec.marshalOPostDeletedReason2ᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐPostDeletedReason(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Media_mediaType(ctx context.Context, field graphql.CollectedField, obj *model.Media) (ret graphql.Marshaler) {
@@ -6205,7 +6335,7 @@ func (ec *executionContext) _Media_mediaSize(ctx context.Context, field graphql.
 	}
 	res := resTmp.(*model.MediaSize)
 	fc.Result = res
-	return ec.marshalOMediaSize2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐMediaSize(ctx, field.Selections, res)
+	return ec.marshalOMediaSize2ᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐMediaSize(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Media_assetLocation(ctx context.Context, field graphql.CollectedField, obj *model.Media) (ret graphql.Marshaler) {
@@ -6403,7 +6533,7 @@ func (ec *executionContext) _Moderator_discussion(ctx context.Context, field gra
 	}
 	res := resTmp.(*model.Discussion)
 	fc.Result = res
-	return ec.marshalODiscussion2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐDiscussion(ctx, field.Selections, res)
+	return ec.marshalODiscussion2ᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐDiscussion(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Moderator_userProfile(ctx context.Context, field graphql.CollectedField, obj *model.Moderator) (ret graphql.Marshaler) {
@@ -6437,7 +6567,7 @@ func (ec *executionContext) _Moderator_userProfile(ctx context.Context, field gr
 	}
 	res := resTmp.(*model.UserProfile)
 	fc.Result = res
-	return ec.marshalNUserProfile2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐUserProfile(ctx, field.Selections, res)
+	return ec.marshalNUserProfile2ᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐUserProfile(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Mutation_addDiscussionParticipant(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -6478,7 +6608,7 @@ func (ec *executionContext) _Mutation_addDiscussionParticipant(ctx context.Conte
 	}
 	res := resTmp.(*model.Participant)
 	fc.Result = res
-	return ec.marshalNParticipant2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐParticipant(ctx, field.Selections, res)
+	return ec.marshalNParticipant2ᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐParticipant(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Mutation_addPost(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -6519,7 +6649,7 @@ func (ec *executionContext) _Mutation_addPost(ctx context.Context, field graphql
 	}
 	res := resTmp.(*model.Post)
 	fc.Result = res
-	return ec.marshalNPost2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐPost(ctx, field.Selections, res)
+	return ec.marshalNPost2ᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐPost(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Mutation_postImportedContent(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -6560,7 +6690,7 @@ func (ec *executionContext) _Mutation_postImportedContent(ctx context.Context, f
 	}
 	res := resTmp.(*model.Post)
 	fc.Result = res
-	return ec.marshalNPost2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐPost(ctx, field.Selections, res)
+	return ec.marshalNPost2ᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐPost(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Mutation_scheduleImportedContent(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -6601,7 +6731,7 @@ func (ec *executionContext) _Mutation_scheduleImportedContent(ctx context.Contex
 	}
 	res := resTmp.(*model.ContentQueueRecord)
 	fc.Result = res
-	return ec.marshalNContentQueueRecord2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐContentQueueRecord(ctx, field.Selections, res)
+	return ec.marshalNContentQueueRecord2ᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐContentQueueRecord(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Mutation_createDiscussion(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -6642,7 +6772,7 @@ func (ec *executionContext) _Mutation_createDiscussion(ctx context.Context, fiel
 	}
 	res := resTmp.(*model.Discussion)
 	fc.Result = res
-	return ec.marshalNDiscussion2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐDiscussion(ctx, field.Selections, res)
+	return ec.marshalNDiscussion2ᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐDiscussion(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Mutation_createFlair(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -6683,7 +6813,7 @@ func (ec *executionContext) _Mutation_createFlair(ctx context.Context, field gra
 	}
 	res := resTmp.(*model.Flair)
 	fc.Result = res
-	return ec.marshalNFlair2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐFlair(ctx, field.Selections, res)
+	return ec.marshalNFlair2ᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐFlair(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Mutation_removeFlair(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -6724,7 +6854,7 @@ func (ec *executionContext) _Mutation_removeFlair(ctx context.Context, field gra
 	}
 	res := resTmp.(*model.Flair)
 	fc.Result = res
-	return ec.marshalNFlair2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐFlair(ctx, field.Selections, res)
+	return ec.marshalNFlair2ᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐFlair(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Mutation_assignFlair(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -6765,7 +6895,7 @@ func (ec *executionContext) _Mutation_assignFlair(ctx context.Context, field gra
 	}
 	res := resTmp.(*model.Participant)
 	fc.Result = res
-	return ec.marshalNParticipant2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐParticipant(ctx, field.Selections, res)
+	return ec.marshalNParticipant2ᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐParticipant(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Mutation_unassignFlair(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -6806,7 +6936,7 @@ func (ec *executionContext) _Mutation_unassignFlair(ctx context.Context, field g
 	}
 	res := resTmp.(*model.Participant)
 	fc.Result = res
-	return ec.marshalNParticipant2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐParticipant(ctx, field.Selections, res)
+	return ec.marshalNParticipant2ᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐParticipant(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Mutation_createFlairTemplate(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -6847,7 +6977,7 @@ func (ec *executionContext) _Mutation_createFlairTemplate(ctx context.Context, f
 	}
 	res := resTmp.(*model.FlairTemplate)
 	fc.Result = res
-	return ec.marshalNFlairTemplate2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐFlairTemplate(ctx, field.Selections, res)
+	return ec.marshalNFlairTemplate2ᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐFlairTemplate(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Mutation_removeFlairTemplate(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -6888,7 +7018,7 @@ func (ec *executionContext) _Mutation_removeFlairTemplate(ctx context.Context, f
 	}
 	res := resTmp.(*model.FlairTemplate)
 	fc.Result = res
-	return ec.marshalNFlairTemplate2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐFlairTemplate(ctx, field.Selections, res)
+	return ec.marshalNFlairTemplate2ᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐFlairTemplate(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Mutation_updateParticipant(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -6929,7 +7059,7 @@ func (ec *executionContext) _Mutation_updateParticipant(ctx context.Context, fie
 	}
 	res := resTmp.(*model.Participant)
 	fc.Result = res
-	return ec.marshalNParticipant2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐParticipant(ctx, field.Selections, res)
+	return ec.marshalNParticipant2ᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐParticipant(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Mutation_upsertUserDevice(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -6970,7 +7100,7 @@ func (ec *executionContext) _Mutation_upsertUserDevice(ctx context.Context, fiel
 	}
 	res := resTmp.(*model.UserDevice)
 	fc.Result = res
-	return ec.marshalNUserDevice2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐUserDevice(ctx, field.Selections, res)
+	return ec.marshalNUserDevice2ᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐUserDevice(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Mutation_updateDiscussion(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -7011,7 +7141,7 @@ func (ec *executionContext) _Mutation_updateDiscussion(ctx context.Context, fiel
 	}
 	res := resTmp.(*model.Discussion)
 	fc.Result = res
-	return ec.marshalNDiscussion2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐDiscussion(ctx, field.Selections, res)
+	return ec.marshalNDiscussion2ᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐDiscussion(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Mutation_addDiscussionTags(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -7049,7 +7179,7 @@ func (ec *executionContext) _Mutation_addDiscussionTags(ctx context.Context, fie
 	}
 	res := resTmp.([]*model.Tag)
 	fc.Result = res
-	return ec.marshalOTag2ᚕᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐTagᚄ(ctx, field.Selections, res)
+	return ec.marshalOTag2ᚕᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐTagᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Mutation_deleteDiscussionTags(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -7087,7 +7217,7 @@ func (ec *executionContext) _Mutation_deleteDiscussionTags(ctx context.Context, 
 	}
 	res := resTmp.([]*model.Tag)
 	fc.Result = res
-	return ec.marshalOTag2ᚕᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐTagᚄ(ctx, field.Selections, res)
+	return ec.marshalOTag2ᚕᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐTagᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Mutation_conciergeMutation(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -7128,7 +7258,7 @@ func (ec *executionContext) _Mutation_conciergeMutation(ctx context.Context, fie
 	}
 	res := resTmp.(*model.Post)
 	fc.Result = res
-	return ec.marshalNPost2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐPost(ctx, field.Selections, res)
+	return ec.marshalNPost2ᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐPost(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Mutation_addDiscussionFlairTemplatesAccess(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -7169,7 +7299,7 @@ func (ec *executionContext) _Mutation_addDiscussionFlairTemplatesAccess(ctx cont
 	}
 	res := resTmp.(*model.Discussion)
 	fc.Result = res
-	return ec.marshalNDiscussion2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐDiscussion(ctx, field.Selections, res)
+	return ec.marshalNDiscussion2ᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐDiscussion(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Mutation_deleteDiscussionFlairTemplatesAccess(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -7210,7 +7340,7 @@ func (ec *executionContext) _Mutation_deleteDiscussionFlairTemplatesAccess(ctx c
 	}
 	res := resTmp.(*model.Discussion)
 	fc.Result = res
-	return ec.marshalNDiscussion2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐDiscussion(ctx, field.Selections, res)
+	return ec.marshalNDiscussion2ᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐDiscussion(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Mutation_inviteUserToDiscussion(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -7251,7 +7381,7 @@ func (ec *executionContext) _Mutation_inviteUserToDiscussion(ctx context.Context
 	}
 	res := resTmp.(*model.DiscussionInvite)
 	fc.Result = res
-	return ec.marshalNDiscussionInvite2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐDiscussionInvite(ctx, field.Selections, res)
+	return ec.marshalNDiscussionInvite2ᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐDiscussionInvite(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Mutation_respondToInvite(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -7292,7 +7422,7 @@ func (ec *executionContext) _Mutation_respondToInvite(ctx context.Context, field
 	}
 	res := resTmp.(*model.DiscussionInvite)
 	fc.Result = res
-	return ec.marshalNDiscussionInvite2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐDiscussionInvite(ctx, field.Selections, res)
+	return ec.marshalNDiscussionInvite2ᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐDiscussionInvite(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Mutation_requestAccessToDiscussion(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -7333,7 +7463,7 @@ func (ec *executionContext) _Mutation_requestAccessToDiscussion(ctx context.Cont
 	}
 	res := resTmp.(*model.DiscussionAccessRequest)
 	fc.Result = res
-	return ec.marshalNDiscussionAccessRequest2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐDiscussionAccessRequest(ctx, field.Selections, res)
+	return ec.marshalNDiscussionAccessRequest2ᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐDiscussionAccessRequest(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Mutation_respondToRequestAccess(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -7374,7 +7504,7 @@ func (ec *executionContext) _Mutation_respondToRequestAccess(ctx context.Context
 	}
 	res := resTmp.(*model.DiscussionAccessRequest)
 	fc.Result = res
-	return ec.marshalNDiscussionAccessRequest2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐDiscussionAccessRequest(ctx, field.Selections, res)
+	return ec.marshalNDiscussionAccessRequest2ᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐDiscussionAccessRequest(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Mutation_deletePost(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -7415,7 +7545,7 @@ func (ec *executionContext) _Mutation_deletePost(ctx context.Context, field grap
 	}
 	res := resTmp.(*model.Post)
 	fc.Result = res
-	return ec.marshalNPost2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐPost(ctx, field.Selections, res)
+	return ec.marshalNPost2ᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐPost(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Mutation_banParticipant(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -7456,7 +7586,7 @@ func (ec *executionContext) _Mutation_banParticipant(ctx context.Context, field 
 	}
 	res := resTmp.(*model.Participant)
 	fc.Result = res
-	return ec.marshalNParticipant2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐParticipant(ctx, field.Selections, res)
+	return ec.marshalNParticipant2ᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐParticipant(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _PageInfo_startCursor(ctx context.Context, field graphql.CollectedField, obj *model.PageInfo) (ret graphql.Marshaler) {
@@ -7648,7 +7778,7 @@ func (ec *executionContext) _Participant_discussion(ctx context.Context, field g
 	}
 	res := resTmp.(*model.Discussion)
 	fc.Result = res
-	return ec.marshalODiscussion2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐDiscussion(ctx, field.Selections, res)
+	return ec.marshalODiscussion2ᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐDiscussion(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Participant_viewer(ctx context.Context, field graphql.CollectedField, obj *model.Participant) (ret graphql.Marshaler) {
@@ -7682,7 +7812,7 @@ func (ec *executionContext) _Participant_viewer(ctx context.Context, field graph
 	}
 	res := resTmp.(*model.Viewer)
 	fc.Result = res
-	return ec.marshalNViewer2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐViewer(ctx, field.Selections, res)
+	return ec.marshalNViewer2ᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐViewer(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Participant_discussionNotificationPreferences(ctx context.Context, field graphql.CollectedField, obj *model.Participant) (ret graphql.Marshaler) {
@@ -7716,7 +7846,7 @@ func (ec *executionContext) _Participant_discussionNotificationPreferences(ctx c
 	}
 	res := resTmp.(model.DiscussionNotificationPreferences)
 	fc.Result = res
-	return ec.marshalNDiscussionNotificationPreferences2githubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐDiscussionNotificationPreferences(ctx, field.Selections, res)
+	return ec.marshalNDiscussionNotificationPreferences2githubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐDiscussionNotificationPreferences(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Participant_posts(ctx context.Context, field graphql.CollectedField, obj *model.Participant) (ret graphql.Marshaler) {
@@ -7747,7 +7877,7 @@ func (ec *executionContext) _Participant_posts(ctx context.Context, field graphq
 	}
 	res := resTmp.([]*model.Post)
 	fc.Result = res
-	return ec.marshalOPost2ᚕᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐPostᚄ(ctx, field.Selections, res)
+	return ec.marshalOPost2ᚕᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐPostᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Participant_isAnonymous(ctx context.Context, field graphql.CollectedField, obj *model.Participant) (ret graphql.Marshaler) {
@@ -7812,7 +7942,7 @@ func (ec *executionContext) _Participant_gradientColor(ctx context.Context, fiel
 	}
 	res := resTmp.(*model.GradientColor)
 	fc.Result = res
-	return ec.marshalOGradientColor2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐGradientColor(ctx, field.Selections, res)
+	return ec.marshalOGradientColor2ᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐGradientColor(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Participant_flair(ctx context.Context, field graphql.CollectedField, obj *model.Participant) (ret graphql.Marshaler) {
@@ -7843,7 +7973,7 @@ func (ec *executionContext) _Participant_flair(ctx context.Context, field graphq
 	}
 	res := resTmp.(*model.Flair)
 	fc.Result = res
-	return ec.marshalOFlair2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐFlair(ctx, field.Selections, res)
+	return ec.marshalOFlair2ᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐFlair(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Participant_inviter(ctx context.Context, field graphql.CollectedField, obj *model.Participant) (ret graphql.Marshaler) {
@@ -7877,7 +8007,7 @@ func (ec *executionContext) _Participant_inviter(ctx context.Context, field grap
 	}
 	res := resTmp.(*model.Participant)
 	fc.Result = res
-	return ec.marshalNParticipant2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐParticipant(ctx, field.Selections, res)
+	return ec.marshalNParticipant2ᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐParticipant(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Participant_hasJoined(ctx context.Context, field graphql.CollectedField, obj *model.Participant) (ret graphql.Marshaler) {
@@ -7942,7 +8072,7 @@ func (ec *executionContext) _Participant_userProfile(ctx context.Context, field 
 	}
 	res := resTmp.(*model.UserProfile)
 	fc.Result = res
-	return ec.marshalOUserProfile2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐUserProfile(ctx, field.Selections, res)
+	return ec.marshalOUserProfile2ᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐUserProfile(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Participant_isBanned(ctx context.Context, field graphql.CollectedField, obj *model.Participant) (ret graphql.Marshaler) {
@@ -8072,7 +8202,7 @@ func (ec *executionContext) _ParticipantProfile_flair(ctx context.Context, field
 	}
 	res := resTmp.(*model.Flair)
 	fc.Result = res
-	return ec.marshalOFlair2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐFlair(ctx, field.Selections, res)
+	return ec.marshalOFlair2ᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐFlair(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _ParticipantProfile_gradientColor(ctx context.Context, field graphql.CollectedField, obj *model.ParticipantProfile) (ret graphql.Marshaler) {
@@ -8103,7 +8233,7 @@ func (ec *executionContext) _ParticipantProfile_gradientColor(ctx context.Contex
 	}
 	res := resTmp.(*model.GradientColor)
 	fc.Result = res
-	return ec.marshalOGradientColor2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐGradientColor(ctx, field.Selections, res)
+	return ec.marshalOGradientColor2ᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐGradientColor(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _ParticipantsConnection_totalCount(ctx context.Context, field graphql.CollectedField, obj *model.ParticipantsConnection) (ret graphql.Marshaler) {
@@ -8168,7 +8298,7 @@ func (ec *executionContext) _ParticipantsConnection_edges(ctx context.Context, f
 	}
 	res := resTmp.([]*model.ParticipantsEdge)
 	fc.Result = res
-	return ec.marshalOParticipantsEdge2ᚕᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐParticipantsEdgeᚄ(ctx, field.Selections, res)
+	return ec.marshalOParticipantsEdge2ᚕᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐParticipantsEdgeᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _ParticipantsConnection_pageInfo(ctx context.Context, field graphql.CollectedField, obj *model.ParticipantsConnection) (ret graphql.Marshaler) {
@@ -8202,7 +8332,7 @@ func (ec *executionContext) _ParticipantsConnection_pageInfo(ctx context.Context
 	}
 	res := resTmp.(model.PageInfo)
 	fc.Result = res
-	return ec.marshalNPageInfo2githubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐPageInfo(ctx, field.Selections, res)
+	return ec.marshalNPageInfo2githubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐPageInfo(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _ParticipantsEdge_cursor(ctx context.Context, field graphql.CollectedField, obj *model.ParticipantsEdge) (ret graphql.Marshaler) {
@@ -8267,7 +8397,7 @@ func (ec *executionContext) _ParticipantsEdge_node(ctx context.Context, field gr
 	}
 	res := resTmp.(*model.Participant)
 	fc.Result = res
-	return ec.marshalOParticipant2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐParticipant(ctx, field.Selections, res)
+	return ec.marshalOParticipant2ᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐParticipant(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Post_id(ctx context.Context, field graphql.CollectedField, obj *model.Post) (ret graphql.Marshaler) {
@@ -8366,7 +8496,7 @@ func (ec *executionContext) _Post_deletedReasonCode(ctx context.Context, field g
 	}
 	res := resTmp.(*model.PostDeletedReason)
 	fc.Result = res
-	return ec.marshalOPostDeletedReason2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐPostDeletedReason(ctx, field.Selections, res)
+	return ec.marshalOPostDeletedReason2ᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐPostDeletedReason(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Post_content(ctx context.Context, field graphql.CollectedField, obj *model.Post) (ret graphql.Marshaler) {
@@ -8431,7 +8561,7 @@ func (ec *executionContext) _Post_discussion(ctx context.Context, field graphql.
 	}
 	res := resTmp.(*model.Discussion)
 	fc.Result = res
-	return ec.marshalNDiscussion2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐDiscussion(ctx, field.Selections, res)
+	return ec.marshalNDiscussion2ᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐDiscussion(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Post_participant(ctx context.Context, field graphql.CollectedField, obj *model.Post) (ret graphql.Marshaler) {
@@ -8462,7 +8592,7 @@ func (ec *executionContext) _Post_participant(ctx context.Context, field graphql
 	}
 	res := resTmp.(*model.Participant)
 	fc.Result = res
-	return ec.marshalOParticipant2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐParticipant(ctx, field.Selections, res)
+	return ec.marshalOParticipant2ᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐParticipant(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Post_createdAt(ctx context.Context, field graphql.CollectedField, obj *model.Post) (ret graphql.Marshaler) {
@@ -8561,7 +8691,7 @@ func (ec *executionContext) _Post_quotedPost(ctx context.Context, field graphql.
 	}
 	res := resTmp.(*model.Post)
 	fc.Result = res
-	return ec.marshalOPost2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐPost(ctx, field.Selections, res)
+	return ec.marshalOPost2ᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐPost(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Post_mentionedEntities(ctx context.Context, field graphql.CollectedField, obj *model.Post) (ret graphql.Marshaler) {
@@ -8592,7 +8722,7 @@ func (ec *executionContext) _Post_mentionedEntities(ctx context.Context, field g
 	}
 	res := resTmp.([]model.Entity)
 	fc.Result = res
-	return ec.marshalOEntity2ᚕgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐEntityᚄ(ctx, field.Selections, res)
+	return ec.marshalOEntity2ᚕgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐEntityᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Post_media(ctx context.Context, field graphql.CollectedField, obj *model.Post) (ret graphql.Marshaler) {
@@ -8623,7 +8753,7 @@ func (ec *executionContext) _Post_media(ctx context.Context, field graphql.Colle
 	}
 	res := resTmp.(*model.Media)
 	fc.Result = res
-	return ec.marshalOMedia2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐMedia(ctx, field.Selections, res)
+	return ec.marshalOMedia2ᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐMedia(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Post_importedContent(ctx context.Context, field graphql.CollectedField, obj *model.Post) (ret graphql.Marshaler) {
@@ -8654,7 +8784,7 @@ func (ec *executionContext) _Post_importedContent(ctx context.Context, field gra
 	}
 	res := resTmp.(*model.ImportedContent)
 	fc.Result = res
-	return ec.marshalOImportedContent2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐImportedContent(ctx, field.Selections, res)
+	return ec.marshalOImportedContent2ᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐImportedContent(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Post_postType(ctx context.Context, field graphql.CollectedField, obj *model.Post) (ret graphql.Marshaler) {
@@ -8688,7 +8818,7 @@ func (ec *executionContext) _Post_postType(ctx context.Context, field graphql.Co
 	}
 	res := resTmp.(model.PostType)
 	fc.Result = res
-	return ec.marshalNPostType2githubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐPostType(ctx, field.Selections, res)
+	return ec.marshalNPostType2githubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐPostType(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Post_conciergeContent(ctx context.Context, field graphql.CollectedField, obj *model.Post) (ret graphql.Marshaler) {
@@ -8719,7 +8849,7 @@ func (ec *executionContext) _Post_conciergeContent(ctx context.Context, field gr
 	}
 	res := resTmp.(*model.ConciergeContent)
 	fc.Result = res
-	return ec.marshalOConciergeContent2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐConciergeContent(ctx, field.Selections, res)
+	return ec.marshalOConciergeContent2ᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐConciergeContent(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _PostBookmark_id(ctx context.Context, field graphql.CollectedField, obj *model.PostBookmark) (ret graphql.Marshaler) {
@@ -8784,7 +8914,7 @@ func (ec *executionContext) _PostBookmark_discussion(ctx context.Context, field 
 	}
 	res := resTmp.(*model.Discussion)
 	fc.Result = res
-	return ec.marshalODiscussion2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐDiscussion(ctx, field.Selections, res)
+	return ec.marshalODiscussion2ᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐDiscussion(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _PostBookmark_post(ctx context.Context, field graphql.CollectedField, obj *model.PostBookmark) (ret graphql.Marshaler) {
@@ -8815,7 +8945,7 @@ func (ec *executionContext) _PostBookmark_post(ctx context.Context, field graphq
 	}
 	res := resTmp.(*model.Post)
 	fc.Result = res
-	return ec.marshalOPost2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐPost(ctx, field.Selections, res)
+	return ec.marshalOPost2ᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐPost(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _PostBookmark_createdAt(ctx context.Context, field graphql.CollectedField, obj *model.PostBookmark) (ret graphql.Marshaler) {
@@ -8914,7 +9044,7 @@ func (ec *executionContext) _PostBookmarksConnection_edges(ctx context.Context, 
 	}
 	res := resTmp.([]*model.PostBookmarksEdge)
 	fc.Result = res
-	return ec.marshalOPostBookmarksEdge2ᚕᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐPostBookmarksEdgeᚄ(ctx, field.Selections, res)
+	return ec.marshalOPostBookmarksEdge2ᚕᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐPostBookmarksEdgeᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _PostBookmarksConnection_pageInfo(ctx context.Context, field graphql.CollectedField, obj *model.PostBookmarksConnection) (ret graphql.Marshaler) {
@@ -8948,7 +9078,7 @@ func (ec *executionContext) _PostBookmarksConnection_pageInfo(ctx context.Contex
 	}
 	res := resTmp.(model.PageInfo)
 	fc.Result = res
-	return ec.marshalNPageInfo2githubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐPageInfo(ctx, field.Selections, res)
+	return ec.marshalNPageInfo2githubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐPageInfo(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _PostBookmarksEdge_cursor(ctx context.Context, field graphql.CollectedField, obj *model.PostBookmarksEdge) (ret graphql.Marshaler) {
@@ -9013,7 +9143,7 @@ func (ec *executionContext) _PostBookmarksEdge_node(ctx context.Context, field g
 	}
 	res := resTmp.(*model.PostBookmark)
 	fc.Result = res
-	return ec.marshalOPostBookmark2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐPostBookmark(ctx, field.Selections, res)
+	return ec.marshalOPostBookmark2ᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐPostBookmark(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _PostsConnection_edges(ctx context.Context, field graphql.CollectedField, obj *model.PostsConnection) (ret graphql.Marshaler) {
@@ -9044,7 +9174,7 @@ func (ec *executionContext) _PostsConnection_edges(ctx context.Context, field gr
 	}
 	res := resTmp.([]*model.PostsEdge)
 	fc.Result = res
-	return ec.marshalOPostsEdge2ᚕᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐPostsEdgeᚄ(ctx, field.Selections, res)
+	return ec.marshalOPostsEdge2ᚕᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐPostsEdgeᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _PostsConnection_pageInfo(ctx context.Context, field graphql.CollectedField, obj *model.PostsConnection) (ret graphql.Marshaler) {
@@ -9078,7 +9208,7 @@ func (ec *executionContext) _PostsConnection_pageInfo(ctx context.Context, field
 	}
 	res := resTmp.(model.PageInfo)
 	fc.Result = res
-	return ec.marshalNPageInfo2githubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐPageInfo(ctx, field.Selections, res)
+	return ec.marshalNPageInfo2githubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐPageInfo(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _PostsEdge_cursor(ctx context.Context, field graphql.CollectedField, obj *model.PostsEdge) (ret graphql.Marshaler) {
@@ -9143,7 +9273,7 @@ func (ec *executionContext) _PostsEdge_node(ctx context.Context, field graphql.C
 	}
 	res := resTmp.(*model.Post)
 	fc.Result = res
-	return ec.marshalOPost2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐPost(ctx, field.Selections, res)
+	return ec.marshalOPost2ᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐPost(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Query_discussion(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -9181,7 +9311,7 @@ func (ec *executionContext) _Query_discussion(ctx context.Context, field graphql
 	}
 	res := resTmp.(*model.Discussion)
 	fc.Result = res
-	return ec.marshalODiscussion2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐDiscussion(ctx, field.Selections, res)
+	return ec.marshalODiscussion2ᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐDiscussion(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Query_listDiscussions(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -9212,7 +9342,7 @@ func (ec *executionContext) _Query_listDiscussions(ctx context.Context, field gr
 	}
 	res := resTmp.([]*model.Discussion)
 	fc.Result = res
-	return ec.marshalODiscussion2ᚕᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐDiscussionᚄ(ctx, field.Selections, res)
+	return ec.marshalODiscussion2ᚕᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐDiscussionᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Query_flairTemplates(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -9250,7 +9380,7 @@ func (ec *executionContext) _Query_flairTemplates(ctx context.Context, field gra
 	}
 	res := resTmp.([]*model.FlairTemplate)
 	fc.Result = res
-	return ec.marshalOFlairTemplate2ᚕᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐFlairTemplateᚄ(ctx, field.Selections, res)
+	return ec.marshalOFlairTemplate2ᚕᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐFlairTemplateᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Query_user(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -9291,7 +9421,7 @@ func (ec *executionContext) _Query_user(ctx context.Context, field graphql.Colle
 	}
 	res := resTmp.(*model.User)
 	fc.Result = res
-	return ec.marshalNUser2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐUser(ctx, field.Selections, res)
+	return ec.marshalNUser2ᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐUser(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Query_me(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -9325,7 +9455,7 @@ func (ec *executionContext) _Query_me(ctx context.Context, field graphql.Collect
 	}
 	res := resTmp.(*model.User)
 	fc.Result = res
-	return ec.marshalNUser2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐUser(ctx, field.Selections, res)
+	return ec.marshalNUser2ᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐUser(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Query___type(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -9439,7 +9569,55 @@ func (ec *executionContext) _Subscription_postAdded(ctx context.Context, field g
 			w.Write([]byte{'{'})
 			graphql.MarshalString(field.Alias).MarshalGQL(w)
 			w.Write([]byte{':'})
-			ec.marshalOPost2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐPost(ctx, field.Selections, res).MarshalGQL(w)
+			ec.marshalOPost2ᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐPost(ctx, field.Selections, res).MarshalGQL(w)
+			w.Write([]byte{'}'})
+		})
+	}
+}
+
+func (ec *executionContext) _Subscription_onDiscussionEvent(ctx context.Context, field graphql.CollectedField) (ret func() graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = nil
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "Subscription",
+		Field:    field,
+		Args:     nil,
+		IsMethod: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Subscription_onDiscussionEvent_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return nil
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Subscription().OnDiscussionEvent(rctx, args["discussionID"].(string))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return nil
+	}
+	if resTmp == nil {
+		return nil
+	}
+	return func() graphql.Marshaler {
+		res, ok := <-resTmp.(<-chan *model.DiscussionSubscriptionEvent)
+		if !ok {
+			return nil
+		}
+		return graphql.WriterFunc(func(w io.Writer) {
+			w.Write([]byte{'{'})
+			graphql.MarshalString(field.Alias).MarshalGQL(w)
+			w.Write([]byte{':'})
+			ec.marshalODiscussionSubscriptionEvent2ᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐDiscussionSubscriptionEvent(ctx, field.Selections, res).MarshalGQL(w)
 			w.Write([]byte{'}'})
 		})
 	}
@@ -9745,7 +9923,7 @@ func (ec *executionContext) _User_participants(ctx context.Context, field graphq
 	}
 	res := resTmp.([]*model.Participant)
 	fc.Result = res
-	return ec.marshalOParticipant2ᚕᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐParticipantᚄ(ctx, field.Selections, res)
+	return ec.marshalOParticipant2ᚕᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐParticipantᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _User_viewers(ctx context.Context, field graphql.CollectedField, obj *model.User) (ret graphql.Marshaler) {
@@ -9776,7 +9954,7 @@ func (ec *executionContext) _User_viewers(ctx context.Context, field graphql.Col
 	}
 	res := resTmp.([]*model.Viewer)
 	fc.Result = res
-	return ec.marshalOViewer2ᚕᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐViewerᚄ(ctx, field.Selections, res)
+	return ec.marshalOViewer2ᚕᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐViewerᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _User_bookmarks(ctx context.Context, field graphql.CollectedField, obj *model.User) (ret graphql.Marshaler) {
@@ -9807,7 +9985,7 @@ func (ec *executionContext) _User_bookmarks(ctx context.Context, field graphql.C
 	}
 	res := resTmp.([]*model.PostBookmark)
 	fc.Result = res
-	return ec.marshalOPostBookmark2ᚕᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐPostBookmarkᚄ(ctx, field.Selections, res)
+	return ec.marshalOPostBookmark2ᚕᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐPostBookmarkᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _User_profile(ctx context.Context, field graphql.CollectedField, obj *model.User) (ret graphql.Marshaler) {
@@ -9841,7 +10019,7 @@ func (ec *executionContext) _User_profile(ctx context.Context, field graphql.Col
 	}
 	res := resTmp.(*model.UserProfile)
 	fc.Result = res
-	return ec.marshalNUserProfile2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐUserProfile(ctx, field.Selections, res)
+	return ec.marshalNUserProfile2ᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐUserProfile(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _User_flairs(ctx context.Context, field graphql.CollectedField, obj *model.User) (ret graphql.Marshaler) {
@@ -9872,7 +10050,7 @@ func (ec *executionContext) _User_flairs(ctx context.Context, field graphql.Coll
 	}
 	res := resTmp.([]*model.Flair)
 	fc.Result = res
-	return ec.marshalOFlair2ᚕᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐFlairᚄ(ctx, field.Selections, res)
+	return ec.marshalOFlair2ᚕᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐFlairᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _User_devices(ctx context.Context, field graphql.CollectedField, obj *model.User) (ret graphql.Marshaler) {
@@ -9903,7 +10081,7 @@ func (ec *executionContext) _User_devices(ctx context.Context, field graphql.Col
 	}
 	res := resTmp.([]*model.UserDevice)
 	fc.Result = res
-	return ec.marshalOUserDevice2ᚕᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐUserDeviceᚄ(ctx, field.Selections, res)
+	return ec.marshalOUserDevice2ᚕᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐUserDeviceᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _User_discussions(ctx context.Context, field graphql.CollectedField, obj *model.User) (ret graphql.Marshaler) {
@@ -9934,7 +10112,7 @@ func (ec *executionContext) _User_discussions(ctx context.Context, field graphql
 	}
 	res := resTmp.([]*model.Discussion)
 	fc.Result = res
-	return ec.marshalODiscussion2ᚕᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐDiscussionᚄ(ctx, field.Selections, res)
+	return ec.marshalODiscussion2ᚕᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐDiscussionᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _User_discussionInvites(ctx context.Context, field graphql.CollectedField, obj *model.User) (ret graphql.Marshaler) {
@@ -9972,7 +10150,7 @@ func (ec *executionContext) _User_discussionInvites(ctx context.Context, field g
 	}
 	res := resTmp.([]*model.DiscussionInvite)
 	fc.Result = res
-	return ec.marshalODiscussionInvite2ᚕᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐDiscussionInviteᚄ(ctx, field.Selections, res)
+	return ec.marshalODiscussionInvite2ᚕᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐDiscussionInviteᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _User_sentDiscussionInvites(ctx context.Context, field graphql.CollectedField, obj *model.User) (ret graphql.Marshaler) {
@@ -10003,7 +10181,7 @@ func (ec *executionContext) _User_sentDiscussionInvites(ctx context.Context, fie
 	}
 	res := resTmp.([]*model.DiscussionInvite)
 	fc.Result = res
-	return ec.marshalODiscussionInvite2ᚕᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐDiscussionInviteᚄ(ctx, field.Selections, res)
+	return ec.marshalODiscussionInvite2ᚕᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐDiscussionInviteᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _User_sentDiscussionAccessRequests(ctx context.Context, field graphql.CollectedField, obj *model.User) (ret graphql.Marshaler) {
@@ -10034,7 +10212,7 @@ func (ec *executionContext) _User_sentDiscussionAccessRequests(ctx context.Conte
 	}
 	res := resTmp.([]*model.DiscussionAccessRequest)
 	fc.Result = res
-	return ec.marshalODiscussionAccessRequest2ᚕᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐDiscussionAccessRequestᚄ(ctx, field.Selections, res)
+	return ec.marshalODiscussionAccessRequest2ᚕᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐDiscussionAccessRequestᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _UserDevice_id(ctx context.Context, field graphql.CollectedField, obj *model.UserDevice) (ret graphql.Marshaler) {
@@ -10102,7 +10280,7 @@ func (ec *executionContext) _UserDevice_user(ctx context.Context, field graphql.
 	}
 	res := resTmp.(*model.User)
 	fc.Result = res
-	return ec.marshalNUser2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐUser(ctx, field.Selections, res)
+	return ec.marshalNUser2ᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐUser(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _UserDevice_platform(ctx context.Context, field graphql.CollectedField, obj *model.UserDevice) (ret graphql.Marshaler) {
@@ -10136,7 +10314,7 @@ func (ec *executionContext) _UserDevice_platform(ctx context.Context, field grap
 	}
 	res := resTmp.(model.Platform)
 	fc.Result = res
-	return ec.marshalNPlatform2githubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐPlatform(ctx, field.Selections, res)
+	return ec.marshalNPlatform2githubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐPlatform(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _UserDevice_lastSeen(ctx context.Context, field graphql.CollectedField, obj *model.UserDevice) (ret graphql.Marshaler) {
@@ -10272,7 +10450,7 @@ func (ec *executionContext) _UserProfile_twitterURL(ctx context.Context, field g
 	}
 	res := resTmp.(model.URL)
 	fc.Result = res
-	return ec.marshalNURL2githubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐURL(ctx, field.Selections, res)
+	return ec.marshalNURL2githubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐURL(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _UserProfile_profileImageURL(ctx context.Context, field graphql.CollectedField, obj *model.UserProfile) (ret graphql.Marshaler) {
@@ -10374,7 +10552,7 @@ func (ec *executionContext) _Viewer_notificationPreferences(ctx context.Context,
 	}
 	res := resTmp.(model.DiscussionNotificationPreferences)
 	fc.Result = res
-	return ec.marshalNDiscussionNotificationPreferences2githubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐDiscussionNotificationPreferences(ctx, field.Selections, res)
+	return ec.marshalNDiscussionNotificationPreferences2githubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐDiscussionNotificationPreferences(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Viewer_discussion(ctx context.Context, field graphql.CollectedField, obj *model.Viewer) (ret graphql.Marshaler) {
@@ -10405,7 +10583,7 @@ func (ec *executionContext) _Viewer_discussion(ctx context.Context, field graphq
 	}
 	res := resTmp.(*model.Discussion)
 	fc.Result = res
-	return ec.marshalODiscussion2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐDiscussion(ctx, field.Selections, res)
+	return ec.marshalODiscussion2ᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐDiscussion(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Viewer_lastViewed(ctx context.Context, field graphql.CollectedField, obj *model.Viewer) (ret graphql.Marshaler) {
@@ -10467,7 +10645,7 @@ func (ec *executionContext) _Viewer_lastViewedPost(ctx context.Context, field gr
 	}
 	res := resTmp.(*model.Post)
 	fc.Result = res
-	return ec.marshalOPost2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐPost(ctx, field.Selections, res)
+	return ec.marshalOPost2ᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐPost(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Viewer_bookmarks(ctx context.Context, field graphql.CollectedField, obj *model.Viewer) (ret graphql.Marshaler) {
@@ -10498,7 +10676,7 @@ func (ec *executionContext) _Viewer_bookmarks(ctx context.Context, field graphql
 	}
 	res := resTmp.([]*model.PostBookmark)
 	fc.Result = res
-	return ec.marshalOPostBookmark2ᚕᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐPostBookmarkᚄ(ctx, field.Selections, res)
+	return ec.marshalOPostBookmark2ᚕᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐPostBookmarkᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _ViewerNotificationPreferences_id(ctx context.Context, field graphql.CollectedField, obj *model.ViewerNotificationPreferences) (ret graphql.Marshaler) {
@@ -10597,7 +10775,7 @@ func (ec *executionContext) _ViewersConnection_edges(ctx context.Context, field 
 	}
 	res := resTmp.([]*model.ViewersEdge)
 	fc.Result = res
-	return ec.marshalOViewersEdge2ᚕᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐViewersEdgeᚄ(ctx, field.Selections, res)
+	return ec.marshalOViewersEdge2ᚕᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐViewersEdgeᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _ViewersConnection_pageInfo(ctx context.Context, field graphql.CollectedField, obj *model.ViewersConnection) (ret graphql.Marshaler) {
@@ -10631,7 +10809,7 @@ func (ec *executionContext) _ViewersConnection_pageInfo(ctx context.Context, fie
 	}
 	res := resTmp.(model.PageInfo)
 	fc.Result = res
-	return ec.marshalNPageInfo2githubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐPageInfo(ctx, field.Selections, res)
+	return ec.marshalNPageInfo2githubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐPageInfo(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _ViewersEdge_cursor(ctx context.Context, field graphql.CollectedField, obj *model.ViewersEdge) (ret graphql.Marshaler) {
@@ -10696,7 +10874,7 @@ func (ec *executionContext) _ViewersEdge_node(ctx context.Context, field graphql
 	}
 	res := resTmp.(*model.Viewer)
 	fc.Result = res
-	return ec.marshalOViewer2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐViewer(ctx, field.Selections, res)
+	return ec.marshalOViewer2ᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐViewer(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) ___Directive_name(ctx context.Context, field graphql.CollectedField, obj *introspection.Directive) (ret graphql.Marshaler) {
@@ -11762,7 +11940,7 @@ func (ec *executionContext) unmarshalInputAddDiscussionParticipantInput(ctx cont
 		switch k {
 		case "gradientColor":
 			var err error
-			it.GradientColor, err = ec.unmarshalOGradientColor2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐGradientColor(ctx, v)
+			it.GradientColor, err = ec.unmarshalOGradientColor2ᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐGradientColor(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -11798,7 +11976,7 @@ func (ec *executionContext) unmarshalInputDiscussionInput(ctx context.Context, o
 		switch k {
 		case "anonymityType":
 			var err error
-			it.AnonymityType, err = ec.unmarshalOAnonymityType2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐAnonymityType(ctx, v)
+			it.AnonymityType, err = ec.unmarshalOAnonymityType2ᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐAnonymityType(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -11900,7 +12078,7 @@ func (ec *executionContext) unmarshalInputPostContentInput(ctx context.Context, 
 			}
 		case "postType":
 			var err error
-			it.PostType, err = ec.unmarshalNPostType2githubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐPostType(ctx, v)
+			it.PostType, err = ec.unmarshalNPostType2githubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐPostType(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -11924,7 +12102,7 @@ func (ec *executionContext) unmarshalInputPostContentInput(ctx context.Context, 
 			}
 		case "poll":
 			var err error
-			it.Poll, err = ec.unmarshalOPollInput2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐPollInput(ctx, v)
+			it.Poll, err = ec.unmarshalOPollInput2ᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐPollInput(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -11954,7 +12132,7 @@ func (ec *executionContext) unmarshalInputUpdateParticipantInput(ctx context.Con
 		switch k {
 		case "gradientColor":
 			var err error
-			it.GradientColor, err = ec.unmarshalOGradientColor2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐGradientColor(ctx, v)
+			it.GradientColor, err = ec.unmarshalOGradientColor2ᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐGradientColor(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -12016,6 +12194,29 @@ func (ec *executionContext) _DiscussionNotificationPreferences(ctx context.Conte
 			return graphql.Null
 		}
 		return ec._ParticipantNotificationPreferences(ctx, sel, obj)
+	default:
+		panic(fmt.Errorf("unexpected type %T", obj))
+	}
+}
+
+func (ec *executionContext) _DiscussionSubscriptionEntity(ctx context.Context, sel ast.SelectionSet, obj model.DiscussionSubscriptionEntity) graphql.Marshaler {
+	switch obj := (obj).(type) {
+	case nil:
+		return graphql.Null
+	case model.Participant:
+		return ec._Participant(ctx, sel, &obj)
+	case *model.Participant:
+		if obj == nil {
+			return graphql.Null
+		}
+		return ec._Participant(ctx, sel, obj)
+	case model.Post:
+		return ec._Post(ctx, sel, &obj)
+	case *model.Post:
+		if obj == nil {
+			return graphql.Null
+		}
+		return ec._Post(ctx, sel, obj)
 	default:
 		panic(fmt.Errorf("unexpected type %T", obj))
 	}
@@ -12743,6 +12944,38 @@ func (ec *executionContext) _DiscussionLinkAccess(ctx context.Context, sel ast.S
 	return out
 }
 
+var discussionSubscriptionEventImplementors = []string{"DiscussionSubscriptionEvent"}
+
+func (ec *executionContext) _DiscussionSubscriptionEvent(ctx context.Context, sel ast.SelectionSet, obj *model.DiscussionSubscriptionEvent) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, discussionSubscriptionEventImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("DiscussionSubscriptionEvent")
+		case "eventType":
+			out.Values[i] = ec._DiscussionSubscriptionEvent_eventType(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "entity":
+			out.Values[i] = ec._DiscussionSubscriptionEvent_entity(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
 var flairImplementors = []string{"Flair"}
 
 func (ec *executionContext) _Flair(ctx context.Context, sel ast.SelectionSet, obj *model.Flair) graphql.Marshaler {
@@ -13229,7 +13462,7 @@ func (ec *executionContext) _PageInfo(ctx context.Context, sel ast.SelectionSet,
 	return out
 }
 
-var participantImplementors = []string{"Participant", "Entity"}
+var participantImplementors = []string{"Participant", "Entity", "DiscussionSubscriptionEntity"}
 
 func (ec *executionContext) _Participant(ctx context.Context, sel ast.SelectionSet, obj *model.Participant) graphql.Marshaler {
 	fields := graphql.CollectFields(ec.OperationContext, sel, participantImplementors)
@@ -13488,7 +13721,7 @@ func (ec *executionContext) _ParticipantsEdge(ctx context.Context, sel ast.Selec
 	return out
 }
 
-var postImplementors = []string{"Post"}
+var postImplementors = []string{"Post", "DiscussionSubscriptionEntity"}
 
 func (ec *executionContext) _Post(ctx context.Context, sel ast.SelectionSet, obj *model.Post) graphql.Marshaler {
 	fields := graphql.CollectFields(ec.OperationContext, sel, postImplementors)
@@ -13927,6 +14160,8 @@ func (ec *executionContext) _Subscription(ctx context.Context, sel ast.Selection
 	switch fields[0].Name {
 	case "postAdded":
 		return ec._Subscription_postAdded(ctx, fields[0])
+	case "onDiscussionEvent":
+		return ec._Subscription_onDiscussionEvent(ctx, fields[0])
 	default:
 		panic("unknown field " + strconv.Quote(fields[0].Name))
 	}
@@ -14704,16 +14939,16 @@ func (ec *executionContext) ___Type(ctx context.Context, sel ast.SelectionSet, o
 
 // region    ***************************** type.gotpl *****************************
 
-func (ec *executionContext) unmarshalNAddDiscussionParticipantInput2githubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐAddDiscussionParticipantInput(ctx context.Context, v interface{}) (model.AddDiscussionParticipantInput, error) {
+func (ec *executionContext) unmarshalNAddDiscussionParticipantInput2githubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐAddDiscussionParticipantInput(ctx context.Context, v interface{}) (model.AddDiscussionParticipantInput, error) {
 	return ec.unmarshalInputAddDiscussionParticipantInput(ctx, v)
 }
 
-func (ec *executionContext) unmarshalNAnonymityType2githubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐAnonymityType(ctx context.Context, v interface{}) (model.AnonymityType, error) {
+func (ec *executionContext) unmarshalNAnonymityType2githubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐAnonymityType(ctx context.Context, v interface{}) (model.AnonymityType, error) {
 	var res model.AnonymityType
 	return res, res.UnmarshalGQL(v)
 }
 
-func (ec *executionContext) marshalNAnonymityType2githubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐAnonymityType(ctx context.Context, sel ast.SelectionSet, v model.AnonymityType) graphql.Marshaler {
+func (ec *executionContext) marshalNAnonymityType2githubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐAnonymityType(ctx context.Context, sel ast.SelectionSet, v model.AnonymityType) graphql.Marshaler {
 	return v
 }
 
@@ -14731,11 +14966,11 @@ func (ec *executionContext) marshalNBoolean2bool(ctx context.Context, sel ast.Se
 	return res
 }
 
-func (ec *executionContext) marshalNConciergeOption2githubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐConciergeOption(ctx context.Context, sel ast.SelectionSet, v model.ConciergeOption) graphql.Marshaler {
+func (ec *executionContext) marshalNConciergeOption2githubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐConciergeOption(ctx context.Context, sel ast.SelectionSet, v model.ConciergeOption) graphql.Marshaler {
 	return ec._ConciergeOption(ctx, sel, &v)
 }
 
-func (ec *executionContext) marshalNConciergeOption2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐConciergeOption(ctx context.Context, sel ast.SelectionSet, v *model.ConciergeOption) graphql.Marshaler {
+func (ec *executionContext) marshalNConciergeOption2ᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐConciergeOption(ctx context.Context, sel ast.SelectionSet, v *model.ConciergeOption) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			ec.Errorf(ctx, "must not be null")
@@ -14745,11 +14980,11 @@ func (ec *executionContext) marshalNConciergeOption2ᚖgithubᚗcomᚋnedrocks�
 	return ec._ConciergeOption(ctx, sel, v)
 }
 
-func (ec *executionContext) marshalNContentQueueRecord2githubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐContentQueueRecord(ctx context.Context, sel ast.SelectionSet, v model.ContentQueueRecord) graphql.Marshaler {
+func (ec *executionContext) marshalNContentQueueRecord2githubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐContentQueueRecord(ctx context.Context, sel ast.SelectionSet, v model.ContentQueueRecord) graphql.Marshaler {
 	return ec._ContentQueueRecord(ctx, sel, &v)
 }
 
-func (ec *executionContext) marshalNContentQueueRecord2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐContentQueueRecord(ctx context.Context, sel ast.SelectionSet, v *model.ContentQueueRecord) graphql.Marshaler {
+func (ec *executionContext) marshalNContentQueueRecord2ᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐContentQueueRecord(ctx context.Context, sel ast.SelectionSet, v *model.ContentQueueRecord) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			ec.Errorf(ctx, "must not be null")
@@ -14759,11 +14994,11 @@ func (ec *executionContext) marshalNContentQueueRecord2ᚖgithubᚗcomᚋnedrock
 	return ec._ContentQueueRecord(ctx, sel, v)
 }
 
-func (ec *executionContext) marshalNDiscussion2githubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐDiscussion(ctx context.Context, sel ast.SelectionSet, v model.Discussion) graphql.Marshaler {
+func (ec *executionContext) marshalNDiscussion2githubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐDiscussion(ctx context.Context, sel ast.SelectionSet, v model.Discussion) graphql.Marshaler {
 	return ec._Discussion(ctx, sel, &v)
 }
 
-func (ec *executionContext) marshalNDiscussion2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐDiscussion(ctx context.Context, sel ast.SelectionSet, v *model.Discussion) graphql.Marshaler {
+func (ec *executionContext) marshalNDiscussion2ᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐDiscussion(ctx context.Context, sel ast.SelectionSet, v *model.Discussion) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			ec.Errorf(ctx, "must not be null")
@@ -14773,11 +15008,11 @@ func (ec *executionContext) marshalNDiscussion2ᚖgithubᚗcomᚋnedrocksᚋdelp
 	return ec._Discussion(ctx, sel, v)
 }
 
-func (ec *executionContext) marshalNDiscussionAccessRequest2githubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐDiscussionAccessRequest(ctx context.Context, sel ast.SelectionSet, v model.DiscussionAccessRequest) graphql.Marshaler {
+func (ec *executionContext) marshalNDiscussionAccessRequest2githubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐDiscussionAccessRequest(ctx context.Context, sel ast.SelectionSet, v model.DiscussionAccessRequest) graphql.Marshaler {
 	return ec._DiscussionAccessRequest(ctx, sel, &v)
 }
 
-func (ec *executionContext) marshalNDiscussionAccessRequest2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐDiscussionAccessRequest(ctx context.Context, sel ast.SelectionSet, v *model.DiscussionAccessRequest) graphql.Marshaler {
+func (ec *executionContext) marshalNDiscussionAccessRequest2ᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐDiscussionAccessRequest(ctx context.Context, sel ast.SelectionSet, v *model.DiscussionAccessRequest) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			ec.Errorf(ctx, "must not be null")
@@ -14787,15 +15022,15 @@ func (ec *executionContext) marshalNDiscussionAccessRequest2ᚖgithubᚗcomᚋne
 	return ec._DiscussionAccessRequest(ctx, sel, v)
 }
 
-func (ec *executionContext) unmarshalNDiscussionInput2githubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐDiscussionInput(ctx context.Context, v interface{}) (model.DiscussionInput, error) {
+func (ec *executionContext) unmarshalNDiscussionInput2githubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐDiscussionInput(ctx context.Context, v interface{}) (model.DiscussionInput, error) {
 	return ec.unmarshalInputDiscussionInput(ctx, v)
 }
 
-func (ec *executionContext) marshalNDiscussionInvite2githubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐDiscussionInvite(ctx context.Context, sel ast.SelectionSet, v model.DiscussionInvite) graphql.Marshaler {
+func (ec *executionContext) marshalNDiscussionInvite2githubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐDiscussionInvite(ctx context.Context, sel ast.SelectionSet, v model.DiscussionInvite) graphql.Marshaler {
 	return ec._DiscussionInvite(ctx, sel, &v)
 }
 
-func (ec *executionContext) marshalNDiscussionInvite2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐDiscussionInvite(ctx context.Context, sel ast.SelectionSet, v *model.DiscussionInvite) graphql.Marshaler {
+func (ec *executionContext) marshalNDiscussionInvite2ᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐDiscussionInvite(ctx context.Context, sel ast.SelectionSet, v *model.DiscussionInvite) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			ec.Errorf(ctx, "must not be null")
@@ -14805,11 +15040,11 @@ func (ec *executionContext) marshalNDiscussionInvite2ᚖgithubᚗcomᚋnedrocks�
 	return ec._DiscussionInvite(ctx, sel, v)
 }
 
-func (ec *executionContext) marshalNDiscussionLinkAccess2githubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐDiscussionLinkAccess(ctx context.Context, sel ast.SelectionSet, v model.DiscussionLinkAccess) graphql.Marshaler {
+func (ec *executionContext) marshalNDiscussionLinkAccess2githubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐDiscussionLinkAccess(ctx context.Context, sel ast.SelectionSet, v model.DiscussionLinkAccess) graphql.Marshaler {
 	return ec._DiscussionLinkAccess(ctx, sel, &v)
 }
 
-func (ec *executionContext) marshalNDiscussionLinkAccess2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐDiscussionLinkAccess(ctx context.Context, sel ast.SelectionSet, v *model.DiscussionLinkAccess) graphql.Marshaler {
+func (ec *executionContext) marshalNDiscussionLinkAccess2ᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐDiscussionLinkAccess(ctx context.Context, sel ast.SelectionSet, v *model.DiscussionLinkAccess) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			ec.Errorf(ctx, "must not be null")
@@ -14819,7 +15054,7 @@ func (ec *executionContext) marshalNDiscussionLinkAccess2ᚖgithubᚗcomᚋnedro
 	return ec._DiscussionLinkAccess(ctx, sel, v)
 }
 
-func (ec *executionContext) marshalNDiscussionNotificationPreferences2githubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐDiscussionNotificationPreferences(ctx context.Context, sel ast.SelectionSet, v model.DiscussionNotificationPreferences) graphql.Marshaler {
+func (ec *executionContext) marshalNDiscussionNotificationPreferences2githubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐDiscussionNotificationPreferences(ctx context.Context, sel ast.SelectionSet, v model.DiscussionNotificationPreferences) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			ec.Errorf(ctx, "must not be null")
@@ -14829,7 +15064,26 @@ func (ec *executionContext) marshalNDiscussionNotificationPreferences2githubᚗc
 	return ec._DiscussionNotificationPreferences(ctx, sel, v)
 }
 
-func (ec *executionContext) marshalNEntity2githubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐEntity(ctx context.Context, sel ast.SelectionSet, v model.Entity) graphql.Marshaler {
+func (ec *executionContext) marshalNDiscussionSubscriptionEntity2githubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐDiscussionSubscriptionEntity(ctx context.Context, sel ast.SelectionSet, v model.DiscussionSubscriptionEntity) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	return ec._DiscussionSubscriptionEntity(ctx, sel, v)
+}
+
+func (ec *executionContext) unmarshalNDiscussionSubscriptionEventType2githubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐDiscussionSubscriptionEventType(ctx context.Context, v interface{}) (model.DiscussionSubscriptionEventType, error) {
+	var res model.DiscussionSubscriptionEventType
+	return res, res.UnmarshalGQL(v)
+}
+
+func (ec *executionContext) marshalNDiscussionSubscriptionEventType2githubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐDiscussionSubscriptionEventType(ctx context.Context, sel ast.SelectionSet, v model.DiscussionSubscriptionEventType) graphql.Marshaler {
+	return v
+}
+
+func (ec *executionContext) marshalNEntity2githubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐEntity(ctx context.Context, sel ast.SelectionSet, v model.Entity) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			ec.Errorf(ctx, "must not be null")
@@ -14839,11 +15093,11 @@ func (ec *executionContext) marshalNEntity2githubᚗcomᚋnedrocksᚋdelphisbe�
 	return ec._Entity(ctx, sel, v)
 }
 
-func (ec *executionContext) marshalNFlair2githubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐFlair(ctx context.Context, sel ast.SelectionSet, v model.Flair) graphql.Marshaler {
+func (ec *executionContext) marshalNFlair2githubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐFlair(ctx context.Context, sel ast.SelectionSet, v model.Flair) graphql.Marshaler {
 	return ec._Flair(ctx, sel, &v)
 }
 
-func (ec *executionContext) marshalNFlair2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐFlair(ctx context.Context, sel ast.SelectionSet, v *model.Flair) graphql.Marshaler {
+func (ec *executionContext) marshalNFlair2ᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐFlair(ctx context.Context, sel ast.SelectionSet, v *model.Flair) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			ec.Errorf(ctx, "must not be null")
@@ -14853,11 +15107,11 @@ func (ec *executionContext) marshalNFlair2ᚖgithubᚗcomᚋnedrocksᚋdelphisbe
 	return ec._Flair(ctx, sel, v)
 }
 
-func (ec *executionContext) marshalNFlairTemplate2githubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐFlairTemplate(ctx context.Context, sel ast.SelectionSet, v model.FlairTemplate) graphql.Marshaler {
+func (ec *executionContext) marshalNFlairTemplate2githubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐFlairTemplate(ctx context.Context, sel ast.SelectionSet, v model.FlairTemplate) graphql.Marshaler {
 	return ec._FlairTemplate(ctx, sel, &v)
 }
 
-func (ec *executionContext) marshalNFlairTemplate2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐFlairTemplate(ctx context.Context, sel ast.SelectionSet, v *model.FlairTemplate) graphql.Marshaler {
+func (ec *executionContext) marshalNFlairTemplate2ᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐFlairTemplate(ctx context.Context, sel ast.SelectionSet, v *model.FlairTemplate) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			ec.Errorf(ctx, "must not be null")
@@ -14895,11 +15149,11 @@ func (ec *executionContext) marshalNID2string(ctx context.Context, sel ast.Selec
 	return res
 }
 
-func (ec *executionContext) marshalNImportedContent2githubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐImportedContent(ctx context.Context, sel ast.SelectionSet, v model.ImportedContent) graphql.Marshaler {
+func (ec *executionContext) marshalNImportedContent2githubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐImportedContent(ctx context.Context, sel ast.SelectionSet, v model.ImportedContent) graphql.Marshaler {
 	return ec._ImportedContent(ctx, sel, &v)
 }
 
-func (ec *executionContext) marshalNImportedContent2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐImportedContent(ctx context.Context, sel ast.SelectionSet, v *model.ImportedContent) graphql.Marshaler {
+func (ec *executionContext) marshalNImportedContent2ᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐImportedContent(ctx context.Context, sel ast.SelectionSet, v *model.ImportedContent) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			ec.Errorf(ctx, "must not be null")
@@ -14923,20 +15177,20 @@ func (ec *executionContext) marshalNInt2int(ctx context.Context, sel ast.Selecti
 	return res
 }
 
-func (ec *executionContext) unmarshalNInviteRequestStatus2githubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐInviteRequestStatus(ctx context.Context, v interface{}) (model.InviteRequestStatus, error) {
+func (ec *executionContext) unmarshalNInviteRequestStatus2githubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐInviteRequestStatus(ctx context.Context, v interface{}) (model.InviteRequestStatus, error) {
 	var res model.InviteRequestStatus
 	return res, res.UnmarshalGQL(v)
 }
 
-func (ec *executionContext) marshalNInviteRequestStatus2githubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐInviteRequestStatus(ctx context.Context, sel ast.SelectionSet, v model.InviteRequestStatus) graphql.Marshaler {
+func (ec *executionContext) marshalNInviteRequestStatus2githubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐInviteRequestStatus(ctx context.Context, sel ast.SelectionSet, v model.InviteRequestStatus) graphql.Marshaler {
 	return v
 }
 
-func (ec *executionContext) marshalNModerator2githubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐModerator(ctx context.Context, sel ast.SelectionSet, v model.Moderator) graphql.Marshaler {
+func (ec *executionContext) marshalNModerator2githubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐModerator(ctx context.Context, sel ast.SelectionSet, v model.Moderator) graphql.Marshaler {
 	return ec._Moderator(ctx, sel, &v)
 }
 
-func (ec *executionContext) marshalNModerator2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐModerator(ctx context.Context, sel ast.SelectionSet, v *model.Moderator) graphql.Marshaler {
+func (ec *executionContext) marshalNModerator2ᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐModerator(ctx context.Context, sel ast.SelectionSet, v *model.Moderator) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			ec.Errorf(ctx, "must not be null")
@@ -14946,15 +15200,15 @@ func (ec *executionContext) marshalNModerator2ᚖgithubᚗcomᚋnedrocksᚋdelph
 	return ec._Moderator(ctx, sel, v)
 }
 
-func (ec *executionContext) marshalNPageInfo2githubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐPageInfo(ctx context.Context, sel ast.SelectionSet, v model.PageInfo) graphql.Marshaler {
+func (ec *executionContext) marshalNPageInfo2githubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐPageInfo(ctx context.Context, sel ast.SelectionSet, v model.PageInfo) graphql.Marshaler {
 	return ec._PageInfo(ctx, sel, &v)
 }
 
-func (ec *executionContext) marshalNParticipant2githubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐParticipant(ctx context.Context, sel ast.SelectionSet, v model.Participant) graphql.Marshaler {
+func (ec *executionContext) marshalNParticipant2githubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐParticipant(ctx context.Context, sel ast.SelectionSet, v model.Participant) graphql.Marshaler {
 	return ec._Participant(ctx, sel, &v)
 }
 
-func (ec *executionContext) marshalNParticipant2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐParticipant(ctx context.Context, sel ast.SelectionSet, v *model.Participant) graphql.Marshaler {
+func (ec *executionContext) marshalNParticipant2ᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐParticipant(ctx context.Context, sel ast.SelectionSet, v *model.Participant) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			ec.Errorf(ctx, "must not be null")
@@ -14964,11 +15218,11 @@ func (ec *executionContext) marshalNParticipant2ᚖgithubᚗcomᚋnedrocksᚋdel
 	return ec._Participant(ctx, sel, v)
 }
 
-func (ec *executionContext) marshalNParticipantsEdge2githubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐParticipantsEdge(ctx context.Context, sel ast.SelectionSet, v model.ParticipantsEdge) graphql.Marshaler {
+func (ec *executionContext) marshalNParticipantsEdge2githubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐParticipantsEdge(ctx context.Context, sel ast.SelectionSet, v model.ParticipantsEdge) graphql.Marshaler {
 	return ec._ParticipantsEdge(ctx, sel, &v)
 }
 
-func (ec *executionContext) marshalNParticipantsEdge2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐParticipantsEdge(ctx context.Context, sel ast.SelectionSet, v *model.ParticipantsEdge) graphql.Marshaler {
+func (ec *executionContext) marshalNParticipantsEdge2ᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐParticipantsEdge(ctx context.Context, sel ast.SelectionSet, v *model.ParticipantsEdge) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			ec.Errorf(ctx, "must not be null")
@@ -14978,20 +15232,20 @@ func (ec *executionContext) marshalNParticipantsEdge2ᚖgithubᚗcomᚋnedrocks�
 	return ec._ParticipantsEdge(ctx, sel, v)
 }
 
-func (ec *executionContext) unmarshalNPlatform2githubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐPlatform(ctx context.Context, v interface{}) (model.Platform, error) {
+func (ec *executionContext) unmarshalNPlatform2githubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐPlatform(ctx context.Context, v interface{}) (model.Platform, error) {
 	var res model.Platform
 	return res, res.UnmarshalGQL(v)
 }
 
-func (ec *executionContext) marshalNPlatform2githubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐPlatform(ctx context.Context, sel ast.SelectionSet, v model.Platform) graphql.Marshaler {
+func (ec *executionContext) marshalNPlatform2githubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐPlatform(ctx context.Context, sel ast.SelectionSet, v model.Platform) graphql.Marshaler {
 	return v
 }
 
-func (ec *executionContext) marshalNPost2githubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐPost(ctx context.Context, sel ast.SelectionSet, v model.Post) graphql.Marshaler {
+func (ec *executionContext) marshalNPost2githubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐPost(ctx context.Context, sel ast.SelectionSet, v model.Post) graphql.Marshaler {
 	return ec._Post(ctx, sel, &v)
 }
 
-func (ec *executionContext) marshalNPost2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐPost(ctx context.Context, sel ast.SelectionSet, v *model.Post) graphql.Marshaler {
+func (ec *executionContext) marshalNPost2ᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐPost(ctx context.Context, sel ast.SelectionSet, v *model.Post) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			ec.Errorf(ctx, "must not be null")
@@ -15001,11 +15255,11 @@ func (ec *executionContext) marshalNPost2ᚖgithubᚗcomᚋnedrocksᚋdelphisbe�
 	return ec._Post(ctx, sel, v)
 }
 
-func (ec *executionContext) marshalNPostBookmark2githubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐPostBookmark(ctx context.Context, sel ast.SelectionSet, v model.PostBookmark) graphql.Marshaler {
+func (ec *executionContext) marshalNPostBookmark2githubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐPostBookmark(ctx context.Context, sel ast.SelectionSet, v model.PostBookmark) graphql.Marshaler {
 	return ec._PostBookmark(ctx, sel, &v)
 }
 
-func (ec *executionContext) marshalNPostBookmark2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐPostBookmark(ctx context.Context, sel ast.SelectionSet, v *model.PostBookmark) graphql.Marshaler {
+func (ec *executionContext) marshalNPostBookmark2ᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐPostBookmark(ctx context.Context, sel ast.SelectionSet, v *model.PostBookmark) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			ec.Errorf(ctx, "must not be null")
@@ -15015,11 +15269,11 @@ func (ec *executionContext) marshalNPostBookmark2ᚖgithubᚗcomᚋnedrocksᚋde
 	return ec._PostBookmark(ctx, sel, v)
 }
 
-func (ec *executionContext) marshalNPostBookmarksEdge2githubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐPostBookmarksEdge(ctx context.Context, sel ast.SelectionSet, v model.PostBookmarksEdge) graphql.Marshaler {
+func (ec *executionContext) marshalNPostBookmarksEdge2githubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐPostBookmarksEdge(ctx context.Context, sel ast.SelectionSet, v model.PostBookmarksEdge) graphql.Marshaler {
 	return ec._PostBookmarksEdge(ctx, sel, &v)
 }
 
-func (ec *executionContext) marshalNPostBookmarksEdge2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐPostBookmarksEdge(ctx context.Context, sel ast.SelectionSet, v *model.PostBookmarksEdge) graphql.Marshaler {
+func (ec *executionContext) marshalNPostBookmarksEdge2ᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐPostBookmarksEdge(ctx context.Context, sel ast.SelectionSet, v *model.PostBookmarksEdge) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			ec.Errorf(ctx, "must not be null")
@@ -15029,24 +15283,24 @@ func (ec *executionContext) marshalNPostBookmarksEdge2ᚖgithubᚗcomᚋnedrocks
 	return ec._PostBookmarksEdge(ctx, sel, v)
 }
 
-func (ec *executionContext) unmarshalNPostContentInput2githubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐPostContentInput(ctx context.Context, v interface{}) (model.PostContentInput, error) {
+func (ec *executionContext) unmarshalNPostContentInput2githubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐPostContentInput(ctx context.Context, v interface{}) (model.PostContentInput, error) {
 	return ec.unmarshalInputPostContentInput(ctx, v)
 }
 
-func (ec *executionContext) unmarshalNPostType2githubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐPostType(ctx context.Context, v interface{}) (model.PostType, error) {
+func (ec *executionContext) unmarshalNPostType2githubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐPostType(ctx context.Context, v interface{}) (model.PostType, error) {
 	var res model.PostType
 	return res, res.UnmarshalGQL(v)
 }
 
-func (ec *executionContext) marshalNPostType2githubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐPostType(ctx context.Context, sel ast.SelectionSet, v model.PostType) graphql.Marshaler {
+func (ec *executionContext) marshalNPostType2githubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐPostType(ctx context.Context, sel ast.SelectionSet, v model.PostType) graphql.Marshaler {
 	return v
 }
 
-func (ec *executionContext) marshalNPostsConnection2githubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐPostsConnection(ctx context.Context, sel ast.SelectionSet, v model.PostsConnection) graphql.Marshaler {
+func (ec *executionContext) marshalNPostsConnection2githubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐPostsConnection(ctx context.Context, sel ast.SelectionSet, v model.PostsConnection) graphql.Marshaler {
 	return ec._PostsConnection(ctx, sel, &v)
 }
 
-func (ec *executionContext) marshalNPostsConnection2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐPostsConnection(ctx context.Context, sel ast.SelectionSet, v *model.PostsConnection) graphql.Marshaler {
+func (ec *executionContext) marshalNPostsConnection2ᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐPostsConnection(ctx context.Context, sel ast.SelectionSet, v *model.PostsConnection) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			ec.Errorf(ctx, "must not be null")
@@ -15056,11 +15310,11 @@ func (ec *executionContext) marshalNPostsConnection2ᚖgithubᚗcomᚋnedrocks�
 	return ec._PostsConnection(ctx, sel, v)
 }
 
-func (ec *executionContext) marshalNPostsEdge2githubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐPostsEdge(ctx context.Context, sel ast.SelectionSet, v model.PostsEdge) graphql.Marshaler {
+func (ec *executionContext) marshalNPostsEdge2githubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐPostsEdge(ctx context.Context, sel ast.SelectionSet, v model.PostsEdge) graphql.Marshaler {
 	return ec._PostsEdge(ctx, sel, &v)
 }
 
-func (ec *executionContext) marshalNPostsEdge2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐPostsEdge(ctx context.Context, sel ast.SelectionSet, v *model.PostsEdge) graphql.Marshaler {
+func (ec *executionContext) marshalNPostsEdge2ᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐPostsEdge(ctx context.Context, sel ast.SelectionSet, v *model.PostsEdge) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			ec.Errorf(ctx, "must not be null")
@@ -15084,11 +15338,11 @@ func (ec *executionContext) marshalNString2string(ctx context.Context, sel ast.S
 	return res
 }
 
-func (ec *executionContext) marshalNTag2githubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐTag(ctx context.Context, sel ast.SelectionSet, v model.Tag) graphql.Marshaler {
+func (ec *executionContext) marshalNTag2githubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐTag(ctx context.Context, sel ast.SelectionSet, v model.Tag) graphql.Marshaler {
 	return ec._Tag(ctx, sel, &v)
 }
 
-func (ec *executionContext) marshalNTag2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐTag(ctx context.Context, sel ast.SelectionSet, v *model.Tag) graphql.Marshaler {
+func (ec *executionContext) marshalNTag2ᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐTag(ctx context.Context, sel ast.SelectionSet, v *model.Tag) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			ec.Errorf(ctx, "must not be null")
@@ -15112,19 +15366,19 @@ func (ec *executionContext) marshalNTime2timeᚐTime(ctx context.Context, sel as
 	return res
 }
 
-func (ec *executionContext) marshalNURL2githubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐURL(ctx context.Context, sel ast.SelectionSet, v model.URL) graphql.Marshaler {
+func (ec *executionContext) marshalNURL2githubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐURL(ctx context.Context, sel ast.SelectionSet, v model.URL) graphql.Marshaler {
 	return ec._URL(ctx, sel, &v)
 }
 
-func (ec *executionContext) unmarshalNUpdateParticipantInput2githubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐUpdateParticipantInput(ctx context.Context, v interface{}) (model.UpdateParticipantInput, error) {
+func (ec *executionContext) unmarshalNUpdateParticipantInput2githubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐUpdateParticipantInput(ctx context.Context, v interface{}) (model.UpdateParticipantInput, error) {
 	return ec.unmarshalInputUpdateParticipantInput(ctx, v)
 }
 
-func (ec *executionContext) marshalNUser2githubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐUser(ctx context.Context, sel ast.SelectionSet, v model.User) graphql.Marshaler {
+func (ec *executionContext) marshalNUser2githubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐUser(ctx context.Context, sel ast.SelectionSet, v model.User) graphql.Marshaler {
 	return ec._User(ctx, sel, &v)
 }
 
-func (ec *executionContext) marshalNUser2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐUser(ctx context.Context, sel ast.SelectionSet, v *model.User) graphql.Marshaler {
+func (ec *executionContext) marshalNUser2ᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐUser(ctx context.Context, sel ast.SelectionSet, v *model.User) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			ec.Errorf(ctx, "must not be null")
@@ -15134,11 +15388,11 @@ func (ec *executionContext) marshalNUser2ᚖgithubᚗcomᚋnedrocksᚋdelphisbe�
 	return ec._User(ctx, sel, v)
 }
 
-func (ec *executionContext) marshalNUserDevice2githubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐUserDevice(ctx context.Context, sel ast.SelectionSet, v model.UserDevice) graphql.Marshaler {
+func (ec *executionContext) marshalNUserDevice2githubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐUserDevice(ctx context.Context, sel ast.SelectionSet, v model.UserDevice) graphql.Marshaler {
 	return ec._UserDevice(ctx, sel, &v)
 }
 
-func (ec *executionContext) marshalNUserDevice2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐUserDevice(ctx context.Context, sel ast.SelectionSet, v *model.UserDevice) graphql.Marshaler {
+func (ec *executionContext) marshalNUserDevice2ᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐUserDevice(ctx context.Context, sel ast.SelectionSet, v *model.UserDevice) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			ec.Errorf(ctx, "must not be null")
@@ -15148,11 +15402,11 @@ func (ec *executionContext) marshalNUserDevice2ᚖgithubᚗcomᚋnedrocksᚋdelp
 	return ec._UserDevice(ctx, sel, v)
 }
 
-func (ec *executionContext) marshalNUserProfile2githubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐUserProfile(ctx context.Context, sel ast.SelectionSet, v model.UserProfile) graphql.Marshaler {
+func (ec *executionContext) marshalNUserProfile2githubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐUserProfile(ctx context.Context, sel ast.SelectionSet, v model.UserProfile) graphql.Marshaler {
 	return ec._UserProfile(ctx, sel, &v)
 }
 
-func (ec *executionContext) marshalNUserProfile2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐUserProfile(ctx context.Context, sel ast.SelectionSet, v *model.UserProfile) graphql.Marshaler {
+func (ec *executionContext) marshalNUserProfile2ᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐUserProfile(ctx context.Context, sel ast.SelectionSet, v *model.UserProfile) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			ec.Errorf(ctx, "must not be null")
@@ -15162,11 +15416,11 @@ func (ec *executionContext) marshalNUserProfile2ᚖgithubᚗcomᚋnedrocksᚋdel
 	return ec._UserProfile(ctx, sel, v)
 }
 
-func (ec *executionContext) marshalNViewer2githubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐViewer(ctx context.Context, sel ast.SelectionSet, v model.Viewer) graphql.Marshaler {
+func (ec *executionContext) marshalNViewer2githubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐViewer(ctx context.Context, sel ast.SelectionSet, v model.Viewer) graphql.Marshaler {
 	return ec._Viewer(ctx, sel, &v)
 }
 
-func (ec *executionContext) marshalNViewer2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐViewer(ctx context.Context, sel ast.SelectionSet, v *model.Viewer) graphql.Marshaler {
+func (ec *executionContext) marshalNViewer2ᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐViewer(ctx context.Context, sel ast.SelectionSet, v *model.Viewer) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			ec.Errorf(ctx, "must not be null")
@@ -15176,11 +15430,11 @@ func (ec *executionContext) marshalNViewer2ᚖgithubᚗcomᚋnedrocksᚋdelphisb
 	return ec._Viewer(ctx, sel, v)
 }
 
-func (ec *executionContext) marshalNViewersEdge2githubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐViewersEdge(ctx context.Context, sel ast.SelectionSet, v model.ViewersEdge) graphql.Marshaler {
+func (ec *executionContext) marshalNViewersEdge2githubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐViewersEdge(ctx context.Context, sel ast.SelectionSet, v model.ViewersEdge) graphql.Marshaler {
 	return ec._ViewersEdge(ctx, sel, &v)
 }
 
-func (ec *executionContext) marshalNViewersEdge2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐViewersEdge(ctx context.Context, sel ast.SelectionSet, v *model.ViewersEdge) graphql.Marshaler {
+func (ec *executionContext) marshalNViewersEdge2ᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐViewersEdge(ctx context.Context, sel ast.SelectionSet, v *model.ViewersEdge) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			ec.Errorf(ctx, "must not be null")
@@ -15416,24 +15670,24 @@ func (ec *executionContext) marshalN__TypeKind2string(ctx context.Context, sel a
 	return res
 }
 
-func (ec *executionContext) unmarshalOAnonymityType2githubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐAnonymityType(ctx context.Context, v interface{}) (model.AnonymityType, error) {
+func (ec *executionContext) unmarshalOAnonymityType2githubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐAnonymityType(ctx context.Context, v interface{}) (model.AnonymityType, error) {
 	var res model.AnonymityType
 	return res, res.UnmarshalGQL(v)
 }
 
-func (ec *executionContext) marshalOAnonymityType2githubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐAnonymityType(ctx context.Context, sel ast.SelectionSet, v model.AnonymityType) graphql.Marshaler {
+func (ec *executionContext) marshalOAnonymityType2githubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐAnonymityType(ctx context.Context, sel ast.SelectionSet, v model.AnonymityType) graphql.Marshaler {
 	return v
 }
 
-func (ec *executionContext) unmarshalOAnonymityType2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐAnonymityType(ctx context.Context, v interface{}) (*model.AnonymityType, error) {
+func (ec *executionContext) unmarshalOAnonymityType2ᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐAnonymityType(ctx context.Context, v interface{}) (*model.AnonymityType, error) {
 	if v == nil {
 		return nil, nil
 	}
-	res, err := ec.unmarshalOAnonymityType2githubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐAnonymityType(ctx, v)
+	res, err := ec.unmarshalOAnonymityType2githubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐAnonymityType(ctx, v)
 	return &res, err
 }
 
-func (ec *executionContext) marshalOAnonymityType2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐAnonymityType(ctx context.Context, sel ast.SelectionSet, v *model.AnonymityType) graphql.Marshaler {
+func (ec *executionContext) marshalOAnonymityType2ᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐAnonymityType(ctx context.Context, sel ast.SelectionSet, v *model.AnonymityType) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
 	}
@@ -15463,18 +15717,18 @@ func (ec *executionContext) marshalOBoolean2ᚖbool(ctx context.Context, sel ast
 	return ec.marshalOBoolean2bool(ctx, sel, *v)
 }
 
-func (ec *executionContext) marshalOConciergeContent2githubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐConciergeContent(ctx context.Context, sel ast.SelectionSet, v model.ConciergeContent) graphql.Marshaler {
+func (ec *executionContext) marshalOConciergeContent2githubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐConciergeContent(ctx context.Context, sel ast.SelectionSet, v model.ConciergeContent) graphql.Marshaler {
 	return ec._ConciergeContent(ctx, sel, &v)
 }
 
-func (ec *executionContext) marshalOConciergeContent2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐConciergeContent(ctx context.Context, sel ast.SelectionSet, v *model.ConciergeContent) graphql.Marshaler {
+func (ec *executionContext) marshalOConciergeContent2ᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐConciergeContent(ctx context.Context, sel ast.SelectionSet, v *model.ConciergeContent) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
 	}
 	return ec._ConciergeContent(ctx, sel, v)
 }
 
-func (ec *executionContext) marshalOConciergeOption2ᚕᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐConciergeOptionᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.ConciergeOption) graphql.Marshaler {
+func (ec *executionContext) marshalOConciergeOption2ᚕᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐConciergeOptionᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.ConciergeOption) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
 	}
@@ -15501,7 +15755,7 @@ func (ec *executionContext) marshalOConciergeOption2ᚕᚖgithubᚗcomᚋnedrock
 			if !isLen1 {
 				defer wg.Done()
 			}
-			ret[i] = ec.marshalNConciergeOption2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐConciergeOption(ctx, sel, v[i])
+			ret[i] = ec.marshalNConciergeOption2ᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐConciergeOption(ctx, sel, v[i])
 		}
 		if isLen1 {
 			f(i)
@@ -15514,11 +15768,11 @@ func (ec *executionContext) marshalOConciergeOption2ᚕᚖgithubᚗcomᚋnedrock
 	return ret
 }
 
-func (ec *executionContext) marshalODiscussion2githubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐDiscussion(ctx context.Context, sel ast.SelectionSet, v model.Discussion) graphql.Marshaler {
+func (ec *executionContext) marshalODiscussion2githubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐDiscussion(ctx context.Context, sel ast.SelectionSet, v model.Discussion) graphql.Marshaler {
 	return ec._Discussion(ctx, sel, &v)
 }
 
-func (ec *executionContext) marshalODiscussion2ᚕᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐDiscussionᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.Discussion) graphql.Marshaler {
+func (ec *executionContext) marshalODiscussion2ᚕᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐDiscussionᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.Discussion) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
 	}
@@ -15545,7 +15799,7 @@ func (ec *executionContext) marshalODiscussion2ᚕᚖgithubᚗcomᚋnedrocksᚋd
 			if !isLen1 {
 				defer wg.Done()
 			}
-			ret[i] = ec.marshalNDiscussion2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐDiscussion(ctx, sel, v[i])
+			ret[i] = ec.marshalNDiscussion2ᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐDiscussion(ctx, sel, v[i])
 		}
 		if isLen1 {
 			f(i)
@@ -15558,14 +15812,14 @@ func (ec *executionContext) marshalODiscussion2ᚕᚖgithubᚗcomᚋnedrocksᚋd
 	return ret
 }
 
-func (ec *executionContext) marshalODiscussion2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐDiscussion(ctx context.Context, sel ast.SelectionSet, v *model.Discussion) graphql.Marshaler {
+func (ec *executionContext) marshalODiscussion2ᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐDiscussion(ctx context.Context, sel ast.SelectionSet, v *model.Discussion) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
 	}
 	return ec._Discussion(ctx, sel, v)
 }
 
-func (ec *executionContext) marshalODiscussionAccessRequest2ᚕᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐDiscussionAccessRequestᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.DiscussionAccessRequest) graphql.Marshaler {
+func (ec *executionContext) marshalODiscussionAccessRequest2ᚕᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐDiscussionAccessRequestᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.DiscussionAccessRequest) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
 	}
@@ -15592,7 +15846,7 @@ func (ec *executionContext) marshalODiscussionAccessRequest2ᚕᚖgithubᚗcom�
 			if !isLen1 {
 				defer wg.Done()
 			}
-			ret[i] = ec.marshalNDiscussionAccessRequest2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐDiscussionAccessRequest(ctx, sel, v[i])
+			ret[i] = ec.marshalNDiscussionAccessRequest2ᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐDiscussionAccessRequest(ctx, sel, v[i])
 		}
 		if isLen1 {
 			f(i)
@@ -15605,7 +15859,7 @@ func (ec *executionContext) marshalODiscussionAccessRequest2ᚕᚖgithubᚗcom�
 	return ret
 }
 
-func (ec *executionContext) marshalODiscussionInvite2ᚕᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐDiscussionInviteᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.DiscussionInvite) graphql.Marshaler {
+func (ec *executionContext) marshalODiscussionInvite2ᚕᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐDiscussionInviteᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.DiscussionInvite) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
 	}
@@ -15632,7 +15886,7 @@ func (ec *executionContext) marshalODiscussionInvite2ᚕᚖgithubᚗcomᚋnedroc
 			if !isLen1 {
 				defer wg.Done()
 			}
-			ret[i] = ec.marshalNDiscussionInvite2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐDiscussionInvite(ctx, sel, v[i])
+			ret[i] = ec.marshalNDiscussionInvite2ᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐDiscussionInvite(ctx, sel, v[i])
 		}
 		if isLen1 {
 			f(i)
@@ -15645,7 +15899,18 @@ func (ec *executionContext) marshalODiscussionInvite2ᚕᚖgithubᚗcomᚋnedroc
 	return ret
 }
 
-func (ec *executionContext) marshalOEntity2ᚕgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐEntityᚄ(ctx context.Context, sel ast.SelectionSet, v []model.Entity) graphql.Marshaler {
+func (ec *executionContext) marshalODiscussionSubscriptionEvent2githubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐDiscussionSubscriptionEvent(ctx context.Context, sel ast.SelectionSet, v model.DiscussionSubscriptionEvent) graphql.Marshaler {
+	return ec._DiscussionSubscriptionEvent(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalODiscussionSubscriptionEvent2ᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐDiscussionSubscriptionEvent(ctx context.Context, sel ast.SelectionSet, v *model.DiscussionSubscriptionEvent) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._DiscussionSubscriptionEvent(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalOEntity2ᚕgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐEntityᚄ(ctx context.Context, sel ast.SelectionSet, v []model.Entity) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
 	}
@@ -15672,7 +15937,7 @@ func (ec *executionContext) marshalOEntity2ᚕgithubᚗcomᚋnedrocksᚋdelphisb
 			if !isLen1 {
 				defer wg.Done()
 			}
-			ret[i] = ec.marshalNEntity2githubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐEntity(ctx, sel, v[i])
+			ret[i] = ec.marshalNEntity2githubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐEntity(ctx, sel, v[i])
 		}
 		if isLen1 {
 			f(i)
@@ -15685,11 +15950,11 @@ func (ec *executionContext) marshalOEntity2ᚕgithubᚗcomᚋnedrocksᚋdelphisb
 	return ret
 }
 
-func (ec *executionContext) marshalOFlair2githubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐFlair(ctx context.Context, sel ast.SelectionSet, v model.Flair) graphql.Marshaler {
+func (ec *executionContext) marshalOFlair2githubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐFlair(ctx context.Context, sel ast.SelectionSet, v model.Flair) graphql.Marshaler {
 	return ec._Flair(ctx, sel, &v)
 }
 
-func (ec *executionContext) marshalOFlair2ᚕᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐFlairᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.Flair) graphql.Marshaler {
+func (ec *executionContext) marshalOFlair2ᚕᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐFlairᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.Flair) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
 	}
@@ -15716,7 +15981,7 @@ func (ec *executionContext) marshalOFlair2ᚕᚖgithubᚗcomᚋnedrocksᚋdelphi
 			if !isLen1 {
 				defer wg.Done()
 			}
-			ret[i] = ec.marshalNFlair2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐFlair(ctx, sel, v[i])
+			ret[i] = ec.marshalNFlair2ᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐFlair(ctx, sel, v[i])
 		}
 		if isLen1 {
 			f(i)
@@ -15729,14 +15994,14 @@ func (ec *executionContext) marshalOFlair2ᚕᚖgithubᚗcomᚋnedrocksᚋdelphi
 	return ret
 }
 
-func (ec *executionContext) marshalOFlair2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐFlair(ctx context.Context, sel ast.SelectionSet, v *model.Flair) graphql.Marshaler {
+func (ec *executionContext) marshalOFlair2ᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐFlair(ctx context.Context, sel ast.SelectionSet, v *model.Flair) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
 	}
 	return ec._Flair(ctx, sel, v)
 }
 
-func (ec *executionContext) marshalOFlairTemplate2ᚕᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐFlairTemplateᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.FlairTemplate) graphql.Marshaler {
+func (ec *executionContext) marshalOFlairTemplate2ᚕᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐFlairTemplateᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.FlairTemplate) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
 	}
@@ -15763,7 +16028,7 @@ func (ec *executionContext) marshalOFlairTemplate2ᚕᚖgithubᚗcomᚋnedrocks�
 			if !isLen1 {
 				defer wg.Done()
 			}
-			ret[i] = ec.marshalNFlairTemplate2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐFlairTemplate(ctx, sel, v[i])
+			ret[i] = ec.marshalNFlairTemplate2ᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐFlairTemplate(ctx, sel, v[i])
 		}
 		if isLen1 {
 			f(i)
@@ -15776,24 +16041,24 @@ func (ec *executionContext) marshalOFlairTemplate2ᚕᚖgithubᚗcomᚋnedrocks�
 	return ret
 }
 
-func (ec *executionContext) unmarshalOGradientColor2githubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐGradientColor(ctx context.Context, v interface{}) (model.GradientColor, error) {
+func (ec *executionContext) unmarshalOGradientColor2githubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐGradientColor(ctx context.Context, v interface{}) (model.GradientColor, error) {
 	var res model.GradientColor
 	return res, res.UnmarshalGQL(v)
 }
 
-func (ec *executionContext) marshalOGradientColor2githubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐGradientColor(ctx context.Context, sel ast.SelectionSet, v model.GradientColor) graphql.Marshaler {
+func (ec *executionContext) marshalOGradientColor2githubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐGradientColor(ctx context.Context, sel ast.SelectionSet, v model.GradientColor) graphql.Marshaler {
 	return v
 }
 
-func (ec *executionContext) unmarshalOGradientColor2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐGradientColor(ctx context.Context, v interface{}) (*model.GradientColor, error) {
+func (ec *executionContext) unmarshalOGradientColor2ᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐGradientColor(ctx context.Context, v interface{}) (*model.GradientColor, error) {
 	if v == nil {
 		return nil, nil
 	}
-	res, err := ec.unmarshalOGradientColor2githubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐGradientColor(ctx, v)
+	res, err := ec.unmarshalOGradientColor2githubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐGradientColor(ctx, v)
 	return &res, err
 }
 
-func (ec *executionContext) marshalOGradientColor2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐGradientColor(ctx context.Context, sel ast.SelectionSet, v *model.GradientColor) graphql.Marshaler {
+func (ec *executionContext) marshalOGradientColor2ᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐGradientColor(ctx context.Context, sel ast.SelectionSet, v *model.GradientColor) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
 	}
@@ -15855,11 +16120,11 @@ func (ec *executionContext) marshalOID2ᚖstring(ctx context.Context, sel ast.Se
 	return ec.marshalOID2string(ctx, sel, *v)
 }
 
-func (ec *executionContext) marshalOImportedContent2githubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐImportedContent(ctx context.Context, sel ast.SelectionSet, v model.ImportedContent) graphql.Marshaler {
+func (ec *executionContext) marshalOImportedContent2githubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐImportedContent(ctx context.Context, sel ast.SelectionSet, v model.ImportedContent) graphql.Marshaler {
 	return ec._ImportedContent(ctx, sel, &v)
 }
 
-func (ec *executionContext) marshalOImportedContent2ᚕᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐImportedContentᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.ImportedContent) graphql.Marshaler {
+func (ec *executionContext) marshalOImportedContent2ᚕᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐImportedContentᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.ImportedContent) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
 	}
@@ -15886,7 +16151,7 @@ func (ec *executionContext) marshalOImportedContent2ᚕᚖgithubᚗcomᚋnedrock
 			if !isLen1 {
 				defer wg.Done()
 			}
-			ret[i] = ec.marshalNImportedContent2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐImportedContent(ctx, sel, v[i])
+			ret[i] = ec.marshalNImportedContent2ᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐImportedContent(ctx, sel, v[i])
 		}
 		if isLen1 {
 			f(i)
@@ -15899,7 +16164,7 @@ func (ec *executionContext) marshalOImportedContent2ᚕᚖgithubᚗcomᚋnedrock
 	return ret
 }
 
-func (ec *executionContext) marshalOImportedContent2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐImportedContent(ctx context.Context, sel ast.SelectionSet, v *model.ImportedContent) graphql.Marshaler {
+func (ec *executionContext) marshalOImportedContent2ᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐImportedContent(ctx context.Context, sel ast.SelectionSet, v *model.ImportedContent) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
 	}
@@ -15929,33 +16194,33 @@ func (ec *executionContext) marshalOInt2ᚖint(ctx context.Context, sel ast.Sele
 	return ec.marshalOInt2int(ctx, sel, *v)
 }
 
-func (ec *executionContext) marshalOMedia2githubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐMedia(ctx context.Context, sel ast.SelectionSet, v model.Media) graphql.Marshaler {
+func (ec *executionContext) marshalOMedia2githubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐMedia(ctx context.Context, sel ast.SelectionSet, v model.Media) graphql.Marshaler {
 	return ec._Media(ctx, sel, &v)
 }
 
-func (ec *executionContext) marshalOMedia2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐMedia(ctx context.Context, sel ast.SelectionSet, v *model.Media) graphql.Marshaler {
+func (ec *executionContext) marshalOMedia2ᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐMedia(ctx context.Context, sel ast.SelectionSet, v *model.Media) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
 	}
 	return ec._Media(ctx, sel, v)
 }
 
-func (ec *executionContext) marshalOMediaSize2githubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐMediaSize(ctx context.Context, sel ast.SelectionSet, v model.MediaSize) graphql.Marshaler {
+func (ec *executionContext) marshalOMediaSize2githubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐMediaSize(ctx context.Context, sel ast.SelectionSet, v model.MediaSize) graphql.Marshaler {
 	return ec._MediaSize(ctx, sel, &v)
 }
 
-func (ec *executionContext) marshalOMediaSize2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐMediaSize(ctx context.Context, sel ast.SelectionSet, v *model.MediaSize) graphql.Marshaler {
+func (ec *executionContext) marshalOMediaSize2ᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐMediaSize(ctx context.Context, sel ast.SelectionSet, v *model.MediaSize) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
 	}
 	return ec._MediaSize(ctx, sel, v)
 }
 
-func (ec *executionContext) marshalOParticipant2githubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐParticipant(ctx context.Context, sel ast.SelectionSet, v model.Participant) graphql.Marshaler {
+func (ec *executionContext) marshalOParticipant2githubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐParticipant(ctx context.Context, sel ast.SelectionSet, v model.Participant) graphql.Marshaler {
 	return ec._Participant(ctx, sel, &v)
 }
 
-func (ec *executionContext) marshalOParticipant2ᚕᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐParticipantᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.Participant) graphql.Marshaler {
+func (ec *executionContext) marshalOParticipant2ᚕᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐParticipantᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.Participant) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
 	}
@@ -15982,7 +16247,7 @@ func (ec *executionContext) marshalOParticipant2ᚕᚖgithubᚗcomᚋnedrocksᚋ
 			if !isLen1 {
 				defer wg.Done()
 			}
-			ret[i] = ec.marshalNParticipant2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐParticipant(ctx, sel, v[i])
+			ret[i] = ec.marshalNParticipant2ᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐParticipant(ctx, sel, v[i])
 		}
 		if isLen1 {
 			f(i)
@@ -15995,14 +16260,14 @@ func (ec *executionContext) marshalOParticipant2ᚕᚖgithubᚗcomᚋnedrocksᚋ
 	return ret
 }
 
-func (ec *executionContext) marshalOParticipant2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐParticipant(ctx context.Context, sel ast.SelectionSet, v *model.Participant) graphql.Marshaler {
+func (ec *executionContext) marshalOParticipant2ᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐParticipant(ctx context.Context, sel ast.SelectionSet, v *model.Participant) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
 	}
 	return ec._Participant(ctx, sel, v)
 }
 
-func (ec *executionContext) marshalOParticipantsEdge2ᚕᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐParticipantsEdgeᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.ParticipantsEdge) graphql.Marshaler {
+func (ec *executionContext) marshalOParticipantsEdge2ᚕᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐParticipantsEdgeᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.ParticipantsEdge) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
 	}
@@ -16029,7 +16294,7 @@ func (ec *executionContext) marshalOParticipantsEdge2ᚕᚖgithubᚗcomᚋnedroc
 			if !isLen1 {
 				defer wg.Done()
 			}
-			ret[i] = ec.marshalNParticipantsEdge2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐParticipantsEdge(ctx, sel, v[i])
+			ret[i] = ec.marshalNParticipantsEdge2ᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐParticipantsEdge(ctx, sel, v[i])
 		}
 		if isLen1 {
 			f(i)
@@ -16042,23 +16307,23 @@ func (ec *executionContext) marshalOParticipantsEdge2ᚕᚖgithubᚗcomᚋnedroc
 	return ret
 }
 
-func (ec *executionContext) unmarshalOPollInput2githubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐPollInput(ctx context.Context, v interface{}) (model.PollInput, error) {
+func (ec *executionContext) unmarshalOPollInput2githubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐPollInput(ctx context.Context, v interface{}) (model.PollInput, error) {
 	return ec.unmarshalInputPollInput(ctx, v)
 }
 
-func (ec *executionContext) unmarshalOPollInput2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐPollInput(ctx context.Context, v interface{}) (*model.PollInput, error) {
+func (ec *executionContext) unmarshalOPollInput2ᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐPollInput(ctx context.Context, v interface{}) (*model.PollInput, error) {
 	if v == nil {
 		return nil, nil
 	}
-	res, err := ec.unmarshalOPollInput2githubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐPollInput(ctx, v)
+	res, err := ec.unmarshalOPollInput2githubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐPollInput(ctx, v)
 	return &res, err
 }
 
-func (ec *executionContext) marshalOPost2githubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐPost(ctx context.Context, sel ast.SelectionSet, v model.Post) graphql.Marshaler {
+func (ec *executionContext) marshalOPost2githubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐPost(ctx context.Context, sel ast.SelectionSet, v model.Post) graphql.Marshaler {
 	return ec._Post(ctx, sel, &v)
 }
 
-func (ec *executionContext) marshalOPost2ᚕᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐPostᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.Post) graphql.Marshaler {
+func (ec *executionContext) marshalOPost2ᚕᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐPostᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.Post) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
 	}
@@ -16085,7 +16350,7 @@ func (ec *executionContext) marshalOPost2ᚕᚖgithubᚗcomᚋnedrocksᚋdelphis
 			if !isLen1 {
 				defer wg.Done()
 			}
-			ret[i] = ec.marshalNPost2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐPost(ctx, sel, v[i])
+			ret[i] = ec.marshalNPost2ᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐPost(ctx, sel, v[i])
 		}
 		if isLen1 {
 			f(i)
@@ -16098,18 +16363,18 @@ func (ec *executionContext) marshalOPost2ᚕᚖgithubᚗcomᚋnedrocksᚋdelphis
 	return ret
 }
 
-func (ec *executionContext) marshalOPost2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐPost(ctx context.Context, sel ast.SelectionSet, v *model.Post) graphql.Marshaler {
+func (ec *executionContext) marshalOPost2ᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐPost(ctx context.Context, sel ast.SelectionSet, v *model.Post) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
 	}
 	return ec._Post(ctx, sel, v)
 }
 
-func (ec *executionContext) marshalOPostBookmark2githubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐPostBookmark(ctx context.Context, sel ast.SelectionSet, v model.PostBookmark) graphql.Marshaler {
+func (ec *executionContext) marshalOPostBookmark2githubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐPostBookmark(ctx context.Context, sel ast.SelectionSet, v model.PostBookmark) graphql.Marshaler {
 	return ec._PostBookmark(ctx, sel, &v)
 }
 
-func (ec *executionContext) marshalOPostBookmark2ᚕᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐPostBookmarkᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.PostBookmark) graphql.Marshaler {
+func (ec *executionContext) marshalOPostBookmark2ᚕᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐPostBookmarkᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.PostBookmark) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
 	}
@@ -16136,7 +16401,7 @@ func (ec *executionContext) marshalOPostBookmark2ᚕᚖgithubᚗcomᚋnedrocks�
 			if !isLen1 {
 				defer wg.Done()
 			}
-			ret[i] = ec.marshalNPostBookmark2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐPostBookmark(ctx, sel, v[i])
+			ret[i] = ec.marshalNPostBookmark2ᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐPostBookmark(ctx, sel, v[i])
 		}
 		if isLen1 {
 			f(i)
@@ -16149,14 +16414,14 @@ func (ec *executionContext) marshalOPostBookmark2ᚕᚖgithubᚗcomᚋnedrocks�
 	return ret
 }
 
-func (ec *executionContext) marshalOPostBookmark2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐPostBookmark(ctx context.Context, sel ast.SelectionSet, v *model.PostBookmark) graphql.Marshaler {
+func (ec *executionContext) marshalOPostBookmark2ᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐPostBookmark(ctx context.Context, sel ast.SelectionSet, v *model.PostBookmark) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
 	}
 	return ec._PostBookmark(ctx, sel, v)
 }
 
-func (ec *executionContext) marshalOPostBookmarksEdge2ᚕᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐPostBookmarksEdgeᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.PostBookmarksEdge) graphql.Marshaler {
+func (ec *executionContext) marshalOPostBookmarksEdge2ᚕᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐPostBookmarksEdgeᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.PostBookmarksEdge) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
 	}
@@ -16183,7 +16448,7 @@ func (ec *executionContext) marshalOPostBookmarksEdge2ᚕᚖgithubᚗcomᚋnedro
 			if !isLen1 {
 				defer wg.Done()
 			}
-			ret[i] = ec.marshalNPostBookmarksEdge2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐPostBookmarksEdge(ctx, sel, v[i])
+			ret[i] = ec.marshalNPostBookmarksEdge2ᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐPostBookmarksEdge(ctx, sel, v[i])
 		}
 		if isLen1 {
 			f(i)
@@ -16196,31 +16461,31 @@ func (ec *executionContext) marshalOPostBookmarksEdge2ᚕᚖgithubᚗcomᚋnedro
 	return ret
 }
 
-func (ec *executionContext) unmarshalOPostDeletedReason2githubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐPostDeletedReason(ctx context.Context, v interface{}) (model.PostDeletedReason, error) {
+func (ec *executionContext) unmarshalOPostDeletedReason2githubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐPostDeletedReason(ctx context.Context, v interface{}) (model.PostDeletedReason, error) {
 	var res model.PostDeletedReason
 	return res, res.UnmarshalGQL(v)
 }
 
-func (ec *executionContext) marshalOPostDeletedReason2githubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐPostDeletedReason(ctx context.Context, sel ast.SelectionSet, v model.PostDeletedReason) graphql.Marshaler {
+func (ec *executionContext) marshalOPostDeletedReason2githubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐPostDeletedReason(ctx context.Context, sel ast.SelectionSet, v model.PostDeletedReason) graphql.Marshaler {
 	return v
 }
 
-func (ec *executionContext) unmarshalOPostDeletedReason2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐPostDeletedReason(ctx context.Context, v interface{}) (*model.PostDeletedReason, error) {
+func (ec *executionContext) unmarshalOPostDeletedReason2ᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐPostDeletedReason(ctx context.Context, v interface{}) (*model.PostDeletedReason, error) {
 	if v == nil {
 		return nil, nil
 	}
-	res, err := ec.unmarshalOPostDeletedReason2githubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐPostDeletedReason(ctx, v)
+	res, err := ec.unmarshalOPostDeletedReason2githubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐPostDeletedReason(ctx, v)
 	return &res, err
 }
 
-func (ec *executionContext) marshalOPostDeletedReason2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐPostDeletedReason(ctx context.Context, sel ast.SelectionSet, v *model.PostDeletedReason) graphql.Marshaler {
+func (ec *executionContext) marshalOPostDeletedReason2ᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐPostDeletedReason(ctx context.Context, sel ast.SelectionSet, v *model.PostDeletedReason) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
 	}
 	return v
 }
 
-func (ec *executionContext) marshalOPostsEdge2ᚕᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐPostsEdgeᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.PostsEdge) graphql.Marshaler {
+func (ec *executionContext) marshalOPostsEdge2ᚕᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐPostsEdgeᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.PostsEdge) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
 	}
@@ -16247,7 +16512,7 @@ func (ec *executionContext) marshalOPostsEdge2ᚕᚖgithubᚗcomᚋnedrocksᚋde
 			if !isLen1 {
 				defer wg.Done()
 			}
-			ret[i] = ec.marshalNPostsEdge2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐPostsEdge(ctx, sel, v[i])
+			ret[i] = ec.marshalNPostsEdge2ᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐPostsEdge(ctx, sel, v[i])
 		}
 		if isLen1 {
 			f(i)
@@ -16315,7 +16580,7 @@ func (ec *executionContext) marshalOString2ᚖstring(ctx context.Context, sel as
 	return ec.marshalOString2string(ctx, sel, *v)
 }
 
-func (ec *executionContext) marshalOTag2ᚕᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐTagᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.Tag) graphql.Marshaler {
+func (ec *executionContext) marshalOTag2ᚕᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐTagᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.Tag) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
 	}
@@ -16342,7 +16607,7 @@ func (ec *executionContext) marshalOTag2ᚕᚖgithubᚗcomᚋnedrocksᚋdelphisb
 			if !isLen1 {
 				defer wg.Done()
 			}
-			ret[i] = ec.marshalNTag2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐTag(ctx, sel, v[i])
+			ret[i] = ec.marshalNTag2ᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐTag(ctx, sel, v[i])
 		}
 		if isLen1 {
 			f(i)
@@ -16378,7 +16643,7 @@ func (ec *executionContext) marshalOTime2ᚖtimeᚐTime(ctx context.Context, sel
 	return ec.marshalOTime2timeᚐTime(ctx, sel, *v)
 }
 
-func (ec *executionContext) marshalOUserDevice2ᚕᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐUserDeviceᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.UserDevice) graphql.Marshaler {
+func (ec *executionContext) marshalOUserDevice2ᚕᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐUserDeviceᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.UserDevice) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
 	}
@@ -16405,7 +16670,7 @@ func (ec *executionContext) marshalOUserDevice2ᚕᚖgithubᚗcomᚋnedrocksᚋd
 			if !isLen1 {
 				defer wg.Done()
 			}
-			ret[i] = ec.marshalNUserDevice2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐUserDevice(ctx, sel, v[i])
+			ret[i] = ec.marshalNUserDevice2ᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐUserDevice(ctx, sel, v[i])
 		}
 		if isLen1 {
 			f(i)
@@ -16418,22 +16683,22 @@ func (ec *executionContext) marshalOUserDevice2ᚕᚖgithubᚗcomᚋnedrocksᚋd
 	return ret
 }
 
-func (ec *executionContext) marshalOUserProfile2githubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐUserProfile(ctx context.Context, sel ast.SelectionSet, v model.UserProfile) graphql.Marshaler {
+func (ec *executionContext) marshalOUserProfile2githubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐUserProfile(ctx context.Context, sel ast.SelectionSet, v model.UserProfile) graphql.Marshaler {
 	return ec._UserProfile(ctx, sel, &v)
 }
 
-func (ec *executionContext) marshalOUserProfile2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐUserProfile(ctx context.Context, sel ast.SelectionSet, v *model.UserProfile) graphql.Marshaler {
+func (ec *executionContext) marshalOUserProfile2ᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐUserProfile(ctx context.Context, sel ast.SelectionSet, v *model.UserProfile) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
 	}
 	return ec._UserProfile(ctx, sel, v)
 }
 
-func (ec *executionContext) marshalOViewer2githubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐViewer(ctx context.Context, sel ast.SelectionSet, v model.Viewer) graphql.Marshaler {
+func (ec *executionContext) marshalOViewer2githubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐViewer(ctx context.Context, sel ast.SelectionSet, v model.Viewer) graphql.Marshaler {
 	return ec._Viewer(ctx, sel, &v)
 }
 
-func (ec *executionContext) marshalOViewer2ᚕᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐViewerᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.Viewer) graphql.Marshaler {
+func (ec *executionContext) marshalOViewer2ᚕᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐViewerᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.Viewer) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
 	}
@@ -16460,7 +16725,7 @@ func (ec *executionContext) marshalOViewer2ᚕᚖgithubᚗcomᚋnedrocksᚋdelph
 			if !isLen1 {
 				defer wg.Done()
 			}
-			ret[i] = ec.marshalNViewer2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐViewer(ctx, sel, v[i])
+			ret[i] = ec.marshalNViewer2ᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐViewer(ctx, sel, v[i])
 		}
 		if isLen1 {
 			f(i)
@@ -16473,14 +16738,14 @@ func (ec *executionContext) marshalOViewer2ᚕᚖgithubᚗcomᚋnedrocksᚋdelph
 	return ret
 }
 
-func (ec *executionContext) marshalOViewer2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐViewer(ctx context.Context, sel ast.SelectionSet, v *model.Viewer) graphql.Marshaler {
+func (ec *executionContext) marshalOViewer2ᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐViewer(ctx context.Context, sel ast.SelectionSet, v *model.Viewer) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
 	}
 	return ec._Viewer(ctx, sel, v)
 }
 
-func (ec *executionContext) marshalOViewersEdge2ᚕᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐViewersEdgeᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.ViewersEdge) graphql.Marshaler {
+func (ec *executionContext) marshalOViewersEdge2ᚕᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐViewersEdgeᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.ViewersEdge) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
 	}
@@ -16507,7 +16772,7 @@ func (ec *executionContext) marshalOViewersEdge2ᚕᚖgithubᚗcomᚋnedrocksᚋ
 			if !isLen1 {
 				defer wg.Done()
 			}
-			ret[i] = ec.marshalNViewersEdge2ᚖgithubᚗcomᚋnedrocksᚋdelphisbeᚋgraphᚋmodelᚐViewersEdge(ctx, sel, v[i])
+			ret[i] = ec.marshalNViewersEdge2ᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐViewersEdge(ctx, sel, v[i])
 		}
 		if isLen1 {
 			f(i)

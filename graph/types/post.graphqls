@@ -1,4 +1,4 @@
-type Post{
+type Post implements DiscussionSubscriptionEntity {
     id: ID!
     isDeleted: Boolean!
     deletedReasonCode: PostDeletedReason

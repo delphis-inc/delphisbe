@@ -1,0 +1,14 @@
+interface DiscussionSubscriptionEntity {
+    id: ID!
+}
+
+enum DiscussionSubscriptionEventType {
+    POST_ADDED,
+    POST_DELETED,
+    PARTICIPANT_BANNED
+}
+
+type DiscussionSubscriptionEvent {
+    eventType: DiscussionSubscriptionEventType!
+    entity: DiscussionSubscriptionEntity!
+}

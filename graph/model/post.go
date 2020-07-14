@@ -26,6 +26,7 @@ type AppActionID string
 type MutationID string
 
 type Post struct {
+	DiscussionSubscriptionEntity
 	ID                string             `json:"id" dynamodbav:"ID" gorm:"type:varchar(36);"`
 	PostType          PostType           `json:"postType"`
 	CreatedAt         time.Time          `json:"createdAt" gorm:"not null;default:CURRENT_TIMESTAMP;"`

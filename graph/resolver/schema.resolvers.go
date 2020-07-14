@@ -562,7 +562,18 @@ func (r *mutationResolver) DeletePost(ctx context.Context, discussionID string, 
 		return nil, fmt.Errorf("Need auth")
 	}
 
-	return r.DAOManager.DeletePostByID(ctx, discussionID, postID, authedUser.UserID)
+	deletedPost, err := r.DAOManager.DeletePostByID(ctx, discussionID, postID, authedUser.UserID)
+	if err != nil {
+		return nil, fmt.Errorf("Failed to delete post")
+	}
+
+	err = r.DAOManager.NotifySubscribersOfDeletedPost(ctx, deletedPost, discussionID)
+	if err != nil {
+		// Silently ignore this
+		logrus.Warnf("Failed to notify subscribers of deleted post")
+	}
+
+	return deletedPost, nil
 }
 
 func (r *mutationResolver) BanParticipant(ctx context.Context, discussionID string, participantID string) (*model.Participant, error) {
@@ -571,7 +582,18 @@ func (r *mutationResolver) BanParticipant(ctx context.Context, discussionID stri
 		return nil, fmt.Errorf("Need auth")
 	}
 
-	return r.DAOManager.BanParticipant(ctx, discussionID, participantID, authedUser.UserID)
+	bannedParticipant, err := r.DAOManager.BanParticipant(ctx, discussionID, participantID, authedUser.UserID)
+	if err != nil {
+		return nil, fmt.Errorf("Failed to ban participant")
+	}
+
+	err = r.DAOManager.NotifySubscribersOfBannedParticipant(ctx, bannedParticipant, discussionID)
+	if err != nil {
+		// Silently ignore this
+		logrus.Warnf("Failed to notify subscribers of banned participant")
+	}
+
+	return bannedParticipant, nil
 }
 
 func (r *queryResolver) Discussion(ctx context.Context, id string) (*model.Discussion, error) {
@@ -640,6 +662,31 @@ func (r *subscriptionResolver) PostAdded(ctx context.Context, discussionID strin
 	}()
 
 	err := r.DAOManager.SubscribeToDiscussion(ctx, authedUser.UserID, events, discussionID)
+	if err != nil {
+		close(events)
+		return nil, err
+	}
+
+	return events, nil
+}
+
+func (r *subscriptionResolver) OnDiscussionEvent(ctx context.Context, discussionID string) (<-chan *model.DiscussionSubscriptionEvent, error) {
+	authedUser := auth.GetAuthedUser(ctx)
+	if authedUser == nil {
+		return nil, fmt.Errorf("Need auth")
+	}
+	events := make(chan *model.DiscussionSubscriptionEvent, 1)
+
+	go func() {
+		<-ctx.Done()
+		err := r.DAOManager.UnSubscribeFromDiscussionEvent(ctx, authedUser.UserID, discussionID)
+		if err != nil {
+			logrus.WithError(err).Errorf("Failed to unsubscribe from discussion")
+		}
+		close(events)
+	}()
+
+	err := r.DAOManager.SubscribeToDiscussionEvent(ctx, authedUser.UserID, events, discussionID)
 	if err != nil {
 		close(events)
 		return nil, err
