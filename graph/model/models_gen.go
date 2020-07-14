@@ -13,6 +13,10 @@ type DiscussionNotificationPreferences interface {
 	IsDiscussionNotificationPreferences()
 }
 
+type DiscussionSubscriptionEntity interface {
+	IsDiscussionSubscriptionEntity()
+}
+
 type Entity interface {
 	IsEntity()
 }
@@ -43,6 +47,11 @@ type DiscussionInput struct {
 	IdleMinutes   *int           `json:"idleMinutes"`
 	PublicAccess  *bool          `json:"publicAccess"`
 	IconURL       *string        `json:"iconURL"`
+}
+
+type DiscussionSubscriptionEvent struct {
+	EventType DiscussionSubscriptionEventType `json:"eventType"`
+	Entity    DiscussionSubscriptionEntity    `json:"entity"`
 }
 
 type Media struct {
@@ -159,6 +168,49 @@ func (e *AnonymityType) UnmarshalGQL(v interface{}) error {
 }
 
 func (e AnonymityType) MarshalGQL(w io.Writer) {
+	fmt.Fprint(w, strconv.Quote(e.String()))
+}
+
+type DiscussionSubscriptionEventType string
+
+const (
+	DiscussionSubscriptionEventTypePostAdded         DiscussionSubscriptionEventType = "POST_ADDED"
+	DiscussionSubscriptionEventTypePostDeleted       DiscussionSubscriptionEventType = "POST_DELETED"
+	DiscussionSubscriptionEventTypeParticipantBanned DiscussionSubscriptionEventType = "PARTICIPANT_BANNED"
+)
+
+var AllDiscussionSubscriptionEventType = []DiscussionSubscriptionEventType{
+	DiscussionSubscriptionEventTypePostAdded,
+	DiscussionSubscriptionEventTypePostDeleted,
+	DiscussionSubscriptionEventTypeParticipantBanned,
+}
+
+func (e DiscussionSubscriptionEventType) IsValid() bool {
+	switch e {
+	case DiscussionSubscriptionEventTypePostAdded, DiscussionSubscriptionEventTypePostDeleted, DiscussionSubscriptionEventTypeParticipantBanned:
+		return true
+	}
+	return false
+}
+
+func (e DiscussionSubscriptionEventType) String() string {
+	return string(e)
+}
+
+func (e *DiscussionSubscriptionEventType) UnmarshalGQL(v interface{}) error {
+	str, ok := v.(string)
+	if !ok {
+		return fmt.Errorf("enums must be strings")
+	}
+
+	*e = DiscussionSubscriptionEventType(str)
+	if !e.IsValid() {
+		return fmt.Errorf("%s is not a valid DiscussionSubscriptionEventType", str)
+	}
+	return nil
+}
+
+func (e DiscussionSubscriptionEventType) MarshalGQL(w io.Writer) {
 	fmt.Fprint(w, strconv.Quote(e.String()))
 }
 

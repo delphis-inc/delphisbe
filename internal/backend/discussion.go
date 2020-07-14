@@ -14,6 +14,7 @@ import (
 )
 
 const discussionSubscriberKey = "discussion_subscribers-%s"
+const discussionEventSubscriberKey = "discussion_event_subscribers-%s"
 
 func (d *delphisBackend) CreateNewDiscussion(ctx context.Context, creatingUser *model.User, anonymityType model.AnonymityType, title string, publicAccess bool) (*model.Discussion, error) {
 	moderatorObj := model.Moderator{
@@ -120,6 +121,42 @@ func (d *delphisBackend) UnSubscribeFromDiscussion(ctx context.Context, subscrib
 	var ok bool
 	if currentSubs, ok = currentSubsIface.(map[string]chan *model.Post); !ok {
 		currentSubs = map[string]chan *model.Post{}
+	}
+	delete(currentSubs, subscriberUserID)
+	d.cache.Set(cacheKey, currentSubs, time.Hour)
+	return nil
+}
+
+func (d *delphisBackend) SubscribeToDiscussionEvent(ctx context.Context, subscriberUserID string, eventChannel chan *model.DiscussionSubscriptionEvent, discussionID string) error {
+	cacheKey := fmt.Sprintf(discussionEventSubscriberKey, discussionID)
+	d.discussionMutex.Lock()
+	defer d.discussionMutex.Unlock()
+	currentSubsIface, found := d.cache.Get(cacheKey)
+	if !found {
+		currentSubsIface = map[string]chan *model.DiscussionSubscriptionEvent{}
+	}
+	var currentSubs map[string]chan *model.DiscussionSubscriptionEvent
+	var ok bool
+	if currentSubs, ok = currentSubsIface.(map[string]chan *model.DiscussionSubscriptionEvent); !ok {
+		currentSubs = map[string]chan *model.DiscussionSubscriptionEvent{}
+	}
+	currentSubs[subscriberUserID] = eventChannel
+	d.cache.Set(cacheKey, currentSubs, time.Hour)
+	return nil
+}
+
+func (d *delphisBackend) UnSubscribeFromDiscussionEvent(ctx context.Context, subscriberUserID string, discussionID string) error {
+	cacheKey := fmt.Sprintf(discussionEventSubscriberKey, discussionID)
+	d.discussionMutex.Lock()
+	defer d.discussionMutex.Unlock()
+	currentSubsIface, found := d.cache.Get(cacheKey)
+	if !found {
+		return nil
+	}
+	var currentSubs map[string]chan *model.DiscussionSubscriptionEvent
+	var ok bool
+	if currentSubs, ok = currentSubsIface.(map[string]chan *model.DiscussionSubscriptionEvent); !ok {
+		currentSubs = map[string]chan *model.DiscussionSubscriptionEvent{}
 	}
 	delete(currentSubs, subscriberUserID)
 	d.cache.Set(cacheKey, currentSubs, time.Hour)

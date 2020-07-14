@@ -115,4 +115,5 @@ type Mutation {
 
 type Subscription {
   postAdded(discussionID: String!): Post
+  onDiscussionEvent(discussionID: String!): DiscussionSubscriptionEvent
 }

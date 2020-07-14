@@ -26,6 +26,8 @@ type DelphisBackend interface {
 	GetDiscussionByModeratorID(ctx context.Context, moderatorID string) (*model.Discussion, error)
 	SubscribeToDiscussion(ctx context.Context, subscriberUserID string, postChannel chan *model.Post, discussionID string) error
 	UnSubscribeFromDiscussion(ctx context.Context, subscriberUserID string, discussionID string) error
+	SubscribeToDiscussionEvent(ctx context.Context, subscriberUserID string, eventChannel chan *model.DiscussionSubscriptionEvent, discussionID string) error
+	UnSubscribeFromDiscussionEvent(ctx context.Context, subscriberUserID string, discussionID string) error
 	ListDiscussions(ctx context.Context) (*model.DiscussionsConnection, error)
 	GetModeratorByID(ctx context.Context, id string) (*model.Moderator, error)
 	GetModeratorByUserID(ctx context.Context, userID string) (*model.Moderator, error)
@@ -55,6 +57,8 @@ type DelphisBackend interface {
 	PostImportedContent(ctx context.Context, participantID, discussionID, contentID string, postedAt *time.Time, matchingTags []string, dripType model.DripPostType) (*model.Post, error)
 	PutImportedContentQueue(ctx context.Context, discussionID, contentID string, postedAt *time.Time, matchingTags []string, dripType model.DripPostType) (*model.ContentQueueRecord, error)
 	NotifySubscribersOfCreatedPost(ctx context.Context, post *model.Post, discussionID string) error
+	NotifySubscribersOfDeletedPost(ctx context.Context, post *model.Post, discussionID string) error
+	NotifySubscribersOfBannedParticipant(ctx context.Context, participant *model.Participant, discussionID string) error
 	GetPostsConnectionByDiscussionID(ctx context.Context, discussionID string, cursor string, limit int) (*model.PostsConnection, error)
 	GetPostsByDiscussionID(ctx context.Context, userID string, discussionID string) ([]*model.Post, error)
 	GetLastPostByDiscussionID(ctx context.Context, discussionID string, minutes int) (*model.Post, error)

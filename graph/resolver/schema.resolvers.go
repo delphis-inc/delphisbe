@@ -562,7 +562,18 @@ func (r *mutationResolver) DeletePost(ctx context.Context, discussionID string, 
 		return nil, fmt.Errorf("Need auth")
 	}
 
-	return r.DAOManager.DeletePostByID(ctx, discussionID, postID, authedUser.UserID)
+	deletedPost, err := r.DAOManager.DeletePostByID(ctx, discussionID, postID, authedUser.UserID)
+	if err != nil {
+		return nil, fmt.Errorf("Failed to delete post")
+	}
+
+	err = r.DAOManager.NotifySubscribersOfDeletedPost(ctx, deletedPost, discussionID)
+	if err != nil {
+		// Silently ignore this
+		logrus.Warnf("Failed to notify subscribers of deleted post")
+	}
+
+	return deletedPost, nil
 }
 
 func (r *mutationResolver) BanParticipant(ctx context.Context, discussionID string, participantID string) (*model.Participant, error) {
@@ -571,7 +582,18 @@ func (r *mutationResolver) BanParticipant(ctx context.Context, discussionID stri
 		return nil, fmt.Errorf("Need auth")
 	}
 
-	return r.DAOManager.BanParticipant(ctx, discussionID, participantID, authedUser.UserID)
+	bannedParticipant, err := r.DAOManager.BanParticipant(ctx, discussionID, participantID, authedUser.UserID)
+	if err != nil {
+		return nil, fmt.Errorf("Failed to ban participant")
+	}
+
+	err = r.DAOManager.NotifySubscribersOfBannedParticipant(ctx, bannedParticipant, discussionID)
+	if err != nil {
+		// Silently ignore this
+		logrus.Warnf("Failed to notify subscribers of banned participant")
+	}
+
+	return bannedParticipant, nil
 }
 
 func (r *queryResolver) Discussion(ctx context.Context, id string) (*model.Discussion, error) {
@@ -648,6 +670,31 @@ func (r *subscriptionResolver) PostAdded(ctx context.Context, discussionID strin
 	return events, nil
 }
 
+func (r *subscriptionResolver) OnDiscussionEvent(ctx context.Context, discussionID string) (<-chan *model.DiscussionSubscriptionEvent, error) {
+	authedUser := auth.GetAuthedUser(ctx)
+	if authedUser == nil {
+		return nil, fmt.Errorf("Need auth")
+	}
+	events := make(chan *model.DiscussionSubscriptionEvent, 1)
+
+	go func() {
+		<-ctx.Done()
+		err := r.DAOManager.UnSubscribeFromDiscussionEvent(ctx, authedUser.UserID, discussionID)
+		if err != nil {
+			logrus.WithError(err).Errorf("Failed to unsubscribe from discussion")
+		}
+		close(events)
+	}()
+
+	err := r.DAOManager.SubscribeToDiscussionEvent(ctx, authedUser.UserID, events, discussionID)
+	if err != nil {
+		close(events)
+		return nil, err
+	}
+
+	return events, nil
+}
+
 // Mutation returns generated.MutationResolver implementation.
 func (r *Resolver) Mutation() generated.MutationResolver { return &mutationResolver{r} }
 
@@ -660,3 +707,13 @@ func (r *Resolver) Subscription() generated.SubscriptionResolver { return &subsc
 type mutationResolver struct{ *Resolver }
 type queryResolver struct{ *Resolver }
 type subscriptionResolver struct{ *Resolver }
+
+// !!! WARNING !!!
+// The code below was going to be deleted when updating resolvers. It has been copied here so you have
+// one last chance to move it out of harms way if you want. There are two reasons this happens:
+//  - When renaming or deleting a resolver the old code will be put in here. You can safely delete
+//    it when you're done.
+//  - You have helper methods in this file. Move them out to keep these resolver files clean.
+func (r *subscriptionResolver) NewDiscussionEvent(ctx context.Context, discussionID string) (<-chan *model.DiscussionSubscriptionEvent, error) {
+	panic(fmt.Errorf("not implemented"))
+}
