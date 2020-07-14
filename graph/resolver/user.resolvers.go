@@ -8,9 +8,9 @@ import (
 	"fmt"
 	"sort"
 
-	"github.com/nedrocks/delphisbe/graph/generated"
-	"github.com/nedrocks/delphisbe/graph/model"
-	"github.com/nedrocks/delphisbe/internal/auth"
+	"github.com/delphis-inc/delphisbe/graph/generated"
+	"github.com/delphis-inc/delphisbe/graph/model"
+	"github.com/delphis-inc/delphisbe/internal/auth"
 	"github.com/sirupsen/logrus"
 )
 

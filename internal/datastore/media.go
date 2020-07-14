@@ -10,7 +10,7 @@ import (
 
 	"github.com/sirupsen/logrus"
 
-	"github.com/nedrocks/delphisbe/graph/model"
+	"github.com/delphis-inc/delphisbe/graph/model"
 )
 
 func (d *delphisDB) GetMediaRecordByID(ctx context.Context, mediaID string) (*model.Media, error) {

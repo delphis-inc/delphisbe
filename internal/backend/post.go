@@ -11,10 +11,10 @@ import (
 
 	"go.uber.org/multierr"
 
+	"github.com/delphis-inc/delphisbe/graph/model"
+	"github.com/delphis-inc/delphisbe/internal/auth"
+	"github.com/delphis-inc/delphisbe/internal/util"
 	"github.com/lib/pq"
-	"github.com/nedrocks/delphisbe/graph/model"
-	"github.com/nedrocks/delphisbe/internal/auth"
-	"github.com/nedrocks/delphisbe/internal/util"
 	"github.com/sirupsen/logrus"
 )
 

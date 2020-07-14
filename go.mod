@@ -1,4 +1,4 @@
-module github.com/nedrocks/delphisbe
+module github.com/delphis-inc/delphisbe
 
 go 1.13
 

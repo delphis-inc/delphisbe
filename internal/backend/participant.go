@@ -8,8 +8,8 @@ import (
 
 	"github.com/sirupsen/logrus"
 
-	"github.com/nedrocks/delphisbe/graph/model"
-	"github.com/nedrocks/delphisbe/internal/util"
+	"github.com/delphis-inc/delphisbe/graph/model"
+	"github.com/delphis-inc/delphisbe/internal/util"
 )
 
 type UserDiscussionParticipants struct {

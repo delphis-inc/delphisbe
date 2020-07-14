@@ -8,7 +8,7 @@ import (
 
 	"github.com/lib/pq"
 
-	"github.com/nedrocks/delphisbe/graph/model"
+	"github.com/delphis-inc/delphisbe/graph/model"
 	"github.com/sirupsen/logrus"
 )
 

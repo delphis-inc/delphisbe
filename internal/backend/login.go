@@ -7,9 +7,9 @@ import (
 
 	"github.com/sirupsen/logrus"
 
+	"github.com/delphis-inc/delphisbe/graph/model"
+	"github.com/delphis-inc/delphisbe/internal/util"
 	"github.com/dghubble/go-twitter/twitter"
-	"github.com/nedrocks/delphisbe/graph/model"
-	"github.com/nedrocks/delphisbe/internal/util"
 )
 
 type LoginWithTwitterInput struct {

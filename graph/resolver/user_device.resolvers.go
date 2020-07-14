@@ -7,8 +7,8 @@ import (
 	"context"
 	"strings"
 
-	"github.com/nedrocks/delphisbe/graph/generated"
-	"github.com/nedrocks/delphisbe/graph/model"
+	"github.com/delphis-inc/delphisbe/graph/generated"
+	"github.com/delphis-inc/delphisbe/graph/model"
 )
 
 func (r *userDeviceResolver) Platform(ctx context.Context, obj *model.UserDevice) (model.Platform, error) {

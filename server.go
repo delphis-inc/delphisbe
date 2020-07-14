@@ -15,8 +15,8 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws/credentials/endpointcreds"
+	"github.com/delphis-inc/delphisbe/internal/worker"
 	"github.com/gorilla/websocket"
-	"github.com/nedrocks/delphisbe/internal/worker"
 	"github.com/robfig/cron/v3"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -24,20 +24,20 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/vektah/gqlparser/v2/formatter"
 
-	"github.com/nedrocks/delphisbe/internal/auth"
-	"github.com/nedrocks/delphisbe/internal/secrets"
+	"github.com/delphis-inc/delphisbe/internal/auth"
+	"github.com/delphis-inc/delphisbe/internal/secrets"
 
 	"github.com/99designs/gqlgen/graphql/handler"
 	"github.com/99designs/gqlgen/graphql/handler/transport"
 	"github.com/99designs/gqlgen/graphql/playground"
+	"github.com/delphis-inc/delphisbe/graph/generated"
+	"github.com/delphis-inc/delphisbe/graph/resolver"
+	"github.com/delphis-inc/delphisbe/internal/backend"
+	"github.com/delphis-inc/delphisbe/internal/config"
 	gologinOauth1 "github.com/dghubble/gologin/oauth1"
 	"github.com/dghubble/gologin/twitter"
 	"github.com/dghubble/oauth1"
 	twitterOAuth1 "github.com/dghubble/oauth1/twitter"
-	"github.com/nedrocks/delphisbe/graph/generated"
-	"github.com/nedrocks/delphisbe/graph/resolver"
-	"github.com/nedrocks/delphisbe/internal/backend"
-	"github.com/nedrocks/delphisbe/internal/config"
 	"github.com/sirupsen/logrus"
 )
 

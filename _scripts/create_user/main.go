@@ -13,9 +13,9 @@ import (
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/credentials/endpointcreds"
 	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/nedrocks/delphisbe/internal/backend"
-	"github.com/nedrocks/delphisbe/internal/config"
-	"github.com/nedrocks/delphisbe/internal/secrets"
+	"github.com/delphis-inc/delphisbe/internal/backend"
+	"github.com/delphis-inc/delphisbe/internal/config"
+	"github.com/delphis-inc/delphisbe/internal/secrets"
 	"github.com/sirupsen/logrus"
 )
 

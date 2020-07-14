@@ -3,7 +3,7 @@ package backend
 import (
 	"context"
 
-	"github.com/nedrocks/delphisbe/graph/model"
+	"github.com/delphis-inc/delphisbe/graph/model"
 )
 
 func (d *delphisBackend) UpsertUserDevice(ctx context.Context, deviceID string, userID *string, platform string, token *string) (*model.UserDevice, error) {

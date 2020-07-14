@@ -5,7 +5,7 @@ import (
 
 	"github.com/sirupsen/logrus"
 
-	"github.com/nedrocks/delphisbe/graph/model"
+	"github.com/delphis-inc/delphisbe/graph/model"
 )
 
 func (b *delphisBackend) GetModeratorByID(ctx context.Context, id string) (*model.Moderator, error) {

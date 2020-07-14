@@ -1,7 +1,7 @@
 package test_utils
 
 import (
-	"github.com/nedrocks/delphisbe/graph/model"
+	"github.com/delphis-inc/delphisbe/graph/model"
 )
 
 const ProfileID = "profileID"

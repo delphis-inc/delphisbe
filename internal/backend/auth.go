@@ -3,7 +3,7 @@ package backend
 import (
 	"context"
 
-	"github.com/nedrocks/delphisbe/internal/auth"
+	"github.com/delphis-inc/delphisbe/internal/auth"
 )
 
 func (b *delphisBackend) NewAccessToken(ctx context.Context, userID string) (*auth.DelphisAccessToken, error) {

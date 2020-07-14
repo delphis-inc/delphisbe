@@ -4,8 +4,8 @@ import (
 	"context"
 	"time"
 
-	"github.com/nedrocks/delphisbe/graph/model"
-	"github.com/nedrocks/delphisbe/internal/util"
+	"github.com/delphis-inc/delphisbe/graph/model"
+	"github.com/delphis-inc/delphisbe/internal/util"
 )
 
 func (d *delphisBackend) CreateFlair(ctx context.Context, userID string, templateID string) (*model.Flair, error) {

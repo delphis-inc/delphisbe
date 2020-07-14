@@ -7,9 +7,9 @@ import (
 
 	"github.com/sirupsen/logrus"
 
-	"github.com/nedrocks/delphisbe/internal/util"
+	"github.com/delphis-inc/delphisbe/internal/util"
 
-	"github.com/nedrocks/delphisbe/graph/model"
+	"github.com/delphis-inc/delphisbe/graph/model"
 )
 
 func (d *delphisBackend) GetConciergeParticipantID(ctx context.Context, discussionID string) (string, error) {

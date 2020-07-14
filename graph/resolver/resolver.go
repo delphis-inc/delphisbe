@@ -6,8 +6,8 @@ package resolver
 import (
 	"context"
 
-	"github.com/nedrocks/delphisbe/graph/model"
-	"github.com/nedrocks/delphisbe/internal/backend"
+	"github.com/delphis-inc/delphisbe/graph/model"
+	"github.com/delphis-inc/delphisbe/internal/backend"
 )
 
 type Resolver struct {
