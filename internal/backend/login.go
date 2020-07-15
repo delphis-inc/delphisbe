@@ -2,6 +2,7 @@ package backend
 
 import (
 	"context"
+	"crypto/sha1"
 	"fmt"
 	"time"
 
@@ -18,8 +19,72 @@ type LoginWithTwitterInput struct {
 	AccessTokenSecret string
 }
 
+type LoginWithAppleInput struct {
+	FirstName    string
+	LastName     string
+	Email        string
+	AccessToken  string
+	RefreshToken string
+}
+
 func (t LoginWithTwitterInput) ID() string {
 	return fmt.Sprintf("%s:%s", "twitter", t.User.IDStr)
+}
+
+func (b *delphisBackend) GetOrCreateAppleUser(ctx context.Context, input LoginWithAppleInput) (*model.User, error) {
+	// The ID is the hashed email
+	hashedEmail := fmt.Sprintf("%x", sha1.Sum([]byte(input.Email)))[:36]
+
+	userProfileObj := &model.UserProfile{
+		ID:            hashedEmail,
+		DisplayName:   fmt.Sprintf("%s %s", input.FirstName, input.LastName),
+		TwitterHandle: "unknown",
+	}
+
+	userProfileObj, isCreated, err := b.db.CreateOrUpdateUserProfile(ctx, *userProfileObj)
+	if err != nil {
+		return nil, err
+	}
+
+	socialInfoObj := &model.SocialInfo{
+		Network:       "apple",
+		AccessToken:   input.AccessToken,
+		UserProfileID: userProfileObj.ID,
+		UserID:        hashedEmail,
+	}
+	_, err = b.db.UpsertSocialInfo(ctx, *socialInfoObj)
+	if err != nil {
+		return nil, err
+	}
+
+	var userObj *model.User
+
+	if isCreated || userProfileObj.UserID == nil {
+		userObj = &model.User{
+			ID:        util.UUIDv4(),
+			CreatedAt: time.Now(),
+			UpdatedAt: time.Now(),
+		}
+		userObj, err = b.db.UpsertUser(ctx, *userObj)
+
+		if err != nil {
+			logrus.WithError(err).Errorf("Failed putting user object: %+v", userObj)
+			return nil, err
+		}
+
+		userProfileObj.UserID = &userObj.ID
+		_, _, err = b.db.CreateOrUpdateUserProfile(ctx, *userProfileObj)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		userObj, err = b.GetUserByID(ctx, *userProfileObj.UserID)
+		if err != nil {
+			logrus.WithError(err).Errorf("Failed to find user")
+			return nil, err
+		}
+	}
+	return userObj, nil
 }
 
 func (b *delphisBackend) GetOrCreateUser(ctx context.Context, input LoginWithTwitterInput) (*model.User, error) {

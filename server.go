@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"math/rand"
 	"net/http"
@@ -46,7 +47,7 @@ const (
 )
 
 func main() {
-	logrus.SetLevel(logrus.InfoLevel)
+	logrus.SetLevel(logrus.DebugLevel)
 	logrus.Debugf("Starting")
 
 	ctx := context.Background()
@@ -145,12 +146,104 @@ func main() {
 		Endpoint:       twitterOAuth1.AuthorizeEndpoint,
 	}
 
+	http.Handle("/apple/authLogin", appleAuthLogin(conf, delphisBackend))
 	http.Handle("/twitter/login", twitter.LoginHandler(config, nil))
 	http.Handle("/twitter/callback", twitter.CallbackHandler(config, successfulLogin(*conf, delphisBackend), nil))
 	http.Handle("/upload_image", allowCors(uploadImage(delphisBackend)))
 	http.Handle("/health", healthCheck())
 	log.Printf("connect on port %s for GraphQL playground", port)
 	log.Fatal(http.ListenAndServe(":"+port, nil))
+}
+
+func appleAuthLogin(conf *config.Config, delphisBackend backend.DelphisBackend) http.Handler {
+	fn := func(w http.ResponseWriter, r *http.Request) {
+		ctx := r.Context()
+		if r.Method != "POST" {
+			logrus.WithError(errors.New("non-POST request was sent to appleAuthLogin"))
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+
+		err := r.ParseForm()
+		if err != nil {
+			logrus.WithError(err).Errorf("Failed to parse request form")
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+
+		firstName := r.FormValue("fn")
+		lastName := r.FormValue("ln")
+		email := r.FormValue("e")
+		code := r.FormValue("c")
+
+		if email == "" || code == "" {
+			logrus.Errorf("Failed to retrieve email or code while authing")
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+
+		// Now we need to validate the code.
+		clientSecretStr, err := auth.GenerateAppleClientSecret(ctx, conf)
+		if err != nil || clientSecretStr == nil {
+			logrus.WithError(err).Errorf("Did not generate client secret properly.")
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+
+		hc := http.Client{}
+		form := url.Values{}
+		form.Add("client_id", conf.AppleAuthConfig.ClientID)
+		form.Add("client_secret", *clientSecretStr)
+		form.Add("code", code)
+		form.Add("grant_type", "authorization_code")
+		postReq, _ := http.NewRequest("POST", "https://appleid.apple.com/auth/token", strings.NewReader(form.Encode()))
+
+		postReq.Header.Add("Content-Type", "application/x-www-form-urlencoded")
+
+		resp, err := hc.Do(postReq)
+		if err != nil {
+			logrus.WithError(err).Errorf("Failed to make auth/token request to apple")
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+
+		if resp.StatusCode != 200 {
+			bodyBytes, _ := ioutil.ReadAll(resp.Body)
+			logrus.Infof("Failed to exchange code with apple. Received status code: %d. Response was: %s", resp.StatusCode, string(bodyBytes))
+			w.WriteHeader(http.StatusForbidden)
+			return
+		}
+
+		// Otherwise this has parsed and we can create the user!
+		user, err := delphisBackend.GetOrCreateAppleUser(ctx, backend.LoginWithAppleInput{
+			FirstName: firstName,
+			LastName:  lastName,
+			Email:     email,
+		})
+		if err != nil {
+			logrus.WithError(err).Errorf("Failed to create user for apple login")
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		authToken, err := delphisBackend.NewAccessToken(ctx, user.ID)
+		if err != nil {
+			logrus.WithError(err).Errorf("Failed to create access token")
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		w.Header().Set("content-type", "application/json")
+		response := map[string]string{"delphis_access_token": authToken.TokenString}
+		err = json.NewEncoder(w).Encode(response)
+		if err != nil {
+			logrus.WithError(err).Errorf("Failed to encode access token response")
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+	}
+	return http.HandlerFunc(fn)
 }
 
 // TODO: This is quite hacky but fulfills our purposes for now.
@@ -282,6 +375,7 @@ func uploadImage(delphisBackend backend.DelphisBackend) http.Handler {
 		if r.Method != "POST" {
 			logrus.WithError(errors.New("non-POST request was sent to uploadImage"))
 			w.WriteHeader(http.StatusBadRequest)
+			return
 		}
 
 		// Limit to 10MB
