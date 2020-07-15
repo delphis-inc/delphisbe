@@ -9,8 +9,8 @@ import (
 	"net/url"
 	"time"
 
+	"github.com/delphis-inc/delphisbe/internal/config"
 	"github.com/dgrijalva/jwt-go"
-	"github.com/nedrocks/delphisbe/internal/config"
 	"github.com/sirupsen/logrus"
 )
 
