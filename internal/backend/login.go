@@ -38,7 +38,7 @@ func (b *delphisBackend) GetOrCreateAppleUser(ctx context.Context, input LoginWi
 	userProfileObj := &model.UserProfile{
 		ID:            hashedEmail,
 		DisplayName:   fmt.Sprintf("%s %s", input.FirstName, input.LastName),
-		TwitterHandle: "unknown",
+		TwitterHandle: "\nsentinel\n",
 	}
 
 	userProfileObj, isCreated, err := b.db.CreateOrUpdateUserProfile(ctx, *userProfileObj)
