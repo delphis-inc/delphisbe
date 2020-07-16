@@ -29,6 +29,7 @@ type DelphisBackend interface {
 	SubscribeToDiscussionEvent(ctx context.Context, subscriberUserID string, eventChannel chan *model.DiscussionSubscriptionEvent, discussionID string) error
 	UnSubscribeFromDiscussionEvent(ctx context.Context, subscriberUserID string, discussionID string) error
 	ListDiscussions(ctx context.Context) (*model.DiscussionsConnection, error)
+	ListDiscussionsByUserID(ctx context.Context, userID string) (*model.DiscussionsConnection, error)
 	GetModeratorByID(ctx context.Context, id string) (*model.Moderator, error)
 	GetModeratorByUserID(ctx context.Context, userID string) (*model.Moderator, error)
 	CheckIfModerator(ctx context.Context, userID string) (bool, error)

@@ -91,6 +91,10 @@ func (d *delphisBackend) ListDiscussions(ctx context.Context) (*model.Discussion
 	return d.db.ListDiscussions(ctx)
 }
 
+func (d *delphisBackend) ListDiscussionsByUserID(ctx context.Context, userID string) (*model.DiscussionsConnection, error) {
+	return d.db.ListDiscussionsByUserID(ctx, userID)
+}
+
 func (d *delphisBackend) SubscribeToDiscussion(ctx context.Context, subscriberUserID string, postChannel chan *model.Post, discussionID string) error {
 	cacheKey := fmt.Sprintf(discussionSubscriberKey, discussionID)
 	d.discussionMutex.Lock()

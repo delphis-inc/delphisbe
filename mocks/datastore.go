@@ -1345,6 +1345,29 @@ func (_m *Datastore) ListDiscussions(ctx context.Context) (*model.DiscussionsCon
 	return r0, r1
 }
 
+// ListDiscussionsByUserID provides a mock function with given fields: ctx, userID
+func (_m *Datastore) ListDiscussionsByUserID(ctx context.Context, userID string) (*model.DiscussionsConnection, error) {
+	ret := _m.Called(ctx, userID)
+
+	var r0 *model.DiscussionsConnection
+	if rf, ok := ret.Get(0).(func(context.Context, string) *model.DiscussionsConnection); ok {
+		r0 = rf(ctx, userID)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*model.DiscussionsConnection)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(context.Context, string) error); ok {
+		r1 = rf(ctx, userID)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // ListFlairTemplates provides a mock function with given fields: ctx, query
 func (_m *Datastore) ListFlairTemplates(ctx context.Context, query *string) ([]*model.FlairTemplate, error) {
 	ret := _m.Called(ctx, query)

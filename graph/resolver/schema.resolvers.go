@@ -601,7 +601,12 @@ func (r *queryResolver) Discussion(ctx context.Context, id string) (*model.Discu
 }
 
 func (r *queryResolver) ListDiscussions(ctx context.Context) ([]*model.Discussion, error) {
-	connection, err := r.DAOManager.ListDiscussions(ctx)
+	authedUser := auth.GetAuthedUser(ctx)
+	if authedUser == nil {
+		return nil, fmt.Errorf("Need auth")
+	}
+
+	connection, err := r.DAOManager.ListDiscussionsByUserID(ctx, authedUser.UserID)
 	if err != nil {
 		return nil, err
 	}

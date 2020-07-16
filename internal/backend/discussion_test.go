@@ -440,6 +440,47 @@ func TestDelphisBackend_ListDiscussions(t *testing.T) {
 	})
 }
 
+func TestDelphisBackend_ListDiscussionsByUserID(t *testing.T) {
+	ctx := context.Background()
+
+	dcObj := test_utils.TestDiscussionsConnection()
+
+	Convey("ListDiscussionsByUserID", t, func() {
+		now := time.Now()
+		cacheObj := cache.NewInMemoryCache()
+		authObj := auth.NewDelphisAuth(nil)
+		mockDB := &mocks.Datastore{}
+		backendObj := &delphisBackend{
+			db:              mockDB,
+			auth:            authObj,
+			cache:           cacheObj,
+			discussionMutex: sync.Mutex{},
+			config:          config.Config{},
+			timeProvider:    &util.FrozenTime{NowTime: now},
+		}
+		userID := "userID"
+
+		Convey("when the query errors out", func() {
+			expectedError := fmt.Errorf("Some Error")
+			mockDB.On("ListDiscussionsByUserID", ctx, userID).Return(nil, expectedError)
+
+			resp, err := backendObj.ListDiscussionsByUserID(ctx, userID)
+
+			So(err, ShouldEqual, expectedError)
+			So(resp, ShouldBeNil)
+		})
+
+		Convey("when the query returns successfully", func() {
+			mockDB.On("ListDiscussionsByUserID", ctx, userID).Return(&dcObj, nil)
+
+			resp, err := backendObj.ListDiscussionsByUserID(ctx, userID)
+
+			So(err, ShouldBeNil)
+			So(resp, ShouldResemble, &dcObj)
+		})
+	})
+}
+
 func TestDelphisBackend_GetDiscussionTags(t *testing.T) {
 	ctx := context.Background()
 
