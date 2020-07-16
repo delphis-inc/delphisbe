@@ -393,7 +393,7 @@ func TestDelphisDB_ListDiscussions(t *testing.T) {
 		DeletedAt: nil,
 	}
 
-	Convey("GetDiscussionByModeratorID", t, func() {
+	Convey("ListDiscussions", t, func() {
 		db, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
 
 		assert.Nil(t, err, "Failed setting up sqlmock db")
@@ -438,6 +438,119 @@ func TestDelphisDB_ListDiscussions(t *testing.T) {
 			mock.ExpectQuery(expectedModQueryString).WithArgs(discObj.ModeratorID, discObj.ModeratorID).WillReturnRows(modRs)
 
 			resp, err := mockDatastore.ListDiscussions(ctx)
+
+			discObj.Moderator = &modObj
+
+			verifyDC := model.DiscussionsConnection{
+				Edges: []*model.DiscussionsEdge{
+					{
+						Node: &discObj,
+					},
+					{
+						Node: &discObj,
+					},
+				},
+				IDs: []string{discObj.ID, discObj.ID},
+			}
+
+			So(err, ShouldBeNil)
+			So(resp, ShouldNotBeNil)
+			So(resp, ShouldResemble, &verifyDC)
+			So(mock.ExpectationsWereMet(), ShouldBeNil)
+		})
+	})
+}
+
+func TestDelphisDB_ListDiscussionsByUserID(t *testing.T) {
+	ctx := context.Background()
+	now := time.Now()
+	modID := "modID"
+	userID := "userID"
+	discObj := model.Discussion{
+		ID:            "discussion1",
+		CreatedAt:     now,
+		UpdatedAt:     now,
+		DeletedAt:     nil,
+		Title:         "test",
+		AnonymityType: "",
+		ModeratorID:   &modID,
+		AutoPost:      false,
+		IdleMinutes:   120,
+		PublicAccess:  false,
+		IconURL:       &emptyString,
+	}
+	modObj := model.Moderator{
+		ID:        modID,
+		CreatedAt: now,
+		UpdatedAt: now,
+		DeletedAt: nil,
+	}
+
+	Convey("ListDiscussionsByUserID", t, func() {
+		db, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
+
+		assert.Nil(t, err, "Failed setting up sqlmock db")
+
+		gormDB, _ := gorm.Open("postgres", db)
+		mockDatastore := &delphisDB{
+			dbConfig:  config.TablesConfig{},
+			sql:       gormDB,
+			pg:        db,
+			prepStmts: &dbPrepStmts{},
+			dynamo:    nil,
+			encoder:   nil,
+		}
+		defer db.Close()
+
+		expectedQueryString := `
+			SELECT discussions.*,
+				(m.user_profile_id = up.id) AS is_mod,
+				(COUNT(p.user_id = up.user_id) > 0) as is_participant,
+				(SELECT MAX(updated_at) FROM posts WHERE posts.discussion_id = discussions.id) as most_recent_post
+			FROM
+			"discussions"
+				JOIN moderators m on discussions.moderator_id = m.id
+				LEFT JOIN participants p ON p.discussion_id = discussions.id,
+			user_profiles up
+				LEFT JOIN flairs f ON f.user_id = up.user_id,
+			discussion_flair_access dfa,
+			discussion_user_invitations dui		
+			WHERE "discussions"."deleted_at" IS NULL AND ((up.id = (SELECT id FROM "user_profiles" WHERE (user_id = $1)) AND
+				((dfa.flair_template_id = f.template_id AND dfa.discussion_id = discussions.id)
+				OR (dui.user_id = up.user_id AND dui.discussion_id = discussions.id AND dui.status = 'PENDING')
+				OR (m.user_profile_id = up.id)
+				OR (p.user_id = up.user_id))))
+			GROUP BY discussions.id, is_mod
+			ORDER BY is_mod DESC, is_participant DESC, most_recent_post DESC
+			`
+		expectedModQueryString := `SELECT * FROM "moderators" WHERE "moderators"."deleted_at" IS NULL AND (("id" IN ($1,$2)))`
+
+		Convey("when query execution returns an error", func() {
+			mock.ExpectQuery(expectedQueryString).WithArgs(userID).WillReturnError(fmt.Errorf("error"))
+
+			resp, err := mockDatastore.ListDiscussionsByUserID(ctx, userID)
+
+			So(err, ShouldNotBeNil)
+			So(resp, ShouldBeNil)
+			So(mock.ExpectationsWereMet(), ShouldBeNil)
+		})
+
+		Convey("when query execution succeeds and returns a discussions", func() {
+			rs := sqlmock.NewRows([]string{"id", "created_at", "updated_at", "deleted_at", "title", "anonymity_type", "moderator_id", "icon_url",
+				"auto_post", "idle_minutes", "public_access"}).
+				AddRow(discObj.ID, discObj.CreatedAt, discObj.UpdatedAt, discObj.DeletedAt, discObj.Title, discObj.AnonymityType,
+					discObj.ModeratorID, discObj.IconURL, discObj.AutoPost, discObj.IdleMinutes, discObj.PublicAccess).
+				AddRow(discObj.ID, discObj.CreatedAt, discObj.UpdatedAt, discObj.DeletedAt, discObj.Title, discObj.AnonymityType,
+					discObj.ModeratorID, discObj.IconURL, discObj.AutoPost, discObj.IdleMinutes, discObj.PublicAccess)
+
+			modRs := sqlmock.NewRows([]string{"id", "created_at", "updated_at", "deleted_at", "user_profile_id"}).
+				AddRow(modObj.ID, modObj.CreatedAt, modObj.UpdatedAt, modObj.DeletedAt, modObj.UserProfileID).
+				AddRow(modObj.ID, modObj.CreatedAt, modObj.UpdatedAt, modObj.DeletedAt, modObj.UserProfileID)
+
+			mock.ExpectQuery(expectedQueryString).WithArgs(userID).WillReturnRows(rs)
+			mock.ExpectQuery(expectedModQueryString).WithArgs(discObj.ModeratorID, discObj.ModeratorID).WillReturnRows(modRs)
+
+			resp, err := mockDatastore.ListDiscussionsByUserID(ctx, userID)
 
 			discObj.Moderator = &modObj
 
