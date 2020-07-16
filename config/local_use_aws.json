@@ -9,6 +9,11 @@
     "ably": {
         "enabled": true
     },
+    "apple_auth_config": {
+        "team_id": "DYNUCFYJTQ",
+        "client_id": "ai.chatham.alpha",
+        "key_id": "UXTG46FR9C"
+    },
     "env": "local_use_aws",
     "sqldb": {
         "host": "127.0.0.1",

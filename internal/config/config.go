@@ -7,15 +7,16 @@ import (
 )
 
 type Config struct {
-	Environment    string         `json:"env" mapstructure:"env"`
-	DBConfig       DBConfig       `json:"db" mapstructure:"db"`
-	SQLDBConfig    SQLDBConfig    `json:"sqldb" mapstructure:"sqldb"`
-	Twitter        TwitterConfig  `json:"twitter" mapstructure:"twitter"`
-	Auth           AuthConfig     `json:"auth" mapstructure:"auth"`
-	AWS            AWSConfig      `json:"aws" mapstructure:"aws"`
-	AblyConfig     AblyConfig     `json:"ably" mapstructure:"ably"`
-	S3BucketConfig S3BucketConfig `json:"s3_bucket" mapstructure:"s3_bucket"`
-	SQSConfig      SQSConfig      `json:"sqs" mapstructure:"sqs"`
+	Environment     string          `json:"env" mapstructure:"env"`
+	DBConfig        DBConfig        `json:"db" mapstructure:"db"`
+	SQLDBConfig     SQLDBConfig     `json:"sqldb" mapstructure:"sqldb"`
+	Twitter         TwitterConfig   `json:"twitter" mapstructure:"twitter"`
+	Auth            AuthConfig      `json:"auth" mapstructure:"auth"`
+	AWS             AWSConfig       `json:"aws" mapstructure:"aws"`
+	AblyConfig      AblyConfig      `json:"ably" mapstructure:"ably"`
+	S3BucketConfig  S3BucketConfig  `json:"s3_bucket" mapstructure:"s3_bucket"`
+	SQSConfig       SQSConfig       `json:"sqs" mapstructure:"sqs"`
+	AppleAuthConfig AppleAuthConfig `json:"apple_auth_config" mapstructure:"apple_auth_config"`
 }
 
 func (c *Config) ReadEnvAndUpdate() {
@@ -23,6 +24,7 @@ func (c *Config) ReadEnvAndUpdate() {
 	c.Twitter.ConsumerKey, c.Twitter.ConsumerSecret, c.Auth.HMACSecret = viper.GetString("twitter_consumer_key"), viper.GetString("twitter_consumer_secret"), viper.GetString("auth_hmac_secret")
 	c.SQLDBConfig.Username, c.SQLDBConfig.Password = viper.GetString("db_user"), viper.GetString("db_password")
 	c.AblyConfig.Username, c.AblyConfig.Password = viper.GetString("ably_user"), viper.GetString("ably_password")
+	c.AppleAuthConfig.PrivateKey = viper.GetString("apple_private_key")
 }
 
 type AWSConfig struct {
@@ -47,6 +49,14 @@ type AWSCredentials struct {
 type AuthConfig struct {
 	HMACSecret string `json:"hmacSecret" mapstructure:"hmacSecret"`
 	Domain     string `json:"domain" mapstructure:"domain"`
+}
+
+type AppleAuthConfig struct {
+	TeamID      string `json:"team_id" mapstructure:"team_id"`
+	RedirectURI string `json:"redirect_uri" mapstructure:"redirect_uri"`
+	ClientID    string `json:"client_id" mapstructure:"client_id"`
+	KeyID       string `json:"key_id" mapstructure:"key_id"`
+	PrivateKey  string `json:"privateKey" mapstructure:"apple_private_key"`
 }
 
 type TwitterConfig struct {
@@ -128,7 +138,7 @@ func ReadConfig() (*Config, error) {
 	viper.SetEnvPrefix("delphis")
 	_, ok := os.LookupEnv("DELPHIS_UNITTEST")
 	if !ok {
-		_ = viper.BindEnv("twitter_consumer_key", "twitter_consumer_secret", "auth_hmac_secret", "db_user", "db_password")
+		_ = viper.BindEnv("twitter_consumer_key", "twitter_consumer_secret", "auth_hmac_secret", "db_user", "db_password", "apple_private_key")
 		config.ReadEnvAndUpdate()
 	}
 

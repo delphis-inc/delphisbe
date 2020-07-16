@@ -20,6 +20,110 @@ import (
 	"github.com/stretchr/testify/mock"
 )
 
+func TestDelphisBackend_GetOrCreateAppleUser(t *testing.T) {
+	ctx := context.Background()
+	now := time.Now()
+
+	profileObj := test_utils.TestUserProfile()
+	socialObj := test_utils.TestSocialInfo()
+	userObj := test_utils.TestUser()
+	appleInput := LoginWithAppleInput{
+		FirstName:   "Bill",
+		LastName:    "Shtinkwater",
+		Email:       "bill@chatham.ai",
+		AccessToken: test_utils.Token,
+	}
+
+	Convey("GetOrCreateAppleUser", t, func() {
+		cacheObj := cache.NewInMemoryCache()
+		authObj := auth.NewDelphisAuth(nil)
+		mockDB := &mocks.Datastore{}
+		backendObj := &delphisBackend{
+			db:              mockDB,
+			auth:            authObj,
+			cache:           cacheObj,
+			discussionMutex: sync.Mutex{},
+			config:          config.Config{},
+			timeProvider:    &util.FrozenTime{NowTime: now},
+		}
+		wasProfileCreated := false
+
+		Convey("when CreateOrUpdateUserProfile errors out", func() {
+			expectedError := fmt.Errorf("Some Error")
+			mockDB.On("CreateOrUpdateUserProfile", ctx, mock.Anything).Return(nil, false, expectedError)
+
+			resp, err := backendObj.GetOrCreateAppleUser(ctx, appleInput)
+
+			So(err, ShouldNotBeNil)
+			So(resp, ShouldBeNil)
+		})
+
+		Convey("when UpsertSocialInfo errors out", func() {
+			expectedError := fmt.Errorf("Some Error")
+			mockDB.On("CreateOrUpdateUserProfile", ctx, mock.Anything).Return(&profileObj, wasProfileCreated, nil)
+			mockDB.On("UpsertSocialInfo", ctx, mock.Anything).Return(nil, expectedError)
+
+			resp, err := backendObj.GetOrCreateAppleUser(ctx, appleInput)
+
+			So(err, ShouldNotBeNil)
+			So(resp, ShouldBeNil)
+		})
+
+		Convey("when user needs to be created", func() {
+			wasProfileCreated = true
+			Convey("when UpsertUser errors out", func() {
+				expectedError := fmt.Errorf("Some Error")
+				mockDB.On("CreateOrUpdateUserProfile", ctx, mock.Anything).Return(&profileObj, wasProfileCreated, nil)
+				mockDB.On("UpsertSocialInfo", ctx, mock.Anything).Return(&socialObj, nil)
+				mockDB.On("UpsertUser", ctx, mock.Anything).Return(nil, expectedError)
+
+				resp, err := backendObj.GetOrCreateAppleUser(ctx, appleInput)
+
+				So(err, ShouldNotBeNil)
+				So(resp, ShouldBeNil)
+			})
+
+			Convey("when call is successful", func() {
+				mockDB.On("CreateOrUpdateUserProfile", ctx, mock.Anything).Return(&profileObj, wasProfileCreated, nil)
+				mockDB.On("UpsertSocialInfo", ctx, mock.Anything).Return(&socialObj, nil)
+				mockDB.On("UpsertUser", ctx, mock.Anything).Return(&userObj, nil)
+				mockDB.On("CreateOrUpdateUserProfile", ctx, mock.Anything).Return(&profileObj, true, nil)
+
+				resp, err := backendObj.GetOrCreateAppleUser(ctx, appleInput)
+
+				So(err, ShouldBeNil)
+				So(resp, ShouldNotBeNil)
+			})
+		})
+
+		Convey("when user does not need to be created", func() {
+			wasProfileCreated = false
+			Convey("when GetUserByID errors out", func() {
+				expectedError := fmt.Errorf("Some Error")
+				mockDB.On("CreateOrUpdateUserProfile", ctx, mock.Anything).Return(&profileObj, wasProfileCreated, nil)
+				mockDB.On("UpsertSocialInfo", ctx, mock.Anything).Return(&socialObj, nil)
+				mockDB.On("GetUserByID", ctx, mock.Anything).Return(nil, expectedError)
+
+				resp, err := backendObj.GetOrCreateAppleUser(ctx, appleInput)
+
+				So(err, ShouldNotBeNil)
+				So(resp, ShouldBeNil)
+			})
+
+			Convey("when call is successful", func() {
+				mockDB.On("CreateOrUpdateUserProfile", ctx, mock.Anything).Return(&profileObj, wasProfileCreated, nil)
+				mockDB.On("UpsertSocialInfo", ctx, mock.Anything).Return(&socialObj, nil)
+				mockDB.On("GetUserByID", ctx, mock.Anything).Return(&userObj, nil)
+
+				resp, err := backendObj.GetOrCreateAppleUser(ctx, appleInput)
+
+				So(err, ShouldBeNil)
+				So(resp, ShouldNotBeNil)
+			})
+		})
+	})
+}
+
 func TestDelphisBackend_GetOrCreateUser(t *testing.T) {
 	ctx := context.Background()
 	now := time.Now()
