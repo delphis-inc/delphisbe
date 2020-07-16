@@ -31,6 +31,7 @@ type Datastore interface {
 	GetModeratorByUserID(ctx context.Context, id string) (*model.Moderator, error)
 	GetModeratorByUserIDAndDiscussionID(ctx context.Context, userID, discussionID string) (*model.Moderator, error)
 	ListDiscussions(ctx context.Context) (*model.DiscussionsConnection, error)
+	ListDiscussionsByUserID(ctx context.Context, userID string) (*model.DiscussionsConnection, error)
 	UpsertDiscussion(ctx context.Context, discussion model.Discussion) (*model.Discussion, error)
 	AssignFlair(ctx context.Context, participant model.Participant, flairID *string) (*model.Participant, error)
 	GetFlairByID(ctx context.Context, id string) (*model.Flair, error)
