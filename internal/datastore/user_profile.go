@@ -59,7 +59,7 @@ func (d *delphisDB) CreateOrUpdateUserProfile(ctx context.Context, userProfile m
 		}
 
 		// Can't mock this
-		if *found.UserID == "" && userProfile.UserID != nil {
+		if (found.UserID == nil || *found.UserID == "") && userProfile.UserID != nil {
 			toUpdate.UserID = userProfile.UserID
 		}
 		if err := d.sql.Preload("SocialInfos").Model(&userProfile).Updates(toUpdate).First(&found).Error; err != nil {

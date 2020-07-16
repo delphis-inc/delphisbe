@@ -10,6 +10,11 @@
     "ably": {
         "enabled": true
     },
+    "apple_auth_config": {
+        "team_id": "DYNUCFYJTQ",
+        "client_id": "ai.chatham.alpha",
+        "key_id": "UXTG46FR9C"
+    },
     "env": "staging",
     "sqldb": {
         "host": "chatham-staging-aurora-pgsql.cluster-cgw5uhmof8wi.us-west-2.rds.amazonaws.com",

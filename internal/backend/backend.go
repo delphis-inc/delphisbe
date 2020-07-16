@@ -67,6 +67,7 @@ type DelphisBackend interface {
 	GetUserProfileByID(ctx context.Context, id string) (*model.UserProfile, error)
 	GetUserProfileByUserID(ctx context.Context, userID string) (*model.UserProfile, error)
 	CreateUser(ctx context.Context) (*model.User, error)
+	GetOrCreateAppleUser(ctx context.Context, input LoginWithAppleInput) (*model.User, error)
 	GetOrCreateUser(ctx context.Context, input LoginWithTwitterInput) (*model.User, error)
 	GetUserByID(ctx context.Context, userID string) (*model.User, error)
 	UpsertUserDevice(ctx context.Context, deviceID string, userID *string, platform string, token *string) (*model.UserDevice, error)
