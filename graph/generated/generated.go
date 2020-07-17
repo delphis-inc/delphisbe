@@ -215,6 +215,7 @@ type ComplexityRoot struct {
 		DeleteDiscussionFlairTemplatesAccess func(childComplexity int, discussionID string, flairTemplateIDs []string) int
 		DeleteDiscussionTags                 func(childComplexity int, discussionID string, tags []string) int
 		DeletePost                           func(childComplexity int, discussionID string, postID string) int
+		InviteTwitterUserToDiscussion        func(childComplexity int, discussionID string, twitterHandle string, invitingParticipantID string) int
 		InviteUserToDiscussion               func(childComplexity int, discussionID string, userID string, invitingParticipantID string) int
 		PostImportedContent                  func(childComplexity int, discussionID string, participantID string, contentID string) int
 		RemoveFlair                          func(childComplexity int, id string) int
@@ -479,6 +480,7 @@ type MutationResolver interface {
 	AddDiscussionFlairTemplatesAccess(ctx context.Context, discussionID string, flairTemplateIDs []string) (*model.Discussion, error)
 	DeleteDiscussionFlairTemplatesAccess(ctx context.Context, discussionID string, flairTemplateIDs []string) (*model.Discussion, error)
 	InviteUserToDiscussion(ctx context.Context, discussionID string, userID string, invitingParticipantID string) (*model.DiscussionInvite, error)
+	InviteTwitterUserToDiscussion(ctx context.Context, discussionID string, twitterHandle string, invitingParticipantID string) (*model.DiscussionInvite, error)
 	RespondToInvite(ctx context.Context, inviteID string, response model.InviteRequestStatus, discussionParticipantInput model.AddDiscussionParticipantInput) (*model.DiscussionInvite, error)
 	RequestAccessToDiscussion(ctx context.Context, discussionID string) (*model.DiscussionAccessRequest, error)
 	RespondToRequestAccess(ctx context.Context, requestID string, response model.InviteRequestStatus) (*model.DiscussionAccessRequest, error)
@@ -1361,6 +1363,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Mutation.DeletePost(childComplexity, args["discussionID"].(string), args["postID"].(string)), true
+
+	case "Mutation.inviteTwitterUserToDiscussion":
+		if e.complexity.Mutation.InviteTwitterUserToDiscussion == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_inviteTwitterUserToDiscussion_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.InviteTwitterUserToDiscussion(childComplexity, args["discussionID"].(string), args["twitterHandle"].(string), args["invitingParticipantID"].(string)), true
 
 	case "Mutation.inviteUserToDiscussion":
 		if e.complexity.Mutation.InviteUserToDiscussion == nil {
@@ -2739,6 +2753,7 @@ type Mutation {
 
   # Invites
   inviteUserToDiscussion(discussionID: ID!, userID: ID!, invitingParticipantID: ID!): DiscussionInvite!
+  inviteTwitterUserToDiscussion(discussionID: ID!, twitterHandle: ID!, invitingParticipantID: ID!): DiscussionInvite!
   respondToInvite(inviteID: ID!, response: InviteRequestStatus!, discussionParticipantInput: AddDiscussionParticipantInput!): DiscussionInvite!
 
   requestAccessToDiscussion(discussionID: ID!): DiscussionAccessRequest!
@@ -3189,6 +3204,36 @@ func (ec *executionContext) field_Mutation_deletePost_args(ctx context.Context, 
 		}
 	}
 	args["postID"] = arg1
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_inviteTwitterUserToDiscussion_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 string
+	if tmp, ok := rawArgs["discussionID"]; ok {
+		arg0, err = ec.unmarshalNID2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["discussionID"] = arg0
+	var arg1 string
+	if tmp, ok := rawArgs["twitterHandle"]; ok {
+		arg1, err = ec.unmarshalNID2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["twitterHandle"] = arg1
+	var arg2 string
+	if tmp, ok := rawArgs["invitingParticipantID"]; ok {
+		arg2, err = ec.unmarshalNID2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["invitingParticipantID"] = arg2
 	return args, nil
 }
 
@@ -7368,6 +7413,47 @@ func (ec *executionContext) _Mutation_inviteUserToDiscussion(ctx context.Context
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
 		return ec.resolvers.Mutation().InviteUserToDiscussion(rctx, args["discussionID"].(string), args["userID"].(string), args["invitingParticipantID"].(string))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.DiscussionInvite)
+	fc.Result = res
+	return ec.marshalNDiscussionInvite2ᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐDiscussionInvite(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Mutation_inviteTwitterUserToDiscussion(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "Mutation",
+		Field:    field,
+		Args:     nil,
+		IsMethod: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Mutation_inviteTwitterUserToDiscussion_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().InviteTwitterUserToDiscussion(rctx, args["discussionID"].(string), args["twitterHandle"].(string), args["invitingParticipantID"].(string))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -13392,6 +13478,11 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			}
 		case "inviteUserToDiscussion":
 			out.Values[i] = ec._Mutation_inviteUserToDiscussion(ctx, field)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "inviteTwitterUserToDiscussion":
+			out.Values[i] = ec._Mutation_inviteTwitterUserToDiscussion(ctx, field)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}

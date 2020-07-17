@@ -101,6 +101,7 @@ type Mutation {
 
   # Invites
   inviteUserToDiscussion(discussionID: ID!, userID: ID!, invitingParticipantID: ID!): DiscussionInvite!
+  inviteTwitterUserToDiscussion(discussionID: ID!, twitterHandle: ID!, invitingParticipantID: ID!): DiscussionInvite!
   respondToInvite(inviteID: ID!, response: InviteRequestStatus!, discussionParticipantInput: AddDiscussionParticipantInput!): DiscussionInvite!
 
   requestAccessToDiscussion(discussionID: ID!): DiscussionAccessRequest!

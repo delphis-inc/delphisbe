@@ -489,6 +489,35 @@ func (r *mutationResolver) InviteUserToDiscussion(ctx context.Context, discussio
 	return r.DAOManager.InviteUserToDiscussion(ctx, userID, discussionID, invitingParticipantID)
 }
 
+func (r *mutationResolver) InviteTwitterUserToDiscussion(ctx context.Context, discussionID string, twitterHandle string, invitingParticipantID string) (*model.DiscussionInvite, error) {
+	authedUser := auth.GetAuthedUser(ctx)
+	if authedUser == nil {
+		return nil, fmt.Errorf("Need auth")
+	}
+
+	participantResponse, err := r.DAOManager.GetParticipantsByDiscussionIDUserID(ctx, discussionID, authedUser.UserID)
+	if err != nil {
+		return nil, err
+	}
+	if participantResponse == nil {
+		return nil, fmt.Errorf("Failed to find participant with ID %s", invitingParticipantID)
+	}
+
+	// Verify that the updating participant belongs to the logged-in user
+	var nonAnonUserID, anonUserID string
+	if participantResponse.NonAnon != nil && participantResponse.NonAnon.ID == invitingParticipantID {
+		nonAnonUserID = *participantResponse.NonAnon.UserID
+	}
+	if participantResponse.Anon != nil && participantResponse.Anon.ID == invitingParticipantID {
+		anonUserID = *participantResponse.Anon.UserID
+	}
+	if authedUser.UserID != nonAnonUserID && authedUser.UserID != anonUserID {
+		return nil, fmt.Errorf("Unauthorized")
+	}
+
+	return r.DAOManager.InviteTwitterUserToDiscussion(ctx, twitterHandle, discussionID, invitingParticipantID)
+}
+
 func (r *mutationResolver) RespondToInvite(ctx context.Context, inviteID string, response model.InviteRequestStatus, discussionParticipantInput model.AddDiscussionParticipantInput) (*model.DiscussionInvite, error) {
 	authedUser := auth.GetAuthedUser(ctx)
 	if authedUser == nil {

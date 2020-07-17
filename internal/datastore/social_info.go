@@ -22,16 +22,28 @@ func (d *delphisDB) UpsertSocialInfo(ctx context.Context, obj model.SocialInfo) 
 			return nil, err
 		}
 	} else {
-		if err := d.sql.Model(&obj).Updates(model.SocialInfo{
-			AccessToken:       obj.AccessToken,
-			AccessTokenSecret: obj.AccessTokenSecret,
-			UserID:            obj.UserID,
-			ProfileImageURL:   obj.ProfileImageURL,
-			ScreenName:        obj.ScreenName,
-			IsVerified:        obj.IsVerified,
-		}).First(&found).Error; err != nil {
-			logrus.WithError(err).Errorf("UpsertSocialInfo::Failed updating SocialInfo object")
-			return nil, err
+		if len(obj.AccessToken) == 0 || len(obj.AccessTokenSecret) == 0 {
+			if err := d.sql.Model(&obj).Updates(model.SocialInfo{
+				UserID:          obj.UserID,
+				ProfileImageURL: obj.ProfileImageURL,
+				ScreenName:      obj.ScreenName,
+				IsVerified:      obj.IsVerified,
+			}).First(&found).Error; err != nil {
+				logrus.WithError(err).Errorf("UpsertSocialInfo::Failed updating SocialInfo object")
+				return nil, err
+			}
+		} else {
+			if err := d.sql.Model(&obj).Updates(model.SocialInfo{
+				AccessToken:       obj.AccessToken,
+				AccessTokenSecret: obj.AccessTokenSecret,
+				UserID:            obj.UserID,
+				ProfileImageURL:   obj.ProfileImageURL,
+				ScreenName:        obj.ScreenName,
+				IsVerified:        obj.IsVerified,
+			}).First(&found).Error; err != nil {
+				logrus.WithError(err).Errorf("UpsertSocialInfo::Failed updating SocialInfo object")
+				return nil, err
+			}
 		}
 	}
 	return &found, nil
