@@ -1,6 +1,6 @@
 {
     "auth": {
-        "domain": ".delphishq.com"
+        "domain": ".chatham.ai"
     },
     "aws": {
         "region": "us-west-2",
@@ -48,8 +48,9 @@
         }
     },
     "twitter": {
-        "callback": "https://staging.delphishq.com/twitter/callback",
-        "redirect": "delphis-chatham://app-staging.delphishq.com/"
+        "callback": "https://staging.chatham.ai/twitter/callback",
+        "redirect": "delphis-chatham://app-staging.delphishq.com/",
+        "web_redirect": "https://staging.chatham.ai/app_redirect"
     },
     "s3_bucket": {
         "media_bucket": "static.chatham.ai",
