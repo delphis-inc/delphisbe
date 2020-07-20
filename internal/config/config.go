@@ -64,6 +64,7 @@ type TwitterConfig struct {
 	ConsumerSecret string
 	Callback       string `json:"callback" mapstructure:"callback"`
 	Redirect       string `json:"redirect" mapstructure:"redirect"`
+	WebRedirect    string `json:"web_redirect" mapstructure:"web_redirect"`
 }
 
 type DBConfig struct {
