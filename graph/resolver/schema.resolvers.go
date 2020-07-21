@@ -515,7 +515,12 @@ func (r *mutationResolver) InviteTwitterUsersToDiscussion(ctx context.Context, d
 		return nil, fmt.Errorf("Unauthorized")
 	}
 
-	return r.DAOManager.InviteTwitterUsersToDiscussion(ctx, twitterHandles, discussionID, invitingParticipantID)
+	client, err := r.DAOManager.GetTwitterClient(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	return r.DAOManager.InviteTwitterUsersToDiscussion(ctx, client, twitterHandles, discussionID, invitingParticipantID)
 }
 
 func (r *mutationResolver) RespondToInvite(ctx context.Context, inviteID string, response model.InviteRequestStatus, discussionParticipantInput model.AddDiscussionParticipantInput) (*model.DiscussionInvite, error) {
@@ -680,7 +685,11 @@ func (r *queryResolver) Me(ctx context.Context) (*model.User, error) {
 }
 
 func (r *queryResolver) TwitterUserHandleAutocompletes(ctx context.Context, attempt string) ([]string, error) {
-	return r.DAOManager.GetTwitterUserHandleAutocompletes(ctx, attempt)
+	client, err := r.DAOManager.GetTwitterClient(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return r.DAOManager.GetTwitterUserHandleAutocompletes(ctx, client, attempt)
 }
 
 func (r *subscriptionResolver) PostAdded(ctx context.Context, discussionID string) (<-chan *model.Post, error) {

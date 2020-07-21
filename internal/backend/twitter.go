@@ -28,13 +28,13 @@ func (d *delphisBackend) GetTwitterAccessToken(ctx context.Context) (string, str
 	}
 
 	/* Obtain authed user profile */
-	authedUserProfile, err := d.GetUserProfileByUserID(ctx, authedUser.UserID)
+	authedUserProfile, err := d.db.GetUserProfileByUserID(ctx, authedUser.UserID)
 	if err != nil {
 		return "", "", err
 	}
 
 	/* Obtain authed user social info  */
-	authedSocialInfo, err := d.GetSocialInfosByUserProfileID(ctx, *&authedUserProfile.ID)
+	authedSocialInfo, err := d.db.GetSocialInfosByUserProfileID(ctx, *&authedUserProfile.ID)
 	if err != nil {
 		return "", "", err
 	}
@@ -73,13 +73,7 @@ func (d *delphisBackend) GetTwitterClient(ctx context.Context) (*twitter.Client,
 	return twitter.NewClient(httpClient), nil
 }
 
-func (d *delphisBackend) GetTwitterUserHandleAutocompletes(ctx context.Context, attempt string) ([]string, error) {
-	/* Obtain Twitter API client */
-	twitterClient, err := d.GetTwitterClient(ctx)
-	if err != nil {
-		return nil, err
-	}
-
+func (d *delphisBackend) GetTwitterUserHandleAutocompletes(ctx context.Context, twitterClient *twitter.Client, attempt string) ([]string, error) {
 	/* Fetch autocompletes result eagerly from twitter APIs. A connection-based paging
 	   system would have more quality but would also introduce additional overhead.
 	   As a tradeoff we limit the number of pages fetched by assuming that the best
@@ -105,17 +99,11 @@ func (d *delphisBackend) GetTwitterUserHandleAutocompletes(ctx context.Context, 
 	return results, nil
 }
 
-func (d *delphisBackend) InviteTwitterUsersToDiscussion(ctx context.Context, twitterHandles []string, discussionID, invitingParticipantID string) ([]*model.DiscussionInvite, error) {
+func (d *delphisBackend) InviteTwitterUsersToDiscussion(ctx context.Context, twitterClient *twitter.Client, twitterHandles []string, discussionID, invitingParticipantID string) ([]*model.DiscussionInvite, error) {
 	/* Check that the user is autenticated */
 	authedUser := auth.GetAuthedUser(ctx)
 	if authedUser == nil {
 		return nil, fmt.Errorf("Need auth")
-	}
-
-	/* Obtain Twitter API client */
-	twitterClient, err := d.GetTwitterClient(ctx)
-	if err != nil {
-		return nil, err
 	}
 
 	/* Leverage Twitter APIs Lookup query to retrieve users in batch with a single request */
