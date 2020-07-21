@@ -12,6 +12,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"regexp"
 	"strings"
 	"time"
 
@@ -136,10 +137,11 @@ func main() {
 	c.AddFunc("@every 5m", delphisBackend.AutoPostContent)
 	c.Start()
 
-	http.Handle("/", allowCors(healthCheck()))
+	http.Handle("/.well-known/apple-app-site-association", appleSiteAssociationHandler(conf))
+
 	http.Handle("/graphiql", allowCors(playground.Handler("GraphQL playground", "/query")))
 	http.Handle("/query", allowCors(authMiddleware(*conf, delphisBackend, srv)))
-	config := &oauth1.Config{
+	appLoginConfig := &oauth1.Config{
 		ConsumerKey:    conf.Twitter.ConsumerKey,
 		ConsumerSecret: conf.Twitter.ConsumerSecret,
 		CallbackURL:    conf.Twitter.Callback,
@@ -147,12 +149,48 @@ func main() {
 	}
 
 	http.Handle("/apple/authLogin", appleAuthLogin(conf, delphisBackend))
-	http.Handle("/twitter/login", twitter.LoginHandler(config, nil))
-	http.Handle("/twitter/callback", twitter.CallbackHandler(config, successfulLogin(*conf, delphisBackend), nil))
+	// For the app we have a different redirect than not within the app.
+	http.Handle("/twitter/login", twitter.LoginHandler(appLoginConfig, nil))
+	http.Handle("/twitter/callback", twitter.CallbackHandler(appLoginConfig, successfulLogin(*conf, delphisBackend), nil))
 	http.Handle("/upload_image", allowCors(uploadImage(delphisBackend)))
 	http.Handle("/health", healthCheck())
+	http.Handle("/", allowCors(authMiddleware(*conf, delphisBackend, fallbackHandler(conf, delphisBackend))))
 	log.Printf("connect on port %s for GraphQL playground", port)
 	log.Fatal(http.ListenAndServe(":"+port, nil))
+}
+
+// TODO: We may want to limit this to certain domains.
+func appleSiteAssociationHandler(conf *config.Config) http.Handler {
+	fn := func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		http.ServeFile(w, r, "./static/.well-known/app.chatham.ai.json")
+	}
+	return http.HandlerFunc(fn)
+}
+
+func fallbackHandler(conf *config.Config, delphisBackend backend.DelphisBackend) http.Handler {
+	appRedirChathamRegex := regexp.MustCompile(`^[m|app](-?[^\.]+).chatham.ai(:\d+)?$`)
+	fn := func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/app_redirect" || appRedirChathamRegex.MatchString(r.Host) {
+			w.Header().Set("Content-Type", "text/html; charset=utf-8")
+			http.ServeFile(w, r, "./app_redirect.html")
+			return
+		}
+
+		// Otherwise let's send them to the login flow!
+		http.SetCookie(w, &http.Cookie{
+			Name:     "dwl",
+			Value:    "1",
+			Domain:   conf.Auth.Domain,
+			Path:     "/",
+			MaxAge:   120,
+			HttpOnly: true,
+			SameSite: http.SameSiteStrictMode,
+		})
+		http.Redirect(w, r, "/twitter/login", http.StatusFound)
+	}
+
+	return http.HandlerFunc(fn)
 }
 
 func appleAuthLogin(conf *config.Config, delphisBackend backend.DelphisBackend) http.Handler {
@@ -358,14 +396,38 @@ func successfulLogin(conf config.Config, delphisBackend backend.DelphisBackend) 
 
 		redirectURL, err := url.Parse(conf.Twitter.Redirect)
 		if err != nil {
-			logrus.WithError(err).Fatalf("Failed parsing the redirect URI so failing the app")
+			logrus.WithError(err).Errorf("Failed parsing redirect URI. Returning 500")
+			w.WriteHeader(http.StatusInternalServerError)
+			return
 		}
-		// TODO: Only want to do this if authing via the app. Given that will
-		// be the majority use case, just doing this for everyone... for now.
-		query := redirectURL.Query()
-		query.Set("dc", authToken.TokenString)
-		redirectURL.RawQuery = query.Encode()
-		http.Redirect(w, req, redirectURL.String(), 302)
+
+		c, err := req.Cookie("dwl")
+		if err == nil && c != nil {
+			http.SetCookie(w, &http.Cookie{
+				Name:     "dwl",
+				Value:    "",
+				Domain:   conf.Auth.Domain,
+				Path:     "/",
+				MaxAge:   0,
+				HttpOnly: true,
+				SameSite: http.SameSiteStrictMode,
+			})
+			// The user was logged in through the web. Do not redirect to app.
+			redirectURL, err := url.Parse(conf.Twitter.Redirect)
+			if err != nil {
+				logrus.WithError(err).Errorf("Failed parsing redirect URI. Returning 500")
+				w.WriteHeader(http.StatusInternalServerError)
+				return
+			}
+			http.Redirect(w, req, redirectURL.String(), http.StatusFound)
+		} else {
+			// TODO: Only want to do this if authing via the app. Given that will
+			// be the majority use case, just doing this for everyone... for now.
+			query := redirectURL.Query()
+			query.Set("dc", authToken.TokenString)
+			redirectURL.RawQuery = query.Encode()
+			http.Redirect(w, req, redirectURL.String(), http.StatusFound)
+		}
 	}
 	return http.HandlerFunc(fn)
 }
