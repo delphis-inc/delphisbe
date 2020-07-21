@@ -1,1 +1,18 @@
-{"applinks":{"apps":[],"details":[{"appID":"DYNUCFYJTQ.ai.chatham.alpha","paths":["*"]}]}}
+{
+   "applinks": {
+       "details": [
+            {
+              "appIDs": [ "DYNUCFYJTQ.ai.chatham.alpha" ],
+              "components": [
+                {
+                   "/": "*",
+                   "comment": "Matches any URL"
+                }
+              ]
+            }
+        ]
+    },
+    "webcredentials": {
+       "apps": [ "DYNUCFYJTQ.ai.chatham.alpha" ]
+    }
+ }
