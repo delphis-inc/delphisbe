@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/delphis-inc/delphisbe/internal/mediadb"
+	"github.com/dghubble/go-twitter/twitter"
 
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/delphis-inc/delphisbe/graph/model"
@@ -106,7 +107,10 @@ type DelphisBackend interface {
 	GetDiscussionAccessRequestsByDiscussionID(ctx context.Context, discussionID string) ([]*model.DiscussionAccessRequest, error)
 	GetSentDiscussionAccessRequestsByUserID(ctx context.Context, userID string) ([]*model.DiscussionAccessRequest, error)
 	InviteUserToDiscussion(ctx context.Context, userID, discussionID, invitingParticipantID string) (*model.DiscussionInvite, error)
-	InviteTwitterUserToDiscussion(ctx context.Context, twitterHandle, discussionID, invitingParticipantID string) (*model.DiscussionInvite, error)
+	InviteTwitterUsersToDiscussion(ctx context.Context, twitterHandles []string, discussionID, invitingParticipantID string) ([]*model.DiscussionInvite, error)
+	GetTwitterUserHandleAutocompletes(ctx context.Context, attempt string) ([]string, error)
+	GetTwitterAccessToken(ctx context.Context) (string, string, error)
+	GetTwitterClient(ctx context.Context) (*twitter.Client, error)
 	RespondToInvitation(ctx context.Context, inviteID string, response model.InviteRequestStatus, discussionParticipantInput model.AddDiscussionParticipantInput) (*model.DiscussionInvite, error)
 	RequestAccessToDiscussion(ctx context.Context, userID, discussionID string) (*model.DiscussionAccessRequest, error)
 	RespondToRequestAccess(ctx context.Context, requestID string, response model.InviteRequestStatus, invitingParticipantID string) (*model.DiscussionAccessRequest, error)
