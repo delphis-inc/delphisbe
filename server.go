@@ -163,6 +163,7 @@ func main() {
 // TODO: We may want to limit this to certain domains.
 func appleSiteAssociationHandler(conf *config.Config) http.Handler {
 	fn := func(w http.ResponseWriter, r *http.Request) {
+		logrus.Infof("Fetching the apple site association")
 		w.Header().Set("Content-Type", "application/json")
 		_, err := os.Stat("/var/delphis/static")
 		if err == nil {
