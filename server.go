@@ -178,8 +178,10 @@ func fallbackHandler(conf *config.Config, delphisBackend backend.DelphisBackend)
 	appRedirChathamRegex := regexp.MustCompile(`^[m|app](-?[^\.]+).chatham.ai(:\d+)?$`)
 	fn := func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path == "/app_redirect" || appRedirChathamRegex.MatchString(r.Host) {
-			w.Header().Set("Content-Type", "text/html; charset=utf-8")
-			http.ServeFile(w, r, "./app_redirect.html")
+			// w.Header().Set("Content-Type", "text/html; charset=utf-8")
+			// http.ServeFile(w, r, "./app_redirect.html")
+			// return
+			fmt.Fprint(w, "success")
 			return
 		}
 
