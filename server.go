@@ -138,6 +138,7 @@ func main() {
 	c.Start()
 
 	http.Handle("/.well-known/apple-app-site-association", appleSiteAssociationHandler(conf))
+	http.Handle("/apple-app-site-association", appleSiteAssociationHandler(conf))
 
 	http.Handle("/graphiql", allowCors(playground.Handler("GraphQL playground", "/query")))
 	http.Handle("/query", allowCors(authMiddleware(*conf, delphisBackend, srv)))
