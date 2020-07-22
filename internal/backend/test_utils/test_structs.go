@@ -2,6 +2,7 @@ package test_utils
 
 import (
 	"github.com/delphis-inc/delphisbe/graph/model"
+	"github.com/delphis-inc/delphisbe/internal/auth"
 )
 
 const ProfileID = "profileID"
@@ -181,6 +182,7 @@ func TestImportedContent() model.ImportedContent {
 
 func TestSocialInfo() model.SocialInfo {
 	return model.SocialInfo{
+		Network:           "twitter",
 		AccessToken:       Token,
 		AccessTokenSecret: TokenSecret,
 		UserID:            UserID,
@@ -320,5 +322,14 @@ func TestPostsConnection(cursor string) model.PostsConnection {
 			},
 		},
 		PageInfo: model.PageInfo{},
+	}
+}
+
+func TestDelphisAuthedUser() auth.DelphisAuthedUser {
+	user := TestUser()
+	user.ID = "authoredUserID"
+	return auth.DelphisAuthedUser{
+		UserID: user.ID,
+		User:   &user,
 	}
 }

@@ -20,6 +20,35 @@ const (
 	twitterAutocompletsMaxPages  = 1
 )
 
+/* This is an interface that abstracts the business logic related to Twitter APIs.
+   Having an internal interface helps reducing dependency binding and helps in testing. */
+type TwitterClient interface {
+	SearchUsers(query string, page int, count int) ([]twitter.User, error)
+	LookupUsers(screenNames []string) ([]twitter.User, error)
+}
+
+/* Implementation of the interface above based on an external package */
+type twitterClient struct {
+	client *twitter.Client
+}
+
+func (t *twitterClient) SearchUsers(query string, page int, count int) ([]twitter.User, error) {
+	userSearchParams := &twitter.UserSearchParams{
+		Query: query,
+		Page:  page,
+		Count: count,
+	}
+	twitterUsers, _, err := t.client.Users.Search(query, userSearchParams)
+	return twitterUsers, err
+}
+
+func (t *twitterClient) LookupUsers(screenNames []string) ([]twitter.User, error) {
+	twitterUsers, _, err := t.client.Users.Lookup(&twitter.UserLookupParams{
+		ScreenName: screenNames,
+	})
+	return twitterUsers, err
+}
+
 func (d *delphisBackend) GetTwitterAccessToken(ctx context.Context) (string, string, error) {
 	/* Get the authed user */
 	authedUser := auth.GetAuthedUser(ctx)
@@ -52,7 +81,7 @@ func (d *delphisBackend) GetTwitterAccessToken(ctx context.Context) (string, str
 	return accessToken, accessTokenSecret, nil
 }
 
-func (d *delphisBackend) GetTwitterClient(ctx context.Context) (*twitter.Client, error) {
+func (d *delphisBackend) GetTwitterClient(ctx context.Context) (TwitterClient, error) {
 	/* Obtain infos needed for creating Twitter API client */
 	consumerKey := d.config.Twitter.ConsumerKey
 	consumerSecret := d.config.Twitter.ConsumerSecret
@@ -70,10 +99,13 @@ func (d *delphisBackend) GetTwitterClient(ctx context.Context) (*twitter.Client,
 	config := oauth1.NewConfig(consumerKey, consumerSecret)
 	token := oauth1.NewToken(accessToken, accessTokenSecret)
 	httpClient := config.Client(oauth1.NoContext, token)
-	return twitter.NewClient(httpClient), nil
+	client := twitter.NewClient(httpClient)
+	return &twitterClient{
+		client: client,
+	}, nil
 }
 
-func (d *delphisBackend) GetTwitterUserHandleAutocompletes(ctx context.Context, twitterClient *twitter.Client, attempt string) ([]string, error) {
+func (d *delphisBackend) GetTwitterUserHandleAutocompletes(ctx context.Context, twitterClient TwitterClient, attempt string) ([]string, error) {
 	/* Fetch autocompletes result eagerly from twitter APIs. A connection-based paging
 	   system would have more quality but would also introduce additional overhead.
 	   As a tradeoff we limit the number of pages fetched by assuming that the best
@@ -81,12 +113,7 @@ func (d *delphisBackend) GetTwitterUserHandleAutocompletes(ctx context.Context, 
 	var results []string
 	curPage := 0
 	for resultSize := 0; (curPage == 0 || resultSize == twitterAutocompletesPageSize) && curPage < twitterAutocompletsMaxPages; curPage++ {
-		userSearchParams := &twitter.UserSearchParams{
-			Query: attempt,
-			Page:  curPage,
-			Count: twitterAutocompletesPageSize,
-		}
-		twitterUsers, _, err := twitterClient.Users.Search(attempt, userSearchParams)
+		twitterUsers, err := twitterClient.SearchUsers(attempt, curPage, twitterAutocompletesPageSize)
 		if err != nil {
 			return nil, err
 		}
@@ -99,7 +126,7 @@ func (d *delphisBackend) GetTwitterUserHandleAutocompletes(ctx context.Context, 
 	return results, nil
 }
 
-func (d *delphisBackend) InviteTwitterUsersToDiscussion(ctx context.Context, twitterClient *twitter.Client, twitterHandles []string, discussionID, invitingParticipantID string) ([]*model.DiscussionInvite, error) {
+func (d *delphisBackend) InviteTwitterUsersToDiscussion(ctx context.Context, twitterClient TwitterClient, twitterHandles []string, discussionID, invitingParticipantID string) ([]*model.DiscussionInvite, error) {
 	/* Check that the user is autenticated */
 	authedUser := auth.GetAuthedUser(ctx)
 	if authedUser == nil {
@@ -107,9 +134,7 @@ func (d *delphisBackend) InviteTwitterUsersToDiscussion(ctx context.Context, twi
 	}
 
 	/* Leverage Twitter APIs Lookup query to retrieve users in batch with a single request */
-	twitterUsers, _, err := twitterClient.Users.Lookup(&twitter.UserLookupParams{
-		ScreenName: twitterHandles,
-	})
+	twitterUsers, err := twitterClient.LookupUsers(twitterHandles)
 	if err != nil {
 		return nil, err
 	}
