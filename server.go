@@ -163,7 +163,6 @@ func main() {
 // TODO: We may want to limit this to certain domains.
 func appleSiteAssociationHandler(conf *config.Config) http.Handler {
 	fn := func(w http.ResponseWriter, r *http.Request) {
-		logrus.Infof("Fetching the apple site association")
 		w.Header().Set("Content-Type", "application/json")
 		_, err := os.Stat("/var/delphis/static")
 		if err == nil {
@@ -179,10 +178,8 @@ func fallbackHandler(conf *config.Config, delphisBackend backend.DelphisBackend)
 	appRedirChathamRegex := regexp.MustCompile(`^[m|app](-?[^\.]+).chatham.ai(:\d+)?$`)
 	fn := func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path == "/app_redirect" || appRedirChathamRegex.MatchString(r.Host) {
-			// w.Header().Set("Content-Type", "text/html; charset=utf-8")
-			// http.ServeFile(w, r, "./app_redirect.html")
-			// return
-			fmt.Fprint(w, "success")
+			w.Header().Set("Content-Type", "text/html; charset=utf-8")
+			http.ServeFile(w, r, "./app_redirect.html")
 			return
 		}
 
