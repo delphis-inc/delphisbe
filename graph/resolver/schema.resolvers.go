@@ -515,7 +515,7 @@ func (r *mutationResolver) InviteTwitterUsersToDiscussion(ctx context.Context, d
 		return nil, fmt.Errorf("Unauthorized")
 	}
 
-	client, err := r.DAOManager.GetTwitterClient(ctx)
+	client, err := r.DAOManager.GetTwitterClientWithUserTokens(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -685,7 +685,7 @@ func (r *queryResolver) Me(ctx context.Context) (*model.User, error) {
 }
 
 func (r *queryResolver) TwitterUserAutocompletes(ctx context.Context, query string) ([]*model.TwitterUserInfo, error) {
-	client, err := r.DAOManager.GetTwitterClient(ctx)
+	client, err := r.DAOManager.GetTwitterClientWithUserTokens(ctx)
 	if err != nil {
 		return nil, err
 	}

@@ -81,7 +81,7 @@ func (d *delphisBackend) GetTwitterAccessToken(ctx context.Context) (string, str
 	return accessToken, accessTokenSecret, nil
 }
 
-func (d *delphisBackend) GetTwitterClient(ctx context.Context) (TwitterClient, error) {
+func (d *delphisBackend) GetTwitterClientWithUserTokens(ctx context.Context) (TwitterClient, error) {
 	/* Obtain infos needed for creating Twitter API client */
 	consumerKey := d.config.Twitter.ConsumerKey
 	consumerSecret := d.config.Twitter.ConsumerSecret

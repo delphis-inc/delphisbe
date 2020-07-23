@@ -94,11 +94,11 @@ func TestDelphisBackend_GetTwitterAccessToken(t *testing.T) {
 	})
 }
 
-func TestDelphisBackend_GetTwitterClient(t *testing.T) {
+func TestDelphisBackend_GetTwitterClientWithUserTokens(t *testing.T) {
 	ctx := context.Background()
 	now := time.Now()
 
-	Convey("GetTwitterClient", t, func() {
+	Convey("GetTwitterClientWithUserTokens", t, func() {
 		testAuthedUser := test_utils.TestDelphisAuthedUser()
 		cacheObj := cache.NewInMemoryCache()
 		authObj := auth.NewDelphisAuth(nil)
@@ -131,7 +131,7 @@ func TestDelphisBackend_GetTwitterClient(t *testing.T) {
 			mockDB.On("GetUserProfileByUserID", ctx, testAuthedUser.UserID).Return(&userProfile, nil)
 			mockDB.On("GetSocialInfosByUserProfileID", ctx, userProfile.ID).Return(socialInfo, nil)
 
-			_, err := backendObj.GetTwitterClient(ctx)
+			_, err := backendObj.GetTwitterClientWithUserTokens(ctx)
 
 			So(err, ShouldNotEqual, nil)
 		})
@@ -143,7 +143,7 @@ func TestDelphisBackend_GetTwitterClient(t *testing.T) {
 			mockDB.On("GetUserProfileByUserID", ctx, testAuthedUser.UserID).Return(&userProfile, nil)
 			mockDB.On("GetSocialInfosByUserProfileID", ctx, userProfile.ID).Return(socialInfo, nil)
 
-			_, err := backendObj.GetTwitterClient(ctx)
+			_, err := backendObj.GetTwitterClientWithUserTokens(ctx)
 
 			So(err, ShouldEqual, nil)
 		})
