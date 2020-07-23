@@ -489,7 +489,7 @@ func (r *mutationResolver) InviteUserToDiscussion(ctx context.Context, discussio
 	return r.DAOManager.InviteUserToDiscussion(ctx, userID, discussionID, invitingParticipantID)
 }
 
-func (r *mutationResolver) InviteTwitterUsersToDiscussion(ctx context.Context, discussionID string, twitterHandles []string, invitingParticipantID string) ([]*model.DiscussionInvite, error) {
+func (r *mutationResolver) InviteTwitterUsersToDiscussion(ctx context.Context, discussionID string, twitterUsers []*model.TwitterUserInput, invitingParticipantID string) ([]*model.DiscussionInvite, error) {
 	authedUser := auth.GetAuthedUser(ctx)
 	if authedUser == nil {
 		return nil, fmt.Errorf("Need auth")
@@ -520,7 +520,7 @@ func (r *mutationResolver) InviteTwitterUsersToDiscussion(ctx context.Context, d
 		return nil, err
 	}
 
-	return r.DAOManager.InviteTwitterUsersToDiscussion(ctx, client, twitterHandles, discussionID, invitingParticipantID)
+	return r.DAOManager.InviteTwitterUsersToDiscussion(ctx, client, twitterUsers, discussionID, invitingParticipantID)
 }
 
 func (r *mutationResolver) RespondToInvite(ctx context.Context, inviteID string, response model.InviteRequestStatus, discussionParticipantInput model.AddDiscussionParticipantInput) (*model.DiscussionInvite, error) {
@@ -684,12 +684,12 @@ func (r *queryResolver) Me(ctx context.Context) (*model.User, error) {
 	return authedUser.User, nil
 }
 
-func (r *queryResolver) TwitterUserHandleAutocompletes(ctx context.Context, attempt string) ([]string, error) {
+func (r *queryResolver) TwitterUserAutocompletes(ctx context.Context, query string) ([]*model.TwitterUserInfo, error) {
 	client, err := r.DAOManager.GetTwitterClient(ctx)
 	if err != nil {
 		return nil, err
 	}
-	return r.DAOManager.GetTwitterUserHandleAutocompletes(ctx, client, attempt)
+	return r.DAOManager.GetTwitterUserHandleAutocompletes(ctx, client, query)
 }
 
 func (r *subscriptionResolver) PostAdded(ctx context.Context, discussionID string) (<-chan *model.Post, error) {

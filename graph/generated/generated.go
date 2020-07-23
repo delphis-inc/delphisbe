@@ -215,7 +215,7 @@ type ComplexityRoot struct {
 		DeleteDiscussionFlairTemplatesAccess func(childComplexity int, discussionID string, flairTemplateIDs []string) int
 		DeleteDiscussionTags                 func(childComplexity int, discussionID string, tags []string) int
 		DeletePost                           func(childComplexity int, discussionID string, postID string) int
-		InviteTwitterUsersToDiscussion       func(childComplexity int, discussionID string, twitterHandles []string, invitingParticipantID string) int
+		InviteTwitterUsersToDiscussion       func(childComplexity int, discussionID string, twitterUsers []*model.TwitterUserInput, invitingParticipantID string) int
 		InviteUserToDiscussion               func(childComplexity int, discussionID string, userID string, invitingParticipantID string) int
 		PostImportedContent                  func(childComplexity int, discussionID string, participantID string, contentID string) int
 		RemoveFlair                          func(childComplexity int, id string) int
@@ -319,12 +319,12 @@ type ComplexityRoot struct {
 	}
 
 	Query struct {
-		Discussion                     func(childComplexity int, id string) int
-		FlairTemplates                 func(childComplexity int, query *string) int
-		ListDiscussions                func(childComplexity int) int
-		Me                             func(childComplexity int) int
-		TwitterUserHandleAutocompletes func(childComplexity int, attempt string) int
-		User                           func(childComplexity int, id string) int
+		Discussion               func(childComplexity int, id string) int
+		FlairTemplates           func(childComplexity int, query *string) int
+		ListDiscussions          func(childComplexity int) int
+		Me                       func(childComplexity int) int
+		TwitterUserAutocompletes func(childComplexity int, query string) int
+		User                     func(childComplexity int, id string) int
 	}
 
 	Subscription struct {
@@ -337,6 +337,14 @@ type ComplexityRoot struct {
 		ID        func(childComplexity int) int
 		IsDeleted func(childComplexity int) int
 		Tag       func(childComplexity int) int
+	}
+
+	TwitterUserInfo struct {
+		DiplayName      func(childComplexity int) int
+		ID              func(childComplexity int) int
+		IsVerified      func(childComplexity int) int
+		Name            func(childComplexity int) int
+		ProfileImageURL func(childComplexity int) int
 	}
 
 	URL struct {
@@ -481,7 +489,7 @@ type MutationResolver interface {
 	AddDiscussionFlairTemplatesAccess(ctx context.Context, discussionID string, flairTemplateIDs []string) (*model.Discussion, error)
 	DeleteDiscussionFlairTemplatesAccess(ctx context.Context, discussionID string, flairTemplateIDs []string) (*model.Discussion, error)
 	InviteUserToDiscussion(ctx context.Context, discussionID string, userID string, invitingParticipantID string) (*model.DiscussionInvite, error)
-	InviteTwitterUsersToDiscussion(ctx context.Context, discussionID string, twitterHandles []string, invitingParticipantID string) ([]*model.DiscussionInvite, error)
+	InviteTwitterUsersToDiscussion(ctx context.Context, discussionID string, twitterUsers []*model.TwitterUserInput, invitingParticipantID string) ([]*model.DiscussionInvite, error)
 	RespondToInvite(ctx context.Context, inviteID string, response model.InviteRequestStatus, discussionParticipantInput model.AddDiscussionParticipantInput) (*model.DiscussionInvite, error)
 	RequestAccessToDiscussion(ctx context.Context, discussionID string) (*model.DiscussionAccessRequest, error)
 	RespondToRequestAccess(ctx context.Context, requestID string, response model.InviteRequestStatus) (*model.DiscussionAccessRequest, error)
@@ -528,7 +536,7 @@ type QueryResolver interface {
 	FlairTemplates(ctx context.Context, query *string) ([]*model.FlairTemplate, error)
 	User(ctx context.Context, id string) (*model.User, error)
 	Me(ctx context.Context) (*model.User, error)
-	TwitterUserHandleAutocompletes(ctx context.Context, attempt string) ([]string, error)
+	TwitterUserAutocompletes(ctx context.Context, query string) ([]*model.TwitterUserInfo, error)
 }
 type SubscriptionResolver interface {
 	PostAdded(ctx context.Context, discussionID string) (<-chan *model.Post, error)
@@ -1376,7 +1384,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Mutation.InviteTwitterUsersToDiscussion(childComplexity, args["discussionID"].(string), args["twitterHandles"].([]string), args["invitingParticipantID"].(string)), true
+		return e.complexity.Mutation.InviteTwitterUsersToDiscussion(childComplexity, args["discussionID"].(string), args["twitterUsers"].([]*model.TwitterUserInput), args["invitingParticipantID"].(string)), true
 
 	case "Mutation.inviteUserToDiscussion":
 		if e.complexity.Mutation.InviteUserToDiscussion == nil {
@@ -1924,17 +1932,17 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Query.Me(childComplexity), true
 
-	case "Query.twitterUserHandleAutocompletes":
-		if e.complexity.Query.TwitterUserHandleAutocompletes == nil {
+	case "Query.twitterUserAutocompletes":
+		if e.complexity.Query.TwitterUserAutocompletes == nil {
 			break
 		}
 
-		args, err := ec.field_Query_twitterUserHandleAutocompletes_args(context.TODO(), rawArgs)
+		args, err := ec.field_Query_twitterUserAutocompletes_args(context.TODO(), rawArgs)
 		if err != nil {
 			return 0, false
 		}
 
-		return e.complexity.Query.TwitterUserHandleAutocompletes(childComplexity, args["attempt"].(string)), true
+		return e.complexity.Query.TwitterUserAutocompletes(childComplexity, args["query"].(string)), true
 
 	case "Query.user":
 		if e.complexity.Query.User == nil {
@@ -1999,6 +2007,41 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Tag.Tag(childComplexity), true
+
+	case "TwitterUserInfo.diplayName":
+		if e.complexity.TwitterUserInfo.DiplayName == nil {
+			break
+		}
+
+		return e.complexity.TwitterUserInfo.DiplayName(childComplexity), true
+
+	case "TwitterUserInfo.id":
+		if e.complexity.TwitterUserInfo.ID == nil {
+			break
+		}
+
+		return e.complexity.TwitterUserInfo.ID(childComplexity), true
+
+	case "TwitterUserInfo.isVerified":
+		if e.complexity.TwitterUserInfo.IsVerified == nil {
+			break
+		}
+
+		return e.complexity.TwitterUserInfo.IsVerified(childComplexity), true
+
+	case "TwitterUserInfo.name":
+		if e.complexity.TwitterUserInfo.Name == nil {
+			break
+		}
+
+		return e.complexity.TwitterUserInfo.Name(childComplexity), true
+
+	case "TwitterUserInfo.profileImageURL":
+		if e.complexity.TwitterUserInfo.ProfileImageURL == nil {
+			break
+		}
+
+		return e.complexity.TwitterUserInfo.ProfileImageURL(childComplexity), true
 
 	case "URL.displayText":
 		if e.complexity.URL.DisplayText == nil {
@@ -2680,7 +2723,7 @@ type Query {
   me: User!
 
   # Twitter
-  twitterUserHandleAutocompletes(attempt: ID!): [ID!]
+  twitterUserAutocompletes(query: ID!): [TwitterUserInfo!]
 }
 
 input UpdateParticipantInput {
@@ -2770,7 +2813,7 @@ type Mutation {
 
   # Invites
   inviteUserToDiscussion(discussionID: ID!, userID: ID!, invitingParticipantID: ID!): DiscussionInvite!
-  inviteTwitterUsersToDiscussion(discussionID: ID!, twitterHandles: [ID!]!, invitingParticipantID: ID!): [DiscussionInvite!]!
+  inviteTwitterUsersToDiscussion(discussionID: ID!, twitterUsers: [TwitterUserInput!], invitingParticipantID: ID!): [DiscussionInvite!]!
   respondToInvite(inviteID: ID!, response: InviteRequestStatus!, discussionParticipantInput: AddDiscussionParticipantInput!): DiscussionInvite!
 
   requestAccessToDiscussion(discussionID: ID!): DiscussionAccessRequest!
@@ -2799,6 +2842,17 @@ type Subscription {
 # }`, BuiltIn: false},
 	&ast.Source{Name: "graph/types/time.graphqls", Input: `# Time is an RFC3339 timestamp.
 scalar Time`, BuiltIn: false},
+	&ast.Source{Name: "graph/types/twitter_user_info.graphqls", Input: `type TwitterUserInfo {
+    id: ID!
+    name: String!
+    diplayName: String!
+    profileImageURL: String!
+    isVerified: Boolean!
+}
+
+input TwitterUserInput {
+    name: String!
+}`, BuiltIn: false},
 	&ast.Source{Name: "graph/types/url.graphqls", Input: `type URL {
     displayText: String!
     url: String!
@@ -3235,14 +3289,14 @@ func (ec *executionContext) field_Mutation_inviteTwitterUsersToDiscussion_args(c
 		}
 	}
 	args["discussionID"] = arg0
-	var arg1 []string
-	if tmp, ok := rawArgs["twitterHandles"]; ok {
-		arg1, err = ec.unmarshalNID2ᚕstringᚄ(ctx, tmp)
+	var arg1 []*model.TwitterUserInput
+	if tmp, ok := rawArgs["twitterUsers"]; ok {
+		arg1, err = ec.unmarshalOTwitterUserInput2ᚕᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐTwitterUserInputᚄ(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
 	}
-	args["twitterHandles"] = arg1
+	args["twitterUsers"] = arg1
 	var arg2 string
 	if tmp, ok := rawArgs["invitingParticipantID"]; ok {
 		arg2, err = ec.unmarshalNID2string(ctx, tmp)
@@ -3576,17 +3630,17 @@ func (ec *executionContext) field_Query_flairTemplates_args(ctx context.Context,
 	return args, nil
 }
 
-func (ec *executionContext) field_Query_twitterUserHandleAutocompletes_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+func (ec *executionContext) field_Query_twitterUserAutocompletes_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
 	var arg0 string
-	if tmp, ok := rawArgs["attempt"]; ok {
+	if tmp, ok := rawArgs["query"]; ok {
 		arg0, err = ec.unmarshalNID2string(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
 	}
-	args["attempt"] = arg0
+	args["query"] = arg0
 	return args, nil
 }
 
@@ -7484,7 +7538,7 @@ func (ec *executionContext) _Mutation_inviteTwitterUsersToDiscussion(ctx context
 	fc.Args = args
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().InviteTwitterUsersToDiscussion(rctx, args["discussionID"].(string), args["twitterHandles"].([]string), args["invitingParticipantID"].(string))
+		return ec.resolvers.Mutation().InviteTwitterUsersToDiscussion(rctx, args["discussionID"].(string), args["twitterUsers"].([]*model.TwitterUserInput), args["invitingParticipantID"].(string))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -9575,7 +9629,7 @@ func (ec *executionContext) _Query_me(ctx context.Context, field graphql.Collect
 	return ec.marshalNUser2ᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐUser(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Query_twitterUserHandleAutocompletes(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+func (ec *executionContext) _Query_twitterUserAutocompletes(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -9591,7 +9645,7 @@ func (ec *executionContext) _Query_twitterUserHandleAutocompletes(ctx context.Co
 
 	ctx = graphql.WithFieldContext(ctx, fc)
 	rawArgs := field.ArgumentMap(ec.Variables)
-	args, err := ec.field_Query_twitterUserHandleAutocompletes_args(ctx, rawArgs)
+	args, err := ec.field_Query_twitterUserAutocompletes_args(ctx, rawArgs)
 	if err != nil {
 		ec.Error(ctx, err)
 		return graphql.Null
@@ -9599,7 +9653,7 @@ func (ec *executionContext) _Query_twitterUserHandleAutocompletes(ctx context.Co
 	fc.Args = args
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().TwitterUserHandleAutocompletes(rctx, args["attempt"].(string))
+		return ec.resolvers.Query().TwitterUserAutocompletes(rctx, args["query"].(string))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -9608,9 +9662,9 @@ func (ec *executionContext) _Query_twitterUserHandleAutocompletes(ctx context.Co
 	if resTmp == nil {
 		return graphql.Null
 	}
-	res := resTmp.([]string)
+	res := resTmp.([]*model.TwitterUserInfo)
 	fc.Result = res
-	return ec.marshalOID2ᚕstringᚄ(ctx, field.Selections, res)
+	return ec.marshalOTwitterUserInfo2ᚕᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐTwitterUserInfoᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Query___type(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -9898,6 +9952,176 @@ func (ec *executionContext) _Tag_isDeleted(ctx context.Context, field graphql.Co
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
 		return ec.resolvers.Tag().IsDeleted(rctx, obj)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(bool)
+	fc.Result = res
+	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _TwitterUserInfo_id(ctx context.Context, field graphql.CollectedField, obj *model.TwitterUserInfo) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "TwitterUserInfo",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.ID, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNID2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _TwitterUserInfo_name(ctx context.Context, field graphql.CollectedField, obj *model.TwitterUserInfo) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "TwitterUserInfo",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Name, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _TwitterUserInfo_diplayName(ctx context.Context, field graphql.CollectedField, obj *model.TwitterUserInfo) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "TwitterUserInfo",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.DiplayName, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _TwitterUserInfo_profileImageURL(ctx context.Context, field graphql.CollectedField, obj *model.TwitterUserInfo) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "TwitterUserInfo",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.ProfileImageURL, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _TwitterUserInfo_isVerified(ctx context.Context, field graphql.CollectedField, obj *model.TwitterUserInfo) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "TwitterUserInfo",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.IsVerified, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -12279,6 +12503,24 @@ func (ec *executionContext) unmarshalInputPostContentInput(ctx context.Context, 
 	return it, nil
 }
 
+func (ec *executionContext) unmarshalInputTwitterUserInput(ctx context.Context, obj interface{}) (model.TwitterUserInput, error) {
+	var it model.TwitterUserInput
+	var asMap = obj.(map[string]interface{})
+
+	for k, v := range asMap {
+		switch k {
+		case "name":
+			var err error
+			it.Name, err = ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		}
+	}
+
+	return it, nil
+}
+
 func (ec *executionContext) unmarshalInputUpdateParticipantInput(ctx context.Context, obj interface{}) (model.UpdateParticipantInput, error) {
 	var it model.UpdateParticipantInput
 	var asMap = obj.(map[string]interface{})
@@ -14290,7 +14532,7 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 				}
 				return res
 			})
-		case "twitterUserHandleAutocompletes":
+		case "twitterUserAutocompletes":
 			field := field
 			out.Concurrently(i, func() (res graphql.Marshaler) {
 				defer func() {
@@ -14298,7 +14540,7 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 						ec.Error(ctx, ec.Recover(ctx, r))
 					}
 				}()
-				res = ec._Query_twitterUserHandleAutocompletes(ctx, field)
+				res = ec._Query_twitterUserAutocompletes(ctx, field)
 				return res
 			})
 		case "__type":
@@ -14387,6 +14629,53 @@ func (ec *executionContext) _Tag(ctx context.Context, sel ast.SelectionSet, obj 
 				}
 				return res
 			})
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
+var twitterUserInfoImplementors = []string{"TwitterUserInfo"}
+
+func (ec *executionContext) _TwitterUserInfo(ctx context.Context, sel ast.SelectionSet, obj *model.TwitterUserInfo) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, twitterUserInfoImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("TwitterUserInfo")
+		case "id":
+			out.Values[i] = ec._TwitterUserInfo_id(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "name":
+			out.Values[i] = ec._TwitterUserInfo_name(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "diplayName":
+			out.Values[i] = ec._TwitterUserInfo_diplayName(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "profileImageURL":
+			out.Values[i] = ec._TwitterUserInfo_profileImageURL(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "isVerified":
+			out.Values[i] = ec._TwitterUserInfo_isVerified(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -15357,35 +15646,6 @@ func (ec *executionContext) marshalNID2string(ctx context.Context, sel ast.Selec
 	return res
 }
 
-func (ec *executionContext) unmarshalNID2ᚕstringᚄ(ctx context.Context, v interface{}) ([]string, error) {
-	var vSlice []interface{}
-	if v != nil {
-		if tmp1, ok := v.([]interface{}); ok {
-			vSlice = tmp1
-		} else {
-			vSlice = []interface{}{v}
-		}
-	}
-	var err error
-	res := make([]string, len(vSlice))
-	for i := range vSlice {
-		res[i], err = ec.unmarshalNID2string(ctx, vSlice[i])
-		if err != nil {
-			return nil, err
-		}
-	}
-	return res, nil
-}
-
-func (ec *executionContext) marshalNID2ᚕstringᚄ(ctx context.Context, sel ast.SelectionSet, v []string) graphql.Marshaler {
-	ret := make(graphql.Array, len(v))
-	for i := range v {
-		ret[i] = ec.marshalNID2string(ctx, sel, v[i])
-	}
-
-	return ret
-}
-
 func (ec *executionContext) marshalNImportedContent2githubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐImportedContent(ctx context.Context, sel ast.SelectionSet, v model.ImportedContent) graphql.Marshaler {
 	return ec._ImportedContent(ctx, sel, &v)
 }
@@ -15601,6 +15861,32 @@ func (ec *executionContext) marshalNTime2timeᚐTime(ctx context.Context, sel as
 		}
 	}
 	return res
+}
+
+func (ec *executionContext) marshalNTwitterUserInfo2githubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐTwitterUserInfo(ctx context.Context, sel ast.SelectionSet, v model.TwitterUserInfo) graphql.Marshaler {
+	return ec._TwitterUserInfo(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNTwitterUserInfo2ᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐTwitterUserInfo(ctx context.Context, sel ast.SelectionSet, v *model.TwitterUserInfo) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	return ec._TwitterUserInfo(ctx, sel, v)
+}
+
+func (ec *executionContext) unmarshalNTwitterUserInput2githubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐTwitterUserInput(ctx context.Context, v interface{}) (model.TwitterUserInput, error) {
+	return ec.unmarshalInputTwitterUserInput(ctx, v)
+}
+
+func (ec *executionContext) unmarshalNTwitterUserInput2ᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐTwitterUserInput(ctx context.Context, v interface{}) (*model.TwitterUserInput, error) {
+	if v == nil {
+		return nil, nil
+	}
+	res, err := ec.unmarshalNTwitterUserInput2githubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐTwitterUserInput(ctx, v)
+	return &res, err
 }
 
 func (ec *executionContext) marshalNURL2githubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐURL(ctx context.Context, sel ast.SelectionSet, v model.URL) graphql.Marshaler {
@@ -16878,6 +17164,66 @@ func (ec *executionContext) marshalOTime2ᚖtimeᚐTime(ctx context.Context, sel
 		return graphql.Null
 	}
 	return ec.marshalOTime2timeᚐTime(ctx, sel, *v)
+}
+
+func (ec *executionContext) marshalOTwitterUserInfo2ᚕᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐTwitterUserInfoᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.TwitterUserInfo) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNTwitterUserInfo2ᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐTwitterUserInfo(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+	return ret
+}
+
+func (ec *executionContext) unmarshalOTwitterUserInput2ᚕᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐTwitterUserInputᚄ(ctx context.Context, v interface{}) ([]*model.TwitterUserInput, error) {
+	var vSlice []interface{}
+	if v != nil {
+		if tmp1, ok := v.([]interface{}); ok {
+			vSlice = tmp1
+		} else {
+			vSlice = []interface{}{v}
+		}
+	}
+	var err error
+	res := make([]*model.TwitterUserInput, len(vSlice))
+	for i := range vSlice {
+		res[i], err = ec.unmarshalNTwitterUserInput2ᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐTwitterUserInput(ctx, vSlice[i])
+		if err != nil {
+			return nil, err
+		}
+	}
+	return res, nil
 }
 
 func (ec *executionContext) marshalOUserDevice2ᚕᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐUserDeviceᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.UserDevice) graphql.Marshaler {

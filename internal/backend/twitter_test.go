@@ -182,38 +182,62 @@ func TestDelphisBackend_GetTwitterUserHandleAutocompletes(t *testing.T) {
 
 		Convey("when users search gives few results", func() {
 			var returnedResult []twitter.User
-			var expectedResult []string
+			var expectedResult []*model.TwitterUserInfo
 			for i := 0; i < 10; i++ {
-				name := fmt.Sprintf("result%d", i)
 				returnedResult = append(returnedResult, twitter.User{
-					ScreenName: name,
+					ScreenName:           fmt.Sprintf("username%d", i),
+					Name:                 fmt.Sprintf("User Name %d", i),
+					Verified:             true,
+					IDStr:                fmt.Sprintf("%08d", i),
+					ProfileImageURLHttps: "https://example.com/image.png",
 				})
-				expectedResult = append(expectedResult, name)
+				expectedResult = append(expectedResult, &model.TwitterUserInfo{
+					Name:            fmt.Sprintf("username%d", i),
+					DiplayName:      fmt.Sprintf("User Name %d", i),
+					IsVerified:      true,
+					ID:              fmt.Sprintf("%08d", i),
+					ProfileImageURL: "https://example.com/image.png",
+				})
 			}
 			mockTwitter.On("SearchUsers", mockQuery, mock.AnythingOfType("int"), mock.AnythingOfType("int")).Return(returnedResult, nil)
 
 			results, err := backendObj.GetTwitterUserHandleAutocompletes(ctx, &mockTwitter, mockQuery)
 
 			So(err, ShouldEqual, nil)
-			So(reflect.DeepEqual(results, expectedResult), ShouldEqual, true)
+			So(len(results), ShouldEqual, len(expectedResult))
+			for i := range results {
+				So(reflect.DeepEqual(results[i], expectedResult[i]), ShouldEqual, true)
+			}
 		})
 
 		Convey("when users search gives many results", func() {
 			var returnedResult []twitter.User
-			var expectedResult []string
+			var expectedResult []*model.TwitterUserInfo
 			for i := 0; i < 300; i++ {
-				name := fmt.Sprintf("result%d", i)
 				returnedResult = append(returnedResult, twitter.User{
-					ScreenName: name,
+					ScreenName:           fmt.Sprintf("username%d", i),
+					Name:                 fmt.Sprintf("User Name %d", i),
+					Verified:             true,
+					IDStr:                fmt.Sprintf("%08d", i),
+					ProfileImageURLHttps: "https://example.com/image.png",
 				})
-				expectedResult = append(expectedResult, name)
+				expectedResult = append(expectedResult, &model.TwitterUserInfo{
+					Name:            fmt.Sprintf("username%d", i),
+					DiplayName:      fmt.Sprintf("User Name %d", i),
+					IsVerified:      true,
+					ID:              fmt.Sprintf("%08d", i),
+					ProfileImageURL: "https://example.com/image.png",
+				})
 			}
 			mockTwitter.On("SearchUsers", mockQuery, mock.AnythingOfType("int"), mock.AnythingOfType("int")).Return(returnedResult, nil)
 
 			results, err := backendObj.GetTwitterUserHandleAutocompletes(ctx, &mockTwitter, mockQuery)
 
 			So(err, ShouldEqual, nil)
-			So(reflect.DeepEqual(results, expectedResult), ShouldEqual, true)
+			So(len(results), ShouldEqual, len(expectedResult))
+			for i := range results {
+				So(reflect.DeepEqual(results[i], expectedResult[i]), ShouldEqual, true)
+			}
 		})
 	})
 
@@ -236,7 +260,9 @@ func TestDelphisBackend_InviteTwitterUsersToDiscussion(t *testing.T) {
 		authObj := auth.NewDelphisAuth(nil)
 		mockDB := &mocks.Datastore{}
 		mockTwitter := mocks.TwitterClient{}
-		mockQuery := "usernametest"
+		mockQuery := &model.TwitterUserInput{
+			Name: "username",
+		}
 		backendObj := &delphisBackend{
 			db:              mockDB,
 			auth:            authObj,
@@ -255,17 +281,6 @@ func TestDelphisBackend_InviteTwitterUsersToDiscussion(t *testing.T) {
 		})
 		ctx = auth.WithAuthedUser(ctx, &testAuthedUser)
 
-		Convey("when users lookup errors out", func() {
-			expectedError := fmt.Errorf("Some Error")
-			mockHandles := []string{mockQuery}
-			mockTwitter.On("LookupUsers", mockHandles).Return(nil, expectedError)
-
-			results, err := backendObj.InviteTwitterUsersToDiscussion(ctx, &mockTwitter, mockHandles, discussionID, participantID)
-
-			So(err, ShouldEqual, expectedError)
-			So(results, ShouldEqual, nil)
-		})
-
 		Convey("when users autoinvites", func() {
 			var returnedResult []twitter.User
 			for i := 0; i < 20; i++ {
@@ -278,7 +293,7 @@ func TestDelphisBackend_InviteTwitterUsersToDiscussion(t *testing.T) {
 				})
 			}
 
-			mockHandles := []string{mockQuery}
+			mockHandles := []*model.TwitterUserInput{mockQuery}
 			mockDB.On("CreateOrUpdateUserProfile", ctx, mock.Anything).Return(&profileObj, true, nil)
 			mockDB.On("UpsertSocialInfo", ctx, mock.Anything).Return(&socialObj, nil)
 			mockDB.On("UpsertUser", ctx, mock.Anything).Return(testAuthedUser.User, nil)
@@ -301,8 +316,7 @@ func TestDelphisBackend_InviteTwitterUsersToDiscussion(t *testing.T) {
 					ID:         int64(i),
 				})
 			}
-
-			mockHandles := []string{mockQuery}
+			mockHandles := []*model.TwitterUserInput{mockQuery}
 			mockDB.On("CreateOrUpdateUserProfile", ctx, mock.Anything).Return(&profileObj, true, nil)
 			mockDB.On("UpsertSocialInfo", ctx, mock.Anything).Return(&socialObj, nil)
 			mockDB.On("UpsertUser", ctx, mock.Anything).Return(&userObj, nil)

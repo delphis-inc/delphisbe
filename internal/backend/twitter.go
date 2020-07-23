@@ -105,12 +105,12 @@ func (d *delphisBackend) GetTwitterClient(ctx context.Context) (TwitterClient, e
 	}, nil
 }
 
-func (d *delphisBackend) GetTwitterUserHandleAutocompletes(ctx context.Context, twitterClient TwitterClient, attempt string) ([]string, error) {
+func (d *delphisBackend) GetTwitterUserHandleAutocompletes(ctx context.Context, twitterClient TwitterClient, attempt string) ([]*model.TwitterUserInfo, error) {
 	/* Fetch autocompletes result eagerly from twitter APIs. A connection-based paging
 	   system would have more quality but would also introduce additional overhead.
 	   As a tradeoff we limit the number of pages fetched by assuming that the best
 	   results will be on top of the list */
-	var results []string
+	var results []*model.TwitterUserInfo
 	curPage := 0
 	for resultSize := 0; (curPage == 0 || resultSize == twitterAutocompletesPageSize) && curPage < twitterAutocompletsMaxPages; curPage++ {
 		twitterUsers, err := twitterClient.SearchUsers(attempt, curPage, twitterAutocompletesPageSize)
@@ -119,22 +119,33 @@ func (d *delphisBackend) GetTwitterUserHandleAutocompletes(ctx context.Context, 
 		}
 		resultSize = len(twitterUsers)
 		for _, twitterUser := range twitterUsers {
-			results = append(results, twitterUser.ScreenName)
+			twitterUserInfo := &model.TwitterUserInfo{
+				ID:              twitterUser.IDStr,
+				DiplayName:      twitterUser.Name,
+				Name:            twitterUser.ScreenName,
+				IsVerified:      twitterUser.Verified,
+				ProfileImageURL: twitterUser.ProfileImageURLHttps,
+			}
+			results = append(results, twitterUserInfo)
 		}
 	}
 
 	return results, nil
 }
 
-func (d *delphisBackend) InviteTwitterUsersToDiscussion(ctx context.Context, twitterClient TwitterClient, twitterHandles []string, discussionID, invitingParticipantID string) ([]*model.DiscussionInvite, error) {
+func (d *delphisBackend) InviteTwitterUsersToDiscussion(ctx context.Context, twitterClient TwitterClient, twitterUserInfos []*model.TwitterUserInput, discussionID, invitingParticipantID string) ([]*model.DiscussionInvite, error) {
 	/* Check that the user is autenticated */
 	authedUser := auth.GetAuthedUser(ctx)
 	if authedUser == nil {
 		return nil, fmt.Errorf("Need auth")
 	}
 
+	var screenNames []string
+	for _, u := range twitterUserInfos {
+		screenNames = append(screenNames, u.Name)
+	}
 	/* Leverage Twitter APIs Lookup query to retrieve users in batch with a single request */
-	twitterUsers, err := twitterClient.LookupUsers(twitterHandles)
+	twitterUsers, err := twitterClient.LookupUsers(screenNames)
 	if err != nil {
 		return nil, err
 	}

@@ -1,0 +1,11 @@
+type TwitterUserInfo {
+    id: ID!
+    name: String!
+    diplayName: String!
+    profileImageURL: String!
+    isVerified: Boolean!
+}
+
+input TwitterUserInput {
+    name: String!
+}

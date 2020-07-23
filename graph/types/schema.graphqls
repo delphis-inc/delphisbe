@@ -14,7 +14,7 @@ type Query {
   me: User!
 
   # Twitter
-  twitterUserHandleAutocompletes(attempt: ID!): [ID!]
+  twitterUserAutocompletes(query: ID!): [TwitterUserInfo!]
 }
 
 input UpdateParticipantInput {
@@ -104,7 +104,7 @@ type Mutation {
 
   # Invites
   inviteUserToDiscussion(discussionID: ID!, userID: ID!, invitingParticipantID: ID!): DiscussionInvite!
-  inviteTwitterUsersToDiscussion(discussionID: ID!, twitterHandles: [ID!]!, invitingParticipantID: ID!): [DiscussionInvite!]!
+  inviteTwitterUsersToDiscussion(discussionID: ID!, twitterUsers: [TwitterUserInput!], invitingParticipantID: ID!): [DiscussionInvite!]!
   respondToInvite(inviteID: ID!, response: InviteRequestStatus!, discussionParticipantInput: AddDiscussionParticipantInput!): DiscussionInvite!
 
   requestAccessToDiscussion(discussionID: ID!): DiscussionAccessRequest!
