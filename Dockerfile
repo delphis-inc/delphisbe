@@ -20,6 +20,7 @@ RUN go mod download
 RUN go mod verify
 RUN GOOS=linux GOARCH=amd64 go build -ldflags="-w -s" -o /go/bin/delphis_server
 COPY ./config /go/bin
+COPY ./static /go/bin
 
 FROM alpine
 
@@ -31,6 +32,7 @@ RUN mkdir -p /go/bin
 
 COPY --from=builder /go/bin/delphis_server /go/bin/delphis_server
 COPY config /var/delphis/config
+COPY static /var/delphis/static
 
 USER appuser:appuser
 

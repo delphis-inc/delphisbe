@@ -138,6 +138,7 @@ func main() {
 	c.Start()
 
 	http.Handle("/.well-known/apple-app-site-association", appleSiteAssociationHandler(conf))
+	http.Handle("/apple-app-site-association", appleSiteAssociationHandler(conf))
 
 	http.Handle("/graphiql", allowCors(playground.Handler("GraphQL playground", "/query")))
 	http.Handle("/query", allowCors(authMiddleware(*conf, delphisBackend, srv)))
@@ -163,7 +164,12 @@ func main() {
 func appleSiteAssociationHandler(conf *config.Config) http.Handler {
 	fn := func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		http.ServeFile(w, r, "./static/.well-known/app.chatham.ai.json")
+		_, err := os.Stat("/var/delphis/static")
+		if err == nil {
+			http.ServeFile(w, r, "/var/delphis/static/.well-known/app.chatham.ai.json")
+		} else {
+			http.ServeFile(w, r, "./static/.well-known/app.chatham.ai.json")
+		}
 	}
 	return http.HandlerFunc(fn)
 }

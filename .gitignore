@@ -34,3 +34,6 @@ delphisbe
 
 # OSX
 .DS_Store
+
+# Building task defs
+task-curbuild-def.json
