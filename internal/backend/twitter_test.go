@@ -349,6 +349,7 @@ func TestDelphisBackend_InviteTwitterUsersToDiscussion(t *testing.T) {
 			mockDB.On("UpsertSocialInfo", ctx, mock.Anything).Return(&socialObj, nil)
 			mockDB.On("UpsertUser", ctx, mock.Anything).Return(testAuthedUser.User, nil)
 			mockTwitter.On("LookupUsers", mock.Anything).Return(returnedResult, nil)
+			mockDB.On("GetInvitedTwitterHandlesByDiscussionIDAndInviterID", ctx, discussionID, participantID).Return([]*string{}, nil)
 
 			results, err := backendObj.InviteTwitterUsersToDiscussion(ctx, &mockTwitter, mockHandles, discussionID, participantID)
 
@@ -358,6 +359,7 @@ func TestDelphisBackend_InviteTwitterUsersToDiscussion(t *testing.T) {
 
 		Convey("when users lookup succeeds ", func() {
 			var returnedResult []twitter.User
+			var mockHandles []*model.TwitterUserInput
 			for i := 0; i < 20; i++ {
 				screenName := fmt.Sprintf("result%d", i)
 				name := fmt.Sprintf("Result #%d", i)
@@ -366,8 +368,8 @@ func TestDelphisBackend_InviteTwitterUsersToDiscussion(t *testing.T) {
 					Name:       name,
 					ID:         int64(i),
 				})
+				mockHandles = append(mockHandles, &model.TwitterUserInput{Name: screenName})
 			}
-			mockHandles := []*model.TwitterUserInput{mockQuery}
 			mockDB.On("CreateOrUpdateUserProfile", ctx, mock.Anything).Return(&profileObj, true, nil)
 			mockDB.On("UpsertSocialInfo", ctx, mock.Anything).Return(&socialObj, nil)
 			mockDB.On("UpsertUser", ctx, mock.Anything).Return(&userObj, nil)
@@ -377,11 +379,47 @@ func TestDelphisBackend_InviteTwitterUsersToDiscussion(t *testing.T) {
 			mockDB.On("PutDiscussionInviteRecord", ctx, mock.Anything, mock.Anything).Return(&inviteObj, nil)
 			mockDB.On("CommitTx", ctx, mock.Anything).Return(nil)
 			mockTwitter.On("LookupUsers", mock.Anything).Return(returnedResult, nil)
+			mockDB.On("GetInvitedTwitterHandlesByDiscussionIDAndInviterID", ctx, discussionID, participantID).Return([]*string{}, nil)
 
 			results, err := backendObj.InviteTwitterUsersToDiscussion(ctx, &mockTwitter, mockHandles, discussionID, participantID)
 
 			So(err, ShouldEqual, nil)
 			So(len(results), ShouldEqual, len(returnedResult))
+		})
+
+		Convey("when some some users are already invited ", func() {
+			var alreadyInvited []*string
+			var returnedResult []twitter.User
+			var mockHandles []*model.TwitterUserInput
+			for i := 0; i < 20; i++ {
+				screenName := fmt.Sprintf("result%d", i)
+				name := fmt.Sprintf("Result #%d", i)
+
+				if i < 10 {
+					alreadyInvited = append(alreadyInvited, &screenName)
+				}
+				returnedResult = append(returnedResult, twitter.User{
+					ScreenName: screenName,
+					Name:       name,
+					ID:         int64(i),
+				})
+				mockHandles = append(mockHandles, &model.TwitterUserInput{Name: screenName})
+			}
+			mockDB.On("CreateOrUpdateUserProfile", ctx, mock.Anything).Return(&profileObj, true, nil)
+			mockDB.On("UpsertSocialInfo", ctx, mock.Anything).Return(&socialObj, nil)
+			mockDB.On("UpsertUser", ctx, mock.Anything).Return(&userObj, nil)
+			mockDB.On("GetDiscussionInvitesByUserIDAndStatus", ctx, mock.Anything, mock.Anything).Return(&mockEmptyDiscussionInviteIter{}, nil)
+			mockDB.On("DiscussionInviteIterCollect", ctx, mock.Anything).Return([]*model.DiscussionInvite{}, nil)
+			mockDB.On("BeginTx", ctx).Return(&tx, nil)
+			mockDB.On("PutDiscussionInviteRecord", ctx, mock.Anything, mock.Anything).Return(&inviteObj, nil)
+			mockDB.On("CommitTx", ctx, mock.Anything).Return(nil)
+			mockTwitter.On("LookupUsers", mock.Anything).Return(returnedResult, nil)
+			mockDB.On("GetInvitedTwitterHandlesByDiscussionIDAndInviterID", ctx, discussionID, participantID).Return(alreadyInvited, nil)
+
+			results, err := backendObj.InviteTwitterUsersToDiscussion(ctx, &mockTwitter, mockHandles, discussionID, participantID)
+
+			So(err, ShouldEqual, nil)
+			So(len(results), ShouldEqual, len(returnedResult)-10)
 		})
 
 	})

@@ -503,16 +503,12 @@ func (r *mutationResolver) InviteTwitterUsersToDiscussion(ctx context.Context, d
 		return nil, fmt.Errorf("Failed to find participant with ID %s", invitingParticipantID)
 	}
 
-	// Verify that the updating participant belongs to the logged-in user
-	var nonAnonUserID, anonUserID string
-	if participantResponse.NonAnon != nil && participantResponse.NonAnon.ID == invitingParticipantID {
-		nonAnonUserID = *participantResponse.NonAnon.UserID
-	}
+	// Verify that the inviting participant belongs to the logged-in user and that they're not in incognito
 	if participantResponse.Anon != nil && participantResponse.Anon.ID == invitingParticipantID {
-		anonUserID = *participantResponse.Anon.UserID
+		return nil, fmt.Errorf("You can't invite people while in incognito")
 	}
-	if authedUser.UserID != nonAnonUserID && authedUser.UserID != anonUserID {
-		return nil, fmt.Errorf("Unauthorized")
+	if participantResponse.NonAnon == nil || participantResponse.NonAnon.ID != invitingParticipantID {
+		return nil, fmt.Errorf("You are not authered as the inviting participant")
 	}
 
 	client, err := r.DAOManager.GetTwitterClientWithUserTokens(ctx)

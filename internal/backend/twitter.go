@@ -147,16 +147,42 @@ func (d *delphisBackend) GetTwitterUserHandleAutocompletes(ctx context.Context, 
 }
 
 func (d *delphisBackend) InviteTwitterUsersToDiscussion(ctx context.Context, twitterClient TwitterClient, twitterUserInfos []*model.TwitterUserInput, discussionID, invitingParticipantID string) ([]*model.DiscussionInvite, error) {
+	var invitations []*model.DiscussionInvite
+
 	/* Check that the user is autenticated */
 	authedUser := auth.GetAuthedUser(ctx)
 	if authedUser == nil {
 		return nil, fmt.Errorf("Need auth")
 	}
 
-	var screenNames []string
-	for _, u := range twitterUserInfos {
-		screenNames = append(screenNames, u.Name)
+	/* Obtain all the Twitter users that this participant has already invited in the discussion */
+	alreadyInvitedHandles, err := d.db.GetInvitedTwitterHandlesByDiscussionIDAndInviterID(ctx, discussionID, invitingParticipantID)
+	if err != nil {
+		return nil, err
 	}
+
+	/* Filter only the Twitter users that haven't already been invited */
+	var screenNames []string
+	lenAlreadyInvitedHandles := len(alreadyInvitedHandles)
+	lenScreenNames := 0
+	for _, u := range twitterUserInfos {
+		alreadyInvited := false
+		for i := 0; i < lenAlreadyInvitedHandles && !alreadyInvited; i++ {
+			if *alreadyInvitedHandles[i] == u.Name {
+				alreadyInvited = true
+			}
+		}
+		if !alreadyInvited {
+			screenNames = append(screenNames, u.Name)
+			lenScreenNames++
+		}
+	}
+
+	/* Avoid useless logic */
+	if lenScreenNames == 0 {
+		return invitations, nil
+	}
+
 	/* Leverage Twitter APIs Lookup query to retrieve users in batch with a single request */
 	twitterUsers, err := twitterClient.LookupUsers(screenNames)
 	if err != nil {
@@ -164,42 +190,40 @@ func (d *delphisBackend) InviteTwitterUsersToDiscussion(ctx context.Context, twi
 	}
 
 	/* Iterate throug twitter users and send them individual invitations */
-	var invitations []*model.DiscussionInvite
 	for _, twitterUser := range twitterUsers {
-		/* Get invited user. If the user is not present in the system, we create it
-		with a dummy access token. Note, the datastore will not overwrite the tokens
-		with the dummy ones if valid tokens are already present */
-		userObj, err := d.GetOrCreateUser(ctx, LoginWithTwitterInput{
-			User:              &twitterUser,
-			AccessToken:       "",
-			AccessTokenSecret: "",
-		})
-		if err != nil {
-			logrus.WithError(err).Errorf("Got an error creating a user")
-			return nil, err
+
+		/* Check that the user is effectively one of the desired ones */
+		isCorrectUser := false
+		for i := 0; i < lenScreenNames && !isCorrectUser; i++ {
+			if screenNames[i] == twitterUser.ScreenName {
+				isCorrectUser = true
+			}
 		}
 
-		/* Prevent users from inviting themselves */
-		if userObj.ID != authedUser.UserID {
-			/* Verify that an invite is not already present for such an user
-			   NOTE: Should we check for already accepted invitations too? Maybe we can check if the user
-			   is already a participant even before calling this function. */
-			userInvites, err := d.GetDiscussionInvitesByUserIDAndStatus(ctx, userObj.ID, model.InviteRequestStatusPending)
+		if isCorrectUser {
+			/* Get invited user. If the user is not present in the system, we create it
+			with a dummy access token. Note, the datastore will not overwrite the tokens
+			with the dummy ones if valid tokens are already present */
+			userObj, err := d.GetOrCreateUser(ctx, LoginWithTwitterInput{
+				User:              &twitterUser,
+				AccessToken:       "",
+				AccessTokenSecret: "",
+			})
 			if err != nil {
+				logrus.WithError(err).Errorf("Got an error creating a user")
 				return nil, err
 			}
 
-			/* If the user has already a pending invitation, we return it instead of creating a new one */
-			if len(userInvites) == 0 {
+			/* Prevent users from inviting themselves */
+			if userObj.ID != authedUser.UserID {
 				invite, err := d.InviteUserToDiscussion(ctx, userObj.ID, discussionID, invitingParticipantID)
 				if err != nil {
 					return nil, err
 				}
 				invitations = append(invitations, invite)
 				/* TODO: (?) We may consider to notify users in some way external to the app, like email (if public) or twitter
-				   dm (if they follow the authed user), in order to invite users to install the app. */
-			} else {
-				invitations = append(invitations, userInvites[0])
+				   dm (if they follow the authed user), in order to invite users to install the app.
+				   This would be the place to do it. */
 			}
 		}
 	}
