@@ -49,6 +49,30 @@ func (d *delphisBackend) GetDiscussionFlairTemplateAccessByDiscussionID(ctx cont
 	return d.db.FlairTemplatesIterCollect(ctx, iter)
 }
 
+func (d *delphisBackend) GrantUserDiscussionAccess(ctx context.Context, userID string, discussionID string) (*model.DiscussionUserAccess, error) {
+	tx, err := d.db.BeginTx(ctx)
+	if err != nil {
+		logrus.WithError(err).Error("failed to begin tx")
+		return nil, err
+	}
+	access, err := d.db.UpsertDiscussionUserAccess(ctx, tx, discussionID, userID)
+	if err != nil {
+		// Rollback tx.
+		if txErr := d.db.RollbackTx(ctx, tx); txErr != nil {
+			logrus.WithError(txErr).Error("Failed to rollback tx")
+			return nil, multierr.Append(err, txErr)
+		}
+		return nil, err
+	}
+
+	if err := d.db.CommitTx(ctx, tx); err != nil {
+		logrus.WithError(err).Error("Failed to commit tx")
+		return nil, err
+	}
+
+	return access, nil
+}
+
 func (d *delphisBackend) PutDiscussionFlairTemplatesAccess(ctx context.Context, userID string, discussionID string, flairTemplateIDs []string) ([]*model.DiscussionFlairTemplateAccess, error) {
 	if len(flairTemplateIDs) == 0 {
 		return nil, fmt.Errorf("no flair template IDs to add to discussion")

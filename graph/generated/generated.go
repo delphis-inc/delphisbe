@@ -216,6 +216,7 @@ type ComplexityRoot struct {
 		DeleteDiscussionTags                 func(childComplexity int, discussionID string, tags []string) int
 		DeletePost                           func(childComplexity int, discussionID string, postID string) int
 		InviteUserToDiscussion               func(childComplexity int, discussionID string, userID string, invitingParticipantID string) int
+		JoinDiscussionWithVIPToken           func(childComplexity int, discussionID string, vipToken string) int
 		PostImportedContent                  func(childComplexity int, discussionID string, participantID string, contentID string) int
 		RemoveFlair                          func(childComplexity int, id string) int
 		RemoveFlairTemplate                  func(childComplexity int, id string) int
@@ -482,6 +483,7 @@ type MutationResolver interface {
 	RespondToInvite(ctx context.Context, inviteID string, response model.InviteRequestStatus, discussionParticipantInput model.AddDiscussionParticipantInput) (*model.DiscussionInvite, error)
 	RequestAccessToDiscussion(ctx context.Context, discussionID string) (*model.DiscussionAccessRequest, error)
 	RespondToRequestAccess(ctx context.Context, requestID string, response model.InviteRequestStatus) (*model.DiscussionAccessRequest, error)
+	JoinDiscussionWithVIPToken(ctx context.Context, discussionID string, vipToken string) (*model.Discussion, error)
 	DeletePost(ctx context.Context, discussionID string, postID string) (*model.Post, error)
 	BanParticipant(ctx context.Context, discussionID string, participantID string) (*model.Participant, error)
 }
@@ -1373,6 +1375,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Mutation.InviteUserToDiscussion(childComplexity, args["discussionID"].(string), args["userID"].(string), args["invitingParticipantID"].(string)), true
+
+	case "Mutation.joinDiscussionWithVIPToken":
+		if e.complexity.Mutation.JoinDiscussionWithVIPToken == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_joinDiscussionWithVIPToken_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.JoinDiscussionWithVIPToken(childComplexity, args["discussionID"].(string), args["vipToken"].(string)), true
 
 	case "Mutation.postImportedContent":
 		if e.complexity.Mutation.PostImportedContent == nil {
@@ -2744,6 +2758,8 @@ type Mutation {
   requestAccessToDiscussion(discussionID: ID!): DiscussionAccessRequest!
   respondToRequestAccess(requestID: ID!, response: InviteRequestStatus!): DiscussionAccessRequest!
 
+  joinDiscussionWithVIPToken(discussionID: ID!, vipToken: ID!): Discussion!
+
   # Posts
   deletePost(discussionID: ID!, postID: ID!): Post!
 
@@ -3219,6 +3235,28 @@ func (ec *executionContext) field_Mutation_inviteUserToDiscussion_args(ctx conte
 		}
 	}
 	args["invitingParticipantID"] = arg2
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_joinDiscussionWithVIPToken_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 string
+	if tmp, ok := rawArgs["discussionID"]; ok {
+		arg0, err = ec.unmarshalNID2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["discussionID"] = arg0
+	var arg1 string
+	if tmp, ok := rawArgs["vipToken"]; ok {
+		arg1, err = ec.unmarshalNID2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["vipToken"] = arg1
 	return args, nil
 }
 
@@ -7505,6 +7543,47 @@ func (ec *executionContext) _Mutation_respondToRequestAccess(ctx context.Context
 	res := resTmp.(*model.DiscussionAccessRequest)
 	fc.Result = res
 	return ec.marshalNDiscussionAccessRequest2ᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐDiscussionAccessRequest(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Mutation_joinDiscussionWithVIPToken(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "Mutation",
+		Field:    field,
+		Args:     nil,
+		IsMethod: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Mutation_joinDiscussionWithVIPToken_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().JoinDiscussionWithVIPToken(rctx, args["discussionID"].(string), args["vipToken"].(string))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.Discussion)
+	fc.Result = res
+	return ec.marshalNDiscussion2ᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐDiscussion(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Mutation_deletePost(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -13407,6 +13486,11 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			}
 		case "respondToRequestAccess":
 			out.Values[i] = ec._Mutation_respondToRequestAccess(ctx, field)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "joinDiscussionWithVIPToken":
+			out.Values[i] = ec._Mutation_joinDiscussionWithVIPToken(ctx, field)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}

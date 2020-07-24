@@ -556,6 +556,34 @@ func (r *mutationResolver) RespondToRequestAccess(ctx context.Context, requestID
 	return r.DAOManager.RespondToRequestAccess(ctx, requestID, response, nonAnonUserID)
 }
 
+func (r *mutationResolver) JoinDiscussionWithVIPToken(ctx context.Context, discussionID string, vipToken string) (*model.Discussion, error) {
+	authedUser := auth.GetAuthedUser(ctx)
+	if authedUser == nil {
+		return nil, fmt.Errorf("Need auth")
+	}
+
+	discussion, err := r.DAOManager.GetDiscussionByID(ctx, discussionID)
+	if err != nil || discussion == nil {
+		return nil, fmt.Errorf("Discussion not found")
+	}
+
+	discussionLinkAccess, err := r.DAOManager.GetInviteLinksByDiscussionID(ctx, discussionID)
+	if err != nil || discussionLinkAccess == nil {
+		return nil, fmt.Errorf("Discussion not found")
+	}
+
+	if discussionLinkAccess.VipInviteLinkSlug == vipToken {
+		// This means we should add this user to the discussion.
+		_, err := r.DAOManager.GrantUserDiscussionAccess(ctx, authedUser.UserID, discussionID)
+		if err != nil {
+			return nil, fmt.Errorf("Failed granting discussion access to user")
+		}
+		return discussion, nil
+	} else {
+		return nil, fmt.Errorf("Discussion not joined")
+	}
+}
+
 func (r *mutationResolver) DeletePost(ctx context.Context, discussionID string, postID string) (*model.Post, error) {
 	authedUser := auth.GetAuthedUser(ctx)
 	if authedUser == nil {
