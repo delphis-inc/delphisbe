@@ -111,6 +111,7 @@ type Datastore interface {
 	GetDiscussionAccessRequestsByDiscussionID(ctx context.Context, discussionID string) DiscussionAccessRequestIter
 	GetSentDiscussionAccessRequestsByUserID(ctx context.Context, userID string) DiscussionAccessRequestIter
 	GetInviteLinksByDiscussionID(ctx context.Context, discussionID string) (*model.DiscussionLinkAccess, error)
+	GetInvitedTwitterHandlesByDiscussionIDAndInviterID(ctx context.Context, discussionID string, invitingParticipantID string) ([]*string, error)
 	PutDiscussionInviteRecord(ctx context.Context, tx *sql2.Tx, invite model.DiscussionInvite) (*model.DiscussionInvite, error)
 	PutDiscussionAccessRequestRecord(ctx context.Context, tx *sql2.Tx, request model.DiscussionAccessRequest) (*model.DiscussionAccessRequest, error)
 	UpdateDiscussionInviteRecord(ctx context.Context, tx *sql2.Tx, invite model.DiscussionInvite) (*model.DiscussionInvite, error)
@@ -449,6 +450,12 @@ func (d *delphisDB) initializeStatements(ctx context.Context) (err error) {
 		logrus.WithError(err).Error("failed to prepare upsertInviteLinksForDiscussion")
 		return errors.Wrap(err, "failed to prepare upsertInviteLinksForDiscussion")
 	}
+
+	if d.prepStmts.getInvitedTwitterHandlesByDiscussionIDAndInviterIDStmt, err = d.pg.PrepareContext(ctx, getInvitedTwitterHandlesByDiscussionIDAndInviterIDString); err != nil {
+		logrus.WithError(err).Error("failed to prepare getInvitedTwitterHandlesByDiscussionIDAndInviterIDStmt")
+		return errors.Wrap(err, "failed to prepare getInvitedTwitterHandlesByDiscussionIDAndInviterIDStmt")
+	}
+
 	d.ready = true
 	return
 }

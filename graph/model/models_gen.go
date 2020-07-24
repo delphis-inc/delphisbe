@@ -108,6 +108,7 @@ type TwitterUserInfo struct {
 	DiplayName      string `json:"diplayName"`
 	ProfileImageURL string `json:"profileImageURL"`
 	IsVerified      bool   `json:"isVerified"`
+	IsInvited       bool   `json:"isInvited"`
 }
 
 type TwitterUserInput struct {

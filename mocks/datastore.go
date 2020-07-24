@@ -752,6 +752,29 @@ func (_m *Datastore) GetInviteLinksByDiscussionID(ctx context.Context, discussio
 	return r0, r1
 }
 
+// GetInvitedTwitterHandlesByDiscussionIDAndInviterID provides a mock function with given fields: ctx, discussionID, invitingParticipantID
+func (_m *Datastore) GetInvitedTwitterHandlesByDiscussionIDAndInviterID(ctx context.Context, discussionID string, invitingParticipantID string) ([]*string, error) {
+	ret := _m.Called(ctx, discussionID, invitingParticipantID)
+
+	var r0 []*string
+	if rf, ok := ret.Get(0).(func(context.Context, string, string) []*string); ok {
+		r0 = rf(ctx, discussionID, invitingParticipantID)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]*string)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(context.Context, string, string) error); ok {
+		r1 = rf(ctx, discussionID, invitingParticipantID)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // GetLastPostByDiscussionID provides a mock function with given fields: ctx, discussionID, minutes
 func (_m *Datastore) GetLastPostByDiscussionID(ctx context.Context, discussionID string, minutes int) (*model.Post, error) {
 	ret := _m.Called(ctx, discussionID, minutes)

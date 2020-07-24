@@ -105,26 +105,39 @@ func (d *delphisBackend) GetTwitterClientWithUserTokens(ctx context.Context) (Tw
 	}, nil
 }
 
-func (d *delphisBackend) GetTwitterUserHandleAutocompletes(ctx context.Context, twitterClient TwitterClient, attempt string) ([]*model.TwitterUserInfo, error) {
+func (d *delphisBackend) GetTwitterUserHandleAutocompletes(ctx context.Context, twitterClient TwitterClient, query string, discussionID string, invitingParticipantID string) ([]*model.TwitterUserInfo, error) {
 	/* Fetch autocompletes result eagerly from twitter APIs. A connection-based paging
 	   system would have more quality but would also introduce additional overhead.
 	   As a tradeoff we limit the number of pages fetched by assuming that the best
 	   results will be on top of the list */
+	invitedTwitterHandles, err := d.db.GetInvitedTwitterHandlesByDiscussionIDAndInviterID(ctx, discussionID, invitingParticipantID)
+	if err != nil {
+		return nil, err
+	}
+
+	lenInvitedTwitterHandles := len(invitedTwitterHandles)
 	var results []*model.TwitterUserInfo
 	curPage := 0
 	for resultSize := 0; (curPage == 0 || resultSize == twitterAutocompletesPageSize) && curPage < twitterAutocompletsMaxPages; curPage++ {
-		twitterUsers, err := twitterClient.SearchUsers(attempt, curPage, twitterAutocompletesPageSize)
+		twitterUsers, err := twitterClient.SearchUsers(query, curPage, twitterAutocompletesPageSize)
 		if err != nil {
 			return nil, err
 		}
 		resultSize = len(twitterUsers)
 		for _, twitterUser := range twitterUsers {
+			isInvited := false
+			for i := 0; i < lenInvitedTwitterHandles && !isInvited; i++ {
+				if *invitedTwitterHandles[i] == twitterUser.ScreenName {
+					isInvited = true
+				}
+			}
 			twitterUserInfo := &model.TwitterUserInfo{
 				ID:              twitterUser.IDStr,
 				DiplayName:      twitterUser.Name,
 				Name:            twitterUser.ScreenName,
 				IsVerified:      twitterUser.Verified,
 				ProfileImageURL: twitterUser.ProfileImageURLHttps,
+				IsInvited:       isInvited,
 			}
 			results = append(results, twitterUserInfo)
 		}

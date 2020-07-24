@@ -154,6 +154,8 @@ func TestDelphisBackend_GetTwitterClientWithUserTokens(t *testing.T) {
 func TestDelphisBackend_GetTwitterUserHandleAutocompletes(t *testing.T) {
 	ctx := context.Background()
 	now := time.Now()
+	participantID := "participant1"
+	discussionID := "discussion1"
 
 	Convey("GetTwitterUserHandleAutocompletes", t, func() {
 		cacheObj := cache.NewInMemoryCache()
@@ -173,8 +175,18 @@ func TestDelphisBackend_GetTwitterUserHandleAutocompletes(t *testing.T) {
 		Convey("when users search errors out", func() {
 			expectedError := fmt.Errorf("Some Error")
 			mockTwitter.On("SearchUsers", mockQuery, mock.AnythingOfType("int"), mock.AnythingOfType("int")).Return(nil, expectedError)
+			mockDB.On("GetInvitedTwitterHandlesByDiscussionIDAndInviterID", ctx, discussionID, participantID).Return([]*string{}, nil)
+			results, err := backendObj.GetTwitterUserHandleAutocompletes(ctx, &mockTwitter, mockQuery, discussionID, participantID)
 
-			results, err := backendObj.GetTwitterUserHandleAutocompletes(ctx, &mockTwitter, mockQuery)
+			So(err, ShouldEqual, expectedError)
+			So(results, ShouldEqual, nil)
+		})
+
+		Convey("when existing invitations query errors out", func() {
+			expectedError := fmt.Errorf("Some Error")
+			mockTwitter.On("SearchUsers", mockQuery, mock.AnythingOfType("int"), mock.AnythingOfType("int")).Return([]twitter.User{}, nil)
+			mockDB.On("GetInvitedTwitterHandlesByDiscussionIDAndInviterID", ctx, discussionID, participantID).Return(nil, expectedError)
+			results, err := backendObj.GetTwitterUserHandleAutocompletes(ctx, &mockTwitter, mockQuery, discussionID, participantID)
 
 			So(err, ShouldEqual, expectedError)
 			So(results, ShouldEqual, nil)
@@ -197,11 +209,12 @@ func TestDelphisBackend_GetTwitterUserHandleAutocompletes(t *testing.T) {
 					IsVerified:      true,
 					ID:              fmt.Sprintf("%08d", i),
 					ProfileImageURL: "https://example.com/image.png",
+					IsInvited:       false,
 				})
 			}
 			mockTwitter.On("SearchUsers", mockQuery, mock.AnythingOfType("int"), mock.AnythingOfType("int")).Return(returnedResult, nil)
-
-			results, err := backendObj.GetTwitterUserHandleAutocompletes(ctx, &mockTwitter, mockQuery)
+			mockDB.On("GetInvitedTwitterHandlesByDiscussionIDAndInviterID", ctx, discussionID, participantID).Return([]*string{}, nil)
+			results, err := backendObj.GetTwitterUserHandleAutocompletes(ctx, &mockTwitter, mockQuery, discussionID, participantID)
 
 			So(err, ShouldEqual, nil)
 			So(len(results), ShouldEqual, len(expectedResult))
@@ -213,7 +226,7 @@ func TestDelphisBackend_GetTwitterUserHandleAutocompletes(t *testing.T) {
 		Convey("when users search gives many results", func() {
 			var returnedResult []twitter.User
 			var expectedResult []*model.TwitterUserInfo
-			for i := 0; i < 300; i++ {
+			for i := 0; i < 80; i++ {
 				returnedResult = append(returnedResult, twitter.User{
 					ScreenName:           fmt.Sprintf("username%d", i),
 					Name:                 fmt.Sprintf("User Name %d", i),
@@ -227,11 +240,49 @@ func TestDelphisBackend_GetTwitterUserHandleAutocompletes(t *testing.T) {
 					IsVerified:      true,
 					ID:              fmt.Sprintf("%08d", i),
 					ProfileImageURL: "https://example.com/image.png",
+					IsInvited:       false,
 				})
 			}
 			mockTwitter.On("SearchUsers", mockQuery, mock.AnythingOfType("int"), mock.AnythingOfType("int")).Return(returnedResult, nil)
+			mockDB.On("GetInvitedTwitterHandlesByDiscussionIDAndInviterID", ctx, discussionID, participantID).Return([]*string{}, nil)
+			results, err := backendObj.GetTwitterUserHandleAutocompletes(ctx, &mockTwitter, mockQuery, discussionID, participantID)
 
-			results, err := backendObj.GetTwitterUserHandleAutocompletes(ctx, &mockTwitter, mockQuery)
+			So(err, ShouldEqual, nil)
+			So(len(results), ShouldEqual, len(expectedResult))
+			for i := range results {
+				So(reflect.DeepEqual(results[i], expectedResult[i]), ShouldEqual, true)
+			}
+		})
+
+		Convey("when users has already invited someone", func() {
+			var returnedResult []twitter.User
+			var expectedResult []*model.TwitterUserInfo
+			var alreadyInvitedHandles []*string
+			for i := 0; i < 10; i++ {
+				twitterHandle := fmt.Sprintf("username%d", i)
+				twitterUserName := fmt.Sprintf("User Name %d", i)
+				if i < 3 {
+					alreadyInvitedHandles = append(alreadyInvitedHandles, &twitterHandle)
+				}
+				returnedResult = append(returnedResult, twitter.User{
+					ScreenName:           twitterHandle,
+					Name:                 twitterUserName,
+					Verified:             true,
+					IDStr:                fmt.Sprintf("%08d", i),
+					ProfileImageURLHttps: "https://example.com/image.png",
+				})
+				expectedResult = append(expectedResult, &model.TwitterUserInfo{
+					Name:            twitterHandle,
+					DiplayName:      twitterUserName,
+					IsVerified:      true,
+					ID:              fmt.Sprintf("%08d", i),
+					ProfileImageURL: "https://example.com/image.png",
+					IsInvited:       i < 3,
+				})
+			}
+			mockTwitter.On("SearchUsers", mockQuery, mock.AnythingOfType("int"), mock.AnythingOfType("int")).Return(returnedResult, nil)
+			mockDB.On("GetInvitedTwitterHandlesByDiscussionIDAndInviterID", ctx, discussionID, participantID).Return(alreadyInvitedHandles, nil)
+			results, err := backendObj.GetTwitterUserHandleAutocompletes(ctx, &mockTwitter, mockQuery, discussionID, participantID)
 
 			So(err, ShouldEqual, nil)
 			So(len(results), ShouldEqual, len(expectedResult))

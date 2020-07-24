@@ -684,12 +684,30 @@ func (r *queryResolver) Me(ctx context.Context) (*model.User, error) {
 	return authedUser.User, nil
 }
 
-func (r *queryResolver) TwitterUserAutocompletes(ctx context.Context, query string) ([]*model.TwitterUserInfo, error) {
+func (r *queryResolver) TwitterUserAutocompletes(ctx context.Context, query string, discussionID string, invitingParticipantID string) ([]*model.TwitterUserInfo, error) {
+	authedUser := auth.GetAuthedUser(ctx)
+	if authedUser == nil {
+		return nil, fmt.Errorf("Need auth")
+	}
+	/* Sanity checks that prevent users from breaking the anonymicity semantics */
+	authedUserParticipants, err := r.DAOManager.GetParticipantsByDiscussionIDUserID(ctx, discussionID, authedUser.UserID)
+	if err != nil {
+		return nil, err
+	}
+	if authedUserParticipants.Anon != nil && authedUserParticipants.Anon.ID == invitingParticipantID {
+		return nil, fmt.Errorf("You can't invite people while in incognito")
+	}
+	if authedUserParticipants.NonAnon == nil || authedUserParticipants.NonAnon.ID != invitingParticipantID {
+		return nil, fmt.Errorf("You are not authered as the inviting participant")
+	}
+
+	/* Create Twitter API client to be used by the backend */
 	client, err := r.DAOManager.GetTwitterClientWithUserTokens(ctx)
 	if err != nil {
 		return nil, err
 	}
-	return r.DAOManager.GetTwitterUserHandleAutocompletes(ctx, client, query)
+
+	return r.DAOManager.GetTwitterUserHandleAutocompletes(ctx, client, query, discussionID, invitingParticipantID)
 }
 
 func (r *subscriptionResolver) PostAdded(ctx context.Context, discussionID string) (<-chan *model.Post, error) {

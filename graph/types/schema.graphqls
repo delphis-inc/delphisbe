@@ -14,7 +14,7 @@ type Query {
   me: User!
 
   # Twitter
-  twitterUserAutocompletes(query: ID!): [TwitterUserInfo!]
+  twitterUserAutocompletes(query: ID!, discussionID: ID!, invitingParticipantID: ID!): [TwitterUserInfo!]
 }
 
 input UpdateParticipantInput {

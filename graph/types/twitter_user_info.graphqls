@@ -4,6 +4,7 @@ type TwitterUserInfo {
     diplayName: String!
     profileImageURL: String!
     isVerified: Boolean!
+    isInvited: Boolean!
 }
 
 input TwitterUserInput {

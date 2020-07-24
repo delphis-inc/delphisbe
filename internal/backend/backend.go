@@ -107,7 +107,7 @@ type DelphisBackend interface {
 	GetSentDiscussionAccessRequestsByUserID(ctx context.Context, userID string) ([]*model.DiscussionAccessRequest, error)
 	InviteUserToDiscussion(ctx context.Context, userID, discussionID, invitingParticipantID string) (*model.DiscussionInvite, error)
 	InviteTwitterUsersToDiscussion(ctx context.Context, twitterClient TwitterClient, twitterUserInfos []*model.TwitterUserInput, discussionID, invitingParticipantID string) ([]*model.DiscussionInvite, error)
-	GetTwitterUserHandleAutocompletes(ctx context.Context, twitterClient TwitterClient, attempt string) ([]*model.TwitterUserInfo, error)
+	GetTwitterUserHandleAutocompletes(ctx context.Context, twitterClient TwitterClient, query string, discussionID string, invitingParticipantID string) ([]*model.TwitterUserInfo, error)
 	GetTwitterAccessToken(ctx context.Context) (string, string, error)
 	GetTwitterClientWithUserTokens(ctx context.Context) (TwitterClient, error)
 	RespondToInvitation(ctx context.Context, inviteID string, response model.InviteRequestStatus, discussionParticipantInput model.AddDiscussionParticipantInput) (*model.DiscussionInvite, error)

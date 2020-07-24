@@ -54,6 +54,7 @@ func mockPreparedStatements(mock sqlmock.Sqlmock) {
 	mock.ExpectPrepare(updateDiscussionInviteRecordString)
 	mock.ExpectPrepare(updateDiscussionAccessRequestString)
 	mock.ExpectPrepare(upsertInviteLinksForDiscussion)
+	mock.ExpectPrepare(getInvitedTwitterHandlesByDiscussionIDAndInviterIDString)
 }
 
 func mockPreparedStatementsWithError(mock sqlmock.Sqlmock) {

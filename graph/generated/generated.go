@@ -323,7 +323,7 @@ type ComplexityRoot struct {
 		FlairTemplates           func(childComplexity int, query *string) int
 		ListDiscussions          func(childComplexity int) int
 		Me                       func(childComplexity int) int
-		TwitterUserAutocompletes func(childComplexity int, query string) int
+		TwitterUserAutocompletes func(childComplexity int, query string, discussionID string, invitingParticipantID string) int
 		User                     func(childComplexity int, id string) int
 	}
 
@@ -342,6 +342,7 @@ type ComplexityRoot struct {
 	TwitterUserInfo struct {
 		DiplayName      func(childComplexity int) int
 		ID              func(childComplexity int) int
+		IsInvited       func(childComplexity int) int
 		IsVerified      func(childComplexity int) int
 		Name            func(childComplexity int) int
 		ProfileImageURL func(childComplexity int) int
@@ -536,7 +537,7 @@ type QueryResolver interface {
 	FlairTemplates(ctx context.Context, query *string) ([]*model.FlairTemplate, error)
 	User(ctx context.Context, id string) (*model.User, error)
 	Me(ctx context.Context) (*model.User, error)
-	TwitterUserAutocompletes(ctx context.Context, query string) ([]*model.TwitterUserInfo, error)
+	TwitterUserAutocompletes(ctx context.Context, query string, discussionID string, invitingParticipantID string) ([]*model.TwitterUserInfo, error)
 }
 type SubscriptionResolver interface {
 	PostAdded(ctx context.Context, discussionID string) (<-chan *model.Post, error)
@@ -1942,7 +1943,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Query.TwitterUserAutocompletes(childComplexity, args["query"].(string)), true
+		return e.complexity.Query.TwitterUserAutocompletes(childComplexity, args["query"].(string), args["discussionID"].(string), args["invitingParticipantID"].(string)), true
 
 	case "Query.user":
 		if e.complexity.Query.User == nil {
@@ -2021,6 +2022,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.TwitterUserInfo.ID(childComplexity), true
+
+	case "TwitterUserInfo.isInvited":
+		if e.complexity.TwitterUserInfo.IsInvited == nil {
+			break
+		}
+
+		return e.complexity.TwitterUserInfo.IsInvited(childComplexity), true
 
 	case "TwitterUserInfo.isVerified":
 		if e.complexity.TwitterUserInfo.IsVerified == nil {
@@ -2723,7 +2731,7 @@ type Query {
   me: User!
 
   # Twitter
-  twitterUserAutocompletes(query: ID!): [TwitterUserInfo!]
+  twitterUserAutocompletes(query: ID!, discussionID: ID!, invitingParticipantID: ID!): [TwitterUserInfo!]
 }
 
 input UpdateParticipantInput {
@@ -2848,6 +2856,7 @@ scalar Time`, BuiltIn: false},
     diplayName: String!
     profileImageURL: String!
     isVerified: Boolean!
+    isInvited: Boolean!
 }
 
 input TwitterUserInput {
@@ -3641,6 +3650,22 @@ func (ec *executionContext) field_Query_twitterUserAutocompletes_args(ctx contex
 		}
 	}
 	args["query"] = arg0
+	var arg1 string
+	if tmp, ok := rawArgs["discussionID"]; ok {
+		arg1, err = ec.unmarshalNID2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["discussionID"] = arg1
+	var arg2 string
+	if tmp, ok := rawArgs["invitingParticipantID"]; ok {
+		arg2, err = ec.unmarshalNID2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["invitingParticipantID"] = arg2
 	return args, nil
 }
 
@@ -9653,7 +9678,7 @@ func (ec *executionContext) _Query_twitterUserAutocompletes(ctx context.Context,
 	fc.Args = args
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().TwitterUserAutocompletes(rctx, args["query"].(string))
+		return ec.resolvers.Query().TwitterUserAutocompletes(rctx, args["query"].(string), args["discussionID"].(string), args["invitingParticipantID"].(string))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -10122,6 +10147,40 @@ func (ec *executionContext) _TwitterUserInfo_isVerified(ctx context.Context, fie
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
 		return obj.IsVerified, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(bool)
+	fc.Result = res
+	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _TwitterUserInfo_isInvited(ctx context.Context, field graphql.CollectedField, obj *model.TwitterUserInfo) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "TwitterUserInfo",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.IsInvited, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -14673,6 +14732,11 @@ func (ec *executionContext) _TwitterUserInfo(ctx context.Context, sel ast.Select
 			}
 		case "isVerified":
 			out.Values[i] = ec._TwitterUserInfo_isVerified(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "isInvited":
+			out.Values[i] = ec._TwitterUserInfo_isInvited(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}

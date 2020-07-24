@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"reflect"
 	"testing"
 
 	"github.com/DATA-DOG/go-sqlmock"
@@ -1355,6 +1356,69 @@ func TestDelphisDB_AccessRequestIterCollect(t *testing.T) {
 			So(err, ShouldBeNil)
 			So(resp, ShouldNotBeNil)
 			So(resp, ShouldResemble, []*model.DiscussionAccessRequest{&requestObj, &requestObj})
+			So(mock.ExpectationsWereMet(), ShouldBeNil)
+		})
+	})
+}
+
+func TestDelphisDB_GetInvitedTwitterHandlesByDiscussionIDAndInviterID(t *testing.T) {
+	ctx := context.Background()
+	discussionID := "discussion1"
+	invitingParticipantID := "participant1"
+
+	Convey("GetInvitedTwitterHandlesByDiscussionIDAndInviterID", t, func() {
+		db, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
+
+		assert.Nil(t, err, "Failed setting up sqlmock db")
+
+		gormDB, _ := gorm.Open("postgres", db)
+		mockDatastore := &delphisDB{
+			dbConfig:  config.TablesConfig{},
+			sql:       gormDB,
+			pg:        db,
+			prepStmts: &dbPrepStmts{},
+			dynamo:    nil,
+			encoder:   nil,
+		}
+		defer db.Close()
+
+		Convey("when preparing statements returns an error", func() {
+			mockPreparedStatementsWithError(mock)
+
+			resp, err := mockDatastore.GetInvitedTwitterHandlesByDiscussionIDAndInviterID(ctx, discussionID, invitingParticipantID)
+
+			So(err, ShouldNotBeNil)
+			So(resp, ShouldBeNil)
+			So(mock.ExpectationsWereMet(), ShouldBeNil)
+		})
+
+		Convey("when query execution returns an error", func() {
+			mockPreparedStatements(mock)
+			mock.ExpectQuery(getInvitedTwitterHandlesByDiscussionIDAndInviterIDString).WithArgs(discussionID, invitingParticipantID).WillReturnError(fmt.Errorf("error"))
+
+			resp, err := mockDatastore.GetInvitedTwitterHandlesByDiscussionIDAndInviterID(ctx, discussionID, invitingParticipantID)
+
+			So(err, ShouldNotBeNil)
+			So(resp, ShouldBeNil)
+			So(mock.ExpectationsWereMet(), ShouldBeNil)
+		})
+
+		Convey("when query execution succeeds and returns imported content", func() {
+			var expectedResult []*string
+			mockPreparedStatements(mock)
+			rs := sqlmock.NewRows([]string{"twitter_handle"})
+			for i := 0; i < 10; i++ {
+				testObj := fmt.Sprintf("twitteruser%d", i)
+				rs = rs.AddRow(testObj)
+				expectedResult = append(expectedResult, &testObj)
+			}
+			mock.ExpectQuery(getInvitedTwitterHandlesByDiscussionIDAndInviterIDString).WithArgs(discussionID, invitingParticipantID).WillReturnRows(rs)
+
+			resp, err := mockDatastore.GetInvitedTwitterHandlesByDiscussionIDAndInviterID(ctx, discussionID, invitingParticipantID)
+
+			So(err, ShouldBeNil)
+			So(resp, ShouldNotBeNil)
+			So(reflect.DeepEqual(resp, expectedResult), ShouldEqual, true)
 			So(mock.ExpectationsWereMet(), ShouldBeNil)
 		})
 	})
