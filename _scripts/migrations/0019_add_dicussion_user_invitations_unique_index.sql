@@ -1,0 +1,1 @@
+CREATE UNIQUE INDEX IF NOT EXISTS discussion_user_invitations_user_id_discussion_id_invite_from_participant_id_d103065e8b51 ON discussion_user_invitations (user_id, discussion_id, invite_from_participant_id);

@@ -466,3 +466,37 @@ func (d *delphisDB) AccessRequestIterCollect(ctx context.Context, iter Discussio
 
 	return requests, nil
 }
+
+func (d *delphisDB) GetInvitedTwitterHandlesByDiscussionIDAndInviterID(ctx context.Context, discussionID string, invitingParticipantID string) ([]*string, error) {
+	logrus.Debug("GetInvitedTwitterHandlesByDiscussionIDAndInviterID::SQL Create")
+	if err := d.initializeStatements(ctx); err != nil {
+		logrus.WithError(err).Error("GetInvitedTwitterHandlesByDiscussionIDAndInviterID::failed to initialize statements")
+		return nil, err
+	}
+
+	rows, err := d.prepStmts.getInvitedTwitterHandlesByDiscussionIDAndInviterIDStmt.QueryContext(
+		ctx,
+		discussionID,
+		invitingParticipantID,
+	)
+	if err != nil {
+		logrus.WithError(err).Error("failed to execute GetInvitedTwitterHandlesByDiscussionIDAndInviterID")
+		return nil, err
+	}
+
+	results := []*string{}
+	for rows.Next() {
+		var result string
+		err := rows.Scan(
+			&result,
+		)
+		if err != nil {
+			logrus.WithError(err).Error("failed to scan rows for  GetInvitedTwitterHandlesByDiscussionIDAndInviterID")
+			return nil, err
+		}
+		results = append(results, &result)
+	}
+
+	return results, nil
+
+}

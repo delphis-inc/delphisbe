@@ -102,6 +102,19 @@ type PostContentInput struct {
 	Preview           *string    `json:"preview"`
 }
 
+type TwitterUserInfo struct {
+	ID              string `json:"id"`
+	Name            string `json:"name"`
+	DiplayName      string `json:"diplayName"`
+	ProfileImageURL string `json:"profileImageURL"`
+	Verified        bool   `json:"verified"`
+	Invited         bool   `json:"invited"`
+}
+
+type TwitterUserInput struct {
+	Name string `json:"name"`
+}
+
 type URL struct {
 	DisplayText string `json:"displayText"`
 	URL         string `json:"url"`
