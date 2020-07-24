@@ -106,15 +106,17 @@ func (d *delphisBackend) GetTwitterClientWithUserTokens(ctx context.Context) (Tw
 }
 
 func (d *delphisBackend) GetTwitterUserHandleAutocompletes(ctx context.Context, twitterClient TwitterClient, query string, discussionID string, invitingParticipantID string) ([]*model.TwitterUserInfo, error) {
-	/* Fetch autocompletes result eagerly from twitter APIs. A connection-based paging
-	   system would have more quality but would also introduce additional overhead.
-	   As a tradeoff we limit the number of pages fetched by assuming that the best
-	   results will be on top of the list */
+	/* Check the list of all the Twitter users already invited in the discussion for this participant.
+	   Fetching all of them in a single query enhances the scalability of this function. */
 	invitedTwitterHandles, err := d.db.GetInvitedTwitterHandlesByDiscussionIDAndInviterID(ctx, discussionID, invitingParticipantID)
 	if err != nil {
 		return nil, err
 	}
 
+	/* Fetch autocompletes result eagerly from twitter APIs. A connection-based paging
+	   system would have more quality but would also introduce additional overhead.
+	   As a tradeoff we limit the number of pages fetched by assuming that the best
+	   results will be on top of the list */
 	lenInvitedTwitterHandles := len(invitedTwitterHandles)
 	var results []*model.TwitterUserInfo
 	curPage := 0
