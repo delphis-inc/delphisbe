@@ -177,23 +177,26 @@ func appleSiteAssociationHandler(conf *config.Config) http.Handler {
 func fallbackHandler(conf *config.Config, delphisBackend backend.DelphisBackend) http.Handler {
 	appRedirChathamRegex := regexp.MustCompile(`^[m|app](-?[^\.]+).chatham.ai(:\d+)?$`)
 	fn := func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path == "/app_redirect" || appRedirChathamRegex.MatchString(r.Host) {
-			w.Header().Set("Content-Type", "text/html; charset=utf-8")
-			http.ServeFile(w, r, "./app_redirect.html")
-			return
-		}
+		// TODO: We probably want something more complex down the road.
+		// if r.URL.Path == "/app_redirect" || appRedirChathamRegex.MatchString(r.Host) {
+		// 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		// 	http.ServeFile(w, r, "./app_redirect.html")
+		// 	return
+		// }
 
-		// Otherwise let's send them to the login flow!
-		http.SetCookie(w, &http.Cookie{
-			Name:     "dwl",
-			Value:    "1",
-			Domain:   conf.Auth.Domain,
-			Path:     "/",
-			MaxAge:   120,
-			HttpOnly: true,
-			SameSite: http.SameSiteStrictMode,
-		})
-		http.Redirect(w, r, "/twitter/login", http.StatusFound)
+		// // Otherwise let's send them to the login flow!
+		// http.SetCookie(w, &http.Cookie{
+		// 	Name:     "dwl",
+		// 	Value:    "1",
+		// 	Domain:   conf.Auth.Domain,
+		// 	Path:     "/",
+		// 	MaxAge:   120,
+		// 	HttpOnly: true,
+		// 	SameSite: http.SameSiteStrictMode,
+		// })
+		// http.Redirect(w, r, "/twitter/login", http.StatusFound)
+
+		http.Redirect(w, r, "./app_redirect.html")
 	}
 
 	return http.HandlerFunc(fn)
