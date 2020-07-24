@@ -57,18 +57,19 @@ type dbPrepStmts struct {
 	deleteDiscussionUserAccessStmt           *sql2.Stmt
 
 	// InvitesRequests
-	getDiscussionInviteByIDStmt                *sql2.Stmt
-	getDiscussionRequestAccessByIDStmt         *sql2.Stmt
-	getDiscussionInvitesForUserStmt            *sql2.Stmt
-	getSentDiscussionInvitesForUserStmt        *sql2.Stmt
-	getDiscussionAccessRequestsStmt            *sql2.Stmt
-	getSentDiscussionAccessRequestsForUserStmt *sql2.Stmt
-	getInviteLinksForDiscussion                *sql2.Stmt
-	putDiscussionInviteRecordStmt              *sql2.Stmt
-	putDiscussionAccessRequestStmt             *sql2.Stmt
-	updateDiscussionInviteRecordStmt           *sql2.Stmt
-	updateDiscussionAccessRequestStmt          *sql2.Stmt
-	upsertInviteLinksForDiscussion             *sql2.Stmt
+	getDiscussionInviteByIDStmt                            *sql2.Stmt
+	getDiscussionRequestAccessByIDStmt                     *sql2.Stmt
+	getDiscussionInvitesForUserStmt                        *sql2.Stmt
+	getSentDiscussionInvitesForUserStmt                    *sql2.Stmt
+	getDiscussionAccessRequestsStmt                        *sql2.Stmt
+	getSentDiscussionAccessRequestsForUserStmt             *sql2.Stmt
+	getInviteLinksForDiscussion                            *sql2.Stmt
+	putDiscussionInviteRecordStmt                          *sql2.Stmt
+	putDiscussionAccessRequestStmt                         *sql2.Stmt
+	updateDiscussionInviteRecordStmt                       *sql2.Stmt
+	updateDiscussionAccessRequestStmt                      *sql2.Stmt
+	upsertInviteLinksForDiscussion                         *sql2.Stmt
+	getInvitedTwitterHandlesByDiscussionIDAndInviterIDStmt *sql2.Stmt
 }
 
 const getPostByIDString = `
@@ -720,3 +721,10 @@ const upsertInviteLinksForDiscussion = `
 			vip_invite_link_id,
 			created_at,
 			updated_at;`
+
+const getInvitedTwitterHandlesByDiscussionIDAndInviterIDString = `
+		SELECT up.twitter_handle
+		FROM discussion_user_invitations dui
+			LEFT JOIN users u ON u.id = dui.user_id
+			LEFT JOIN user_profiles up ON up.user_id = u.id
+		WHERE dui.discussion_id=$1 AND dui.invite_from_participant_id=$2;`
