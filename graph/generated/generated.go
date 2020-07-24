@@ -342,10 +342,10 @@ type ComplexityRoot struct {
 	TwitterUserInfo struct {
 		DiplayName      func(childComplexity int) int
 		ID              func(childComplexity int) int
-		IsInvited       func(childComplexity int) int
-		IsVerified      func(childComplexity int) int
+		Invited         func(childComplexity int) int
 		Name            func(childComplexity int) int
 		ProfileImageURL func(childComplexity int) int
+		Verified        func(childComplexity int) int
 	}
 
 	URL struct {
@@ -2023,19 +2023,12 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.TwitterUserInfo.ID(childComplexity), true
 
-	case "TwitterUserInfo.isInvited":
-		if e.complexity.TwitterUserInfo.IsInvited == nil {
+	case "TwitterUserInfo.invited":
+		if e.complexity.TwitterUserInfo.Invited == nil {
 			break
 		}
 
-		return e.complexity.TwitterUserInfo.IsInvited(childComplexity), true
-
-	case "TwitterUserInfo.isVerified":
-		if e.complexity.TwitterUserInfo.IsVerified == nil {
-			break
-		}
-
-		return e.complexity.TwitterUserInfo.IsVerified(childComplexity), true
+		return e.complexity.TwitterUserInfo.Invited(childComplexity), true
 
 	case "TwitterUserInfo.name":
 		if e.complexity.TwitterUserInfo.Name == nil {
@@ -2050,6 +2043,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.TwitterUserInfo.ProfileImageURL(childComplexity), true
+
+	case "TwitterUserInfo.verified":
+		if e.complexity.TwitterUserInfo.Verified == nil {
+			break
+		}
+
+		return e.complexity.TwitterUserInfo.Verified(childComplexity), true
 
 	case "URL.displayText":
 		if e.complexity.URL.DisplayText == nil {
@@ -2855,8 +2855,8 @@ scalar Time`, BuiltIn: false},
     name: String!
     diplayName: String!
     profileImageURL: String!
-    isVerified: Boolean!
-    isInvited: Boolean!
+    verified: Boolean!
+    invited: Boolean!
 }
 
 input TwitterUserInput {
@@ -10129,7 +10129,7 @@ func (ec *executionContext) _TwitterUserInfo_profileImageURL(ctx context.Context
 	return ec.marshalNString2string(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _TwitterUserInfo_isVerified(ctx context.Context, field graphql.CollectedField, obj *model.TwitterUserInfo) (ret graphql.Marshaler) {
+func (ec *executionContext) _TwitterUserInfo_verified(ctx context.Context, field graphql.CollectedField, obj *model.TwitterUserInfo) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -10146,7 +10146,7 @@ func (ec *executionContext) _TwitterUserInfo_isVerified(ctx context.Context, fie
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.IsVerified, nil
+		return obj.Verified, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -10163,7 +10163,7 @@ func (ec *executionContext) _TwitterUserInfo_isVerified(ctx context.Context, fie
 	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _TwitterUserInfo_isInvited(ctx context.Context, field graphql.CollectedField, obj *model.TwitterUserInfo) (ret graphql.Marshaler) {
+func (ec *executionContext) _TwitterUserInfo_invited(ctx context.Context, field graphql.CollectedField, obj *model.TwitterUserInfo) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -10180,7 +10180,7 @@ func (ec *executionContext) _TwitterUserInfo_isInvited(ctx context.Context, fiel
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.IsInvited, nil
+		return obj.Invited, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -14730,13 +14730,13 @@ func (ec *executionContext) _TwitterUserInfo(ctx context.Context, sel ast.Select
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
-		case "isVerified":
-			out.Values[i] = ec._TwitterUserInfo_isVerified(ctx, field, obj)
+		case "verified":
+			out.Values[i] = ec._TwitterUserInfo_verified(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
-		case "isInvited":
-			out.Values[i] = ec._TwitterUserInfo_isInvited(ctx, field, obj)
+		case "invited":
+			out.Values[i] = ec._TwitterUserInfo_invited(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}

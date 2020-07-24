@@ -206,10 +206,10 @@ func TestDelphisBackend_GetTwitterUserHandleAutocompletes(t *testing.T) {
 				expectedResult = append(expectedResult, &model.TwitterUserInfo{
 					Name:            fmt.Sprintf("username%d", i),
 					DiplayName:      fmt.Sprintf("User Name %d", i),
-					IsVerified:      true,
+					Verified:        true,
 					ID:              fmt.Sprintf("%08d", i),
 					ProfileImageURL: "https://example.com/image.png",
-					IsInvited:       false,
+					Invited:         false,
 				})
 			}
 			mockTwitter.On("SearchUsers", mockQuery, mock.AnythingOfType("int"), mock.AnythingOfType("int")).Return(returnedResult, nil)
@@ -237,10 +237,10 @@ func TestDelphisBackend_GetTwitterUserHandleAutocompletes(t *testing.T) {
 				expectedResult = append(expectedResult, &model.TwitterUserInfo{
 					Name:            fmt.Sprintf("username%d", i),
 					DiplayName:      fmt.Sprintf("User Name %d", i),
-					IsVerified:      true,
+					Verified:        true,
 					ID:              fmt.Sprintf("%08d", i),
 					ProfileImageURL: "https://example.com/image.png",
-					IsInvited:       false,
+					Invited:         false,
 				})
 			}
 			mockTwitter.On("SearchUsers", mockQuery, mock.AnythingOfType("int"), mock.AnythingOfType("int")).Return(returnedResult, nil)
@@ -274,10 +274,10 @@ func TestDelphisBackend_GetTwitterUserHandleAutocompletes(t *testing.T) {
 				expectedResult = append(expectedResult, &model.TwitterUserInfo{
 					Name:            twitterHandle,
 					DiplayName:      twitterUserName,
-					IsVerified:      true,
+					Verified:        true,
 					ID:              fmt.Sprintf("%08d", i),
 					ProfileImageURL: "https://example.com/image.png",
-					IsInvited:       i < 3,
+					Invited:         i < 3,
 				})
 			}
 			mockTwitter.On("SearchUsers", mockQuery, mock.AnythingOfType("int"), mock.AnythingOfType("int")).Return(returnedResult, nil)

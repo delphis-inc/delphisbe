@@ -137,9 +137,9 @@ func (d *delphisBackend) GetTwitterUserHandleAutocompletes(ctx context.Context, 
 				ID:              twitterUser.IDStr,
 				DiplayName:      twitterUser.Name,
 				Name:            twitterUser.ScreenName,
-				IsVerified:      twitterUser.Verified,
+				Verified:        twitterUser.Verified,
 				ProfileImageURL: twitterUser.ProfileImageURLHttps,
-				IsInvited:       isInvited,
+				Invited:         isInvited,
 			}
 			results = append(results, twitterUserInfo)
 		}
