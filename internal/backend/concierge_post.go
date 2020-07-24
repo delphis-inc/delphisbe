@@ -63,7 +63,11 @@ func (d *delphisBackend) HandleConciergeMutation(ctx context.Context, userID str
 
 func (d *delphisBackend) createInviteLinkConciergePost(ctx context.Context, discussionID string, participantID string) (*model.Post, error) {
 	// Get invite links by discussionID
-	// TODO: Finish after merging inviteLinkPR
+
+	links, err := d.GetInviteLinksByDiscussionID(ctx, discussionID)
+	if err != nil || links == nil {
+		return nil, err
+	}
 
 	appAction := string(model.AppActionCopyToClipboard)
 	content := model.ConciergeContent{
@@ -71,11 +75,11 @@ func (d *delphisBackend) createInviteLinkConciergePost(ctx context.Context, disc
 		Options: []*model.ConciergeOption{
 			{
 				Text:  "Copy VIP Link (auto-join)",
-				Value: "https://delphis.com/viplink/testme", // TODO: update
+				Value: fmt.Sprintf("https://m.chatham.ai/d/%s/%s", discussionID, links.VipInviteLinkSlug),
 			},
 			{
 				Text:  "Copy public Link (approval req'd)",
-				Value: "https://delphis.com/publiclink/testme", // TODO: update
+				Value: fmt.Sprintf("https://m.chatham.ai/d/%s", discussionID),
 			},
 		},
 	}

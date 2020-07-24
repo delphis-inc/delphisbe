@@ -761,6 +761,7 @@ func TestDelphisBackend_GetPostsByDiscussionID(t *testing.T) {
 			mockDB.On("PostIterCollect", ctx, mock.Anything).Return([]*model.Post{&postObject}, nil)
 			mockDB.On("GetModeratorByUserIDAndDiscussionID", ctx, userID, discussionID).Return(&modObj, nil)
 			mockDB.On("GetParticipantsByDiscussionIDUserID", ctx, mock.Anything, mock.Anything).Return([]model.Participant{parObj}, nil)
+			mockDB.On("GetInviteLinksByDiscussionID", ctx, discussionID).Return(nil, nil)
 			mockDB.On("GetFlairsByUserID", ctx, mock.Anything).Return([]*model.Flair{&flairObj}, nil)
 			mockDB.On("GetFlairTemplateByID", ctx, mock.Anything).Return(&ftObj, nil)
 

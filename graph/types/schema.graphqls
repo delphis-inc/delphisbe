@@ -110,6 +110,8 @@ type Mutation {
   requestAccessToDiscussion(discussionID: ID!): DiscussionAccessRequest!
   respondToRequestAccess(requestID: ID!, response: InviteRequestStatus!): DiscussionAccessRequest!
 
+  joinDiscussionWithVIPToken(discussionID: ID!, vipToken: ID!): Discussion!
+
   # Posts
   deletePost(discussionID: ID!, postID: ID!): Post!
 

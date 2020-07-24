@@ -111,6 +111,84 @@ func TestDelphisBackend_GetDiscussionAccessByUserID(t *testing.T) {
 	})
 }
 
+func TestDelphisBackend_GrantUserDiscussionAccess(t *testing.T) {
+	ctx := context.Background()
+
+	discussionID := test_utils.DiscussionID
+	userID := test_utils.UserID
+	discussionUserAccess := test_utils.TestDiscussionUserAccess()
+
+	tx := sql.Tx{}
+
+	Convey("GrantUserDiscussionAccess", t, func() {
+		now := time.Now()
+		cacheObj := cache.NewInMemoryCache()
+		authObj := auth.NewDelphisAuth(nil)
+		mockDB := &mocks.Datastore{}
+		backendObj := &delphisBackend{
+			db:              mockDB,
+			auth:            authObj,
+			cache:           cacheObj,
+			discussionMutex: sync.Mutex{},
+			config:          config.Config{},
+			timeProvider:    &util.FrozenTime{NowTime: now},
+		}
+
+		Convey("when creating a transaction fails", func() {
+			mockDB.On("BeginTx", ctx).Return(nil, fmt.Errorf("sth"))
+
+			resp, err := backendObj.GrantUserDiscussionAccess(ctx, userID, discussionID)
+
+			So(resp, ShouldBeNil)
+			So(err, ShouldNotBeNil)
+		})
+
+		mockDB.On("BeginTx", ctx).Return(&tx, nil)
+
+		Convey("when upserting user access fails", func() {
+			mockDB.On("UpsertDiscussionUserAccess", ctx, &tx, discussionID, userID).Return(nil, fmt.Errorf("sth"))
+
+			Convey("when rolling back transaction fails", func() {
+				mockDB.On("RollbackTx", ctx, &tx).Return(fmt.Errorf("sth"))
+
+				resp, err := backendObj.GrantUserDiscussionAccess(ctx, userID, discussionID)
+
+				So(resp, ShouldBeNil)
+				So(err, ShouldNotBeNil)
+			})
+
+			Convey("when rolling back transaction succeeds", func() {
+				mockDB.On("RollbackTx", ctx, &tx).Return(nil)
+
+				resp, err := backendObj.GrantUserDiscussionAccess(ctx, userID, discussionID)
+
+				So(resp, ShouldBeNil)
+				So(err, ShouldNotBeNil)
+			})
+		})
+
+		mockDB.On("UpsertDiscussionUserAccess", ctx, &tx, discussionID, userID).Return(&discussionUserAccess, nil)
+
+		Convey("when committing transaction fails", func() {
+			mockDB.On("CommitTx", ctx, &tx).Return(fmt.Errorf("sth"))
+
+			resp, err := backendObj.GrantUserDiscussionAccess(ctx, userID, discussionID)
+
+			So(resp, ShouldBeNil)
+			So(err, ShouldNotBeNil)
+		})
+
+		mockDB.On("CommitTx", ctx, &tx).Return(nil)
+
+		Convey("when successful", func() {
+			resp, err := backendObj.GrantUserDiscussionAccess(ctx, userID, discussionID)
+
+			So(resp, ShouldResemble, &discussionUserAccess)
+			So(err, ShouldBeNil)
+		})
+	})
+}
+
 func TestDelphisBackend_GetDiscussionFlairTemplateAccessByDiscussionID(t *testing.T) {
 	ctx := context.Background()
 
