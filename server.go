@@ -12,7 +12,6 @@ import (
 	"net/http"
 	"net/url"
 	"os"
-	"regexp"
 	"strings"
 	"time"
 
@@ -175,7 +174,7 @@ func appleSiteAssociationHandler(conf *config.Config) http.Handler {
 }
 
 func fallbackHandler(conf *config.Config, delphisBackend backend.DelphisBackend) http.Handler {
-	appRedirChathamRegex := regexp.MustCompile(`^[m|app](-?[^\.]+).chatham.ai(:\d+)?$`)
+	//appRedirChathamRegex := regexp.MustCompile(`^[m|app](-?[^\.]+).chatham.ai(:\d+)?$`)
 	fn := func(w http.ResponseWriter, r *http.Request) {
 		// TODO: We probably want something more complex down the road.
 		// if r.URL.Path == "/app_redirect" || appRedirChathamRegex.MatchString(r.Host) {
