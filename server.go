@@ -154,7 +154,7 @@ func main() {
 	http.Handle("/twitter/callback", twitter.CallbackHandler(appLoginConfig, successfulLogin(*conf, delphisBackend), nil))
 	http.Handle("/upload_image", allowCors(uploadImage(delphisBackend)))
 	http.Handle("/health", healthCheck())
-	http.Handle("/", allowCors(authMiddleware(*conf, delphisBackend, fallbackHandler(conf, delphisBackend))))
+	http.Handle("/", fallbackHandler(conf, delphisBackend))
 	log.Printf("connect on port %s for GraphQL playground", port)
 	log.Fatal(http.ListenAndServe(":"+port, nil))
 }
@@ -174,6 +174,7 @@ func appleSiteAssociationHandler(conf *config.Config) http.Handler {
 }
 
 func fallbackHandler(conf *config.Config, delphisBackend backend.DelphisBackend) http.Handler {
+	fmt.Printf("here")
 	//appRedirChathamRegex := regexp.MustCompile(`^[m|app](-?[^\.]+).chatham.ai(:\d+)?$`)
 	fn := func(w http.ResponseWriter, r *http.Request) {
 		// TODO: We probably want something more complex down the road.
