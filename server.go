@@ -195,7 +195,12 @@ func fallbackHandler(conf *config.Config, delphisBackend backend.DelphisBackend)
 		// })
 		// http.Redirect(w, r, "/twitter/login", http.StatusFound)
 
-		http.ServeFile(w, r, "./app_redirect.html")
+		_, err := os.Stat("/var/delphis/static")
+		if err == nil {
+			http.ServeFile(w, r, "/var/delphis/static/app_redirect.html")
+		} else {
+			http.ServeFile(w, r, "./static/app_redirect.html")
+		}
 	}
 
 	return http.HandlerFunc(fn)
