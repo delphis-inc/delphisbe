@@ -174,7 +174,6 @@ func appleSiteAssociationHandler(conf *config.Config) http.Handler {
 }
 
 func fallbackHandler(conf *config.Config, delphisBackend backend.DelphisBackend) http.Handler {
-	fmt.Printf("here")
 	//appRedirChathamRegex := regexp.MustCompile(`^[m|app](-?[^\.]+).chatham.ai(:\d+)?$`)
 	fn := func(w http.ResponseWriter, r *http.Request) {
 		// TODO: We probably want something more complex down the road.
