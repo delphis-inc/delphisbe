@@ -135,7 +135,7 @@ func (d *delphisBackend) GetTwitterUserHandleAutocompletes(ctx context.Context, 
 			}
 			twitterUserInfo := &model.TwitterUserInfo{
 				ID:              twitterUser.IDStr,
-				DiplayName:      twitterUser.Name,
+				DisplayName:     twitterUser.Name,
 				Name:            twitterUser.ScreenName,
 				Verified:        twitterUser.Verified,
 				ProfileImageURL: twitterUser.ProfileImageURLHttps,
