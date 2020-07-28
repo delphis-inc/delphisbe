@@ -205,7 +205,7 @@ func TestDelphisBackend_GetTwitterUserHandleAutocompletes(t *testing.T) {
 				})
 				expectedResult = append(expectedResult, &model.TwitterUserInfo{
 					Name:            fmt.Sprintf("username%d", i),
-					DiplayName:      fmt.Sprintf("User Name %d", i),
+					DisplayName:     fmt.Sprintf("User Name %d", i),
 					Verified:        true,
 					ID:              fmt.Sprintf("%08d", i),
 					ProfileImageURL: "https://example.com/image.png",
@@ -236,7 +236,7 @@ func TestDelphisBackend_GetTwitterUserHandleAutocompletes(t *testing.T) {
 				})
 				expectedResult = append(expectedResult, &model.TwitterUserInfo{
 					Name:            fmt.Sprintf("username%d", i),
-					DiplayName:      fmt.Sprintf("User Name %d", i),
+					DisplayName:     fmt.Sprintf("User Name %d", i),
 					Verified:        true,
 					ID:              fmt.Sprintf("%08d", i),
 					ProfileImageURL: "https://example.com/image.png",
@@ -273,7 +273,7 @@ func TestDelphisBackend_GetTwitterUserHandleAutocompletes(t *testing.T) {
 				})
 				expectedResult = append(expectedResult, &model.TwitterUserInfo{
 					Name:            twitterHandle,
-					DiplayName:      twitterUserName,
+					DisplayName:     twitterUserName,
 					Verified:        true,
 					ID:              fmt.Sprintf("%08d", i),
 					ProfileImageURL: "https://example.com/image.png",

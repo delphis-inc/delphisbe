@@ -1,7 +1,7 @@
 type TwitterUserInfo {
     id: ID!
     name: String!
-    diplayName: String!
+    displayName: String!
     profileImageURL: String!
     verified: Boolean!
     invited: Boolean!

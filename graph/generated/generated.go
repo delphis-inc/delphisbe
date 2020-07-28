@@ -341,7 +341,7 @@ type ComplexityRoot struct {
 	}
 
 	TwitterUserInfo struct {
-		DiplayName      func(childComplexity int) int
+		DisplayName     func(childComplexity int) int
 		ID              func(childComplexity int) int
 		Invited         func(childComplexity int) int
 		Name            func(childComplexity int) int
@@ -2023,12 +2023,12 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Tag.Tag(childComplexity), true
 
-	case "TwitterUserInfo.diplayName":
-		if e.complexity.TwitterUserInfo.DiplayName == nil {
+	case "TwitterUserInfo.displayName":
+		if e.complexity.TwitterUserInfo.DisplayName == nil {
 			break
 		}
 
-		return e.complexity.TwitterUserInfo.DiplayName(childComplexity), true
+		return e.complexity.TwitterUserInfo.DisplayName(childComplexity), true
 
 	case "TwitterUserInfo.id":
 		if e.complexity.TwitterUserInfo.ID == nil {
@@ -2869,7 +2869,7 @@ scalar Time`, BuiltIn: false},
 	&ast.Source{Name: "graph/types/twitter_user_info.graphqls", Input: `type TwitterUserInfo {
     id: ID!
     name: String!
-    diplayName: String!
+    displayName: String!
     profileImageURL: String!
     verified: Boolean!
     invited: Boolean!
@@ -10140,7 +10140,7 @@ func (ec *executionContext) _TwitterUserInfo_name(ctx context.Context, field gra
 	return ec.marshalNString2string(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _TwitterUserInfo_diplayName(ctx context.Context, field graphql.CollectedField, obj *model.TwitterUserInfo) (ret graphql.Marshaler) {
+func (ec *executionContext) _TwitterUserInfo_displayName(ctx context.Context, field graphql.CollectedField, obj *model.TwitterUserInfo) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -10157,7 +10157,7 @@ func (ec *executionContext) _TwitterUserInfo_diplayName(ctx context.Context, fie
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.DiplayName, nil
+		return obj.DisplayName, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -14804,8 +14804,8 @@ func (ec *executionContext) _TwitterUserInfo(ctx context.Context, sel ast.Select
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
-		case "diplayName":
-			out.Values[i] = ec._TwitterUserInfo_diplayName(ctx, field, obj)
+		case "displayName":
+			out.Values[i] = ec._TwitterUserInfo_displayName(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
