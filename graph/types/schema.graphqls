@@ -57,6 +57,7 @@ input PostContentInput {
 input DiscussionInput {
   anonymityType: AnonymityType
   title: String
+  description: String
   autoPost: Boolean
   idleMinutes: Int
   publicAccess: Boolean
@@ -68,7 +69,7 @@ type Mutation {
   addPost(discussionID: ID!, participantID: ID!, postContent: PostContentInput!): Post!
   postImportedContent(discussionID: ID!, participantID: ID!, contentID: ID!): Post! # TODO: Need clarity on UX for this. Keeping it simple for now
   scheduleImportedContent(discussionID: ID!, contentID: ID!): ContentQueueRecord!
-  createDiscussion(anonymityType: AnonymityType!, title: String!, publicAccess: Boolean = true): Discussion!
+  createDiscussion(anonymityType: AnonymityType!, title: String!, description: String, publicAccess: Boolean = true): Discussion!
 
   # Creates a User Flair from a Flair template, accessible via available flair
   createFlair(userID: String!, templateID: String!): Flair!

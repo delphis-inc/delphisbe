@@ -17,6 +17,10 @@ type Discussion implements Entity {
     participants: [Participant!]
 
     title: String!
+    description: String!
+
+    titleHistory: [HistoricalString!]
+    descriptionHistory: [HistoricalString!]
 
     createdAt: String!
     updatedAt: String!
@@ -34,6 +38,11 @@ type Discussion implements Entity {
     flairTemplates: [FlairTemplate!]
     accessRequests: [DiscussionAccessRequest!]
     discussionLinksAccess: DiscussionLinkAccess!
+}
+
+type HistoricalString {
+    value: String!
+    createdAt: Time!
 }
 
 type Tag {

@@ -2,8 +2,11 @@ package backend
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"time"
+
+	"github.com/jinzhu/gorm/dialects/postgres"
 
 	"go.uber.org/multierr"
 
@@ -16,7 +19,7 @@ import (
 const discussionSubscriberKey = "discussion_subscribers-%s"
 const discussionEventSubscriberKey = "discussion_event_subscribers-%s"
 
-func (d *delphisBackend) CreateNewDiscussion(ctx context.Context, creatingUser *model.User, anonymityType model.AnonymityType, title string, publicAccess bool) (*model.Discussion, error) {
+func (d *delphisBackend) CreateNewDiscussion(ctx context.Context, creatingUser *model.User, anonymityType model.AnonymityType, title string, description string, publicAccess bool) (*model.Discussion, error) {
 	moderatorObj := model.Moderator{
 		ID:            util.UUIDv4(),
 		UserProfileID: &creatingUser.UserProfile.ID,
@@ -27,14 +30,42 @@ func (d *delphisBackend) CreateNewDiscussion(ctx context.Context, creatingUser *
 	}
 
 	discussionID := util.UUIDv4()
+	now := time.Now()
+	titleHistory := []model.HistoricalString{
+		{
+			Value:     title,
+			CreatedAt: now,
+		},
+	}
+	descriptionHistory := []model.HistoricalString{
+		{
+			Value:     description,
+			CreatedAt: now,
+		},
+	}
+	titleHistoryBytes, err := json.Marshal(titleHistory)
+	if err != nil {
+		// Not sure what to do here?
+	}
+	descriptionHistoryBytes, err := json.Marshal(descriptionHistory)
+	if err != nil {
+		// Not sure what to do here?
+	}
 	discussionObj := model.Discussion{
-		CreatedAt:     time.Now(),
-		UpdatedAt:     time.Now(),
+		CreatedAt:     now,
+		UpdatedAt:     now,
 		ID:            discussionID,
 		AnonymityType: anonymityType,
 		Title:         title,
-		ModeratorID:   &moderatorObj.ID,
-		PublicAccess:  publicAccess,
+		Description:   description,
+		TitleHistory: postgres.Jsonb{
+			RawMessage: titleHistoryBytes,
+		},
+		DescriptionHistory: postgres.Jsonb{
+			RawMessage: descriptionHistoryBytes,
+		},
+		ModeratorID:  &moderatorObj.ID,
+		PublicAccess: publicAccess,
 	}
 
 	_, err = d.db.UpsertDiscussion(ctx, discussionObj)
@@ -44,9 +75,9 @@ func (d *delphisBackend) CreateNewDiscussion(ctx context.Context, creatingUser *
 
 	// Create concierge participant
 	trueObj := true
+	// TODO: We should probably remove the concierge, right?
 	if _, err := d.CreateParticipantForDiscussion(ctx, discussionObj.ID, model.ConciergeUser, model.AddDiscussionParticipantInput{HasJoined: &trueObj}); err != nil {
 		logrus.WithError(err).Error("failed to create concierge user")
-		return nil, err
 	}
 
 	// Create invite links for discussion
@@ -261,7 +292,12 @@ func updateDiscussionObj(disc *model.Discussion, input model.DiscussionInput) {
 		disc.AnonymityType = *input.AnonymityType
 	}
 	if input.Title != nil {
+		disc.AddTitleToHistory(*input.Title)
 		disc.Title = *input.Title
+	}
+	if input.Description != nil {
+		disc.AddDescriptionToHistory(*input.Description)
+		disc.Description = *input.Description
 	}
 	if input.AutoPost != nil {
 		disc.AutoPost = *input.AutoPost

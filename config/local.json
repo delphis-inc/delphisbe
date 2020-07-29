@@ -1,6 +1,6 @@
 {
     "auth": {
-        "domain": ".chatham.ai"
+        "domain": ".delphishq.com"
     },
     "aws": {
         "region": "us-west-2",
@@ -53,7 +53,7 @@
         }
     },
     "twitter": {
-        "callback": "http://localhost:8080/twitter/callback",
+        "callback": "http://local.delphishq.com:8080/twitter/callback",
         "redirect": "delphis-chatham://local.delphishq.com:8000/",
         "web_redirect": "http://localhost:8080/app_redirect"
     },

@@ -94,6 +94,8 @@ type ComplexityRoot struct {
 		AnonymityType           func(childComplexity int) int
 		AutoPost                func(childComplexity int) int
 		CreatedAt               func(childComplexity int) int
+		Description             func(childComplexity int) int
+		DescriptionHistory      func(childComplexity int) int
 		DiscussionLinksAccess   func(childComplexity int) int
 		FlairTemplates          func(childComplexity int) int
 		ID                      func(childComplexity int) int
@@ -107,6 +109,7 @@ type ComplexityRoot struct {
 		PostsConnection         func(childComplexity int, after *string) int
 		Tags                    func(childComplexity int) int
 		Title                   func(childComplexity int) int
+		TitleHistory            func(childComplexity int) int
 		UpcomingContent         func(childComplexity int) int
 		UpdatedAt               func(childComplexity int) int
 	}
@@ -168,6 +171,11 @@ type ComplexityRoot struct {
 		Source      func(childComplexity int) int
 	}
 
+	HistoricalString struct {
+		CreatedAt func(childComplexity int) int
+		Value     func(childComplexity int) int
+	}
+
 	ImportedContent struct {
 		ContentName  func(childComplexity int) int
 		ContentType  func(childComplexity int) int
@@ -209,7 +217,7 @@ type ComplexityRoot struct {
 		AssignFlair                          func(childComplexity int, participantID string, flairID string) int
 		BanParticipant                       func(childComplexity int, discussionID string, participantID string) int
 		ConciergeMutation                    func(childComplexity int, discussionID string, mutationID string, selectedOptions []string) int
-		CreateDiscussion                     func(childComplexity int, anonymityType model.AnonymityType, title string, publicAccess *bool) int
+		CreateDiscussion                     func(childComplexity int, anonymityType model.AnonymityType, title string, description *string, publicAccess *bool) int
 		CreateFlair                          func(childComplexity int, userID string, templateID string) int
 		CreateFlairTemplate                  func(childComplexity int, displayName *string, imageURL *string, source string) int
 		DeleteDiscussionFlairTemplatesAccess func(childComplexity int, discussionID string, flairTemplateIDs []string) int
@@ -425,6 +433,8 @@ type DiscussionResolver interface {
 
 	Participants(ctx context.Context, obj *model.Discussion) ([]*model.Participant, error)
 
+	TitleHistory(ctx context.Context, obj *model.Discussion) ([]*model.HistoricalString, error)
+	DescriptionHistory(ctx context.Context, obj *model.Discussion) ([]*model.HistoricalString, error)
 	CreatedAt(ctx context.Context, obj *model.Discussion) (string, error)
 	UpdatedAt(ctx context.Context, obj *model.Discussion) (string, error)
 	MeParticipant(ctx context.Context, obj *model.Discussion) (*model.Participant, error)
@@ -475,7 +485,7 @@ type MutationResolver interface {
 	AddPost(ctx context.Context, discussionID string, participantID string, postContent model.PostContentInput) (*model.Post, error)
 	PostImportedContent(ctx context.Context, discussionID string, participantID string, contentID string) (*model.Post, error)
 	ScheduleImportedContent(ctx context.Context, discussionID string, contentID string) (*model.ContentQueueRecord, error)
-	CreateDiscussion(ctx context.Context, anonymityType model.AnonymityType, title string, publicAccess *bool) (*model.Discussion, error)
+	CreateDiscussion(ctx context.Context, anonymityType model.AnonymityType, title string, description *string, publicAccess *bool) (*model.Discussion, error)
 	CreateFlair(ctx context.Context, userID string, templateID string) (*model.Flair, error)
 	RemoveFlair(ctx context.Context, id string) (*model.Flair, error)
 	AssignFlair(ctx context.Context, participantID string, flairID string) (*model.Participant, error)
@@ -712,6 +722,20 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Discussion.CreatedAt(childComplexity), true
 
+	case "Discussion.description":
+		if e.complexity.Discussion.Description == nil {
+			break
+		}
+
+		return e.complexity.Discussion.Description(childComplexity), true
+
+	case "Discussion.descriptionHistory":
+		if e.complexity.Discussion.DescriptionHistory == nil {
+			break
+		}
+
+		return e.complexity.Discussion.DescriptionHistory(childComplexity), true
+
 	case "Discussion.discussionLinksAccess":
 		if e.complexity.Discussion.DiscussionLinksAccess == nil {
 			break
@@ -807,6 +831,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Discussion.Title(childComplexity), true
+
+	case "Discussion.titleHistory":
+		if e.complexity.Discussion.TitleHistory == nil {
+			break
+		}
+
+		return e.complexity.Discussion.TitleHistory(childComplexity), true
 
 	case "Discussion.upcomingContent":
 		if e.complexity.Discussion.UpcomingContent == nil {
@@ -1074,6 +1105,20 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.FlairTemplate.Source(childComplexity), true
 
+	case "HistoricalString.createdAt":
+		if e.complexity.HistoricalString.CreatedAt == nil {
+			break
+		}
+
+		return e.complexity.HistoricalString.CreatedAt(childComplexity), true
+
+	case "HistoricalString.value":
+		if e.complexity.HistoricalString.Value == nil {
+			break
+		}
+
+		return e.complexity.HistoricalString.Value(childComplexity), true
+
 	case "ImportedContent.contentName":
 		if e.complexity.ImportedContent.ContentName == nil {
 			break
@@ -1315,7 +1360,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Mutation.CreateDiscussion(childComplexity, args["anonymityType"].(model.AnonymityType), args["title"].(string), args["publicAccess"].(*bool)), true
+		return e.complexity.Mutation.CreateDiscussion(childComplexity, args["anonymityType"].(model.AnonymityType), args["title"].(string), args["description"].(*string), args["publicAccess"].(*bool)), true
 
 	case "Mutation.createFlair":
 		if e.complexity.Mutation.CreateFlair == nil {
@@ -2408,6 +2453,10 @@ var sources = []*ast.Source{
     participants: [Participant!]
 
     title: String!
+    description: String!
+
+    titleHistory: [HistoricalString!]
+    descriptionHistory: [HistoricalString!]
 
     createdAt: String!
     updatedAt: String!
@@ -2425,6 +2474,11 @@ var sources = []*ast.Source{
     flairTemplates: [FlairTemplate!]
     accessRequests: [DiscussionAccessRequest!]
     discussionLinksAccess: DiscussionLinkAccess!
+}
+
+type HistoricalString {
+    value: String!
+    createdAt: Time!
 }
 
 type Tag {
@@ -2788,6 +2842,7 @@ input PostContentInput {
 input DiscussionInput {
   anonymityType: AnonymityType
   title: String
+  description: String
   autoPost: Boolean
   idleMinutes: Int
   publicAccess: Boolean
@@ -2799,7 +2854,7 @@ type Mutation {
   addPost(discussionID: ID!, participantID: ID!, postContent: PostContentInput!): Post!
   postImportedContent(discussionID: ID!, participantID: ID!, contentID: ID!): Post! # TODO: Need clarity on UX for this. Keeping it simple for now
   scheduleImportedContent(discussionID: ID!, contentID: ID!): ContentQueueRecord!
-  createDiscussion(anonymityType: AnonymityType!, title: String!, publicAccess: Boolean = true): Discussion!
+  createDiscussion(anonymityType: AnonymityType!, title: String!, description: String, publicAccess: Boolean = true): Discussion!
 
   # Creates a User Flair from a Flair template, accessible via available flair
   createFlair(userID: String!, templateID: String!): Flair!
@@ -3174,14 +3229,22 @@ func (ec *executionContext) field_Mutation_createDiscussion_args(ctx context.Con
 		}
 	}
 	args["title"] = arg1
-	var arg2 *bool
-	if tmp, ok := rawArgs["publicAccess"]; ok {
-		arg2, err = ec.unmarshalOBoolean2ᚖbool(ctx, tmp)
+	var arg2 *string
+	if tmp, ok := rawArgs["description"]; ok {
+		arg2, err = ec.unmarshalOString2ᚖstring(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
 	}
-	args["publicAccess"] = arg2
+	args["description"] = arg2
+	var arg3 *bool
+	if tmp, ok := rawArgs["publicAccess"]; ok {
+		arg3, err = ec.unmarshalOBoolean2ᚖbool(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["publicAccess"] = arg3
 	return args, nil
 }
 
@@ -4497,6 +4560,102 @@ func (ec *executionContext) _Discussion_title(ctx context.Context, field graphql
 	res := resTmp.(string)
 	fc.Result = res
 	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Discussion_description(ctx context.Context, field graphql.CollectedField, obj *model.Discussion) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "Discussion",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Description, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Discussion_titleHistory(ctx context.Context, field graphql.CollectedField, obj *model.Discussion) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "Discussion",
+		Field:    field,
+		Args:     nil,
+		IsMethod: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Discussion().TitleHistory(rctx, obj)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.([]*model.HistoricalString)
+	fc.Result = res
+	return ec.marshalOHistoricalString2ᚕᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐHistoricalStringᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Discussion_descriptionHistory(ctx context.Context, field graphql.CollectedField, obj *model.Discussion) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "Discussion",
+		Field:    field,
+		Args:     nil,
+		IsMethod: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Discussion().DescriptionHistory(rctx, obj)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.([]*model.HistoricalString)
+	fc.Result = res
+	return ec.marshalOHistoricalString2ᚕᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐHistoricalStringᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Discussion_createdAt(ctx context.Context, field graphql.CollectedField, obj *model.Discussion) (ret graphql.Marshaler) {
@@ -6067,6 +6226,74 @@ func (ec *executionContext) _FlairTemplate_source(ctx context.Context, field gra
 	return ec.marshalNString2string(ctx, field.Selections, res)
 }
 
+func (ec *executionContext) _HistoricalString_value(ctx context.Context, field graphql.CollectedField, obj *model.HistoricalString) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "HistoricalString",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Value, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _HistoricalString_createdAt(ctx context.Context, field graphql.CollectedField, obj *model.HistoricalString) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "HistoricalString",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.CreatedAt, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(time.Time)
+	fc.Result = res
+	return ec.marshalNTime2timeᚐTime(ctx, field.Selections, res)
+}
+
 func (ec *executionContext) _ImportedContent_id(ctx context.Context, field graphql.CollectedField, obj *model.ImportedContent) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -6951,7 +7178,7 @@ func (ec *executionContext) _Mutation_createDiscussion(ctx context.Context, fiel
 	fc.Args = args
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().CreateDiscussion(rctx, args["anonymityType"].(model.AnonymityType), args["title"].(string), args["publicAccess"].(*bool))
+		return ec.resolvers.Mutation().CreateDiscussion(rctx, args["anonymityType"].(model.AnonymityType), args["title"].(string), args["description"].(*string), args["publicAccess"].(*bool))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -12503,6 +12730,12 @@ func (ec *executionContext) unmarshalInputDiscussionInput(ctx context.Context, o
 			if err != nil {
 				return it, err
 			}
+		case "description":
+			var err error
+			it.Description, err = ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
 		case "autoPost":
 			var err error
 			it.AutoPost, err = ec.unmarshalOBoolean2ᚖbool(ctx, v)
@@ -13024,6 +13257,33 @@ func (ec *executionContext) _Discussion(ctx context.Context, sel ast.SelectionSe
 			if out.Values[i] == graphql.Null {
 				atomic.AddUint32(&invalids, 1)
 			}
+		case "description":
+			out.Values[i] = ec._Discussion_description(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&invalids, 1)
+			}
+		case "titleHistory":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Discussion_titleHistory(ctx, field, obj)
+				return res
+			})
+		case "descriptionHistory":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Discussion_descriptionHistory(ctx, field, obj)
+				return res
+			})
 		case "createdAt":
 			field := field
 			out.Concurrently(i, func() (res graphql.Marshaler) {
@@ -13596,6 +13856,38 @@ func (ec *executionContext) _FlairTemplate(ctx context.Context, sel ast.Selectio
 			out.Values[i] = ec._FlairTemplate_imageURL(ctx, field, obj)
 		case "source":
 			out.Values[i] = ec._FlairTemplate_source(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
+var historicalStringImplementors = []string{"HistoricalString"}
+
+func (ec *executionContext) _HistoricalString(ctx context.Context, sel ast.SelectionSet, obj *model.HistoricalString) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, historicalStringImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("HistoricalString")
+		case "value":
+			out.Values[i] = ec._HistoricalString_value(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "createdAt":
+			out.Values[i] = ec._HistoricalString_createdAt(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
@@ -15780,6 +16072,20 @@ func (ec *executionContext) marshalNFloat2float64(ctx context.Context, sel ast.S
 	return res
 }
 
+func (ec *executionContext) marshalNHistoricalString2githubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐHistoricalString(ctx context.Context, sel ast.SelectionSet, v model.HistoricalString) graphql.Marshaler {
+	return ec._HistoricalString(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNHistoricalString2ᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐHistoricalString(ctx context.Context, sel ast.SelectionSet, v *model.HistoricalString) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	return ec._HistoricalString(ctx, sel, v)
+}
+
 func (ec *executionContext) unmarshalNID2string(ctx context.Context, v interface{}) (string, error) {
 	return graphql.UnmarshalID(v)
 }
@@ -16734,6 +17040,46 @@ func (ec *executionContext) marshalOGradientColor2ᚖgithubᚗcomᚋdelphisᚑin
 		return graphql.Null
 	}
 	return v
+}
+
+func (ec *executionContext) marshalOHistoricalString2ᚕᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐHistoricalStringᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.HistoricalString) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNHistoricalString2ᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐHistoricalString(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+	return ret
 }
 
 func (ec *executionContext) unmarshalOID2string(ctx context.Context, v interface{}) (string, error) {

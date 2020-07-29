@@ -43,6 +43,7 @@ type ConciergeOption struct {
 type DiscussionInput struct {
 	AnonymityType *AnonymityType `json:"anonymityType"`
 	Title         *string        `json:"title"`
+	Description   *string        `json:"description"`
 	AutoPost      *bool          `json:"autoPost"`
 	IdleMinutes   *int           `json:"idleMinutes"`
 	PublicAccess  *bool          `json:"publicAccess"`
