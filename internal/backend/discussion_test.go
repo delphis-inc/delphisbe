@@ -37,6 +37,7 @@ func TestDelphisBackend_CreateNewDiscussion(t *testing.T) {
 	discussionID := test_utils.DiscussionID
 	anonymityType := model.AnonymityTypeStrong
 	title := "test title"
+	description := "test description"
 	publicAccess := true
 
 	userObj := test_utils.TestUser()
@@ -72,7 +73,7 @@ func TestDelphisBackend_CreateNewDiscussion(t *testing.T) {
 			expectedError := fmt.Errorf("Some Error")
 			mockDB.On("CreateModerator", ctx, mock.Anything).Return(nil, expectedError)
 
-			resp, err := backendObj.CreateNewDiscussion(ctx, &userObj, anonymityType, title, publicAccess)
+			resp, err := backendObj.CreateNewDiscussion(ctx, &userObj, anonymityType, title, description, publicAccess)
 
 			So(err, ShouldEqual, expectedError)
 			So(resp, ShouldBeNil)
@@ -83,7 +84,7 @@ func TestDelphisBackend_CreateNewDiscussion(t *testing.T) {
 			mockDB.On("CreateModerator", ctx, mock.Anything).Return(&modObj, nil)
 			mockDB.On("UpsertDiscussion", ctx, mock.Anything).Return(nil, expectedError)
 
-			resp, err := backendObj.CreateNewDiscussion(ctx, &userObj, anonymityType, title, publicAccess)
+			resp, err := backendObj.CreateNewDiscussion(ctx, &userObj, anonymityType, title, description, publicAccess)
 
 			So(err, ShouldEqual, expectedError)
 			So(resp, ShouldBeNil)
@@ -98,7 +99,7 @@ func TestDelphisBackend_CreateNewDiscussion(t *testing.T) {
 			// Create participant functions
 			mockDB.On("GetUserByID", ctx, mock.Anything).Return(nil, expectedError)
 
-			resp, err := backendObj.CreateNewDiscussion(ctx, &userObj, anonymityType, title, publicAccess)
+			resp, err := backendObj.CreateNewDiscussion(ctx, &userObj, anonymityType, title, description, publicAccess)
 
 			So(err, ShouldNotBeNil)
 			So(resp, ShouldBeNil)
@@ -132,7 +133,7 @@ func TestDelphisBackend_CreateNewDiscussion(t *testing.T) {
 			mockDB.On("UpsertInviteLinksByDiscussionID", ctx, mock.Anything, mock.Anything).Return(nil, expectedError)
 			mockDB.On("RollbackTx", ctx, mock.Anything).Return(nil)
 
-			resp, err := backendObj.CreateNewDiscussion(ctx, &userObj, anonymityType, title, publicAccess)
+			resp, err := backendObj.CreateNewDiscussion(ctx, &userObj, anonymityType, title, description, publicAccess)
 
 			So(err, ShouldNotBeNil)
 			So(resp, ShouldBeNil)
@@ -166,7 +167,7 @@ func TestDelphisBackend_CreateNewDiscussion(t *testing.T) {
 				&model.DiscussionLinkAccess{DiscussionID: discussionID}, nil)
 			mockDB.On("CommitTx", ctx, mock.Anything).Return(nil)
 
-			resp, err := backendObj.CreateNewDiscussion(ctx, &userObj, anonymityType, title, publicAccess)
+			resp, err := backendObj.CreateNewDiscussion(ctx, &userObj, anonymityType, title, description, publicAccess)
 
 			So(err, ShouldBeNil)
 			So(resp, ShouldNotBeNil)

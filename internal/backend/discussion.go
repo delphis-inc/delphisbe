@@ -78,6 +78,7 @@ func (d *delphisBackend) CreateNewDiscussion(ctx context.Context, creatingUser *
 	// TODO: We should probably remove the concierge, right?
 	if _, err := d.CreateParticipantForDiscussion(ctx, discussionObj.ID, model.ConciergeUser, model.AddDiscussionParticipantInput{HasJoined: &trueObj}); err != nil {
 		logrus.WithError(err).Error("failed to create concierge user")
+		return nil, err
 	}
 
 	// Create invite links for discussion
