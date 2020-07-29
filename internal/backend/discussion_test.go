@@ -227,6 +227,54 @@ func TestDelphisBackend_UpdateDiscussion(t *testing.T) {
 			So(err, ShouldBeNil)
 			So(resp, ShouldNotBeNil)
 		})
+
+		Convey("when the title is changed, the history is updated", func() {
+			mockDB.On("GetDiscussionByID", ctx, discussionID).Return(&discObj, nil)
+			newTitle := "newTitle"
+			updatedDiscussion := discObj
+			updatedDiscussion.Title = newTitle
+			updatedDiscussion.AddTitleToHistory(updatedDiscussion.Title)
+
+			matcher := func(arg interface{}) bool {
+				argAsDiscussion := arg.(model.Discussion)
+				expectedTitleHistory, err := updatedDiscussion.TitleHistoryAsObject()
+				actualTitleHistory, err2 := argAsDiscussion.TitleHistoryAsObject()
+				return err == nil && err2 == nil && len(expectedTitleHistory) == len(actualTitleHistory) && expectedTitleHistory[0].Value == actualTitleHistory[0].Value
+			}
+
+			mockDB.On("UpsertDiscussion", ctx, mock.MatchedBy(matcher)).Return(&discObj, nil)
+			updateInput := model.DiscussionInput{
+				Title: &newTitle,
+			}
+			resp, err := backendObj.UpdateDiscussion(ctx, discussionID, updateInput)
+
+			So(err, ShouldBeNil)
+			So(resp, ShouldNotBeNil)
+		})
+
+		Convey("when the description is changed, the history is updated", func() {
+			mockDB.On("GetDiscussionByID", ctx, discussionID).Return(&discObj, nil)
+			newDescription := "newDescription"
+			updatedDiscussion := discObj
+			updatedDiscussion.Description = newDescription
+			updatedDiscussion.AddDescriptionToHistory(updatedDiscussion.Description)
+
+			matcher := func(arg interface{}) bool {
+				argAsDiscussion := arg.(model.Discussion)
+				expectedDescriptionHistory, err := updatedDiscussion.DescriptionHistoryAsObject()
+				actualDescriptionHistory, err2 := argAsDiscussion.DescriptionHistoryAsObject()
+				return err == nil && err2 == nil && len(expectedDescriptionHistory) == len(actualDescriptionHistory) && expectedDescriptionHistory[0].Value == actualDescriptionHistory[0].Value
+			}
+
+			mockDB.On("UpsertDiscussion", ctx, mock.MatchedBy(matcher)).Return(&discObj, nil)
+			updateInput := model.DiscussionInput{
+				Description: &newDescription,
+			}
+			resp, err := backendObj.UpdateDiscussion(ctx, discussionID, updateInput)
+
+			So(err, ShouldBeNil)
+			So(resp, ShouldNotBeNil)
+		})
 	})
 }
 
