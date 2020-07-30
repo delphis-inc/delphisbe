@@ -45,11 +45,11 @@ func (d *delphisBackend) CreateNewDiscussion(ctx context.Context, creatingUser *
 	}
 	titleHistoryBytes, err := json.Marshal(titleHistory)
 	if err != nil {
-		// Not sure what to do here?
+		return nil, err
 	}
 	descriptionHistoryBytes, err := json.Marshal(descriptionHistory)
 	if err != nil {
-		// Not sure what to do here?
+		return nil, err
 	}
 	discussionObj := model.Discussion{
 		CreatedAt:     now,
