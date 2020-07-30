@@ -6,7 +6,7 @@ const (
 	InviteTypeInvite                InviteType = "invite"
 	InviteTypeAccessRequestAccepted InviteType = "access_granted"
 
-	InviteLinkHostname string = "https://m.chatham.ai/join"
+	InviteLinkHostname string = "https://m.chatham.ai/d"
 )
 
 type InviteType string
