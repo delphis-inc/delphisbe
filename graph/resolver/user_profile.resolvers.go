@@ -21,6 +21,21 @@ func (r *userProfileResolver) ProfileImageURL(ctx context.Context, obj *model.Us
 	return obj.SocialInfos[0].ProfileImageURL, nil
 }
 
+func (r *userProfileResolver) AuthenticatedWithTwitter(ctx context.Context, obj *model.UserProfile) (bool, error) {
+	if len(obj.SocialInfos) == 0 {
+		si, err := r.DAOManager.GetSocialInfosByUserProfileID(ctx, obj.ID)
+		if err != nil {
+			return false, err
+		}
+		for _, s := range si {
+			if s.Network == "twitter" {
+				return true, nil
+			}
+		}
+	}
+	return false, nil
+}
+
 // UserProfile returns generated.UserProfileResolver implementation.
 func (r *Resolver) UserProfile() generated.UserProfileResolver { return &userProfileResolver{r} }
 

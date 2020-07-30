@@ -156,7 +156,7 @@ func TestDelphisBackend_GetOrCreateUser(t *testing.T) {
 			expectedError := fmt.Errorf("Some Error")
 			mockDB.On("CreateOrUpdateUserProfile", ctx, mock.Anything).Return(nil, false, expectedError)
 
-			resp, err := backendObj.GetOrCreateUser(ctx, twitterInput)
+			resp, err := backendObj.GetOrCreateUser(ctx, twitterInput, nil)
 
 			So(err, ShouldNotBeNil)
 			So(resp, ShouldBeNil)
@@ -167,7 +167,7 @@ func TestDelphisBackend_GetOrCreateUser(t *testing.T) {
 			mockDB.On("CreateOrUpdateUserProfile", ctx, mock.Anything).Return(&profileObj, false, nil)
 			mockDB.On("UpsertSocialInfo", ctx, mock.Anything).Return(nil, expectedError)
 
-			resp, err := backendObj.GetOrCreateUser(ctx, twitterInput)
+			resp, err := backendObj.GetOrCreateUser(ctx, twitterInput, nil)
 
 			So(err, ShouldNotBeNil)
 			So(resp, ShouldBeNil)
@@ -180,7 +180,7 @@ func TestDelphisBackend_GetOrCreateUser(t *testing.T) {
 				mockDB.On("UpsertSocialInfo", ctx, mock.Anything).Return(&socialObj, nil)
 				mockDB.On("UpsertUser", ctx, mock.Anything).Return(nil, expectedError)
 
-				resp, err := backendObj.GetOrCreateUser(ctx, twitterInput)
+				resp, err := backendObj.GetOrCreateUser(ctx, twitterInput, nil)
 
 				So(err, ShouldNotBeNil)
 				So(resp, ShouldBeNil)
@@ -192,7 +192,7 @@ func TestDelphisBackend_GetOrCreateUser(t *testing.T) {
 				mockDB.On("UpsertUser", ctx, mock.Anything).Return(&userObj, nil)
 				mockDB.On("CreateOrUpdateUserProfile", ctx, mock.Anything).Return(&profileObj, true, nil)
 
-				resp, err := backendObj.GetOrCreateUser(ctx, twitterInput)
+				resp, err := backendObj.GetOrCreateUser(ctx, twitterInput, nil)
 
 				So(err, ShouldBeNil)
 				So(resp, ShouldNotBeNil)
@@ -206,7 +206,7 @@ func TestDelphisBackend_GetOrCreateUser(t *testing.T) {
 				mockDB.On("UpsertSocialInfo", ctx, mock.Anything).Return(&socialObj, nil)
 				mockDB.On("GetUserByID", ctx, mock.Anything).Return(nil, expectedError)
 
-				resp, err := backendObj.GetOrCreateUser(ctx, twitterInput)
+				resp, err := backendObj.GetOrCreateUser(ctx, twitterInput, nil)
 
 				So(err, ShouldNotBeNil)
 				So(resp, ShouldBeNil)
@@ -217,7 +217,20 @@ func TestDelphisBackend_GetOrCreateUser(t *testing.T) {
 				mockDB.On("UpsertSocialInfo", ctx, mock.Anything).Return(&socialObj, nil)
 				mockDB.On("GetUserByID", ctx, mock.Anything).Return(&userObj, nil)
 
-				resp, err := backendObj.GetOrCreateUser(ctx, twitterInput)
+				resp, err := backendObj.GetOrCreateUser(ctx, twitterInput, nil)
+
+				So(err, ShouldBeNil)
+				So(resp, ShouldNotBeNil)
+			})
+		})
+
+		Convey("when a user object override is passed", func() {
+			Convey("when call is successful", func() {
+				mockDB.On("CreateOrUpdateUserProfile", ctx, mock.Anything).Return(&profileObj, false, nil)
+				mockDB.On("UpsertSocialInfo", ctx, mock.Anything).Return(&socialObj, nil)
+				mockDB.On("CreateOrUpdateUserProfile", ctx, mock.Anything).Return(&profileObj, false, nil)
+
+				resp, err := backendObj.GetOrCreateUser(ctx, twitterInput, &userObj)
 
 				So(err, ShouldBeNil)
 				So(resp, ShouldNotBeNil)

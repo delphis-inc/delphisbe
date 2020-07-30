@@ -8,4 +8,6 @@ type UserProfile {
     twitterURL: URL!
 
     profileImageURL: String!
+
+    authenticatedWithTwitter: Boolean!
 }
