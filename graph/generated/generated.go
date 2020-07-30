@@ -388,10 +388,11 @@ type ComplexityRoot struct {
 	}
 
 	UserProfile struct {
-		DisplayName     func(childComplexity int) int
-		ID              func(childComplexity int) int
-		ProfileImageURL func(childComplexity int) int
-		TwitterURL      func(childComplexity int) int
+		AuthenticatedWithTwitter func(childComplexity int) int
+		DisplayName              func(childComplexity int) int
+		ID                       func(childComplexity int) int
+		ProfileImageURL          func(childComplexity int) int
+		TwitterURL               func(childComplexity int) int
 	}
 
 	Viewer struct {
@@ -577,6 +578,7 @@ type UserDeviceResolver interface {
 }
 type UserProfileResolver interface {
 	ProfileImageURL(ctx context.Context, obj *model.UserProfile) (string, error)
+	AuthenticatedWithTwitter(ctx context.Context, obj *model.UserProfile) (bool, error)
 }
 type ViewerResolver interface {
 	NotificationPreferences(ctx context.Context, obj *model.Viewer) (model.DiscussionNotificationPreferences, error)
@@ -2241,6 +2243,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.UserDevice.User(childComplexity), true
 
+	case "UserProfile.authenticatedWithTwitter":
+		if e.complexity.UserProfile.AuthenticatedWithTwitter == nil {
+			break
+		}
+
+		return e.complexity.UserProfile.AuthenticatedWithTwitter(childComplexity), true
+
 	case "UserProfile.displayName":
 		if e.complexity.UserProfile.DisplayName == nil {
 			break
@@ -2984,6 +2993,8 @@ type User {
     twitterURL: URL!
 
     profileImageURL: String!
+
+    authenticatedWithTwitter: Boolean!
 }`, BuiltIn: false},
 	&ast.Source{Name: "graph/types/viewer.graphqls", Input: `type Viewer {
     # Fetchable as it does not reference a user.
@@ -11231,6 +11242,40 @@ func (ec *executionContext) _UserProfile_profileImageURL(ctx context.Context, fi
 	return ec.marshalNString2string(ctx, field.Selections, res)
 }
 
+func (ec *executionContext) _UserProfile_authenticatedWithTwitter(ctx context.Context, field graphql.CollectedField, obj *model.UserProfile) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "UserProfile",
+		Field:    field,
+		Args:     nil,
+		IsMethod: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.UserProfile().AuthenticatedWithTwitter(rctx, obj)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(bool)
+	fc.Result = res
+	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
+}
+
 func (ec *executionContext) _Viewer_id(ctx context.Context, field graphql.CollectedField, obj *model.Viewer) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -15412,6 +15457,20 @@ func (ec *executionContext) _UserProfile(ctx context.Context, sel ast.SelectionS
 					}
 				}()
 				res = ec._UserProfile_profileImageURL(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
+		case "authenticatedWithTwitter":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._UserProfile_authenticatedWithTwitter(ctx, field, obj)
 				if res == graphql.Null {
 					atomic.AddUint32(&invalids, 1)
 				}

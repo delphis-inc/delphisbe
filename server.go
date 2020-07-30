@@ -32,6 +32,7 @@ import (
 	"github.com/99designs/gqlgen/graphql/handler/transport"
 	"github.com/99designs/gqlgen/graphql/playground"
 	"github.com/delphis-inc/delphisbe/graph/generated"
+	"github.com/delphis-inc/delphisbe/graph/model"
 	"github.com/delphis-inc/delphisbe/graph/resolver"
 	"github.com/delphis-inc/delphisbe/internal/backend"
 	"github.com/delphis-inc/delphisbe/internal/config"
@@ -150,13 +151,42 @@ func main() {
 
 	http.Handle("/apple/authLogin", appleAuthLogin(conf, delphisBackend))
 	// For the app we have a different redirect than not within the app.
-	http.Handle("/twitter/login", twitter.LoginHandler(appLoginConfig, nil))
+	http.Handle("/twitter/login", authMiddleware(*conf, delphisBackend, twitterLoginWrapper(conf, delphisBackend, appLoginConfig)))
 	http.Handle("/twitter/callback", twitter.CallbackHandler(appLoginConfig, successfulLogin(*conf, delphisBackend), nil))
 	http.Handle("/upload_image", allowCors(uploadImage(delphisBackend)))
 	http.Handle("/health", healthCheck())
 	http.Handle("/", fallbackHandler(conf, delphisBackend))
 	log.Printf("connect on port %s for GraphQL playground", port)
 	log.Fatal(http.ListenAndServe(":"+port, nil))
+}
+
+func twitterLoginWrapper(conf *config.Config, delphisBackend backend.DelphisBackend, appLoginConfig *oauth1.Config) http.Handler {
+	twitterLoginHandler := twitter.LoginHandler(appLoginConfig, nil)
+	fn := func(w http.ResponseWriter, r *http.Request) {
+		currentUser := auth.GetAuthedUser(r.Context())
+		if currentUser != nil {
+			// This user is already logged in! Let's make sure we link their accounts.
+			accessToken, err := delphisBackend.NewAccessToken(r.Context(), currentUser.UserID)
+			if err != nil {
+				// Serve an error response here.
+				w.WriteHeader(http.StatusInternalServerError)
+				return
+			}
+			// Set this cookie for a short time (5 minutes).
+			http.SetCookie(w, &http.Cookie{
+				Name:     "clc",
+				Value:    accessToken.TokenString,
+				Domain:   conf.Auth.Domain,
+				Path:     "/",
+				MaxAge:   300,
+				HttpOnly: true,
+				SameSite: http.SameSiteStrictMode,
+			})
+		}
+
+		twitterLoginHandler.ServeHTTP(w, r)
+	}
+	return http.HandlerFunc(fn)
 }
 
 // TODO: We may want to limit this to certain domains.
@@ -380,11 +410,21 @@ func successfulLogin(conf config.Config, delphisBackend backend.DelphisBackend) 
 			return
 		}
 
+		var userObjOverride *model.User
+
+		connectedUserCookie, err := req.Cookie("clc")
+		if err != nil && connectedUserCookie != nil {
+			authedUser, err := delphisBackend.ValidateAccessToken(req.Context(), connectedUserCookie.Value)
+			if err != nil && authedUser != nil {
+				userObjOverride, err = delphisBackend.GetUserByID(ctx, authedUser.UserID)
+			}
+		}
+
 		userObj, err := delphisBackend.GetOrCreateUser(ctx, backend.LoginWithTwitterInput{
 			User:              twitterUser,
 			AccessToken:       accessToken,
 			AccessTokenSecret: accessTokenSecret,
-		})
+		}, userObjOverride)
 		if err != nil {
 			logrus.WithError(err).Errorf("Got an error creating a user")
 			return

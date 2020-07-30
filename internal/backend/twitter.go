@@ -210,7 +210,7 @@ func (d *delphisBackend) InviteTwitterUsersToDiscussion(ctx context.Context, twi
 				User:              &twitterUser,
 				AccessToken:       "",
 				AccessTokenSecret: "",
-			})
+			}, nil)
 			if err != nil {
 				logrus.WithError(err).Errorf("Got an error creating a user")
 				return nil, err

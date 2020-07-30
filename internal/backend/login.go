@@ -87,7 +87,7 @@ func (b *delphisBackend) GetOrCreateAppleUser(ctx context.Context, input LoginWi
 	return userObj, nil
 }
 
-func (b *delphisBackend) GetOrCreateUser(ctx context.Context, input LoginWithTwitterInput) (*model.User, error) {
+func (b *delphisBackend) GetOrCreateUser(ctx context.Context, input LoginWithTwitterInput, userObjOverride *model.User) (*model.User, error) {
 	userProfileObj := &model.UserProfile{
 		ID:            input.ID(),
 		DisplayName:   input.User.Name,
@@ -116,7 +116,14 @@ func (b *delphisBackend) GetOrCreateUser(ctx context.Context, input LoginWithTwi
 
 	var userObj *model.User
 	logrus.Debugf("isCreated? %t, userProfileObj: %+v", isCreated, userProfileObj)
-	if isCreated || userProfileObj.UserID == nil {
+	if userObjOverride != nil {
+		userProfileObj.UserID = &userObjOverride.ID
+		_, _, err = b.db.CreateOrUpdateUserProfile(ctx, *userProfileObj)
+		if err != nil {
+			return nil, err
+		}
+		userObj = userObjOverride
+	} else if isCreated || userProfileObj.UserID == nil {
 		userObj = &model.User{
 			ID:        util.UUIDv4(),
 			CreatedAt: time.Now(),
