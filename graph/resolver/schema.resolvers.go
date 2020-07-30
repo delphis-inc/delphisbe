@@ -120,7 +120,7 @@ func (r *mutationResolver) ScheduleImportedContent(ctx context.Context, discussi
 	return r.DAOManager.PutImportedContentQueue(ctx, discussionID, contentID, nil, nil, "")
 }
 
-func (r *mutationResolver) CreateDiscussion(ctx context.Context, anonymityType model.AnonymityType, title string, description *string, publicAccess *bool) (*model.Discussion, error) {
+func (r *mutationResolver) CreateDiscussion(ctx context.Context, anonymityType model.AnonymityType, title string, description *string, publicAccess *bool, discussionSettings model.DiscussionCreationSettings) (*model.Discussion, error) {
 	authedUser := auth.GetAuthedUser(ctx)
 	if authedUser == nil {
 		return nil, fmt.Errorf("Need auth")
@@ -138,7 +138,7 @@ func (r *mutationResolver) CreateDiscussion(ctx context.Context, anonymityType m
 		descriptionStr = *description
 	}
 
-	discussionObj, err := r.DAOManager.CreateNewDiscussion(ctx, authedUser.User, anonymityType, title, descriptionStr, *publicAccess)
+	discussionObj, err := r.DAOManager.CreateNewDiscussion(ctx, authedUser.User, anonymityType, title, descriptionStr, *publicAccess, discussionSettings)
 
 	if err != nil {
 		return nil, err

@@ -615,14 +615,14 @@ func TestDelphisDB_UpsertDiscussion(t *testing.T) {
 		defer db.Close()
 
 		expectedFindQueryStr := `SELECT * FROM "discussions" WHERE "discussions"."deleted_at" IS NULL AND (("discussions"."id" = $1)) ORDER BY "discussions"."id" ASC LIMIT 1`
-		createQueryStr := `INSERT INTO "discussions" ("id","created_at","updated_at","deleted_at","title","description","title_history","description_history","anonymity_type","moderator_id","auto_post","idle_minutes","public_access","icon_url") VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14) RETURNING "discussions"."id"`
+		createQueryStr := `INSERT INTO "discussions" ("id","created_at","updated_at","deleted_at","title","description","title_history","description_history","anonymity_type","moderator_id","auto_post","idle_minutes","public_access","icon_url","discussion_joinability") VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15) RETURNING "discussions"."id"`
 
 		expectedNewObjectRow := sqlmock.NewRows([]string{"id", "created_at", "updated_at", "deleted_at", "title", "description", "title_history", "description_history", "anonymity_type", "moderator_id", "icon_url",
-			"auto_post", "idle_minutes", "public_access"}).
+			"auto_post", "idle_minutes", "public_access", "discussion_joinability"}).
 			AddRow(discObj.ID, discObj.CreatedAt, discObj.UpdatedAt, discObj.DeletedAt, discObj.Title, discObj.Description, discObj.TitleHistory, discObj.DescriptionHistory, discObj.AnonymityType,
-				discObj.ModeratorID, discObj.IconURL, discObj.AutoPost, discObj.IdleMinutes, discObj.PublicAccess)
+				discObj.ModeratorID, discObj.IconURL, discObj.AutoPost, discObj.IdleMinutes, discObj.PublicAccess, discObj.DiscussionJoinability)
 
-		expectedUpdateStr := `UPDATE "discussions" SET "anonymity_type" = $1, "auto_post" = $2, "description" = $3, "description_history" = $4, "icon_url" = $5, "idle_minutes" = $6, "public_access" = $7, "title" = $8, "title_history" = $9, "updated_at" = $10 WHERE "discussions"."deleted_at" IS NULL AND "discussions"."id" = $11`
+		expectedUpdateStr := `UPDATE "discussions" SET "anonymity_type" = $1, "auto_post" = $2, "description" = $3, "description_history" = $4, "discussion_joinability" = $5, "icon_url" = $6, "idle_minutes" = $7, "public_access" = $8, "title" = $9, "title_history" = $10, "updated_at" = $11 WHERE "discussions"."deleted_at" IS NULL AND "discussions"."id" = $12`
 		expectedPostUpdateSelectStr := `SELECT * FROM "discussions" WHERE "discussions"."deleted_at" IS NULL AND "discussions"."id" = $1 ORDER BY "discussions"."id" ASC LIMIT 1`
 		expectedPostUpdateModSelectStr := `SELECT * FROM "moderators"  WHERE "moderators"."deleted_at" IS NULL AND (("id" IN ($1))) ORDER BY "moderators"."id" ASC`
 
@@ -648,6 +648,7 @@ func TestDelphisDB_UpsertDiscussion(t *testing.T) {
 					discObj.ID, discObj.CreatedAt, discObj.UpdatedAt, discObj.DeletedAt, discObj.Title,
 					discObj.Description, discObj.TitleHistory, discObj.DescriptionHistory, discObj.AnonymityType,
 					discObj.ModeratorID, discObj.AutoPost, discObj.IdleMinutes, discObj.PublicAccess, discObj.IconURL,
+					discObj.DiscussionJoinability,
 				).WillReturnError(expectedError)
 
 				resp, err := mockDatastore.UpsertDiscussion(ctx, discObj)
@@ -664,6 +665,7 @@ func TestDelphisDB_UpsertDiscussion(t *testing.T) {
 					discObj.ID, discObj.CreatedAt, discObj.UpdatedAt, discObj.DeletedAt, discObj.Title, discObj.Description,
 					discObj.TitleHistory, discObj.DescriptionHistory, discObj.AnonymityType,
 					discObj.ModeratorID, discObj.AutoPost, discObj.IdleMinutes, discObj.PublicAccess, discObj.IconURL,
+					discObj.DiscussionJoinability,
 				).WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(discObj.ID))
 				mock.ExpectCommit()
 				mock.ExpectQuery(expectedFindQueryStr).WithArgs(discObj.ID).WillReturnRows(expectedNewObjectRow)
@@ -684,7 +686,7 @@ func TestDelphisDB_UpsertDiscussion(t *testing.T) {
 				mock.ExpectBegin()
 				mock.ExpectExec(expectedUpdateStr).WithArgs(
 					discObj.AnonymityType, discObj.AutoPost, discObj.Description, discObj.DescriptionHistory,
-					discObj.IconURL, discObj.IdleMinutes,
+					discObj.DiscussionJoinability, discObj.IconURL, discObj.IdleMinutes,
 					discObj.PublicAccess, discObj.Title, discObj.TitleHistory, sqlmock.AnyArg(), discObj.ID,
 				).WillReturnError(expectedError)
 
@@ -701,17 +703,18 @@ func TestDelphisDB_UpsertDiscussion(t *testing.T) {
 				mock.ExpectBegin()
 				mock.ExpectExec(expectedUpdateStr).WithArgs(
 					discObj.AnonymityType, discObj.AutoPost, discObj.Description, discObj.DescriptionHistory,
-					discObj.IconURL, discObj.IdleMinutes,
+					discObj.DiscussionJoinability, discObj.IconURL, discObj.IdleMinutes,
 					discObj.PublicAccess, discObj.Title, discObj.TitleHistory, sqlmock.AnyArg(), discObj.ID,
 				).WillReturnResult(sqlmock.NewResult(0, 1))
 				mock.ExpectCommit()
 				mock.ExpectQuery(expectedPostUpdateSelectStr).WithArgs(discObj.ID).
 					WillReturnRows(sqlmock.NewRows([]string{"id", "created_at", "updated_at", "deleted_at", "title", "description", "title_history",
 						"description_history", "anonymity_type", "moderator_id", "icon_url",
-						"auto_post", "idle_minutes", "public_access"}).
+						"auto_post", "idle_minutes", "public_access", "discussion_joinability"}).
 						AddRow(discObj.ID, discObj.CreatedAt, discObj.UpdatedAt, discObj.DeletedAt, discObj.Title,
 							discObj.Description, discObj.TitleHistory, discObj.DescriptionHistory, discObj.AnonymityType,
-							discObj.ModeratorID, discObj.IconURL, discObj.AutoPost, discObj.IdleMinutes, discObj.PublicAccess))
+							discObj.ModeratorID, discObj.IconURL, discObj.AutoPost, discObj.IdleMinutes, discObj.PublicAccess,
+							discObj.DiscussionJoinability))
 				mock.ExpectQuery(expectedPostUpdateModSelectStr).WithArgs(discObj.ModeratorID).WillReturnError(expectedError)
 
 				resp, err := mockDatastore.UpsertDiscussion(ctx, discObj)
@@ -726,17 +729,18 @@ func TestDelphisDB_UpsertDiscussion(t *testing.T) {
 				mock.ExpectBegin()
 				mock.ExpectExec(expectedUpdateStr).WithArgs(
 					discObj.AnonymityType, discObj.AutoPost, discObj.Description, discObj.DescriptionHistory,
-					discObj.IconURL, discObj.IdleMinutes,
+					discObj.DiscussionJoinability, discObj.IconURL, discObj.IdleMinutes,
 					discObj.PublicAccess, discObj.Title, discObj.TitleHistory, sqlmock.AnyArg(), discObj.ID,
 				).WillReturnResult(sqlmock.NewResult(0, 1))
 				mock.ExpectCommit()
 				mock.ExpectQuery(expectedPostUpdateSelectStr).WithArgs(discObj.ID).
 					WillReturnRows(sqlmock.NewRows([]string{"id", "created_at", "updated_at", "deleted_at", "title", "description", "title_history",
 						"description_history", "anonymity_type", "moderator_id", "icon_url",
-						"auto_post", "idle_minutes", "public_access"}).
+						"auto_post", "idle_minutes", "public_access", "discussion_joinability"}).
 						AddRow(discObj.ID, discObj.CreatedAt, discObj.UpdatedAt, discObj.DeletedAt, discObj.Title,
 							discObj.Description, discObj.TitleHistory, discObj.DescriptionHistory, discObj.AnonymityType,
-							discObj.ModeratorID, discObj.IconURL, discObj.AutoPost, discObj.IdleMinutes, discObj.PublicAccess))
+							discObj.ModeratorID, discObj.IconURL, discObj.AutoPost, discObj.IdleMinutes, discObj.PublicAccess,
+							discObj.DiscussionJoinability))
 				mock.ExpectQuery(expectedPostUpdateModSelectStr).WithArgs(discObj.ModeratorID).WillReturnRows(
 					sqlmock.NewRows([]string{"id", "created_at", "updated_at", "deleted_at", "user_profile_id"}).
 						AddRow(modObj.ID, modObj.CreatedAt, modObj.UpdatedAt, modObj.DeletedAt, modObj.UserProfileID))

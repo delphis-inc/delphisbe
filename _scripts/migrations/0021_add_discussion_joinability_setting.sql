@@ -1,0 +1,1 @@
+ALTER TABLE discussions ADD COLUMN IF NOT EXISTS discussion_joinability VARCHAR(64);
