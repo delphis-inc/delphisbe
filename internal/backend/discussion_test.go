@@ -37,6 +37,7 @@ func TestDelphisBackend_CreateNewDiscussion(t *testing.T) {
 	discussionID := test_utils.DiscussionID
 	anonymityType := model.AnonymityTypeStrong
 	title := "test title"
+	description := "test description"
 	publicAccess := true
 
 	userObj := test_utils.TestUser()
@@ -72,7 +73,7 @@ func TestDelphisBackend_CreateNewDiscussion(t *testing.T) {
 			expectedError := fmt.Errorf("Some Error")
 			mockDB.On("CreateModerator", ctx, mock.Anything).Return(nil, expectedError)
 
-			resp, err := backendObj.CreateNewDiscussion(ctx, &userObj, anonymityType, title, publicAccess)
+			resp, err := backendObj.CreateNewDiscussion(ctx, &userObj, anonymityType, title, description, publicAccess)
 
 			So(err, ShouldEqual, expectedError)
 			So(resp, ShouldBeNil)
@@ -83,7 +84,7 @@ func TestDelphisBackend_CreateNewDiscussion(t *testing.T) {
 			mockDB.On("CreateModerator", ctx, mock.Anything).Return(&modObj, nil)
 			mockDB.On("UpsertDiscussion", ctx, mock.Anything).Return(nil, expectedError)
 
-			resp, err := backendObj.CreateNewDiscussion(ctx, &userObj, anonymityType, title, publicAccess)
+			resp, err := backendObj.CreateNewDiscussion(ctx, &userObj, anonymityType, title, description, publicAccess)
 
 			So(err, ShouldEqual, expectedError)
 			So(resp, ShouldBeNil)
@@ -98,7 +99,7 @@ func TestDelphisBackend_CreateNewDiscussion(t *testing.T) {
 			// Create participant functions
 			mockDB.On("GetUserByID", ctx, mock.Anything).Return(nil, expectedError)
 
-			resp, err := backendObj.CreateNewDiscussion(ctx, &userObj, anonymityType, title, publicAccess)
+			resp, err := backendObj.CreateNewDiscussion(ctx, &userObj, anonymityType, title, description, publicAccess)
 
 			So(err, ShouldNotBeNil)
 			So(resp, ShouldBeNil)
@@ -132,7 +133,7 @@ func TestDelphisBackend_CreateNewDiscussion(t *testing.T) {
 			mockDB.On("UpsertInviteLinksByDiscussionID", ctx, mock.Anything, mock.Anything).Return(nil, expectedError)
 			mockDB.On("RollbackTx", ctx, mock.Anything).Return(nil)
 
-			resp, err := backendObj.CreateNewDiscussion(ctx, &userObj, anonymityType, title, publicAccess)
+			resp, err := backendObj.CreateNewDiscussion(ctx, &userObj, anonymityType, title, description, publicAccess)
 
 			So(err, ShouldNotBeNil)
 			So(resp, ShouldBeNil)
@@ -166,7 +167,7 @@ func TestDelphisBackend_CreateNewDiscussion(t *testing.T) {
 				&model.DiscussionLinkAccess{DiscussionID: discussionID}, nil)
 			mockDB.On("CommitTx", ctx, mock.Anything).Return(nil)
 
-			resp, err := backendObj.CreateNewDiscussion(ctx, &userObj, anonymityType, title, publicAccess)
+			resp, err := backendObj.CreateNewDiscussion(ctx, &userObj, anonymityType, title, description, publicAccess)
 
 			So(err, ShouldBeNil)
 			So(resp, ShouldNotBeNil)
@@ -222,6 +223,54 @@ func TestDelphisBackend_UpdateDiscussion(t *testing.T) {
 			mockDB.On("UpsertDiscussion", ctx, mock.Anything).Return(&discObj, nil)
 
 			resp, err := backendObj.UpdateDiscussion(ctx, discussionID, discInput)
+
+			So(err, ShouldBeNil)
+			So(resp, ShouldNotBeNil)
+		})
+
+		Convey("when the title is changed, the history is updated", func() {
+			mockDB.On("GetDiscussionByID", ctx, discussionID).Return(&discObj, nil)
+			newTitle := "newTitle"
+			updatedDiscussion := discObj
+			updatedDiscussion.Title = newTitle
+			updatedDiscussion.AddTitleToHistory(updatedDiscussion.Title)
+
+			matcher := func(arg interface{}) bool {
+				argAsDiscussion := arg.(model.Discussion)
+				expectedTitleHistory, err := updatedDiscussion.TitleHistoryAsObject()
+				actualTitleHistory, err2 := argAsDiscussion.TitleHistoryAsObject()
+				return err == nil && err2 == nil && len(expectedTitleHistory) == len(actualTitleHistory) && expectedTitleHistory[0].Value == actualTitleHistory[0].Value
+			}
+
+			mockDB.On("UpsertDiscussion", ctx, mock.MatchedBy(matcher)).Return(&discObj, nil)
+			updateInput := model.DiscussionInput{
+				Title: &newTitle,
+			}
+			resp, err := backendObj.UpdateDiscussion(ctx, discussionID, updateInput)
+
+			So(err, ShouldBeNil)
+			So(resp, ShouldNotBeNil)
+		})
+
+		Convey("when the description is changed, the history is updated", func() {
+			mockDB.On("GetDiscussionByID", ctx, discussionID).Return(&discObj, nil)
+			newDescription := "newDescription"
+			updatedDiscussion := discObj
+			updatedDiscussion.Description = newDescription
+			updatedDiscussion.AddDescriptionToHistory(updatedDiscussion.Description)
+
+			matcher := func(arg interface{}) bool {
+				argAsDiscussion := arg.(model.Discussion)
+				expectedDescriptionHistory, err := updatedDiscussion.DescriptionHistoryAsObject()
+				actualDescriptionHistory, err2 := argAsDiscussion.DescriptionHistoryAsObject()
+				return err == nil && err2 == nil && len(expectedDescriptionHistory) == len(actualDescriptionHistory) && expectedDescriptionHistory[0].Value == actualDescriptionHistory[0].Value
+			}
+
+			mockDB.On("UpsertDiscussion", ctx, mock.MatchedBy(matcher)).Return(&discObj, nil)
+			updateInput := model.DiscussionInput{
+				Description: &newDescription,
+			}
+			resp, err := backendObj.UpdateDiscussion(ctx, discussionID, updateInput)
 
 			So(err, ShouldBeNil)
 			So(resp, ShouldNotBeNil)

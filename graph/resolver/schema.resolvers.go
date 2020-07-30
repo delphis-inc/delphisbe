@@ -120,7 +120,7 @@ func (r *mutationResolver) ScheduleImportedContent(ctx context.Context, discussi
 	return r.DAOManager.PutImportedContentQueue(ctx, discussionID, contentID, nil, nil, "")
 }
 
-func (r *mutationResolver) CreateDiscussion(ctx context.Context, anonymityType model.AnonymityType, title string, publicAccess *bool) (*model.Discussion, error) {
+func (r *mutationResolver) CreateDiscussion(ctx context.Context, anonymityType model.AnonymityType, title string, description *string, publicAccess *bool) (*model.Discussion, error) {
 	authedUser := auth.GetAuthedUser(ctx)
 	if authedUser == nil {
 		return nil, fmt.Errorf("Need auth")
@@ -133,7 +133,12 @@ func (r *mutationResolver) CreateDiscussion(ctx context.Context, anonymityType m
 		}
 	}
 
-	discussionObj, err := r.DAOManager.CreateNewDiscussion(ctx, authedUser.User, anonymityType, title, *publicAccess)
+	var descriptionStr string
+	if description != nil {
+		descriptionStr = *description
+	}
+
+	discussionObj, err := r.DAOManager.CreateNewDiscussion(ctx, authedUser.User, anonymityType, title, descriptionStr, *publicAccess)
 
 	if err != nil {
 		return nil, err
@@ -703,6 +708,10 @@ func (r *queryResolver) Me(ctx context.Context) (*model.User, error) {
 		if err != nil {
 			return nil, fmt.Errorf("Error fetching user with ID (%s)", authedUser.UserID)
 		}
+	}
+
+	if authedUser.User == nil {
+		return nil, fmt.Errorf("Could not find user with ID %s", authedUser.UserID)
 	}
 
 	return authedUser.User, nil

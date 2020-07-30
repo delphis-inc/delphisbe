@@ -79,6 +79,14 @@ func (r *discussionResolver) Participants(ctx context.Context, obj *model.Discus
 	return obj.Participants, nil
 }
 
+func (r *discussionResolver) TitleHistory(ctx context.Context, obj *model.Discussion) ([]*model.HistoricalString, error) {
+	return obj.TitleHistoryAsObject()
+}
+
+func (r *discussionResolver) DescriptionHistory(ctx context.Context, obj *model.Discussion) ([]*model.HistoricalString, error) {
+	return obj.DescriptionHistoryAsObject()
+}
+
 func (r *discussionResolver) CreatedAt(ctx context.Context, obj *model.Discussion) (string, error) {
 	return obj.CreatedAt.Format(time.RFC3339), nil
 }
