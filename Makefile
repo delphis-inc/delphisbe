@@ -36,7 +36,7 @@ create-task-def: build-and-deploy-docker
 	rm task-curbuild-def.json
 
 update-service:
-	aws ecs update-service --cluster delphis-cluster --service delphis-service --task-definition delphis-app-task --profile delphis
+	aws ecs update-service --region us-west-2 --cluster delphis-cluster --service delphis-service --task-definition delphis-app-task --profile delphis
 
 get-ecr-creds:
 	aws ecr --profile delphis get-login-password --region us-west-2 | docker login --username AWS --password-stdin 033236388136.dkr.ecr.us-west-2.amazonaws.com/delphisbe
