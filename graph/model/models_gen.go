@@ -28,6 +28,12 @@ type AddDiscussionParticipantInput struct {
 	IsAnonymous   bool           `json:"isAnonymous"`
 }
 
+type CanJoinDiscussionResponse struct {
+	Response   DiscussionJoinabilityResponse `json:"response"`
+	Reason     *string                       `json:"reason"`
+	ReasonCode *int                          `json:"reasonCode"`
+}
+
 type ConciergeContent struct {
 	AppActionID *string            `json:"appActionID"`
 	MutationID  *string            `json:"mutationID"`
@@ -187,6 +193,53 @@ func (e *AnonymityType) UnmarshalGQL(v interface{}) error {
 }
 
 func (e AnonymityType) MarshalGQL(w io.Writer) {
+	fmt.Fprint(w, strconv.Quote(e.String()))
+}
+
+type DiscussionJoinabilityResponse string
+
+const (
+	DiscussionJoinabilityResponseAlreadyJoined     DiscussionJoinabilityResponse = "ALREADY_JOINED"
+	DiscussionJoinabilityResponseApprovedNotJoined DiscussionJoinabilityResponse = "APPROVED_NOT_JOINED"
+	DiscussionJoinabilityResponseAwaitingApproval  DiscussionJoinabilityResponse = "AWAITING_APPROVAL"
+	DiscussionJoinabilityResponseApprovalRequired  DiscussionJoinabilityResponse = "APPROVAL_REQUIRED"
+	DiscussionJoinabilityResponseDenied            DiscussionJoinabilityResponse = "DENIED"
+)
+
+var AllDiscussionJoinabilityResponse = []DiscussionJoinabilityResponse{
+	DiscussionJoinabilityResponseAlreadyJoined,
+	DiscussionJoinabilityResponseApprovedNotJoined,
+	DiscussionJoinabilityResponseAwaitingApproval,
+	DiscussionJoinabilityResponseApprovalRequired,
+	DiscussionJoinabilityResponseDenied,
+}
+
+func (e DiscussionJoinabilityResponse) IsValid() bool {
+	switch e {
+	case DiscussionJoinabilityResponseAlreadyJoined, DiscussionJoinabilityResponseApprovedNotJoined, DiscussionJoinabilityResponseAwaitingApproval, DiscussionJoinabilityResponseApprovalRequired, DiscussionJoinabilityResponseDenied:
+		return true
+	}
+	return false
+}
+
+func (e DiscussionJoinabilityResponse) String() string {
+	return string(e)
+}
+
+func (e *DiscussionJoinabilityResponse) UnmarshalGQL(v interface{}) error {
+	str, ok := v.(string)
+	if !ok {
+		return fmt.Errorf("enums must be strings")
+	}
+
+	*e = DiscussionJoinabilityResponse(str)
+	if !e.IsValid() {
+		return fmt.Errorf("%s is not a valid DiscussionJoinabilityResponse", str)
+	}
+	return nil
+}
+
+func (e DiscussionJoinabilityResponse) MarshalGQL(w io.Writer) {
 	fmt.Fprint(w, strconv.Quote(e.String()))
 }
 

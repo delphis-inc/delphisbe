@@ -170,6 +170,11 @@ func TestDelphisDB_InitializeStatements(t *testing.T) {
 				Test: getDiscussionsByUserAccessForUserString,
 			},
 			{
+				Name: "getDiscussionAccessRequestByUserIDString",
+
+				Test: getDiscussionAccessRequestByUserIDString,
+			},
+			{
 				Name: "getDiscussionFlairAccessString",
 
 				Test: getDiscussionFlairAccessString,

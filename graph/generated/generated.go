@@ -67,6 +67,12 @@ type DirectiveRoot struct {
 }
 
 type ComplexityRoot struct {
+	CanJoinDiscussionResponse struct {
+		Reason     func(childComplexity int) int
+		ReasonCode func(childComplexity int) int
+		Response   func(childComplexity int) int
+	}
+
 	ConciergeContent struct {
 		AppActionID func(childComplexity int) int
 		MutationID  func(childComplexity int) int
@@ -103,6 +109,7 @@ type ComplexityRoot struct {
 		IconURL                 func(childComplexity int) int
 		IdleMinutes             func(childComplexity int) int
 		MeAvailableParticipants func(childComplexity int) int
+		MeCanJoinDiscussion     func(childComplexity int) int
 		MeParticipant           func(childComplexity int) int
 		Moderator               func(childComplexity int) int
 		Participants            func(childComplexity int) int
@@ -441,12 +448,14 @@ type DiscussionResolver interface {
 	UpdatedAt(ctx context.Context, obj *model.Discussion) (string, error)
 	MeParticipant(ctx context.Context, obj *model.Discussion) (*model.Participant, error)
 	MeAvailableParticipants(ctx context.Context, obj *model.Discussion) ([]*model.Participant, error)
+	MeCanJoinDiscussion(ctx context.Context, obj *model.Discussion) (*model.CanJoinDiscussionResponse, error)
 
 	Tags(ctx context.Context, obj *model.Discussion) ([]*model.Tag, error)
 	UpcomingContent(ctx context.Context, obj *model.Discussion) ([]*model.ImportedContent, error)
 	FlairTemplates(ctx context.Context, obj *model.Discussion) ([]*model.FlairTemplate, error)
 	AccessRequests(ctx context.Context, obj *model.Discussion) ([]*model.DiscussionAccessRequest, error)
 	DiscussionLinksAccess(ctx context.Context, obj *model.Discussion) (*model.DiscussionLinkAccess, error)
+	DiscussionJoinability(ctx context.Context, obj *model.Discussion) (model.DiscussionJoinabilitySetting, error)
 }
 type DiscussionAccessRequestResolver interface {
 	User(ctx context.Context, obj *model.DiscussionAccessRequest) (*model.User, error)
@@ -605,6 +614,27 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 	ec := executionContext{nil, e}
 	_ = ec
 	switch typeName + "." + field {
+
+	case "CanJoinDiscussionResponse.reason":
+		if e.complexity.CanJoinDiscussionResponse.Reason == nil {
+			break
+		}
+
+		return e.complexity.CanJoinDiscussionResponse.Reason(childComplexity), true
+
+	case "CanJoinDiscussionResponse.reasonCode":
+		if e.complexity.CanJoinDiscussionResponse.ReasonCode == nil {
+			break
+		}
+
+		return e.complexity.CanJoinDiscussionResponse.ReasonCode(childComplexity), true
+
+	case "CanJoinDiscussionResponse.response":
+		if e.complexity.CanJoinDiscussionResponse.Response == nil {
+			break
+		}
+
+		return e.complexity.CanJoinDiscussionResponse.Response(childComplexity), true
 
 	case "ConciergeContent.appActionID":
 		if e.complexity.ConciergeContent.AppActionID == nil {
@@ -787,6 +817,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Discussion.MeAvailableParticipants(childComplexity), true
+
+	case "Discussion.meCanJoinDiscussion":
+		if e.complexity.Discussion.MeCanJoinDiscussion == nil {
+			break
+		}
+
+		return e.complexity.Discussion.MeCanJoinDiscussion(childComplexity), true
 
 	case "Discussion.meParticipant":
 		if e.complexity.Discussion.MeParticipant == nil {
@@ -2484,6 +2521,8 @@ var sources = []*ast.Source{
     # Will return available participants for ` + "`" + `me` + "`" + `
     meAvailableParticipants: [Participant!]
 
+    meCanJoinDiscussion: CanJoinDiscussionResponse!
+
     autoPost: Boolean!
     idleMinutes: Int!
     tags: [Tag!]
@@ -2493,6 +2532,12 @@ var sources = []*ast.Source{
     discussionLinksAccess: DiscussionLinkAccess!
 
     discussionJoinability: DiscussionJoinabilitySetting!
+}
+
+type CanJoinDiscussionResponse {
+    response: DiscussionJoinabilityResponse!
+    reason: String
+    reasonCode: Int
 }
 
 type HistoricalString {
@@ -2635,6 +2680,14 @@ enum InviteRequestStatus {
 enum DiscussionJoinabilitySetting {
     ALLOW_TWITTER_FRIENDS,
     ALL_REQUIRE_APPROVAL,
+}
+
+enum DiscussionJoinabilityResponse {
+    ALREADY_JOINED,
+    APPROVED_NOT_JOINED,
+    AWAITING_APPROVAL,
+    APPROVAL_REQUIRED,
+    DENIED,
 }`, BuiltIn: false},
 	&ast.Source{Name: "graph/types/flair.graphqls", Input: `type Flair {
     # The UUID for this flair
@@ -3903,6 +3956,102 @@ func (ec *executionContext) field___Type_fields_args(ctx context.Context, rawArg
 
 // region    **************************** field.gotpl *****************************
 
+func (ec *executionContext) _CanJoinDiscussionResponse_response(ctx context.Context, field graphql.CollectedField, obj *model.CanJoinDiscussionResponse) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "CanJoinDiscussionResponse",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Response, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(model.DiscussionJoinabilityResponse)
+	fc.Result = res
+	return ec.marshalNDiscussionJoinabilityResponse2githubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐDiscussionJoinabilityResponse(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _CanJoinDiscussionResponse_reason(ctx context.Context, field graphql.CollectedField, obj *model.CanJoinDiscussionResponse) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "CanJoinDiscussionResponse",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Reason, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*string)
+	fc.Result = res
+	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _CanJoinDiscussionResponse_reasonCode(ctx context.Context, field graphql.CollectedField, obj *model.CanJoinDiscussionResponse) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "CanJoinDiscussionResponse",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.ReasonCode, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*int)
+	fc.Result = res
+	return ec.marshalOInt2ᚖint(ctx, field.Selections, res)
+}
+
 func (ec *executionContext) _ConciergeContent_appActionID(ctx context.Context, field graphql.CollectedField, obj *model.ConciergeContent) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -4829,6 +4978,40 @@ func (ec *executionContext) _Discussion_meAvailableParticipants(ctx context.Cont
 	return ec.marshalOParticipant2ᚕᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐParticipantᚄ(ctx, field.Selections, res)
 }
 
+func (ec *executionContext) _Discussion_meCanJoinDiscussion(ctx context.Context, field graphql.CollectedField, obj *model.Discussion) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "Discussion",
+		Field:    field,
+		Args:     nil,
+		IsMethod: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Discussion().MeCanJoinDiscussion(rctx, obj)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.CanJoinDiscussionResponse)
+	fc.Result = res
+	return ec.marshalNCanJoinDiscussionResponse2ᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐCanJoinDiscussionResponse(ctx, field.Selections, res)
+}
+
 func (ec *executionContext) _Discussion_autoPost(ctx context.Context, field graphql.CollectedField, obj *model.Discussion) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -5066,13 +5249,13 @@ func (ec *executionContext) _Discussion_discussionJoinability(ctx context.Contex
 		Object:   "Discussion",
 		Field:    field,
 		Args:     nil,
-		IsMethod: false,
+		IsMethod: true,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.DiscussionJoinability, nil
+		return ec.resolvers.Discussion().DiscussionJoinability(rctx, obj)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -13157,6 +13340,37 @@ func (ec *executionContext) _Entity(ctx context.Context, sel ast.SelectionSet, o
 
 // region    **************************** object.gotpl ****************************
 
+var canJoinDiscussionResponseImplementors = []string{"CanJoinDiscussionResponse"}
+
+func (ec *executionContext) _CanJoinDiscussionResponse(ctx context.Context, sel ast.SelectionSet, obj *model.CanJoinDiscussionResponse) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, canJoinDiscussionResponseImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("CanJoinDiscussionResponse")
+		case "response":
+			out.Values[i] = ec._CanJoinDiscussionResponse_response(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "reason":
+			out.Values[i] = ec._CanJoinDiscussionResponse_reason(ctx, field, obj)
+		case "reasonCode":
+			out.Values[i] = ec._CanJoinDiscussionResponse_reasonCode(ctx, field, obj)
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
 var conciergeContentImplementors = []string{"ConciergeContent"}
 
 func (ec *executionContext) _ConciergeContent(ctx context.Context, sel ast.SelectionSet, obj *model.ConciergeContent) graphql.Marshaler {
@@ -13467,6 +13681,20 @@ func (ec *executionContext) _Discussion(ctx context.Context, sel ast.SelectionSe
 				res = ec._Discussion_meAvailableParticipants(ctx, field, obj)
 				return res
 			})
+		case "meCanJoinDiscussion":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Discussion_meCanJoinDiscussion(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
 		case "autoPost":
 			out.Values[i] = ec._Discussion_autoPost(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
@@ -13536,10 +13764,19 @@ func (ec *executionContext) _Discussion(ctx context.Context, sel ast.SelectionSe
 				return res
 			})
 		case "discussionJoinability":
-			out.Values[i] = ec._Discussion_discussionJoinability(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				atomic.AddUint32(&invalids, 1)
-			}
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Discussion_discussionJoinability(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -16018,6 +16255,20 @@ func (ec *executionContext) marshalNBoolean2bool(ctx context.Context, sel ast.Se
 	return res
 }
 
+func (ec *executionContext) marshalNCanJoinDiscussionResponse2githubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐCanJoinDiscussionResponse(ctx context.Context, sel ast.SelectionSet, v model.CanJoinDiscussionResponse) graphql.Marshaler {
+	return ec._CanJoinDiscussionResponse(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNCanJoinDiscussionResponse2ᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐCanJoinDiscussionResponse(ctx context.Context, sel ast.SelectionSet, v *model.CanJoinDiscussionResponse) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	return ec._CanJoinDiscussionResponse(ctx, sel, v)
+}
+
 func (ec *executionContext) marshalNConciergeOption2githubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐConciergeOption(ctx context.Context, sel ast.SelectionSet, v model.ConciergeOption) graphql.Marshaler {
 	return ec._ConciergeOption(ctx, sel, &v)
 }
@@ -16131,6 +16382,15 @@ func (ec *executionContext) marshalNDiscussionInvite2ᚖgithubᚗcomᚋdelphis�
 		return graphql.Null
 	}
 	return ec._DiscussionInvite(ctx, sel, v)
+}
+
+func (ec *executionContext) unmarshalNDiscussionJoinabilityResponse2githubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐDiscussionJoinabilityResponse(ctx context.Context, v interface{}) (model.DiscussionJoinabilityResponse, error) {
+	var res model.DiscussionJoinabilityResponse
+	return res, res.UnmarshalGQL(v)
+}
+
+func (ec *executionContext) marshalNDiscussionJoinabilityResponse2githubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐDiscussionJoinabilityResponse(ctx context.Context, sel ast.SelectionSet, v model.DiscussionJoinabilityResponse) graphql.Marshaler {
+	return v
 }
 
 func (ec *executionContext) unmarshalNDiscussionJoinabilitySetting2githubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐDiscussionJoinabilitySetting(ctx context.Context, v interface{}) (model.DiscussionJoinabilitySetting, error) {

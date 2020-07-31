@@ -109,6 +109,7 @@ type Datastore interface {
 	GetDiscussionInvitesByUserIDAndStatus(ctx context.Context, userID string, status model.InviteRequestStatus) DiscussionInviteIter
 	GetSentDiscussionInvitesByUserID(ctx context.Context, userID string) DiscussionInviteIter
 	GetDiscussionAccessRequestsByDiscussionID(ctx context.Context, discussionID string) DiscussionAccessRequestIter
+	GetDiscussionAccessRequestByDiscussionIDUserID(ctx context.Context, discussionID string, userID string) (*model.DiscussionAccessRequest, error)
 	GetSentDiscussionAccessRequestsByUserID(ctx context.Context, userID string) DiscussionAccessRequestIter
 	GetInviteLinksByDiscussionID(ctx context.Context, discussionID string) (*model.DiscussionLinkAccess, error)
 	GetInvitedTwitterHandlesByDiscussionIDAndInviterID(ctx context.Context, discussionID string, invitingParticipantID string) ([]*string, error)
@@ -418,6 +419,10 @@ func (d *delphisDB) initializeStatements(ctx context.Context) (err error) {
 	if d.prepStmts.getDiscussionAccessRequestsStmt, err = d.pg.PrepareContext(ctx, getDiscussionAccessRequestsString); err != nil {
 		logrus.WithError(err).Error("failed to prepare getDiscussionAccessRequestsStmt")
 		return errors.Wrap(err, "failed to prepare getDiscussionAccessRequestsStmt")
+	}
+	if d.prepStmts.getDiscussionAccessRequestByUserIDStmt, err = d.pg.PrepareContext(ctx, getDiscussionAccessRequestByUserIDString); err != nil {
+		logrus.WithError(err).Error("failed to prepare getDiscussionAccessRequestByUserIDStmt")
+		return errors.Wrap(err, "failed to prepare getDiscussionAccessRequestByUserIDStmt")
 	}
 	if d.prepStmts.getSentDiscussionAccessRequestsForUserStmt, err = d.pg.PrepareContext(ctx, getSentDiscussionAccessRequestsForUserString); err != nil {
 		logrus.WithError(err).Error("failed to prepare getSentDiscussionAccessRequestsForUserStmt")

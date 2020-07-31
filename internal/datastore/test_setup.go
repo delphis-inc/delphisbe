@@ -47,6 +47,7 @@ func mockPreparedStatements(mock sqlmock.Sqlmock) {
 	mock.ExpectPrepare(getDiscussionInvitesForUserString)
 	mock.ExpectPrepare(getSentDiscussionInvitesForUserString)
 	mock.ExpectPrepare(getDiscussionAccessRequestsString)
+	mock.ExpectPrepare(getDiscussionAccessRequestByUserIDString)
 	mock.ExpectPrepare(getSentDiscussionAccessRequestsForUserString)
 	mock.ExpectPrepare(getInviteLinksForDiscussion)
 	mock.ExpectPrepare(putDiscussionInviteRecordString)

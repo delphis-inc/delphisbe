@@ -33,6 +33,10 @@ func (d *delphisBackend) GetDiscussionAccessRequestsByDiscussionID(ctx context.C
 	return d.db.AccessRequestIterCollect(ctx, iter)
 }
 
+func (d *delphisBackend) GetDiscussionAccessRequestByDiscussionIDUserID(ctx context.Context, discussionID string, userID string) (*model.DiscussionAccessRequest, error) {
+	return d.db.GetDiscussionAccessRequestByDiscussionIDUserID(ctx, discussionID, userID)
+}
+
 func (d *delphisBackend) GetSentDiscussionAccessRequestsByUserID(ctx context.Context, userID string) ([]*model.DiscussionAccessRequest, error) {
 	iter := d.db.GetSentDiscussionAccessRequestsByUserID(ctx, userID)
 	return d.db.AccessRequestIterCollect(ctx, iter)

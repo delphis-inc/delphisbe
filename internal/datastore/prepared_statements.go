@@ -62,6 +62,7 @@ type dbPrepStmts struct {
 	getDiscussionInvitesForUserStmt                        *sql2.Stmt
 	getSentDiscussionInvitesForUserStmt                    *sql2.Stmt
 	getDiscussionAccessRequestsStmt                        *sql2.Stmt
+	getDiscussionAccessRequestByUserIDStmt                 *sql2.Stmt
 	getSentDiscussionAccessRequestsForUserStmt             *sql2.Stmt
 	getInviteLinksForDiscussion                            *sql2.Stmt
 	putDiscussionInviteRecordStmt                          *sql2.Stmt
@@ -627,6 +628,18 @@ const getDiscussionAccessRequestsString = `
 			status
 		FROM discussion_user_requests
 		WHERE discussion_id = $1
+			AND deleted_at is null;`
+
+const getDiscussionAccessRequestByUserIDString = `
+		SELECT id,
+			user_id,
+			discussion_id,
+			created_at,
+			updated_at,
+			status
+		FROM discussion_user_requests
+		WHERE discussion_id = $1
+		    AND user_id = $2
 			AND deleted_at is null;`
 
 const getSentDiscussionAccessRequestsForUserString = `

@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/delphis-inc/delphisbe/internal/backend/test_utils"
+	"github.com/dghubble/go-twitter/twitter"
 
 	"github.com/stretchr/testify/mock"
 
@@ -172,6 +173,296 @@ func TestDelphisBackend_CreateNewDiscussion(t *testing.T) {
 
 			So(err, ShouldBeNil)
 			So(resp, ShouldNotBeNil)
+		})
+	})
+}
+
+func TestDelphisBackend_GetDiscussionJoinabilityForUser(t *testing.T) {
+	ctx := context.Background()
+
+	discussionObj := test_utils.TestDiscussion()
+	moderatorObj := test_utils.TestModerator()
+	moderatorUserProfileID := "someOtherID"
+	moderatorObj.UserProfileID = &moderatorUserProfileID
+	discussionObj.Moderator = &moderatorObj
+	userObj := test_utils.TestUser()
+	userProfileObj := test_utils.TestUserProfile()
+	userObj.UserProfile = &userProfileObj
+	twitterSocialInfo := test_utils.TestSocialInfo()
+	moderatorTwitterSocialInfo := twitterSocialInfo
+	moderatorTwitterSocialInfo.ScreenName = "moderator"
+	nonTwitterSocialInfo := test_utils.TestSocialInfo()
+	nonTwitterSocialInfo.Network = "foo"
+	meParticipant := test_utils.TestParticipant()
+
+	Convey("GetDiscussionJoinabilityForUser", t, func() {
+		now := time.Now()
+		cacheObj := cache.NewInMemoryCache()
+		authObj := auth.NewDelphisAuth(nil)
+		mockDB := &mocks.Datastore{}
+		mockTwitterBackend := &mocks.TwitterBackend{}
+		backendObj := &delphisBackend{
+			db:              mockDB,
+			auth:            authObj,
+			cache:           cacheObj,
+			discussionMutex: sync.Mutex{},
+			config:          config.Config{},
+			timeProvider:    &util.FrozenTime{NowTime: now},
+			twitterBackend:  mockTwitterBackend,
+		}
+		mockTwitterClient := &mocks.TwitterClient{}
+
+		Convey("when objects are nil", func() {
+			Convey("when userObj is nil", func() {
+				resp, err := backendObj.GetDiscussionJoinabilityForUser(ctx, nil, &discussionObj, nil)
+
+				So(resp, ShouldBeNil)
+				So(err, ShouldNotBeNil)
+			})
+			Convey("when userObj.UserProfile is nil", func() {
+				testUserObj := userObj
+				testUserObj.UserProfile = nil
+
+				resp, err := backendObj.GetDiscussionJoinabilityForUser(ctx, &testUserObj, &discussionObj, nil)
+
+				So(resp, ShouldBeNil)
+				So(err, ShouldNotBeNil)
+			})
+			Convey("when discussion is nil", func() {
+				testUserObj := userObj
+				testUserObj.UserProfile = nil
+
+				resp, err := backendObj.GetDiscussionJoinabilityForUser(ctx, &userObj, nil, nil)
+
+				So(resp, ShouldBeNil)
+				So(err, ShouldNotBeNil)
+			})
+		})
+		Convey("when getting social infos returns an error", func() {
+			mockDB.On("GetSocialInfosByUserProfileID", ctx, userObj.UserProfile.ID).Return(nil, fmt.Errorf("sth"))
+
+			resp, err := backendObj.GetDiscussionJoinabilityForUser(ctx, &userObj, &discussionObj, nil)
+
+			So(resp, ShouldBeNil)
+			So(err, ShouldNotBeNil)
+		})
+		Convey("when social info returns an empty array", func() {
+			mockDB.On("GetSocialInfosByUserProfileID", ctx, userObj.UserProfile.ID).Return([]model.SocialInfo{}, nil)
+
+			resp, err := backendObj.GetDiscussionJoinabilityForUser(ctx, &userObj, &discussionObj, nil)
+
+			So(resp, ShouldNotBeNil)
+			So(resp.Response, ShouldEqual, model.DiscussionJoinabilityResponseDenied)
+			So(err, ShouldBeNil)
+		})
+		Convey("when social info returns objects but no twitter auth", func() {
+			mockDB.On("GetSocialInfosByUserProfileID", ctx, userObj.UserProfile.ID).Return([]model.SocialInfo{nonTwitterSocialInfo}, nil)
+
+			resp, err := backendObj.GetDiscussionJoinabilityForUser(ctx, &userObj, &discussionObj, nil)
+
+			So(resp, ShouldNotBeNil)
+			So(resp.Response, ShouldEqual, model.DiscussionJoinabilityResponseDenied)
+			So(err, ShouldBeNil)
+		})
+
+		mockDB.On("GetSocialInfosByUserProfileID", ctx, userObj.UserProfile.ID).Return([]model.SocialInfo{twitterSocialInfo}, nil)
+
+		Convey("when meParticipant is non-null", func() {
+			resp, err := backendObj.GetDiscussionJoinabilityForUser(ctx, &userObj, &discussionObj, &meParticipant)
+
+			So(resp, ShouldNotBeNil)
+			So(resp.Response, ShouldEqual, model.DiscussionJoinabilityResponseAlreadyJoined)
+			So(err, ShouldBeNil)
+		})
+
+		Convey("when discussion joinability set to Twitter Friends", func() {
+			discussionObj.DiscussionJoinability = model.DiscussionJoinabilitySettingAllowTwitterFriends
+			Convey("when fetching moderator social info errors", func() {
+				mockDB.On("GetSocialInfosByUserProfileID", ctx, *discussionObj.Moderator.UserProfileID).Return(nil, fmt.Errorf("sth"))
+
+				resp, err := backendObj.GetDiscussionJoinabilityForUser(ctx, &userObj, &discussionObj, nil)
+
+				So(resp, ShouldBeNil)
+				So(err, ShouldNotBeNil)
+			})
+			Convey("when no social info is found for moderator", func() {
+				mockDB.On("GetSocialInfosByUserProfileID", ctx, *discussionObj.Moderator.UserProfileID).Return([]model.SocialInfo{}, nil)
+
+				resp, err := backendObj.GetDiscussionJoinabilityForUser(ctx, &userObj, &discussionObj, nil)
+
+				So(resp, ShouldBeNil)
+				So(err, ShouldNotBeNil)
+			})
+			Convey("when social info is found", func() {
+				mockDB.On("GetSocialInfosByUserProfileID", ctx, *discussionObj.Moderator.UserProfileID).Return([]model.SocialInfo{moderatorTwitterSocialInfo}, nil)
+				Convey("when getting twitter client fails", func() {
+					mockTwitterBackend.On("GetTwitterClientWithAccessTokens", ctx, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil, fmt.Errorf("sth"))
+
+					resp, err := backendObj.GetDiscussionJoinabilityForUser(ctx, &userObj, &discussionObj, nil)
+
+					So(resp, ShouldBeNil)
+					So(err, ShouldNotBeNil)
+				})
+				Convey("when checking whether user follows fails", func() {
+					mockTwitterBackend.On("GetTwitterClientWithAccessTokens", ctx, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(mockTwitterClient, nil)
+					mockTwitterClient.On("FriendshipLookup", twitterSocialInfo.ScreenName, moderatorTwitterSocialInfo.ScreenName).Return(nil, fmt.Errorf("sth"))
+
+					resp, err := backendObj.GetDiscussionJoinabilityForUser(ctx, &userObj, &discussionObj, nil)
+
+					So(resp, ShouldBeNil)
+					So(err, ShouldNotBeNil)
+				})
+				Convey("when moderator is following user", func() {
+					mockTwitterBackend.On("GetTwitterClientWithAccessTokens", ctx, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(mockTwitterClient, nil)
+					mockTwitterClient.On("FriendshipLookup", twitterSocialInfo.ScreenName, moderatorTwitterSocialInfo.ScreenName).Return(&twitter.Relationship{Target: twitter.RelationshipTarget{Following: true}}, nil)
+
+					resp, err := backendObj.GetDiscussionJoinabilityForUser(ctx, &userObj, &discussionObj, nil)
+
+					So(resp, ShouldNotBeNil)
+					So(resp.Response, ShouldEqual, model.DiscussionJoinabilityResponseApprovedNotJoined)
+					So(err, ShouldBeNil)
+				})
+				Convey("when moderator is not following user", func() {
+					mockTwitterBackend.On("GetTwitterClientWithAccessTokens", ctx, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(mockTwitterClient, nil)
+					mockTwitterClient.On("FriendshipLookup", twitterSocialInfo.ScreenName, moderatorTwitterSocialInfo.ScreenName).Return(&twitter.Relationship{Target: twitter.RelationshipTarget{Following: false}}, nil)
+
+					Convey("when getting discussion access errors", func() {
+						mockDB.On("GetDiscussionAccessRequestByDiscussionIDUserID", ctx, discussionObj.ID, userObj.ID).Return(nil, fmt.Errorf("sth"))
+
+						resp, err := backendObj.GetDiscussionJoinabilityForUser(ctx, &userObj, &discussionObj, nil)
+
+						So(resp, ShouldBeNil)
+						So(err, ShouldNotBeNil)
+					})
+					Convey("when nil is returned", func() {
+						mockDB.On("GetDiscussionAccessRequestByDiscussionIDUserID", ctx, discussionObj.ID, userObj.ID).Return(nil, nil)
+
+						resp, err := backendObj.GetDiscussionJoinabilityForUser(ctx, &userObj, &discussionObj, nil)
+
+						So(resp, ShouldNotBeNil)
+						So(resp.Response, ShouldEqual, model.DiscussionJoinabilityResponseApprovalRequired)
+						So(err, ShouldBeNil)
+					})
+					Convey("when a status is returned", func() {
+						Convey("when the status is accepted", func() {
+							mockDB.On("GetDiscussionAccessRequestByDiscussionIDUserID", ctx, discussionObj.ID, userObj.ID).Return(&model.DiscussionAccessRequest{Status: model.InviteRequestStatusAccepted}, nil)
+
+							resp, err := backendObj.GetDiscussionJoinabilityForUser(ctx, &userObj, &discussionObj, nil)
+
+							So(resp, ShouldNotBeNil)
+							So(resp.Response, ShouldEqual, model.DiscussionJoinabilityResponseApprovedNotJoined)
+							So(err, ShouldBeNil)
+						})
+						Convey("when the status is pending", func() {
+							mockDB.On("GetDiscussionAccessRequestByDiscussionIDUserID", ctx, discussionObj.ID, userObj.ID).Return(&model.DiscussionAccessRequest{Status: model.InviteRequestStatusPending}, nil)
+
+							resp, err := backendObj.GetDiscussionJoinabilityForUser(ctx, &userObj, &discussionObj, nil)
+
+							So(resp, ShouldNotBeNil)
+							So(resp.Response, ShouldEqual, model.DiscussionJoinabilityResponseApprovalRequired)
+							So(err, ShouldBeNil)
+						})
+						Convey("when the status is rejected", func() {
+							mockDB.On("GetDiscussionAccessRequestByDiscussionIDUserID", ctx, discussionObj.ID, userObj.ID).Return(&model.DiscussionAccessRequest{Status: model.InviteRequestStatusRejected}, nil)
+
+							resp, err := backendObj.GetDiscussionJoinabilityForUser(ctx, &userObj, &discussionObj, nil)
+
+							So(resp, ShouldNotBeNil)
+							So(resp.Response, ShouldEqual, model.DiscussionJoinabilityResponseDenied)
+							So(err, ShouldBeNil)
+						})
+						Convey("when the status is cancelled", func() {
+							mockDB.On("GetDiscussionAccessRequestByDiscussionIDUserID", ctx, discussionObj.ID, userObj.ID).Return(&model.DiscussionAccessRequest{Status: model.InviteRequestStatusCancelled}, nil)
+
+							resp, err := backendObj.GetDiscussionJoinabilityForUser(ctx, &userObj, &discussionObj, nil)
+
+							So(resp, ShouldNotBeNil)
+							So(resp.Response, ShouldEqual, model.DiscussionJoinabilityResponseApprovalRequired)
+							So(err, ShouldBeNil)
+						})
+						Convey("when the status is unknown", func() {
+							mockDB.On("GetDiscussionAccessRequestByDiscussionIDUserID", ctx, discussionObj.ID, userObj.ID).Return(&model.DiscussionAccessRequest{Status: model.InviteRequestStatus("foo")}, nil)
+
+							resp, err := backendObj.GetDiscussionJoinabilityForUser(ctx, &userObj, &discussionObj, nil)
+
+							So(resp, ShouldNotBeNil)
+							So(resp.Response, ShouldEqual, model.DiscussionJoinabilityResponseApprovalRequired)
+							So(err, ShouldBeNil)
+						})
+
+					})
+				})
+			})
+		})
+		Convey("when discussion joinability set to require approval", func() {
+			discussionObj.DiscussionJoinability = model.DiscussionJoinabilitySettingAllRequireApproval
+			mockTwitterBackend.On("GetTwitterClientWithAccessTokens", ctx, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(mockTwitterClient, nil)
+			mockTwitterClient.On("FriendshipLookup", twitterSocialInfo.ScreenName, moderatorTwitterSocialInfo.ScreenName).Return(&twitter.Relationship{Target: twitter.RelationshipTarget{Following: false}}, nil)
+
+			Convey("when getting discussion access errors", func() {
+				mockDB.On("GetDiscussionAccessRequestByDiscussionIDUserID", ctx, discussionObj.ID, userObj.ID).Return(nil, fmt.Errorf("sth"))
+
+				resp, err := backendObj.GetDiscussionJoinabilityForUser(ctx, &userObj, &discussionObj, nil)
+
+				So(resp, ShouldBeNil)
+				So(err, ShouldNotBeNil)
+			})
+			Convey("when nil is returned", func() {
+				mockDB.On("GetDiscussionAccessRequestByDiscussionIDUserID", ctx, discussionObj.ID, userObj.ID).Return(nil, nil)
+
+				resp, err := backendObj.GetDiscussionJoinabilityForUser(ctx, &userObj, &discussionObj, nil)
+
+				So(resp, ShouldNotBeNil)
+				So(resp.Response, ShouldEqual, model.DiscussionJoinabilityResponseApprovalRequired)
+				So(err, ShouldBeNil)
+			})
+			Convey("when a status is returned", func() {
+				Convey("when the status is accepted", func() {
+					mockDB.On("GetDiscussionAccessRequestByDiscussionIDUserID", ctx, discussionObj.ID, userObj.ID).Return(&model.DiscussionAccessRequest{Status: model.InviteRequestStatusAccepted}, nil)
+
+					resp, err := backendObj.GetDiscussionJoinabilityForUser(ctx, &userObj, &discussionObj, nil)
+
+					So(resp, ShouldNotBeNil)
+					So(resp.Response, ShouldEqual, model.DiscussionJoinabilityResponseApprovedNotJoined)
+					So(err, ShouldBeNil)
+				})
+				Convey("when the status is pending", func() {
+					mockDB.On("GetDiscussionAccessRequestByDiscussionIDUserID", ctx, discussionObj.ID, userObj.ID).Return(&model.DiscussionAccessRequest{Status: model.InviteRequestStatusPending}, nil)
+
+					resp, err := backendObj.GetDiscussionJoinabilityForUser(ctx, &userObj, &discussionObj, nil)
+
+					So(resp, ShouldNotBeNil)
+					So(resp.Response, ShouldEqual, model.DiscussionJoinabilityResponseApprovalRequired)
+					So(err, ShouldBeNil)
+				})
+				Convey("when the status is rejected", func() {
+					mockDB.On("GetDiscussionAccessRequestByDiscussionIDUserID", ctx, discussionObj.ID, userObj.ID).Return(&model.DiscussionAccessRequest{Status: model.InviteRequestStatusRejected}, nil)
+
+					resp, err := backendObj.GetDiscussionJoinabilityForUser(ctx, &userObj, &discussionObj, nil)
+
+					So(resp, ShouldNotBeNil)
+					So(resp.Response, ShouldEqual, model.DiscussionJoinabilityResponseDenied)
+					So(err, ShouldBeNil)
+				})
+				Convey("when the status is cancelled", func() {
+					mockDB.On("GetDiscussionAccessRequestByDiscussionIDUserID", ctx, discussionObj.ID, userObj.ID).Return(&model.DiscussionAccessRequest{Status: model.InviteRequestStatusCancelled}, nil)
+
+					resp, err := backendObj.GetDiscussionJoinabilityForUser(ctx, &userObj, &discussionObj, nil)
+
+					So(resp, ShouldNotBeNil)
+					So(resp.Response, ShouldEqual, model.DiscussionJoinabilityResponseApprovalRequired)
+					So(err, ShouldBeNil)
+				})
+				Convey("when the status is unknown", func() {
+					mockDB.On("GetDiscussionAccessRequestByDiscussionIDUserID", ctx, discussionObj.ID, userObj.ID).Return(&model.DiscussionAccessRequest{Status: model.InviteRequestStatus("foo")}, nil)
+
+					resp, err := backendObj.GetDiscussionJoinabilityForUser(ctx, &userObj, &discussionObj, nil)
+
+					So(resp, ShouldNotBeNil)
+					So(resp.Response, ShouldEqual, model.DiscussionJoinabilityResponseApprovalRequired)
+					So(err, ShouldBeNil)
+				})
+			})
 		})
 	})
 }

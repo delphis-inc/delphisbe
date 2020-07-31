@@ -48,7 +48,8 @@ start-db:
 mocks:
 	${GOPATH}/bin/mockery -output ./mocks -name Datastore -dir ./internal/datastore -case underscore
 	${GOPATH}/bin/mockery -output ./mocks -name DelphisAuth -dir ./internal/auth -case underscore
-	${GOPATH}/bin/mockery -output ./mocks -name TwitterClient -dir ./internal/backend -case underscore
+	${GOPATH}/bin/mockery -output ./mocks -name TwitterClient -dir ./internal/twitter -case underscore
+	${GOPATH}/bin/mockery -output ./mocks -name TwitterBackend -dir ./internal/twitter -case underscore
 
 plan:
 	@test "${env}" || (echo 'please pass in $$env' && exit)

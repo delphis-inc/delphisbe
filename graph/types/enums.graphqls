@@ -56,3 +56,11 @@ enum DiscussionJoinabilitySetting {
     ALLOW_TWITTER_FRIENDS,
     ALL_REQUIRE_APPROVAL,
 }
+
+enum DiscussionJoinabilityResponse {
+    ALREADY_JOINED,
+    APPROVED_NOT_JOINED,
+    AWAITING_APPROVAL,
+    APPROVAL_REQUIRED,
+    DENIED,
+}
