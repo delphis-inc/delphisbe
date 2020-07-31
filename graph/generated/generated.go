@@ -2633,7 +2633,7 @@ enum InviteRequestStatus {
 }
 
 enum DiscussionJoinabilitySetting {
-    ALLOW_TWITTER_FOLLOWED,
+    ALLOW_TWITTER_FRIENDS,
     ALL_REQUIRE_APPROVAL,
 }`, BuiltIn: false},
 	&ast.Source{Name: "graph/types/flair.graphqls", Input: `type Flair {
