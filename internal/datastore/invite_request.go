@@ -134,6 +134,36 @@ func (d *delphisDB) GetDiscussionAccessRequestsByDiscussionID(ctx context.Contex
 
 }
 
+func (d *delphisDB) GetDiscussionAccessRequestByDiscussionIDUserID(ctx context.Context, discussionID string, userID string) (*model.DiscussionAccessRequest, error) {
+	logrus.Debug("GetDiscussionAccessRequestsByDiscussionIDUserID::SQL Query")
+	if err := d.initializeStatements(ctx); err != nil {
+		logrus.WithError(err).Error("GetDiscussionAccessRequestsByDiscussionIDUserID::failed to initialize statements")
+		return nil, err
+	}
+
+	accessRequest := model.DiscussionAccessRequest{}
+	if err := d.prepStmts.getDiscussionAccessRequestByUserIDStmt.QueryRowContext(
+		ctx,
+		discussionID,
+		userID,
+	).Scan(
+		&accessRequest.ID,
+		&accessRequest.UserID,
+		&accessRequest.DiscussionID,
+		&accessRequest.CreatedAt,
+		&accessRequest.UpdatedAt,
+		&accessRequest.Status,
+	); err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		logrus.WithError(err).Error("Failed to get discussion access request")
+		return nil, err
+	}
+
+	return &accessRequest, nil
+}
+
 func (d *delphisDB) GetSentDiscussionAccessRequestsByUserID(ctx context.Context, userID string) DiscussionAccessRequestIter {
 	logrus.Debug("GetSentDiscussionAccessRequestsByUserID::SQL Query")
 	if err := d.initializeStatements(ctx); err != nil {

@@ -64,6 +64,8 @@ models:
         resolver: true
       tags:
         resolver: true
+      discussionJoinability:
+        resolver: true
   Moderator:
     fields:
       discussion:

@@ -24,6 +24,7 @@ type DelphisBackend interface {
 	GetDiscussionsByIDs(ctx context.Context, ids []string) (map[string]*model.Discussion, error)
 	GetDiscussionsForAutoPost(ctx context.Context) ([]*model.DiscussionAutoPost, error)
 	GetDiscussionByModeratorID(ctx context.Context, moderatorID string) (*model.Discussion, error)
+	GetDiscussionJoinabilityForUser(ctx context.Context, userObj *model.User, discussionObj *model.Discussion, meParticipant *model.Participant) (*model.CanJoinDiscussionResponse, error)
 	SubscribeToDiscussion(ctx context.Context, subscriberUserID string, postChannel chan *model.Post, discussionID string) error
 	UnSubscribeFromDiscussion(ctx context.Context, subscriberUserID string, discussionID string) error
 	SubscribeToDiscussionEvent(ctx context.Context, subscriberUserID string, eventChannel chan *model.DiscussionSubscriptionEvent, discussionID string) error
@@ -104,6 +105,7 @@ type DelphisBackend interface {
 	GetDiscussionInvitesByUserIDAndStatus(ctx context.Context, userID string, status model.InviteRequestStatus) ([]*model.DiscussionInvite, error)
 	GetSentDiscussionInvitesByUserID(ctx context.Context, userID string) ([]*model.DiscussionInvite, error)
 	GetDiscussionAccessRequestsByDiscussionID(ctx context.Context, discussionID string) ([]*model.DiscussionAccessRequest, error)
+	GetDiscussionAccessRequestByDiscussionIDUserID(ctx context.Context, discussionID string, UserID string) (*model.DiscussionAccessRequest, error)
 	GetSentDiscussionAccessRequestsByUserID(ctx context.Context, userID string) ([]*model.DiscussionAccessRequest, error)
 	GrantUserDiscussionAccess(ctx context.Context, userID string, discussionID string) (*model.DiscussionUserAccess, error)
 	InviteUserToDiscussion(ctx context.Context, userID, discussionID, invitingParticipantID string) (*model.DiscussionInvite, error)
@@ -111,6 +113,7 @@ type DelphisBackend interface {
 	GetTwitterUserHandleAutocompletes(ctx context.Context, twitterClient TwitterClient, query string, discussionID string, invitingParticipantID string) ([]*model.TwitterUserInfo, error)
 	GetTwitterAccessToken(ctx context.Context) (string, string, error)
 	GetTwitterClientWithUserTokens(ctx context.Context) (TwitterClient, error)
+	DoesTwitterUserFollowUser(ctx context.Context, firstUser model.SocialInfo, secondUser model.SocialInfo) (bool, error)
 	RespondToInvitation(ctx context.Context, inviteID string, response model.InviteRequestStatus, discussionParticipantInput model.AddDiscussionParticipantInput) (*model.DiscussionInvite, error)
 	RequestAccessToDiscussion(ctx context.Context, userID, discussionID string) (*model.DiscussionAccessRequest, error)
 	RespondToRequestAccess(ctx context.Context, requestID string, response model.InviteRequestStatus, invitingParticipantID string) (*model.DiscussionAccessRequest, error)

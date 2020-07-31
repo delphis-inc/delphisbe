@@ -91,6 +91,105 @@ func (d *delphisBackend) CreateNewDiscussion(ctx context.Context, creatingUser *
 	return &discussionObj, nil
 }
 
+func (d *delphisBackend) GetDiscussionJoinabilityForUser(ctx context.Context, userObj *model.User, discussionObj *model.Discussion, meParticipant *model.Participant) (*model.CanJoinDiscussionResponse, error) {
+	if userObj == nil || discussionObj == nil || userObj.UserProfile == nil {
+		return nil, fmt.Errorf("No user available")
+	}
+	socialInfos, err := d.GetSocialInfosByUserProfileID(ctx, userObj.UserProfile.ID)
+	if err != nil {
+		return nil, fmt.Errorf("Error fetching user with ID (%s)", userObj.ID)
+	}
+	isTwitterAuth := false
+	var twitterSocialInfo *model.SocialInfo
+	for idx, s := range socialInfos {
+		if s.Network == "twitter" {
+			isTwitterAuth = true
+			twitterSocialInfo = &socialInfos[idx]
+			break
+		}
+	}
+	if !isTwitterAuth {
+		return &model.CanJoinDiscussionResponse{
+			Response: model.DiscussionJoinabilityResponseDenied,
+		}, nil
+	}
+
+	if meParticipant != nil {
+		return &model.CanJoinDiscussionResponse{
+			Response: model.DiscussionJoinabilityResponseAlreadyJoined,
+		}, nil
+	}
+
+	if discussionObj.DiscussionJoinability == model.DiscussionJoinabilitySettingAllowTwitterFollowed {
+		// Now we need to know if this moderator follows the user on Twitter.
+		moderatorSocialInfos, err := d.GetSocialInfosByUserProfileID(ctx, *discussionObj.Moderator.UserProfileID)
+		if err != nil {
+			return nil, fmt.Errorf("Error fetching moderator information")
+		}
+		var modSocialInfo *model.SocialInfo
+		for idx, s := range moderatorSocialInfos {
+			if s.Network == "twitter" {
+				isTwitterAuth = true
+				modSocialInfo = &moderatorSocialInfos[idx]
+				break
+			}
+		}
+		if modSocialInfo == nil {
+			return nil, fmt.Errorf("Error fetching moderator information")
+		}
+		doesModeratorFollow, err := d.DoesTwitterUserFollowUser(ctx, *modSocialInfo, *twitterSocialInfo)
+		if err != nil {
+			return nil, err
+		}
+
+		if doesModeratorFollow {
+			return &model.CanJoinDiscussionResponse{
+				Response: model.DiscussionJoinabilityResponseApprovedNotJoined,
+			}, nil
+		} else {
+			return d.getJoinabilityFromInviteStatus(ctx, discussionObj, userObj)
+		}
+	} else {
+		return d.getJoinabilityFromInviteStatus(ctx, discussionObj, userObj)
+	}
+}
+
+func (d *delphisBackend) getJoinabilityFromInviteStatus(ctx context.Context, discussionObj *model.Discussion, userObj *model.User) (*model.CanJoinDiscussionResponse, error) {
+	requestAccess, err := d.db.GetDiscussionAccessRequestByDiscussionIDUserID(ctx, discussionObj.ID, userObj.ID)
+	if err != nil {
+		return nil, err
+	}
+	if requestAccess == nil {
+		// No access request has been made.
+		return &model.CanJoinDiscussionResponse{
+			Response: model.DiscussionJoinabilityResponseApprovalRequired,
+		}, nil
+	} else {
+		switch requestAccess.Status {
+		case model.InviteRequestStatusAccepted:
+			return &model.CanJoinDiscussionResponse{
+				Response: model.DiscussionJoinabilityResponseApprovedNotJoined,
+			}, nil
+		case model.InviteRequestStatusPending:
+			return &model.CanJoinDiscussionResponse{
+				Response: model.DiscussionJoinabilityResponseApprovalRequired,
+			}, nil
+		case model.InviteRequestStatusRejected:
+			return &model.CanJoinDiscussionResponse{
+				Response: model.DiscussionJoinabilityResponseDenied,
+			}, nil
+		case model.InviteRequestStatusCancelled:
+			return &model.CanJoinDiscussionResponse{
+				Response: model.DiscussionJoinabilityResponseApprovalRequired,
+			}, nil
+		default:
+			return &model.CanJoinDiscussionResponse{
+				Response: model.DiscussionJoinabilityResponseApprovalRequired,
+			}, nil
+		}
+	}
+}
+
 func (d *delphisBackend) UpdateDiscussion(ctx context.Context, id string, input model.DiscussionInput) (*model.Discussion, error) {
 	discObj, err := d.db.GetDiscussionByID(ctx, id)
 	if err != nil {

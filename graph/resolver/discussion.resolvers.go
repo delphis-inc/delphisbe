@@ -145,6 +145,42 @@ func (r *discussionResolver) MeAvailableParticipants(ctx context.Context, obj *m
 	return participantArr, nil
 }
 
+func (r *discussionResolver) MeCanJoinDiscussion(ctx context.Context, obj *model.Discussion) (*model.CanJoinDiscussionResponse, error) {
+	// Things to check here:
+	// 1. Is the user logged out? => no (DENIED)
+	// 2. Is the user only logged in with Apple? => no (DENIED)
+	// 3. Is the user already part of the discussion? => yes (AWAITING_APPROVAL)
+	// 4. Is the discussion set to manual approval? AND has the user already requested to join?
+	//   4a. If yes then => yes (with awaitingApproval <- true, requiresApproval <- true) (AWAITING_APPROVAL)
+	//   4b. If no then => yes (with awaitingApproval <- false, requiresApproval <- true) (APPROVAL_REQUIRED)
+	//   4c. If yes AND the user has been rejected => no (with awaitingApproval <- false, requiresApproval <- true) (DENIED)
+	//   4d. If yes AND the user has been approved => yes (with awaitingApproval <- false, requiresApproval <- false) (APPROVED_NOT_JOINED)
+	// 5. Is the discussion set to automatic approval if following on Twitter? AND is the user NOT followed by moderator?
+	//   <SEE #4>
+	// 6. Is the discussion set to automatic approval if following on Twitter? AND is the user followed by the moderator? => yes (APPROVED_NOT_JOINED)
+	authedUser := auth.GetAuthedUser(ctx)
+	if authedUser == nil {
+		return &model.CanJoinDiscussionResponse{
+			Response: model.DiscussionJoinabilityResponseDenied,
+		}, nil
+	}
+
+	if authedUser.User == nil {
+		var err error
+		authedUser.User, err = r.DAOManager.GetUserByID(ctx, authedUser.UserID)
+		if err != nil || authedUser.User == nil {
+			return nil, fmt.Errorf("Error fetching user with ID (%s)", authedUser.UserID)
+		}
+	}
+
+	meParticipant, err := r.MeParticipant(ctx, obj)
+	if err != nil {
+		return nil, fmt.Errorf("Error fetching user information")
+	}
+
+	return r.DAOManager.GetDiscussionJoinabilityForUser(ctx, authedUser.User, obj, meParticipant)
+}
+
 func (r *discussionResolver) Tags(ctx context.Context, obj *model.Discussion) ([]*model.Tag, error) {
 	return r.DAOManager.GetDiscussionTags(ctx, obj.ID)
 }
@@ -198,6 +234,14 @@ func (r *discussionResolver) DiscussionLinksAccess(ctx context.Context, obj *mod
 	}
 
 	return r.DAOManager.GetInviteLinksByDiscussionID(ctx, obj.ID)
+}
+
+func (r *discussionResolver) DiscussionJoinability(ctx context.Context, obj *model.Discussion) (model.DiscussionJoinabilitySetting, error) {
+	if string(obj.DiscussionJoinability) == "" {
+		return model.DiscussionJoinabilitySettingAllRequireApproval, nil
+	}
+
+	return obj.DiscussionJoinability, nil
 }
 
 func (r *discussionAccessRequestResolver) User(ctx context.Context, obj *model.DiscussionAccessRequest) (*model.User, error) {

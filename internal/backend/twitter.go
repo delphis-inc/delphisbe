@@ -25,6 +25,7 @@ const (
 type TwitterClient interface {
 	SearchUsers(query string, page int, count int) ([]twitter.User, error)
 	LookupUsers(screenNames []string) ([]twitter.User, error)
+	FriendshipLookup(fromScreenName, toScreenName string) (*twitter.Relationship, error)
 }
 
 /* Implementation of the interface above based on an external package */
@@ -47,6 +48,34 @@ func (t *twitterClient) LookupUsers(screenNames []string) ([]twitter.User, error
 		ScreenName: screenNames,
 	})
 	return twitterUsers, err
+}
+
+func (t *twitterClient) FriendshipLookup(fromScreenName, toScreenName string) (*twitter.Relationship, error) {
+	relationship, _, err := t.client.Friendships.Show(&twitter.FriendshipShowParams{
+		SourceScreenName: fromScreenName,
+		TargetScreenName: toScreenName,
+	})
+
+	return relationship, err
+}
+
+// We use second user's token here for rate limiting reasons.
+func (d *delphisBackend) DoesTwitterUserFollowUser(ctx context.Context, firstUser model.SocialInfo, secondUser model.SocialInfo) (bool, error) {
+	if secondUser.Network != "twitter" || firstUser.Network != "twitter" {
+		return false, fmt.Errorf("Both users must be twitter accounts")
+	}
+
+	twitterClient, err := d.getTwitterClientWithAccessTokens(ctx, secondUser.AccessToken, secondUser.AccessTokenSecret)
+	if err != nil {
+		return false, fmt.Errorf("Failed contacting Twitter")
+	}
+
+	relationship, err := twitterClient.FriendshipLookup(secondUser.ScreenName, firstUser.ScreenName)
+	if err != nil || relationship == nil {
+		return false, fmt.Errorf("Failed contacting Twitter")
+	}
+
+	return relationship.Target.Following, nil
 }
 
 func (d *delphisBackend) GetTwitterAccessToken(ctx context.Context) (string, string, error) {
@@ -83,13 +112,17 @@ func (d *delphisBackend) GetTwitterAccessToken(ctx context.Context) (string, str
 
 func (d *delphisBackend) GetTwitterClientWithUserTokens(ctx context.Context) (TwitterClient, error) {
 	/* Obtain infos needed for creating Twitter API client */
-	consumerKey := d.config.Twitter.ConsumerKey
-	consumerSecret := d.config.Twitter.ConsumerSecret
 	accessToken, accessTokenSecret, err := d.GetTwitterAccessToken(ctx)
 	if err != nil {
 		return nil, err
 	}
 
+	return d.getTwitterClientWithAccessTokens(ctx, accessToken, accessTokenSecret)
+}
+
+func (d *delphisBackend) getTwitterClientWithAccessTokens(ctx context.Context, accessToken string, accessTokenSecret string) (TwitterClient, error) {
+	consumerKey := d.config.Twitter.ConsumerKey
+	consumerSecret := d.config.Twitter.ConsumerSecret
 	/* Check that everything is ready to go */
 	if len(consumerKey) == 0 || len(consumerSecret) == 0 || len(accessToken) == 0 || len(accessTokenSecret) == 0 {
 		return nil, fmt.Errorf("There is a problem retrieving authed user Twitter data")

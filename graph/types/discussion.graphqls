@@ -31,6 +31,8 @@ type Discussion implements Entity {
     # Will return available participants for `me`
     meAvailableParticipants: [Participant!]
 
+    meCanJoinDiscussion: CanJoinDiscussionResponse!
+
     autoPost: Boolean!
     idleMinutes: Int!
     tags: [Tag!]
@@ -40,6 +42,12 @@ type Discussion implements Entity {
     discussionLinksAccess: DiscussionLinkAccess!
 
     discussionJoinability: DiscussionJoinabilitySetting!
+}
+
+type CanJoinDiscussionResponse {
+    response: DiscussionJoinabilityResponse!
+    reason: String
+    reasonCode: Int
 }
 
 type HistoricalString {
