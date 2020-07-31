@@ -19,7 +19,7 @@ import (
 const discussionSubscriberKey = "discussion_subscribers-%s"
 const discussionEventSubscriberKey = "discussion_event_subscribers-%s"
 
-func (d *delphisBackend) CreateNewDiscussion(ctx context.Context, creatingUser *model.User, anonymityType model.AnonymityType, title string, description string, publicAccess bool) (*model.Discussion, error) {
+func (d *delphisBackend) CreateNewDiscussion(ctx context.Context, creatingUser *model.User, anonymityType model.AnonymityType, title string, description string, publicAccess bool, discussionSettings model.DiscussionCreationSettings) (*model.Discussion, error) {
 	moderatorObj := model.Moderator{
 		ID:            util.UUIDv4(),
 		UserProfileID: &creatingUser.UserProfile.ID,
@@ -64,8 +64,9 @@ func (d *delphisBackend) CreateNewDiscussion(ctx context.Context, creatingUser *
 		DescriptionHistory: postgres.Jsonb{
 			RawMessage: descriptionHistoryBytes,
 		},
-		ModeratorID:  &moderatorObj.ID,
-		PublicAccess: publicAccess,
+		ModeratorID:           &moderatorObj.ID,
+		PublicAccess:          publicAccess,
+		DiscussionJoinability: discussionSettings.DiscussionJoinability,
 	}
 
 	_, err = d.db.UpsertDiscussion(ctx, discussionObj)
@@ -299,6 +300,9 @@ func updateDiscussionObj(disc *model.Discussion, input model.DiscussionInput) {
 	if input.Description != nil {
 		disc.AddDescriptionToHistory(*input.Description)
 		disc.Description = *input.Description
+	}
+	if input.DiscussionJoinability != nil {
+		disc.DiscussionJoinability = *input.DiscussionJoinability
 	}
 	if input.AutoPost != nil {
 		disc.AutoPost = *input.AutoPost

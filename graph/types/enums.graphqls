@@ -51,3 +51,8 @@ enum InviteRequestStatus {
     PENDING,
     CANCELLED
 }
+
+enum DiscussionJoinabilitySetting {
+    ALLOW_TWITTER_FRIENDS,
+    ALL_REQUIRE_APPROVAL,
+}

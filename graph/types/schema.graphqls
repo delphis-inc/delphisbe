@@ -62,6 +62,11 @@ input DiscussionInput {
   idleMinutes: Int
   publicAccess: Boolean
   iconURL: String
+  discussionJoinability: DiscussionJoinabilitySetting
+}
+
+input DiscussionCreationSettings {
+  discussionJoinability: DiscussionJoinabilitySetting!
 }
 
 type Mutation {
@@ -69,7 +74,9 @@ type Mutation {
   addPost(discussionID: ID!, participantID: ID!, postContent: PostContentInput!): Post!
   postImportedContent(discussionID: ID!, participantID: ID!, contentID: ID!): Post! # TODO: Need clarity on UX for this. Keeping it simple for now
   scheduleImportedContent(discussionID: ID!, contentID: ID!): ContentQueueRecord!
-  createDiscussion(anonymityType: AnonymityType!, title: String!, description: String, publicAccess: Boolean = true): Discussion!
+  # We need to deprecate `publicAccess` but given it's being used by existing apps let's keep it there for now.
+  # A note though that we should do this very soon.
+  createDiscussion(anonymityType: AnonymityType!, title: String!, description: String, publicAccess: Boolean = true, discussionSettings: DiscussionCreationSettings!): Discussion!
 
   # Creates a User Flair from a Flair template, accessible via available flair
   createFlair(userID: String!, templateID: String!): Flair!

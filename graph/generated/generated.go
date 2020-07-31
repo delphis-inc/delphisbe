@@ -96,6 +96,7 @@ type ComplexityRoot struct {
 		CreatedAt               func(childComplexity int) int
 		Description             func(childComplexity int) int
 		DescriptionHistory      func(childComplexity int) int
+		DiscussionJoinability   func(childComplexity int) int
 		DiscussionLinksAccess   func(childComplexity int) int
 		FlairTemplates          func(childComplexity int) int
 		ID                      func(childComplexity int) int
@@ -217,7 +218,7 @@ type ComplexityRoot struct {
 		AssignFlair                          func(childComplexity int, participantID string, flairID string) int
 		BanParticipant                       func(childComplexity int, discussionID string, participantID string) int
 		ConciergeMutation                    func(childComplexity int, discussionID string, mutationID string, selectedOptions []string) int
-		CreateDiscussion                     func(childComplexity int, anonymityType model.AnonymityType, title string, description *string, publicAccess *bool) int
+		CreateDiscussion                     func(childComplexity int, anonymityType model.AnonymityType, title string, description *string, publicAccess *bool, discussionSettings model.DiscussionCreationSettings) int
 		CreateFlair                          func(childComplexity int, userID string, templateID string) int
 		CreateFlairTemplate                  func(childComplexity int, displayName *string, imageURL *string, source string) int
 		DeleteDiscussionFlairTemplatesAccess func(childComplexity int, discussionID string, flairTemplateIDs []string) int
@@ -486,7 +487,7 @@ type MutationResolver interface {
 	AddPost(ctx context.Context, discussionID string, participantID string, postContent model.PostContentInput) (*model.Post, error)
 	PostImportedContent(ctx context.Context, discussionID string, participantID string, contentID string) (*model.Post, error)
 	ScheduleImportedContent(ctx context.Context, discussionID string, contentID string) (*model.ContentQueueRecord, error)
-	CreateDiscussion(ctx context.Context, anonymityType model.AnonymityType, title string, description *string, publicAccess *bool) (*model.Discussion, error)
+	CreateDiscussion(ctx context.Context, anonymityType model.AnonymityType, title string, description *string, publicAccess *bool, discussionSettings model.DiscussionCreationSettings) (*model.Discussion, error)
 	CreateFlair(ctx context.Context, userID string, templateID string) (*model.Flair, error)
 	RemoveFlair(ctx context.Context, id string) (*model.Flair, error)
 	AssignFlair(ctx context.Context, participantID string, flairID string) (*model.Participant, error)
@@ -737,6 +738,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Discussion.DescriptionHistory(childComplexity), true
+
+	case "Discussion.discussionJoinability":
+		if e.complexity.Discussion.DiscussionJoinability == nil {
+			break
+		}
+
+		return e.complexity.Discussion.DiscussionJoinability(childComplexity), true
 
 	case "Discussion.discussionLinksAccess":
 		if e.complexity.Discussion.DiscussionLinksAccess == nil {
@@ -1362,7 +1370,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Mutation.CreateDiscussion(childComplexity, args["anonymityType"].(model.AnonymityType), args["title"].(string), args["description"].(*string), args["publicAccess"].(*bool)), true
+		return e.complexity.Mutation.CreateDiscussion(childComplexity, args["anonymityType"].(model.AnonymityType), args["title"].(string), args["description"].(*string), args["publicAccess"].(*bool), args["discussionSettings"].(model.DiscussionCreationSettings)), true
 
 	case "Mutation.createFlair":
 		if e.complexity.Mutation.CreateFlair == nil {
@@ -2483,6 +2491,8 @@ var sources = []*ast.Source{
     flairTemplates: [FlairTemplate!]
     accessRequests: [DiscussionAccessRequest!]
     discussionLinksAccess: DiscussionLinkAccess!
+
+    discussionJoinability: DiscussionJoinabilitySetting!
 }
 
 type HistoricalString {
@@ -2620,6 +2630,11 @@ enum InviteRequestStatus {
     REJECTED,
     PENDING,
     CANCELLED
+}
+
+enum DiscussionJoinabilitySetting {
+    ALLOW_TWITTER_FRIENDS,
+    ALL_REQUIRE_APPROVAL,
 }`, BuiltIn: false},
 	&ast.Source{Name: "graph/types/flair.graphqls", Input: `type Flair {
     # The UUID for this flair
@@ -2856,6 +2871,11 @@ input DiscussionInput {
   idleMinutes: Int
   publicAccess: Boolean
   iconURL: String
+  discussionJoinability: DiscussionJoinabilitySetting
+}
+
+input DiscussionCreationSettings {
+  discussionJoinability: DiscussionJoinabilitySetting!
 }
 
 type Mutation {
@@ -2863,7 +2883,9 @@ type Mutation {
   addPost(discussionID: ID!, participantID: ID!, postContent: PostContentInput!): Post!
   postImportedContent(discussionID: ID!, participantID: ID!, contentID: ID!): Post! # TODO: Need clarity on UX for this. Keeping it simple for now
   scheduleImportedContent(discussionID: ID!, contentID: ID!): ContentQueueRecord!
-  createDiscussion(anonymityType: AnonymityType!, title: String!, description: String, publicAccess: Boolean = true): Discussion!
+  # We need to deprecate ` + "`" + `publicAccess` + "`" + ` but given it's being used by existing apps let's keep it there for now.
+  # A note though that we should do this very soon.
+  createDiscussion(anonymityType: AnonymityType!, title: String!, description: String, publicAccess: Boolean = true, discussionSettings: DiscussionCreationSettings!): Discussion!
 
   # Creates a User Flair from a Flair template, accessible via available flair
   createFlair(userID: String!, templateID: String!): Flair!
@@ -3256,6 +3278,14 @@ func (ec *executionContext) field_Mutation_createDiscussion_args(ctx context.Con
 		}
 	}
 	args["publicAccess"] = arg3
+	var arg4 model.DiscussionCreationSettings
+	if tmp, ok := rawArgs["discussionSettings"]; ok {
+		arg4, err = ec.unmarshalNDiscussionCreationSettings2githubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐDiscussionCreationSettings(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["discussionSettings"] = arg4
 	return args, nil
 }
 
@@ -5023,6 +5053,40 @@ func (ec *executionContext) _Discussion_discussionLinksAccess(ctx context.Contex
 	res := resTmp.(*model.DiscussionLinkAccess)
 	fc.Result = res
 	return ec.marshalNDiscussionLinkAccess2ᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐDiscussionLinkAccess(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Discussion_discussionJoinability(ctx context.Context, field graphql.CollectedField, obj *model.Discussion) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "Discussion",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.DiscussionJoinability, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(model.DiscussionJoinabilitySetting)
+	fc.Result = res
+	return ec.marshalNDiscussionJoinabilitySetting2githubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐDiscussionJoinabilitySetting(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _DiscussionAccessRequest_id(ctx context.Context, field graphql.CollectedField, obj *model.DiscussionAccessRequest) (ret graphql.Marshaler) {
@@ -7189,7 +7253,7 @@ func (ec *executionContext) _Mutation_createDiscussion(ctx context.Context, fiel
 	fc.Args = args
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().CreateDiscussion(rctx, args["anonymityType"].(model.AnonymityType), args["title"].(string), args["description"].(*string), args["publicAccess"].(*bool))
+		return ec.resolvers.Mutation().CreateDiscussion(rctx, args["anonymityType"].(model.AnonymityType), args["title"].(string), args["description"].(*string), args["publicAccess"].(*bool), args["discussionSettings"].(model.DiscussionCreationSettings))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -12757,6 +12821,24 @@ func (ec *executionContext) unmarshalInputAddDiscussionParticipantInput(ctx cont
 	return it, nil
 }
 
+func (ec *executionContext) unmarshalInputDiscussionCreationSettings(ctx context.Context, obj interface{}) (model.DiscussionCreationSettings, error) {
+	var it model.DiscussionCreationSettings
+	var asMap = obj.(map[string]interface{})
+
+	for k, v := range asMap {
+		switch k {
+		case "discussionJoinability":
+			var err error
+			it.DiscussionJoinability, err = ec.unmarshalNDiscussionJoinabilitySetting2githubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐDiscussionJoinabilitySetting(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		}
+	}
+
+	return it, nil
+}
+
 func (ec *executionContext) unmarshalInputDiscussionInput(ctx context.Context, obj interface{}) (model.DiscussionInput, error) {
 	var it model.DiscussionInput
 	var asMap = obj.(map[string]interface{})
@@ -12802,6 +12884,12 @@ func (ec *executionContext) unmarshalInputDiscussionInput(ctx context.Context, o
 		case "iconURL":
 			var err error
 			it.IconURL, err = ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "discussionJoinability":
+			var err error
+			it.DiscussionJoinability, err = ec.unmarshalODiscussionJoinabilitySetting2ᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐDiscussionJoinabilitySetting(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -13447,6 +13535,11 @@ func (ec *executionContext) _Discussion(ctx context.Context, sel ast.SelectionSe
 				}
 				return res
 			})
+		case "discussionJoinability":
+			out.Values[i] = ec._Discussion_discussionJoinability(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&invalids, 1)
+			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -15981,6 +16074,10 @@ func (ec *executionContext) marshalNDiscussionAccessRequest2ᚖgithubᚗcomᚋde
 	return ec._DiscussionAccessRequest(ctx, sel, v)
 }
 
+func (ec *executionContext) unmarshalNDiscussionCreationSettings2githubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐDiscussionCreationSettings(ctx context.Context, v interface{}) (model.DiscussionCreationSettings, error) {
+	return ec.unmarshalInputDiscussionCreationSettings(ctx, v)
+}
+
 func (ec *executionContext) unmarshalNDiscussionInput2githubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐDiscussionInput(ctx context.Context, v interface{}) (model.DiscussionInput, error) {
 	return ec.unmarshalInputDiscussionInput(ctx, v)
 }
@@ -16034,6 +16131,15 @@ func (ec *executionContext) marshalNDiscussionInvite2ᚖgithubᚗcomᚋdelphis�
 		return graphql.Null
 	}
 	return ec._DiscussionInvite(ctx, sel, v)
+}
+
+func (ec *executionContext) unmarshalNDiscussionJoinabilitySetting2githubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐDiscussionJoinabilitySetting(ctx context.Context, v interface{}) (model.DiscussionJoinabilitySetting, error) {
+	var res model.DiscussionJoinabilitySetting
+	return res, res.UnmarshalGQL(v)
+}
+
+func (ec *executionContext) marshalNDiscussionJoinabilitySetting2githubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐDiscussionJoinabilitySetting(ctx context.Context, sel ast.SelectionSet, v model.DiscussionJoinabilitySetting) graphql.Marshaler {
+	return v
 }
 
 func (ec *executionContext) marshalNDiscussionLinkAccess2githubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐDiscussionLinkAccess(ctx context.Context, sel ast.SelectionSet, v model.DiscussionLinkAccess) graphql.Marshaler {
@@ -16933,6 +17039,30 @@ func (ec *executionContext) marshalODiscussionInvite2ᚕᚖgithubᚗcomᚋdelphi
 	}
 	wg.Wait()
 	return ret
+}
+
+func (ec *executionContext) unmarshalODiscussionJoinabilitySetting2githubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐDiscussionJoinabilitySetting(ctx context.Context, v interface{}) (model.DiscussionJoinabilitySetting, error) {
+	var res model.DiscussionJoinabilitySetting
+	return res, res.UnmarshalGQL(v)
+}
+
+func (ec *executionContext) marshalODiscussionJoinabilitySetting2githubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐDiscussionJoinabilitySetting(ctx context.Context, sel ast.SelectionSet, v model.DiscussionJoinabilitySetting) graphql.Marshaler {
+	return v
+}
+
+func (ec *executionContext) unmarshalODiscussionJoinabilitySetting2ᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐDiscussionJoinabilitySetting(ctx context.Context, v interface{}) (*model.DiscussionJoinabilitySetting, error) {
+	if v == nil {
+		return nil, nil
+	}
+	res, err := ec.unmarshalODiscussionJoinabilitySetting2githubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐDiscussionJoinabilitySetting(ctx, v)
+	return &res, err
+}
+
+func (ec *executionContext) marshalODiscussionJoinabilitySetting2ᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐDiscussionJoinabilitySetting(ctx context.Context, sel ast.SelectionSet, v *model.DiscussionJoinabilitySetting) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return v
 }
 
 func (ec *executionContext) marshalODiscussionSubscriptionEvent2githubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐDiscussionSubscriptionEvent(ctx context.Context, sel ast.SelectionSet, v model.DiscussionSubscriptionEvent) graphql.Marshaler {

@@ -167,15 +167,16 @@ func (d *delphisDB) UpsertDiscussion(ctx context.Context, discussion model.Discu
 		}
 	} else {
 		if err := d.sql.Preload("Moderator").Model(&discussion).Updates(map[string]interface{}{
-			"Title":              discussion.Title,
-			"Description":        discussion.Description,
-			"AnonymityType":      discussion.AnonymityType,
-			"AutoPost":           discussion.AutoPost,
-			"IdleMinutes":        discussion.IdleMinutes,
-			"PublicAccess":       discussion.PublicAccess,
-			"IconURL":            discussion.IconURL,
-			"TitleHistory":       discussion.TitleHistory,
-			"DescriptionHistory": discussion.DescriptionHistory,
+			"Title":                 discussion.Title,
+			"Description":           discussion.Description,
+			"AnonymityType":         discussion.AnonymityType,
+			"AutoPost":              discussion.AutoPost,
+			"IdleMinutes":           discussion.IdleMinutes,
+			"PublicAccess":          discussion.PublicAccess,
+			"IconURL":               discussion.IconURL,
+			"TitleHistory":          discussion.TitleHistory,
+			"DescriptionHistory":    discussion.DescriptionHistory,
+			"DiscussionJoinability": discussion.DiscussionJoinability,
 		}).First(&found).Error; err != nil {
 			logrus.WithError(err).Errorf("UpsertDiscussion::Failed updating disucssion object")
 			return nil, err

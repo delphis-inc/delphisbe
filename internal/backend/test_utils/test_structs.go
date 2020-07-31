@@ -88,6 +88,12 @@ func TestDiscussion() model.Discussion {
 	}
 }
 
+func TestDiscussionCreationSettings() model.DiscussionCreationSettings {
+	return model.DiscussionCreationSettings{
+		DiscussionJoinability: model.DiscussionJoinabilitySettingAllowTwitterFriends,
+	}
+}
+
 func TestPost() model.Post {
 	discussionID := DiscussionID
 	participantID := ParticipantID

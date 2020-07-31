@@ -40,14 +40,19 @@ type ConciergeOption struct {
 	Selected bool   `json:"selected"`
 }
 
+type DiscussionCreationSettings struct {
+	DiscussionJoinability DiscussionJoinabilitySetting `json:"discussionJoinability"`
+}
+
 type DiscussionInput struct {
-	AnonymityType *AnonymityType `json:"anonymityType"`
-	Title         *string        `json:"title"`
-	Description   *string        `json:"description"`
-	AutoPost      *bool          `json:"autoPost"`
-	IdleMinutes   *int           `json:"idleMinutes"`
-	PublicAccess  *bool          `json:"publicAccess"`
-	IconURL       *string        `json:"iconURL"`
+	AnonymityType         *AnonymityType                `json:"anonymityType"`
+	Title                 *string                       `json:"title"`
+	Description           *string                       `json:"description"`
+	AutoPost              *bool                         `json:"autoPost"`
+	IdleMinutes           *int                          `json:"idleMinutes"`
+	PublicAccess          *bool                         `json:"publicAccess"`
+	IconURL               *string                       `json:"iconURL"`
+	DiscussionJoinability *DiscussionJoinabilitySetting `json:"discussionJoinability"`
 }
 
 type DiscussionSubscriptionEvent struct {
@@ -182,6 +187,47 @@ func (e *AnonymityType) UnmarshalGQL(v interface{}) error {
 }
 
 func (e AnonymityType) MarshalGQL(w io.Writer) {
+	fmt.Fprint(w, strconv.Quote(e.String()))
+}
+
+type DiscussionJoinabilitySetting string
+
+const (
+	DiscussionJoinabilitySettingAllowTwitterFriends DiscussionJoinabilitySetting = "ALLOW_TWITTER_FRIENDS"
+	DiscussionJoinabilitySettingAllRequireApproval  DiscussionJoinabilitySetting = "ALL_REQUIRE_APPROVAL"
+)
+
+var AllDiscussionJoinabilitySetting = []DiscussionJoinabilitySetting{
+	DiscussionJoinabilitySettingAllowTwitterFriends,
+	DiscussionJoinabilitySettingAllRequireApproval,
+}
+
+func (e DiscussionJoinabilitySetting) IsValid() bool {
+	switch e {
+	case DiscussionJoinabilitySettingAllowTwitterFriends, DiscussionJoinabilitySettingAllRequireApproval:
+		return true
+	}
+	return false
+}
+
+func (e DiscussionJoinabilitySetting) String() string {
+	return string(e)
+}
+
+func (e *DiscussionJoinabilitySetting) UnmarshalGQL(v interface{}) error {
+	str, ok := v.(string)
+	if !ok {
+		return fmt.Errorf("enums must be strings")
+	}
+
+	*e = DiscussionJoinabilitySetting(str)
+	if !e.IsValid() {
+		return fmt.Errorf("%s is not a valid DiscussionJoinabilitySetting", str)
+	}
+	return nil
+}
+
+func (e DiscussionJoinabilitySetting) MarshalGQL(w io.Writer) {
 	fmt.Fprint(w, strconv.Quote(e.String()))
 }
 

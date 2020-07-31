@@ -38,6 +38,8 @@ type Discussion implements Entity {
     flairTemplates: [FlairTemplate!]
     accessRequests: [DiscussionAccessRequest!]
     discussionLinksAccess: DiscussionLinkAccess!
+
+    discussionJoinability: DiscussionJoinabilitySetting!
 }
 
 type HistoricalString {
