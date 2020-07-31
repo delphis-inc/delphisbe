@@ -90,7 +90,7 @@ func TestDiscussion() model.Discussion {
 
 func TestDiscussionCreationSettings() model.DiscussionCreationSettings {
 	return model.DiscussionCreationSettings{
-		DiscussionJoinability: model.DiscussionJoinabilitySettingAllowTwitterFollowed,
+		DiscussionJoinability: model.DiscussionJoinabilitySettingAllowTwitterFriends,
 	}
 }
 
