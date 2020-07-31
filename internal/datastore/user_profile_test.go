@@ -9,6 +9,7 @@ import (
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/delphis-inc/delphisbe/graph/model"
 	"github.com/delphis-inc/delphisbe/internal/config"
+	"github.com/delphis-inc/delphisbe/internal/util"
 	"github.com/jinzhu/gorm"
 	. "github.com/smartystreets/goconvey/convey"
 	"github.com/stretchr/testify/assert"
@@ -38,7 +39,7 @@ func TestDelphisDB_GetUserProfileByUserID(t *testing.T) {
 		ProfileImageURL:   "url",
 		ScreenName:        "screen_nam",
 		IsVerified:        false,
-		Network:           "twitter",
+		Network:           util.SocialNetworkTwitter,
 		UserProfileID:     profileID,
 	}
 
@@ -175,7 +176,7 @@ func TestDelphisDB_GetUserProfileByID(t *testing.T) {
 		ProfileImageURL:   "url",
 		ScreenName:        "screen_nam",
 		IsVerified:        false,
-		Network:           "twitter",
+		Network:           util.SocialNetworkTwitter,
 		UserProfileID:     profileID,
 	}
 
@@ -283,7 +284,7 @@ func TestDelphisDB_CreateOrUpdateUserProfile(t *testing.T) {
 		ProfileImageURL:   "url",
 		ScreenName:        "screen_nam",
 		IsVerified:        false,
-		Network:           "twitter",
+		Network:           util.SocialNetworkTwitter,
 		UserProfileID:     profileID,
 	}
 

@@ -7,6 +7,7 @@ import (
 
 	"github.com/delphis-inc/delphisbe/graph/model"
 	"github.com/delphis-inc/delphisbe/internal/auth"
+	"github.com/delphis-inc/delphisbe/internal/util"
 	"github.com/dghubble/go-twitter/twitter"
 	"github.com/dghubble/oauth1"
 	"github.com/sirupsen/logrus"
@@ -61,7 +62,7 @@ func (t *twitterClient) FriendshipLookup(fromScreenName, toScreenName string) (*
 
 // We use second user's token here for rate limiting reasons.
 func (d *delphisBackend) DoesTwitterUserFollowUser(ctx context.Context, firstUser model.SocialInfo, secondUser model.SocialInfo) (bool, error) {
-	if secondUser.Network != "twitter" || firstUser.Network != "twitter" {
+	if secondUser.Network != util.SocialNetworkTwitter || firstUser.Network != util.SocialNetworkTwitter {
 		return false, fmt.Errorf("Both users must be twitter accounts")
 	}
 
@@ -101,7 +102,7 @@ func (d *delphisBackend) GetTwitterAccessToken(ctx context.Context) (string, str
 	accessToken := ""
 	accessTokenSecret := ""
 	for _, info := range authedSocialInfo {
-		if strings.ToLower(info.Network) == "twitter" {
+		if strings.ToLower(info.Network) == util.SocialNetworkTwitter {
 			accessToken = info.AccessToken
 			accessTokenSecret = info.AccessTokenSecret
 		}

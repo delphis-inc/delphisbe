@@ -3,6 +3,7 @@ package test_utils
 import (
 	"github.com/delphis-inc/delphisbe/graph/model"
 	"github.com/delphis-inc/delphisbe/internal/auth"
+	"github.com/delphis-inc/delphisbe/internal/util"
 )
 
 const ProfileID = "profileID"
@@ -188,7 +189,7 @@ func TestImportedContent() model.ImportedContent {
 
 func TestSocialInfo() model.SocialInfo {
 	return model.SocialInfo{
-		Network:           "twitter",
+		Network:           util.SocialNetworkTwitter,
 		AccessToken:       Token,
 		AccessTokenSecret: TokenSecret,
 		UserID:            UserID,

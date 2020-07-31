@@ -102,7 +102,7 @@ func (d *delphisBackend) GetDiscussionJoinabilityForUser(ctx context.Context, us
 	isTwitterAuth := false
 	var twitterSocialInfo *model.SocialInfo
 	for idx, s := range socialInfos {
-		if s.Network == "twitter" {
+		if s.Network == util.SocialNetworkTwitter {
 			isTwitterAuth = true
 			twitterSocialInfo = &socialInfos[idx]
 			break
@@ -128,7 +128,7 @@ func (d *delphisBackend) GetDiscussionJoinabilityForUser(ctx context.Context, us
 		}
 		var modSocialInfo *model.SocialInfo
 		for idx, s := range moderatorSocialInfos {
-			if s.Network == "twitter" {
+			if s.Network == util.SocialNetworkTwitter {
 				isTwitterAuth = true
 				modSocialInfo = &moderatorSocialInfos[idx]
 				break

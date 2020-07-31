@@ -28,7 +28,7 @@ type LoginWithAppleInput struct {
 }
 
 func (t LoginWithTwitterInput) ID() string {
-	return fmt.Sprintf("%s:%s", "twitter", t.User.IDStr)
+	return fmt.Sprintf("%s:%s", util.SocialNetworkTwitter, t.User.IDStr)
 }
 
 func (b *delphisBackend) GetOrCreateAppleUser(ctx context.Context, input LoginWithAppleInput) (*model.User, error) {
@@ -47,7 +47,7 @@ func (b *delphisBackend) GetOrCreateAppleUser(ctx context.Context, input LoginWi
 	}
 
 	socialInfoObj := &model.SocialInfo{
-		Network:       "apple",
+		Network:       util.SocialNetworkApple,
 		AccessToken:   input.AccessToken,
 		UserProfileID: userProfileObj.ID,
 		UserID:        hashedEmail,
@@ -100,7 +100,7 @@ func (b *delphisBackend) GetOrCreateUser(ctx context.Context, input LoginWithTwi
 	}
 
 	socialInfoObj := &model.SocialInfo{
-		Network:           "twitter",
+		Network:           util.SocialNetworkTwitter,
 		AccessToken:       input.AccessToken,
 		AccessTokenSecret: input.AccessTokenSecret,
 		UserID:            input.User.IDStr,

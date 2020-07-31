@@ -8,6 +8,7 @@ import (
 
 	"github.com/delphis-inc/delphisbe/graph/generated"
 	"github.com/delphis-inc/delphisbe/graph/model"
+	"github.com/delphis-inc/delphisbe/internal/util"
 )
 
 func (r *userProfileResolver) ProfileImageURL(ctx context.Context, obj *model.UserProfile) (string, error) {
@@ -28,7 +29,7 @@ func (r *userProfileResolver) AuthenticatedWithTwitter(ctx context.Context, obj 
 			return false, err
 		}
 		for _, s := range si {
-			if s.Network == "twitter" {
+			if s.Network == util.SocialNetworkTwitter {
 				return true, nil
 			}
 		}
