@@ -2678,7 +2678,7 @@ enum InviteRequestStatus {
 }
 
 enum DiscussionJoinabilitySetting {
-    ALLOW_TWITTER_FOLLOWED,
+    ALLOW_TWITTER_FRIENDS,
     ALL_REQUIRE_APPROVAL,
 }
 

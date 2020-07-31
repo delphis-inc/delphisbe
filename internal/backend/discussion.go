@@ -120,7 +120,7 @@ func (d *delphisBackend) GetDiscussionJoinabilityForUser(ctx context.Context, us
 		}, nil
 	}
 
-	if discussionObj.DiscussionJoinability == model.DiscussionJoinabilitySettingAllowTwitterFollowed {
+	if discussionObj.DiscussionJoinability == model.DiscussionJoinabilitySettingAllowTwitterFriends {
 		// Now we need to know if this moderator follows the user on Twitter.
 		moderatorSocialInfos, err := d.GetSocialInfosByUserProfileID(ctx, *discussionObj.Moderator.UserProfileID)
 		if err != nil {

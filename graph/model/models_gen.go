@@ -246,18 +246,18 @@ func (e DiscussionJoinabilityResponse) MarshalGQL(w io.Writer) {
 type DiscussionJoinabilitySetting string
 
 const (
-	DiscussionJoinabilitySettingAllowTwitterFollowed DiscussionJoinabilitySetting = "ALLOW_TWITTER_FOLLOWED"
-	DiscussionJoinabilitySettingAllRequireApproval   DiscussionJoinabilitySetting = "ALL_REQUIRE_APPROVAL"
+	DiscussionJoinabilitySettingAllowTwitterFriends DiscussionJoinabilitySetting = "ALLOW_TWITTER_FRIENDS"
+	DiscussionJoinabilitySettingAllRequireApproval  DiscussionJoinabilitySetting = "ALL_REQUIRE_APPROVAL"
 )
 
 var AllDiscussionJoinabilitySetting = []DiscussionJoinabilitySetting{
-	DiscussionJoinabilitySettingAllowTwitterFollowed,
+	DiscussionJoinabilitySettingAllowTwitterFriends,
 	DiscussionJoinabilitySettingAllRequireApproval,
 }
 
 func (e DiscussionJoinabilitySetting) IsValid() bool {
 	switch e {
-	case DiscussionJoinabilitySettingAllowTwitterFollowed, DiscussionJoinabilitySettingAllRequireApproval:
+	case DiscussionJoinabilitySettingAllowTwitterFriends, DiscussionJoinabilitySettingAllRequireApproval:
 		return true
 	}
 	return false
