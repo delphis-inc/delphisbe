@@ -103,6 +103,7 @@ func TestDelphisBackend_GetTwitterClientWithUserTokens(t *testing.T) {
 		cacheObj := cache.NewInMemoryCache()
 		authObj := auth.NewDelphisAuth(nil)
 		mockDB := &mocks.Datastore{}
+		mockTwitterBackend := &mocks.TwitterBackend{}
 		twitterConfig := config.TwitterConfig{
 			ConsumerKey:    "ConsumerKey",
 			ConsumerSecret: "ConsumerSecret",
@@ -114,6 +115,7 @@ func TestDelphisBackend_GetTwitterClientWithUserTokens(t *testing.T) {
 			discussionMutex: sync.Mutex{},
 			config:          config.Config{},
 			timeProvider:    &util.FrozenTime{NowTime: now},
+			twitterBackend:  mockTwitterBackend,
 		}
 
 		Convey("when user is not authed", func() {
@@ -125,11 +127,12 @@ func TestDelphisBackend_GetTwitterClientWithUserTokens(t *testing.T) {
 		})
 		ctx = auth.WithAuthedUser(ctx, &testAuthedUser)
 
-		Convey("when keys are not setted", func() {
+		Convey("when keys are not set", func() {
 			userProfile := test_utils.TestUserProfile()
 			socialInfo := []model.SocialInfo{test_utils.TestSocialInfo()}
 			mockDB.On("GetUserProfileByUserID", ctx, testAuthedUser.UserID).Return(&userProfile, nil)
 			mockDB.On("GetSocialInfosByUserProfileID", ctx, userProfile.ID).Return(socialInfo, nil)
+			mockTwitterBackend.On("GetTwitterClientWithAccessTokens", ctx, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil, fmt.Errorf("sth"))
 
 			_, err := backendObj.GetTwitterClientWithUserTokens(ctx)
 
@@ -137,11 +140,12 @@ func TestDelphisBackend_GetTwitterClientWithUserTokens(t *testing.T) {
 		})
 
 		backendObj.config.Twitter = twitterConfig
-		Convey("when tokens and keys are setted", func() {
+		Convey("when tokens and keys are set", func() {
 			userProfile := test_utils.TestUserProfile()
 			socialInfo := []model.SocialInfo{test_utils.TestSocialInfo()}
 			mockDB.On("GetUserProfileByUserID", ctx, testAuthedUser.UserID).Return(&userProfile, nil)
 			mockDB.On("GetSocialInfosByUserProfileID", ctx, userProfile.ID).Return(socialInfo, nil)
+			mockTwitterBackend.On("GetTwitterClientWithAccessTokens", ctx, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil, nil)
 
 			_, err := backendObj.GetTwitterClientWithUserTokens(ctx)
 
