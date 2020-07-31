@@ -9,3 +9,5 @@ CREATE TABLE IF NOT EXISTS media (
 
 ALTER TABLE posts ADD COLUMN IF NOT EXISTS media_id varchar(36);
 ALTER TABLE posts ADD CONSTRAINT posts_media_fk_b783eacfac89 FOREIGN KEY (media_id) REFERENCES media (id) MATCH FULL;
+
+ALTER TABLE discussions ADD COLUMN IF NOT EXISTS icon_url text;
