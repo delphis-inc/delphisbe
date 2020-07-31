@@ -310,6 +310,90 @@ func TestDelphisDB_GetSentDiscussionInvitesByUserID(t *testing.T) {
 	})
 }
 
+func TestDelphisDB_GetDiscussionAccessRequestByDiscussionIDUserID(t *testing.T) {
+	ctx := context.Background()
+	now := time.Now()
+	discussionID := "discussion1"
+	userID := "user1"
+	requestObj := model.DiscussionAccessRequest{
+		ID:           "request1",
+		UserID:       "user1",
+		DiscussionID: discussionID,
+		CreatedAt:    now.Format(time.RFC3339),
+		UpdatedAt:    now.Format(time.RFC3339),
+		IsDeleted:    false,
+		Status:       model.InviteRequestStatusPending,
+	}
+
+	Convey("GetDiscussionAccessRequestByDiscussionIDUserID", t, func() {
+		db, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
+
+		assert.Nil(t, err, "Failed setting up sqlmock db")
+
+		gormDB, _ := gorm.Open("postgres", db)
+		mockDatastore := &delphisDB{
+			dbConfig:  config.TablesConfig{},
+			sql:       gormDB,
+			pg:        db,
+			prepStmts: &dbPrepStmts{},
+			dynamo:    nil,
+			encoder:   nil,
+		}
+		defer db.Close()
+
+		Convey("when preparing statements returns an error", func() {
+			mockPreparedStatementsWithError(mock)
+
+			resp, err := mockDatastore.GetDiscussionAccessRequestByDiscussionIDUserID(ctx, discussionID, userID)
+
+			So(resp, ShouldBeNil)
+			So(err, ShouldNotBeNil)
+			So(mock.ExpectationsWereMet(), ShouldBeNil)
+		})
+
+		Convey("when query execution returns an error", func() {
+			mockPreparedStatements(mock)
+			mock.ExpectQuery(getDiscussionAccessRequestByUserIDString).WithArgs(discussionID, userID).WillReturnError(fmt.Errorf("error"))
+
+			resp, err := mockDatastore.GetDiscussionAccessRequestByDiscussionIDUserID(ctx, discussionID, userID)
+
+			So(resp, ShouldBeNil)
+			So(err, ShouldNotBeNil)
+			So(mock.ExpectationsWereMet(), ShouldBeNil)
+		})
+
+		Convey("when query execution returns no rows", func() {
+			mockPreparedStatements(mock)
+			rs := sqlmock.NewRows([]string{"id", "user_id", "discussion_id", "created_at",
+				"updated_at", "status"})
+			mock.ExpectQuery(getDiscussionAccessRequestByUserIDString).WithArgs(discussionID, userID).WillReturnRows(rs)
+
+			resp, err := mockDatastore.GetDiscussionAccessRequestByDiscussionIDUserID(ctx, discussionID, userID)
+
+			So(resp, ShouldBeNil)
+			So(err, ShouldBeNil)
+			So(mock.ExpectationsWereMet(), ShouldBeNil)
+		})
+
+		Convey("when query execution returns a row", func() {
+			mockPreparedStatements(mock)
+			rs := sqlmock.NewRows([]string{"id", "user_id", "discussion_id", "created_at",
+				"updated_at", "status"}).AddRow(
+				requestObj.ID, requestObj.UserID, requestObj.DiscussionID, requestObj.CreatedAt,
+				requestObj.UpdatedAt, requestObj.Status,
+			)
+			mock.ExpectQuery(getDiscussionAccessRequestByUserIDString).WithArgs(discussionID, userID).WillReturnRows(rs)
+
+			resp, err := mockDatastore.GetDiscussionAccessRequestByDiscussionIDUserID(ctx, discussionID, userID)
+
+			So(resp, ShouldNotBeNil)
+			So(resp, ShouldResemble, &requestObj)
+			So(err, ShouldBeNil)
+			So(mock.ExpectationsWereMet(), ShouldBeNil)
+		})
+	})
+}
+
 func TestDelphisDB_GetDiscussionAccessRequestsByDiscussionID(t *testing.T) {
 	ctx := context.Background()
 	now := time.Now()

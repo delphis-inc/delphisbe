@@ -7,9 +7,8 @@ import (
 
 	"github.com/delphis-inc/delphisbe/graph/model"
 	"github.com/delphis-inc/delphisbe/internal/auth"
+	"github.com/delphis-inc/delphisbe/internal/twitter"
 	"github.com/delphis-inc/delphisbe/internal/util"
-	"github.com/dghubble/go-twitter/twitter"
-	"github.com/dghubble/oauth1"
 	"github.com/sirupsen/logrus"
 )
 
@@ -21,54 +20,10 @@ const (
 	twitterAutocompletsMaxPages  = 1
 )
 
-/* This is an interface that abstracts the business logic related to Twitter APIs.
-   Having an internal interface helps reducing dependency binding and helps in testing. */
-type TwitterClient interface {
-	SearchUsers(query string, page int, count int) ([]twitter.User, error)
-	LookupUsers(screenNames []string) ([]twitter.User, error)
-	FriendshipLookup(fromScreenName, toScreenName string) (*twitter.Relationship, error)
-}
-
-/* Implementation of the interface above based on an external package */
-type twitterClient struct {
-	client *twitter.Client
-}
-
-func (t *twitterClient) SearchUsers(query string, page int, count int) ([]twitter.User, error) {
-	userSearchParams := &twitter.UserSearchParams{
-		Query: query,
-		Page:  page,
-		Count: count,
-	}
-	twitterUsers, _, err := t.client.Users.Search(query, userSearchParams)
-	return twitterUsers, err
-}
-
-func (t *twitterClient) LookupUsers(screenNames []string) ([]twitter.User, error) {
-	twitterUsers, _, err := t.client.Users.Lookup(&twitter.UserLookupParams{
-		ScreenName: screenNames,
-	})
-	return twitterUsers, err
-}
-
-func (t *twitterClient) FriendshipLookup(fromScreenName, toScreenName string) (*twitter.Relationship, error) {
-	relationship, _, err := t.client.Friendships.Show(&twitter.FriendshipShowParams{
-		SourceScreenName: fromScreenName,
-		TargetScreenName: toScreenName,
-	})
-
-	return relationship, err
-}
-
 // We use second user's token here for rate limiting reasons.
-func (d *delphisBackend) DoesTwitterUserFollowUser(ctx context.Context, firstUser model.SocialInfo, secondUser model.SocialInfo) (bool, error) {
+func (d *delphisBackend) DoesTwitterUserFollowUser(ctx context.Context, twitterClient twitter.TwitterClient, firstUser model.SocialInfo, secondUser model.SocialInfo) (bool, error) {
 	if secondUser.Network != util.SocialNetworkTwitter || firstUser.Network != util.SocialNetworkTwitter {
 		return false, fmt.Errorf("Both users must be twitter accounts")
-	}
-
-	twitterClient, err := d.getTwitterClientWithAccessTokens(ctx, secondUser.AccessToken, secondUser.AccessTokenSecret)
-	if err != nil {
-		return false, fmt.Errorf("Failed contacting Twitter")
 	}
 
 	relationship, err := twitterClient.FriendshipLookup(secondUser.ScreenName, firstUser.ScreenName)
@@ -111,35 +66,24 @@ func (d *delphisBackend) GetTwitterAccessToken(ctx context.Context) (string, str
 	return accessToken, accessTokenSecret, nil
 }
 
-func (d *delphisBackend) GetTwitterClientWithUserTokens(ctx context.Context) (TwitterClient, error) {
+func (d *delphisBackend) GetTwitterClientWithUserTokens(ctx context.Context) (twitter.TwitterClient, error) {
 	/* Obtain infos needed for creating Twitter API client */
 	accessToken, accessTokenSecret, err := d.GetTwitterAccessToken(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	return d.getTwitterClientWithAccessTokens(ctx, accessToken, accessTokenSecret)
+	return d.GetTwitterClientWithAccessTokens(ctx, accessToken, accessTokenSecret)
 }
 
-func (d *delphisBackend) getTwitterClientWithAccessTokens(ctx context.Context, accessToken string, accessTokenSecret string) (TwitterClient, error) {
+func (d *delphisBackend) GetTwitterClientWithAccessTokens(ctx context.Context, accessToken string, accessTokenSecret string) (twitter.TwitterClient, error) {
 	consumerKey := d.config.Twitter.ConsumerKey
 	consumerSecret := d.config.Twitter.ConsumerSecret
 	/* Check that everything is ready to go */
-	if len(consumerKey) == 0 || len(consumerSecret) == 0 || len(accessToken) == 0 || len(accessTokenSecret) == 0 {
-		return nil, fmt.Errorf("There is a problem retrieving authed user Twitter data")
-	}
-
-	/* Create client object */
-	config := oauth1.NewConfig(consumerKey, consumerSecret)
-	token := oauth1.NewToken(accessToken, accessTokenSecret)
-	httpClient := config.Client(oauth1.NoContext, token)
-	client := twitter.NewClient(httpClient)
-	return &twitterClient{
-		client: client,
-	}, nil
+	return d.twitterBackend.GetTwitterClientWithAccessTokens(ctx, consumerKey, consumerSecret, accessToken, accessTokenSecret)
 }
 
-func (d *delphisBackend) GetTwitterUserHandleAutocompletes(ctx context.Context, twitterClient TwitterClient, query string, discussionID string, invitingParticipantID string) ([]*model.TwitterUserInfo, error) {
+func (d *delphisBackend) GetTwitterUserHandleAutocompletes(ctx context.Context, twitterClient twitter.TwitterClient, query string, discussionID string, invitingParticipantID string) ([]*model.TwitterUserInfo, error) {
 	/* Check the list of all the Twitter users already invited in the discussion for this participant.
 	   Fetching all of them in a single query enhances the scalability of this function. */
 	invitedTwitterHandles, err := d.db.GetInvitedTwitterHandlesByDiscussionIDAndInviterID(ctx, discussionID, invitingParticipantID)
@@ -182,7 +126,7 @@ func (d *delphisBackend) GetTwitterUserHandleAutocompletes(ctx context.Context, 
 	return results, nil
 }
 
-func (d *delphisBackend) InviteTwitterUsersToDiscussion(ctx context.Context, twitterClient TwitterClient, twitterUserInfos []*model.TwitterUserInput, discussionID, invitingParticipantID string) ([]*model.DiscussionInvite, error) {
+func (d *delphisBackend) InviteTwitterUsersToDiscussion(ctx context.Context, twitterClient twitter.TwitterClient, twitterUserInfos []*model.TwitterUserInput, discussionID, invitingParticipantID string) ([]*model.DiscussionInvite, error) {
 	var invitations []*model.DiscussionInvite
 
 	/* Check that the user is autenticated */

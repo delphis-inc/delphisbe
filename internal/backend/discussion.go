@@ -137,7 +137,11 @@ func (d *delphisBackend) GetDiscussionJoinabilityForUser(ctx context.Context, us
 		if modSocialInfo == nil {
 			return nil, fmt.Errorf("Error fetching moderator information")
 		}
-		doesModeratorFollow, err := d.DoesTwitterUserFollowUser(ctx, *modSocialInfo, *twitterSocialInfo)
+		twitterClient, err := d.GetTwitterClientWithAccessTokens(ctx, twitterSocialInfo.AccessToken, twitterSocialInfo.AccessTokenSecret)
+		if err != nil {
+			return nil, err
+		}
+		doesModeratorFollow, err := d.DoesTwitterUserFollowUser(ctx, twitterClient, *modSocialInfo, *twitterSocialInfo)
 		if err != nil {
 			return nil, err
 		}
