@@ -107,39 +107,17 @@ func (d *delphisDB) ListDiscussionsByUserID(ctx context.Context, userID string) 
 	//TODO: this should take in paging params and return based on those.
 	logrus.Debugf("ListDiscussions::SQL Query")
 
-	discussions := []model.Discussion{}
-	querySelect := `discussions.*, 
-			(m.user_profile_id = up.id) AS is_mod, 
-			(COUNT(p.user_id = up.user_id) > 0) as is_participant,
-			(SELECT MAX(updated_at) FROM posts WHERE posts.discussion_id = discussions.id) as most_recent_post`
-	queryJoins := "JOIN moderators m on discussions.moderator_id = m.id LEFT JOIN participants p ON p.discussion_id = discussions.id," +
-		" user_profiles up LEFT JOIN flairs f ON f.user_id = up.user_id," +
-		" discussion_flair_access dfa, discussion_user_invitations dui"
-	queryWhere := "up.id = ? AND (" +
-		"(dfa.flair_template_id = f.template_id AND dfa.discussion_id = discussions.id)" +
-		" OR (dui.user_id = up.user_id AND dui.discussion_id = discussions.id AND dui.status = 'PENDING')" +
-		" OR (m.user_profile_id = up.id)" +
-		" OR (p.user_id = up.user_id)" +
-		")"
-	queryGroup := "discussions.id, is_mod"
-	queryOrder := "is_mod DESC, is_participant DESC, most_recent_post DESC"
-
-	subQueryUserProfile := d.sql.Table("user_profiles").Select("id").Where("user_id = ?", userID).SubQuery()
-	query := d.sql.Preload("Moderator")
-	query = query.Select(querySelect)
-	query = query.Joins(queryJoins)
-	query = query.Where(queryWhere, subQueryUserProfile)
-	query = query.Group(queryGroup)
-	query = query.Order(queryOrder)
-	if err := query.Find(&discussions).Error; err != nil {
-		logrus.WithError(err).Errorf("ListDiscussions::Failed to list discussions")
+	iter := d.GetDiscussionsByUserAccess(ctx, userID)
+	discArr, err := d.DiscussionIterCollect(ctx, iter)
+	if err != nil {
+		logrus.WithError(err).Error("failed to collect discussions from iter")
 		return nil, err
 	}
 
 	ids := make([]string, 0)
 	edges := make([]*model.DiscussionsEdge, 0)
-	for i := range discussions {
-		discussionObj := &discussions[i]
+	for i := range discArr {
+		discussionObj := discArr[i]
 		edges = append(edges, &model.DiscussionsEdge{
 			Node: discussionObj,
 		})
@@ -172,7 +150,6 @@ func (d *delphisDB) UpsertDiscussion(ctx context.Context, discussion model.Discu
 			"AnonymityType":         discussion.AnonymityType,
 			"AutoPost":              discussion.AutoPost,
 			"IdleMinutes":           discussion.IdleMinutes,
-			"PublicAccess":          discussion.PublicAccess,
 			"IconURL":               discussion.IconURL,
 			"TitleHistory":          discussion.TitleHistory,
 			"DescriptionHistory":    discussion.DescriptionHistory,

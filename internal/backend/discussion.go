@@ -65,7 +65,6 @@ func (d *delphisBackend) CreateNewDiscussion(ctx context.Context, creatingUser *
 			RawMessage: descriptionHistoryBytes,
 		},
 		ModeratorID:           &moderatorObj.ID,
-		PublicAccess:          publicAccess,
 		DiscussionJoinability: discussionSettings.DiscussionJoinability,
 	}
 
@@ -74,16 +73,13 @@ func (d *delphisBackend) CreateNewDiscussion(ctx context.Context, creatingUser *
 		return nil, err
 	}
 
-	// Create concierge participant
-	trueObj := true
-	// TODO: We should probably remove the concierge, right?
-	if _, err := d.CreateParticipantForDiscussion(ctx, discussionObj.ID, model.ConciergeUser, model.AddDiscussionParticipantInput{HasJoined: &trueObj}); err != nil {
-		logrus.WithError(err).Error("failed to create concierge user")
+	if err := d.grantAccessAndCreateParticipants(ctx, discussionObj.ID, creatingUser.ID); err != nil {
+		logrus.WithError(err).Error("failed to grant access and create participants for new discussion")
 		return nil, err
 	}
 
-	// Create invite links for discussion
-	if _, err := d.UpsertInviteLinksByDiscussionID(ctx, discussionID); err != nil {
+	// Create access links for discussion
+	if _, err := d.PutAccessLinkForDiscussion(ctx, discussionID); err != nil {
 		logrus.WithError(err).Error("failed to create invite links")
 		return nil, err
 	}
@@ -392,6 +388,27 @@ func (d *delphisBackend) DeleteDiscussionTags(ctx context.Context, discussionID 
 	return deletedTags, nil
 }
 
+func (d *delphisBackend) grantAccessAndCreateParticipants(ctx context.Context, discussionID, userID string) error {
+	userIDs := []string{model.ConciergeUser, userID}
+
+	trueObj := true
+	for _, id := range userIDs {
+		// Grant access
+		if _, err := d.GrantUserDiscussionAccess(ctx, id, discussionID); err != nil {
+			logrus.WithError(err).Error("failed to grant access")
+			return err
+		}
+
+		// Create participant
+		if _, err := d.CreateParticipantForDiscussion(ctx, discussionID, id, model.AddDiscussionParticipantInput{HasJoined: &trueObj}); err != nil {
+			logrus.WithError(err).Error("failed to create concierge participant")
+			return err
+		}
+	}
+
+	return nil
+}
+
 func updateDiscussionObj(disc *model.Discussion, input model.DiscussionInput) {
 	if input.AnonymityType != nil {
 		disc.AnonymityType = *input.AnonymityType
@@ -412,9 +429,6 @@ func updateDiscussionObj(disc *model.Discussion, input model.DiscussionInput) {
 	}
 	if input.IdleMinutes != nil {
 		disc.IdleMinutes = *input.IdleMinutes
-	}
-	if input.PublicAccess != nil {
-		disc.PublicAccess = *input.PublicAccess
 	}
 	if input.IconURL != nil {
 		disc.IconURL = input.IconURL

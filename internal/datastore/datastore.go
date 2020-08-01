@@ -92,17 +92,11 @@ type Datastore interface {
 	TagIterCollect(ctx context.Context, iter TagIter) ([]*model.Tag, error)
 	ContentIterCollect(ctx context.Context, iter ContentIter) ([]*model.ImportedContent, error)
 	DiscussionIterCollect(ctx context.Context, iter DiscussionIter) ([]*model.Discussion, error)
-	FlairTemplatesIterCollect(ctx context.Context, iter DFAIter) ([]*model.FlairTemplate, error)
 	DiscussionInviteIterCollect(ctx context.Context, iter DiscussionInviteIter) ([]*model.DiscussionInvite, error)
 	AccessRequestIterCollect(ctx context.Context, iter DiscussionAccessRequestIter) ([]*model.DiscussionAccessRequest, error)
 
-	GetPublicDiscussions(ctx context.Context) DiscussionIter
-	GetDiscussionsForFlairTemplateByUserID(ctx context.Context, userID string) DiscussionIter
-	GetDiscussionsForUserAccessByUserID(ctx context.Context, userID string) DiscussionIter
-	GetDiscussionFlairTemplatesAccessByDiscussionID(ctx context.Context, discussionID string) DFAIter
-	UpsertDiscussionFlairTemplatesAccess(ctx context.Context, tx *sql2.Tx, discussionID, flairTemplateID string) (*model.DiscussionFlairTemplateAccess, error)
+	GetDiscussionsByUserAccess(ctx context.Context, userID string) DiscussionIter
 	UpsertDiscussionUserAccess(ctx context.Context, tx *sql2.Tx, discussionID, userID string) (*model.DiscussionUserAccess, error)
-	DeleteDiscussionFlairTemplatesAccess(ctx context.Context, tx *sql2.Tx, discussionID, flairTemplateID string) (*model.DiscussionFlairTemplateAccess, error)
 	DeleteDiscussionUserAccess(ctx context.Context, tx *sql2.Tx, discussionID, userID string) (*model.DiscussionUserAccess, error)
 	GetDiscussionInviteByID(ctx context.Context, id string) (*model.DiscussionInvite, error)
 	GetDiscussionRequestAccessByID(ctx context.Context, id string) (*model.DiscussionAccessRequest, error)
@@ -111,13 +105,15 @@ type Datastore interface {
 	GetDiscussionAccessRequestsByDiscussionID(ctx context.Context, discussionID string) DiscussionAccessRequestIter
 	GetDiscussionAccessRequestByDiscussionIDUserID(ctx context.Context, discussionID string, userID string) (*model.DiscussionAccessRequest, error)
 	GetSentDiscussionAccessRequestsByUserID(ctx context.Context, userID string) DiscussionAccessRequestIter
-	GetInviteLinksByDiscussionID(ctx context.Context, discussionID string) (*model.DiscussionLinkAccess, error)
 	GetInvitedTwitterHandlesByDiscussionIDAndInviterID(ctx context.Context, discussionID string, invitingParticipantID string) ([]*string, error)
 	PutDiscussionInviteRecord(ctx context.Context, tx *sql2.Tx, invite model.DiscussionInvite) (*model.DiscussionInvite, error)
 	PutDiscussionAccessRequestRecord(ctx context.Context, tx *sql2.Tx, request model.DiscussionAccessRequest) (*model.DiscussionAccessRequest, error)
 	UpdateDiscussionInviteRecord(ctx context.Context, tx *sql2.Tx, invite model.DiscussionInvite) (*model.DiscussionInvite, error)
 	UpdateDiscussionAccessRequestRecord(ctx context.Context, tx *sql2.Tx, request model.DiscussionAccessRequest) (*model.DiscussionAccessRequest, error)
-	UpsertInviteLinksByDiscussionID(ctx context.Context, tx *sql.Tx, input model.DiscussionLinkAccess) (*model.DiscussionLinkAccess, error)
+	GetAccessLinkBySlug(ctx context.Context, slug string) (*model.DiscussionAccessLink, error)
+	GetAccessLinkByDiscussionID(ctx context.Context, discussionID string) (*model.DiscussionAccessLink, error)
+	PutAccessLinkForDiscussion(ctx context.Context, tx *sql.Tx, input model.DiscussionAccessLink) (*model.DiscussionAccessLink, error)
+
 	// TXN
 	BeginTx(ctx context.Context) (*sql2.Tx, error)
 	RollbackTx(ctx context.Context, tx *sql2.Tx) error
@@ -170,11 +166,6 @@ type DiscussionInviteIter interface {
 
 type DiscussionAccessRequestIter interface {
 	Next(request *model.DiscussionAccessRequest) bool
-	Close() error
-}
-
-type DFAIter interface {
-	Next(dfa *model.DiscussionFlairTemplateAccess) bool
 	Close() error
 }
 
@@ -302,10 +293,6 @@ func (d *delphisDB) initializeStatements(ctx context.Context) (err error) {
 		logrus.WithError(err).Error("failed to prepare getDiscussionsForAutoPostStmt")
 		return errors.Wrap(err, "failed to prepare getDiscussionsForAutoPostStmt")
 	}
-	if d.prepStmts.getPublicDiscussionsStmt, err = d.pg.PrepareContext(ctx, getPublicDiscussionsString); err != nil {
-		logrus.WithError(err).Error("failed to prepare getPublicDiscussionsStmt")
-		return errors.Wrap(err, "failed to prepare getPublicDiscussionsStmt")
-	}
 
 	// MODERATOR
 	if d.prepStmts.getModeratorByUserIDStmt, err = d.pg.PrepareContext(ctx, getModeratorByUserIDString); err != nil {
@@ -370,29 +357,13 @@ func (d *delphisDB) initializeStatements(ctx context.Context) (err error) {
 	}
 
 	// DISCUSSION ACCESS
-	if d.prepStmts.getDiscussionsByFlairTemplateForUserStmt, err = d.pg.PrepareContext(ctx, getDiscussionsByFlairTemplateForUserString); err != nil {
-		logrus.WithError(err).Error("failed to prepare getDiscussionsByFlairTemplateForUserStmt")
-		return errors.Wrap(err, "failed to prepare getDiscussionsByFlairTemplateForUserStmt")
-	}
-	if d.prepStmts.getDiscussionsByUserAccessForUserStmt, err = d.pg.PrepareContext(ctx, getDiscussionsByUserAccessForUserString); err != nil {
-		logrus.WithError(err).Error("failed to prepare getDiscussionsByUserAccessForUserStmt")
-		return errors.Wrap(err, "failed to prepare getDiscussionsByUserAccessForUserStmt")
-	}
-	if d.prepStmts.getDiscussionFlairAccessStmt, err = d.pg.PrepareContext(ctx, getDiscussionFlairAccessString); err != nil {
-		logrus.WithError(err).Error("failed to prepare getDiscussionFlairAccessStmt")
-		return errors.Wrap(err, "failed to prepare getDiscussionFlairAccessStmt")
-	}
-	if d.prepStmts.upsertDiscussionFlairAccessStmt, err = d.pg.PrepareContext(ctx, upsertDiscussionFlairAccessString); err != nil {
-		logrus.WithError(err).Error("failed to prepare upsertDiscussionFlairAccessStmt")
-		return errors.Wrap(err, "failed to prepare upsertDiscussionFlairAccessStmt")
+	if d.prepStmts.getDiscussionsByUserAccessStmt, err = d.pg.PrepareContext(ctx, getDiscussionsByUserAccessString); err != nil {
+		logrus.WithError(err).Error("failed to prepare getDiscussionsByUserAccessStmt")
+		return errors.Wrap(err, "failed to prepare getDiscussionsByUserAccessStmt")
 	}
 	if d.prepStmts.upsertDiscussionUserAccessStmt, err = d.pg.PrepareContext(ctx, upsertDiscussionUserAccessString); err != nil {
 		logrus.WithError(err).Error("failed to prepare upsertDiscussionUserAccessStmt")
 		return errors.Wrap(err, "failed to prepare upsertDiscussionUserAccessStmt")
-	}
-	if d.prepStmts.deleteDiscussionFlairAccessStmt, err = d.pg.PrepareContext(ctx, deleteDiscussionFlairAccessString); err != nil {
-		logrus.WithError(err).Error("failed to prepare deleteDiscussionFlairAccessStmt")
-		return errors.Wrap(err, "failed to prepare deleteDiscussionFlairAccessStmt")
 	}
 	if d.prepStmts.deleteDiscussionUserAccessStmt, err = d.pg.PrepareContext(ctx, deleteDiscussionUserAccessString); err != nil {
 		logrus.WithError(err).Error("failed to prepare deleteDiscussionUserAccessStmt")
@@ -428,11 +399,6 @@ func (d *delphisDB) initializeStatements(ctx context.Context) (err error) {
 		logrus.WithError(err).Error("failed to prepare getSentDiscussionAccessRequestsForUserStmt")
 		return errors.Wrap(err, "failed to prepare getSentDiscussionAccessRequestsForUserStmt")
 	}
-	if d.prepStmts.getInviteLinksForDiscussion, err = d.pg.PrepareContext(ctx, getInviteLinksForDiscussion); err != nil {
-		logrus.WithError(err).Error("failed to prepare getInviteLinksForDiscussion")
-		return errors.Wrap(err, "failed to prepare getInviteLinksForDiscussion")
-	}
-
 	if d.prepStmts.putDiscussionInviteRecordStmt, err = d.pg.PrepareContext(ctx, putDiscussionInviteRecordString); err != nil {
 		logrus.WithError(err).Error("failed to prepare putDiscussionInviteRecordStmt")
 		return errors.Wrap(err, "failed to prepare putDiscussionInviteRecordStmt")
@@ -441,7 +407,6 @@ func (d *delphisDB) initializeStatements(ctx context.Context) (err error) {
 		logrus.WithError(err).Error("failed to prepare putDiscussionAccessRequestStmt")
 		return errors.Wrap(err, "failed to prepare putDiscussionAccessRequestStmt")
 	}
-
 	if d.prepStmts.updateDiscussionInviteRecordStmt, err = d.pg.PrepareContext(ctx, updateDiscussionInviteRecordString); err != nil {
 		logrus.WithError(err).Error("failed to prepare updateDiscussionInviteRecordStmt")
 		return errors.Wrap(err, "failed to prepare updateDiscussionInviteRecordStmt")
@@ -451,14 +416,23 @@ func (d *delphisDB) initializeStatements(ctx context.Context) (err error) {
 		return errors.Wrap(err, "failed to prepare updateDiscussionAccessRequestStmt")
 	}
 
-	if d.prepStmts.upsertInviteLinksForDiscussion, err = d.pg.PrepareContext(ctx, upsertInviteLinksForDiscussion); err != nil {
-		logrus.WithError(err).Error("failed to prepare upsertInviteLinksForDiscussion")
-		return errors.Wrap(err, "failed to prepare upsertInviteLinksForDiscussion")
-	}
-
 	if d.prepStmts.getInvitedTwitterHandlesByDiscussionIDAndInviterIDStmt, err = d.pg.PrepareContext(ctx, getInvitedTwitterHandlesByDiscussionIDAndInviterIDString); err != nil {
 		logrus.WithError(err).Error("failed to prepare getInvitedTwitterHandlesByDiscussionIDAndInviterIDStmt")
 		return errors.Wrap(err, "failed to prepare getInvitedTwitterHandlesByDiscussionIDAndInviterIDStmt")
+	}
+
+	// AccessLinks
+	if d.prepStmts.getAccessLinkBySlugStmt, err = d.pg.PrepareContext(ctx, getAccessLinkBySlugString); err != nil {
+		logrus.WithError(err).Error("failed to prepare getAccessLinkBySlugStmt")
+		return errors.Wrap(err, "failed to prepare getAccessLinkBySlugStmt")
+	}
+	if d.prepStmts.getAccessLinkByDiscussionIDString, err = d.pg.PrepareContext(ctx, getAccessLinkByDiscussionIDString); err != nil {
+		logrus.WithError(err).Error("failed to prepare getAccessLinkByDiscussionIDString")
+		return errors.Wrap(err, "failed to prepare getAccessLinkByDiscussionIDString")
+	}
+	if d.prepStmts.putAccessLinkForDiscussionString, err = d.pg.PrepareContext(ctx, putAccessLinkForDiscussionString); err != nil {
+		logrus.WithError(err).Error("failed to prepare putAccessLinkForDiscussionString")
+		return errors.Wrap(err, "failed to prepare putAccessLinkForDiscussionString")
 	}
 
 	d.ready = true

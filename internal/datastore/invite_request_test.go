@@ -2,7 +2,6 @@ package datastore
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
 	"reflect"
 	"testing"
@@ -540,86 +539,6 @@ func TestDelphisDB_GetSentDiscussionAccessRequestsByUserID(t *testing.T) {
 	})
 }
 
-func TestDelphisDB_GetInviteLinksByDiscussionID(t *testing.T) {
-	ctx := context.Background()
-	now := time.Now()
-	discussionID := "discussion1"
-	linkObject := model.DiscussionLinkAccess{
-		DiscussionID:      discussionID,
-		InviteLinkSlug:    "slug",
-		VipInviteLinkSlug: "vipSlug",
-		CreatedAt:         now.Format(time.RFC3339),
-		UpdatedAt:         now.Format(time.RFC3339),
-		IsDeleted:         false,
-	}
-
-	Convey("GetInviteLinksByDiscussionID", t, func() {
-		db, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
-
-		assert.Nil(t, err, "Failed setting up sqlmock db")
-
-		gormDB, _ := gorm.Open("postgres", db)
-		mockDatastore := &delphisDB{
-			dbConfig:  config.TablesConfig{},
-			sql:       gormDB,
-			pg:        db,
-			prepStmts: &dbPrepStmts{},
-			dynamo:    nil,
-			encoder:   nil,
-		}
-		defer db.Close()
-
-		Convey("when preparing statements returns an error", func() {
-			mockPreparedStatementsWithError(mock)
-
-			resp, err := mockDatastore.GetInviteLinksByDiscussionID(ctx, discussionID)
-
-			So(err, ShouldNotBeNil)
-			So(resp, ShouldBeNil)
-			So(mock.ExpectationsWereMet(), ShouldBeNil)
-		})
-
-		Convey("when query execution returns an error", func() {
-			mockPreparedStatements(mock)
-			mock.ExpectQuery(getInviteLinksForDiscussion).WithArgs(discussionID).WillReturnError(fmt.Errorf("error"))
-
-			resp, err := mockDatastore.GetInviteLinksByDiscussionID(ctx, discussionID)
-
-			So(err, ShouldNotBeNil)
-			So(resp, ShouldBeNil)
-			So(mock.ExpectationsWereMet(), ShouldBeNil)
-		})
-
-		Convey("when query execution does not find a record", func() {
-			mockPreparedStatements(mock)
-			mock.ExpectQuery(getInviteLinksForDiscussion).WithArgs(discussionID).WillReturnError(sql.ErrNoRows)
-
-			resp, err := mockDatastore.GetInviteLinksByDiscussionID(ctx, discussionID)
-
-			So(err, ShouldBeNil)
-			So(resp, ShouldNotBeNil)
-			So(resp, ShouldResemble, &model.DiscussionLinkAccess{})
-			So(mock.ExpectationsWereMet(), ShouldBeNil)
-		})
-
-		Convey("when query execution succeeds and returns imported content", func() {
-			mockPreparedStatements(mock)
-			rs := sqlmock.NewRows([]string{"discussion_id", "invite_link_id", "vip_invite_link_id", "created_at", "updated_at"}).
-				AddRow(linkObject.DiscussionID, linkObject.InviteLinkSlug, linkObject.VipInviteLinkSlug,
-					linkObject.CreatedAt, linkObject.UpdatedAt)
-
-			mock.ExpectQuery(getInviteLinksForDiscussion).WithArgs(discussionID).WillReturnRows(rs)
-
-			resp, err := mockDatastore.GetInviteLinksByDiscussionID(ctx, discussionID)
-
-			So(err, ShouldBeNil)
-			So(resp, ShouldNotBeNil)
-			So(resp, ShouldResemble, &linkObject)
-			So(mock.ExpectationsWereMet(), ShouldBeNil)
-		})
-	})
-}
-
 func TestDelphisDB_PutDiscussionInviteRecord(t *testing.T) {
 	ctx := context.Background()
 	now := time.Now()
@@ -937,84 +856,6 @@ func TestDelphisDB_UpdateDiscussionAccessRequestRecord(t *testing.T) {
 			So(err, ShouldBeNil)
 			So(resp, ShouldNotBeNil)
 			So(resp, ShouldResemble, &requestObj)
-			So(mock.ExpectationsWereMet(), ShouldBeNil)
-		})
-	})
-}
-
-func TestDelphisDB_UpsertInviteLinksByDiscussionID(t *testing.T) {
-	ctx := context.Background()
-	now := time.Now()
-	discussionID := "discussion1"
-	linkObject := model.DiscussionLinkAccess{
-		DiscussionID:      discussionID,
-		InviteLinkSlug:    "slug",
-		VipInviteLinkSlug: "vipSlug",
-		CreatedAt:         now.Format(time.RFC3339),
-		UpdatedAt:         now.Format(time.RFC3339),
-		IsDeleted:         false,
-	}
-
-	Convey("UpsertInviteLinksByDiscussionID", t, func() {
-		db, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
-
-		assert.Nil(t, err, "Failed setting up sqlmock db")
-
-		gormDB, _ := gorm.Open("postgres", db)
-		mockDatastore := &delphisDB{
-			dbConfig:  config.TablesConfig{},
-			sql:       gormDB,
-			pg:        db,
-			prepStmts: &dbPrepStmts{},
-			dynamo:    nil,
-			encoder:   nil,
-		}
-		defer db.Close()
-
-		Convey("when preparing statements returns an error", func() {
-			mock.ExpectBegin()
-			mockPreparedStatementsWithError(mock)
-
-			tx, err := mockDatastore.BeginTx(ctx)
-			resp, err := mockDatastore.UpsertInviteLinksByDiscussionID(ctx, tx, linkObject)
-
-			So(err, ShouldNotBeNil)
-			So(resp, ShouldBeNil)
-			So(mock.ExpectationsWereMet(), ShouldBeNil)
-		})
-
-		Convey("when query execution returns an error", func() {
-			mock.ExpectBegin()
-			mockPreparedStatements(mock)
-			mock.ExpectPrepare(upsertInviteLinksForDiscussion)
-			mock.ExpectQuery(upsertInviteLinksForDiscussion).WithArgs(linkObject.DiscussionID, linkObject.InviteLinkSlug,
-				linkObject.VipInviteLinkSlug).WillReturnError(fmt.Errorf("error"))
-
-			tx, err := mockDatastore.BeginTx(ctx)
-			resp, err := mockDatastore.UpsertInviteLinksByDiscussionID(ctx, tx, linkObject)
-
-			So(err, ShouldNotBeNil)
-			So(resp, ShouldBeNil)
-			So(mock.ExpectationsWereMet(), ShouldBeNil)
-		})
-
-		Convey("when query execution succeeds and returns imported content", func() {
-			rs := sqlmock.NewRows([]string{"discussion_id", "invite_link_id", "vip_invite_link_id", "created_at", "updated_at"}).
-				AddRow(linkObject.DiscussionID, linkObject.InviteLinkSlug, linkObject.VipInviteLinkSlug,
-					linkObject.CreatedAt, linkObject.UpdatedAt)
-
-			mock.ExpectBegin()
-			mockPreparedStatements(mock)
-			mock.ExpectPrepare(upsertInviteLinksForDiscussion)
-			mock.ExpectQuery(upsertInviteLinksForDiscussion).WithArgs(linkObject.DiscussionID, linkObject.InviteLinkSlug,
-				linkObject.VipInviteLinkSlug).WillReturnRows(rs)
-
-			tx, err := mockDatastore.BeginTx(ctx)
-			resp, err := mockDatastore.UpsertInviteLinksByDiscussionID(ctx, tx, linkObject)
-
-			So(err, ShouldBeNil)
-			So(resp, ShouldNotBeNil)
-			So(resp, ShouldResemble, &linkObject)
 			So(mock.ExpectationsWereMet(), ShouldBeNil)
 		})
 	})

@@ -37,9 +37,11 @@ type Discussion implements Entity {
     idleMinutes: Int!
     tags: [Tag!]
     upcomingContent: [ImportedContent!]
-    flairTemplates: [FlairTemplate!]
+    flairTemplates: [FlairTemplate!] @deprecated(reason: "removed flair template access")
     accessRequests: [DiscussionAccessRequest!]
-    discussionLinksAccess: DiscussionLinkAccess!
+    discussionLinksAccess: DiscussionLinkAccess! @deprecated(reason: "user DiscussionAccessLink")
+
+    discussionAccessLink: DiscussionAccessLink!
 
     discussionJoinability: DiscussionJoinabilitySetting!
 }
@@ -97,6 +99,14 @@ type DiscussionLinkAccess {
     vipInviteLinkURL: String!
     createdAt: String!
     updatedAt: String!
+    isDeleted: Boolean!
+}
+
+type DiscussionAccessLink {
+    discussion: Discussion!
+    linkSlug: String!
+    createdAt: Time!
+    updatedAt: Time!
     isDeleted: Boolean!
 }
 

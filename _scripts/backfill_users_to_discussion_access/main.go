@@ -80,6 +80,7 @@ func main() {
 }
 
 func doWork(ctx context.Context, delphisBackend backend.DelphisBackend) {
+
 	// Fetch discussions
 	connection, err := delphisBackend.ListDiscussions(ctx)
 	if err != nil {
@@ -94,9 +95,20 @@ func doWork(ctx context.Context, delphisBackend backend.DelphisBackend) {
 
 	// Iterate over discussions. Check if the concierge user has a participant, if not add one
 	for _, disc := range discussions {
-		if _, err := delphisBackend.PutAccessLinkForDiscussion(ctx, disc.ID); err != nil {
-			logrus.WithError(err).Errorf("failed to upsert invite links for discussion: %v\n", disc.ID)
+		resp, err := delphisBackend.GetParticipantsByDiscussionIDUserID(ctx, disc.ID, model.ConciergeUser)
+		if err != nil {
 			panic(err)
+		}
+
+		// If Concierge does not have a participant, add one.
+		if resp.NonAnon == nil {
+			// Create concierge participant
+			trueObj := true
+			if _, err := delphisBackend.CreateParticipantForDiscussion(ctx, disc.ID, model.ConciergeUser, model.AddDiscussionParticipantInput{HasJoined: &trueObj}); err != nil {
+				logrus.WithError(err).Error("failed to create concierge user")
+				panic(err)
+			}
+
 		}
 	}
 }

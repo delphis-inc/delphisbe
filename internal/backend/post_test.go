@@ -694,17 +694,7 @@ func TestDelphisBackend_GetPostsByDiscussionID(t *testing.T) {
 
 	postObject := test_utils.TestPost()
 	postContentObj := test_utils.TestPostContent()
-	profileObj := test_utils.TestUserProfile()
 	postObject.PostContent = &postContentObj
-
-	modObj := test_utils.TestModerator()
-	modObj.UserProfile = &profileObj
-
-	parObj := test_utils.TestParticipant()
-
-	flairObj := test_utils.TestFlair()
-
-	ftObj := test_utils.TestFlairTemplate()
 
 	Convey("GetPostsByDiscussionID", t, func() {
 		now := time.Now()
@@ -731,39 +721,9 @@ func TestDelphisBackend_GetPostsByDiscussionID(t *testing.T) {
 			So(resp, ShouldBeNil)
 		})
 
-		Convey("when CheckIfModeratorForDiscussion errors out", func() {
-			expectedError := fmt.Errorf("Some Error")
-			mockDB.On("GetPostsByDiscussionIDIter", ctx, discussionID).Return(&mockPostIter{})
-			mockDB.On("PostIterCollect", ctx, mock.Anything).Return([]*model.Post{&postObject}, nil)
-			mockDB.On("GetModeratorByUserIDAndDiscussionID", ctx, userID, discussionID).Return(nil, expectedError)
-
-			resp, err := backendObj.GetPostsByDiscussionID(ctx, userID, discussionID)
-
-			So(err, ShouldEqual, expectedError)
-			So(resp, ShouldBeNil)
-		})
-
-		Convey("when GetNewDiscussionConciergePosts errors out", func() {
-			expectedError := fmt.Errorf("Some Error")
-			mockDB.On("GetPostsByDiscussionIDIter", ctx, discussionID).Return(&mockPostIter{})
-			mockDB.On("PostIterCollect", ctx, mock.Anything).Return([]*model.Post{&postObject}, nil)
-			mockDB.On("GetModeratorByUserIDAndDiscussionID", ctx, userID, discussionID).Return(&modObj, nil)
-			mockDB.On("GetParticipantsByDiscussionIDUserID", ctx, mock.Anything, mock.Anything).Return(nil, expectedError)
-
-			resp, err := backendObj.GetPostsByDiscussionID(ctx, userID, discussionID)
-
-			So(err, ShouldEqual, expectedError)
-			So(resp, ShouldBeNil)
-		})
-
 		Convey("when GetPostsByDiscussionID succeeds", func() {
 			mockDB.On("GetPostsByDiscussionIDIter", ctx, discussionID).Return(&mockPostIter{})
 			mockDB.On("PostIterCollect", ctx, mock.Anything).Return([]*model.Post{&postObject}, nil)
-			mockDB.On("GetModeratorByUserIDAndDiscussionID", ctx, userID, discussionID).Return(&modObj, nil)
-			mockDB.On("GetParticipantsByDiscussionIDUserID", ctx, mock.Anything, mock.Anything).Return([]model.Participant{parObj}, nil)
-			mockDB.On("GetInviteLinksByDiscussionID", ctx, discussionID).Return(nil, nil)
-			mockDB.On("GetFlairsByUserID", ctx, mock.Anything).Return([]*model.Flair{&flairObj}, nil)
-			mockDB.On("GetFlairTemplateByID", ctx, mock.Anything).Return(&ftObj, nil)
 
 			resp, err := backendObj.GetPostsByDiscussionID(ctx, userID, discussionID)
 
