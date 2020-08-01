@@ -347,7 +347,6 @@ type ComplexityRoot struct {
 
 	Query struct {
 		Discussion               func(childComplexity int, id string) int
-		DiscussionByAccessLink   func(childComplexity int, slug string) int
 		FlairTemplates           func(childComplexity int, query *string) int
 		ListDiscussions          func(childComplexity int) int
 		Me                       func(childComplexity int) int
@@ -573,7 +572,6 @@ type PostBookmarksConnectionResolver interface {
 }
 type QueryResolver interface {
 	Discussion(ctx context.Context, id string) (*model.Discussion, error)
-	DiscussionByAccessLink(ctx context.Context, slug string) (*model.Discussion, error)
 	ListDiscussions(ctx context.Context) ([]*model.Discussion, error)
 	FlairTemplates(ctx context.Context, query *string) ([]*model.FlairTemplate, error)
 	User(ctx context.Context, id string) (*model.User, error)
@@ -2073,18 +2071,6 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Query.Discussion(childComplexity, args["id"].(string)), true
 
-	case "Query.discussionByAccessLink":
-		if e.complexity.Query.DiscussionByAccessLink == nil {
-			break
-		}
-
-		args, err := ec.field_Query_discussionByAccessLink_args(context.TODO(), rawArgs)
-		if err != nil {
-			return 0, false
-		}
-
-		return e.complexity.Query.DiscussionByAccessLink(childComplexity, args["slug"].(string)), true
-
 	case "Query.flairTemplates":
 		if e.complexity.Query.FlairTemplates == nil {
 			break
@@ -2951,7 +2937,6 @@ type PostBookmark {
 # The Query type represents all of the entry points into the API.
 type Query {
   discussion(id: ID!): Discussion
-  discussionByAccessLink(slug: String!): Discussion
   listDiscussions: [Discussion!]
   flairTemplates(query: String): [FlairTemplate!]
   # Need to add verification that the caller is the user.
@@ -3886,20 +3871,6 @@ func (ec *executionContext) field_Query___type_args(ctx context.Context, rawArgs
 		}
 	}
 	args["name"] = arg0
-	return args, nil
-}
-
-func (ec *executionContext) field_Query_discussionByAccessLink_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
-	var err error
-	args := map[string]interface{}{}
-	var arg0 string
-	if tmp, ok := rawArgs["slug"]; ok {
-		arg0, err = ec.unmarshalNString2string(ctx, tmp)
-		if err != nil {
-			return nil, err
-		}
-	}
-	args["slug"] = arg0
 	return args, nil
 }
 
@@ -10375,44 +10346,6 @@ func (ec *executionContext) _Query_discussion(ctx context.Context, field graphql
 	return ec.marshalODiscussion2ᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐDiscussion(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Query_discussionByAccessLink(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:   "Query",
-		Field:    field,
-		Args:     nil,
-		IsMethod: true,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	rawArgs := field.ArgumentMap(ec.Variables)
-	args, err := ec.field_Query_discussionByAccessLink_args(ctx, rawArgs)
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	fc.Args = args
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().DiscussionByAccessLink(rctx, args["slug"].(string))
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		return graphql.Null
-	}
-	res := resTmp.(*model.Discussion)
-	fc.Result = res
-	return ec.marshalODiscussion2ᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐDiscussion(ctx, field.Selections, res)
-}
-
 func (ec *executionContext) _Query_listDiscussions(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -15708,17 +15641,6 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 					}
 				}()
 				res = ec._Query_discussion(ctx, field)
-				return res
-			})
-		case "discussionByAccessLink":
-			field := field
-			out.Concurrently(i, func() (res graphql.Marshaler) {
-				defer func() {
-					if r := recover(); r != nil {
-						ec.Error(ctx, ec.Recover(ctx, r))
-					}
-				}()
-				res = ec._Query_discussionByAccessLink(ctx, field)
 				return res
 			})
 		case "listDiscussions":
