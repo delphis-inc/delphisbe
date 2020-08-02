@@ -61,6 +61,15 @@ type DiscussionInput struct {
 	DiscussionJoinability *DiscussionJoinabilitySetting `json:"discussionJoinability"`
 }
 
+type DiscussionLinkAccess struct {
+	DiscussionID     string `json:"discussionID"`
+	InviteLinkURL    string `json:"inviteLinkURL"`
+	VipInviteLinkURL string `json:"vipInviteLinkURL"`
+	CreatedAt        string `json:"createdAt"`
+	UpdatedAt        string `json:"updatedAt"`
+	IsDeleted        bool   `json:"isDeleted"`
+}
+
 type DiscussionSubscriptionEvent struct {
 	EventType DiscussionSubscriptionEventType `json:"eventType"`
 	Entity    DiscussionSubscriptionEntity    `json:"entity"`

@@ -107,8 +107,8 @@ type Mutation {
 
   conciergeMutation(discussionID: ID!, mutationID: ID!, selectedOptions:[String!]): Post! # Heterogeneous endpoint. Think about what we want to return here. Could use entities? What does that gain us?
   # Add flair accessibility to private discussions
-  addDiscussionFlairTemplatesAccess(discussionID: ID!, flairTemplateIDs:[ID!]): Discussion!
-  deleteDiscussionFlairTemplatesAccess(discussionID: ID!, flairTemplateIDs:[ID!]): Discussion!
+  addDiscussionFlairTemplatesAccess(discussionID: ID!, flairTemplateIDs:[ID!]): Discussion! @deprecated(reason: "getting rid of flair template access")
+  deleteDiscussionFlairTemplatesAccess(discussionID: ID!, flairTemplateIDs:[ID!]): Discussion! @deprecated(reason: "getting rid of flair template access")
 
   # Invites
   inviteUserToDiscussion(discussionID: ID!, userID: ID!, invitingParticipantID: ID!): DiscussionInvite!
@@ -118,7 +118,7 @@ type Mutation {
   requestAccessToDiscussion(discussionID: ID!): DiscussionAccessRequest!
   respondToRequestAccess(requestID: ID!, response: InviteRequestStatus!): DiscussionAccessRequest!
 
-  joinDiscussionWithVIPToken(discussionID: ID!, vipToken: ID!): Discussion!
+  joinDiscussionWithVIPToken(discussionID: ID!, vipToken: ID!): Discussion! @deprecated(reason: "getting rid of vip links")
 
   # Posts
   deletePost(discussionID: ID!, postID: ID!): Post!

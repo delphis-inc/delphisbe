@@ -16,83 +16,7 @@ import (
 	"time"
 )
 
-func TestDelphisDB_GetPublicDiscussions(t *testing.T) {
-	ctx := context.Background()
-	now := time.Now()
-	modID := "modID"
-	emptyString := ""
-	discObj := model.Discussion{
-		ID:            "discussion1",
-		CreatedAt:     now,
-		UpdatedAt:     now,
-		DeletedAt:     nil,
-		Title:         "test",
-		AnonymityType: "",
-		ModeratorID:   &modID,
-		AutoPost:      false,
-		IdleMinutes:   120,
-		PublicAccess:  false,
-		IconURL:       &emptyString,
-	}
-
-	emptyDisc := model.Discussion{}
-
-	Convey("GetPublicDiscussions", t, func() {
-		db, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
-
-		assert.Nil(t, err, "Failed setting up sqlmock db")
-
-		gormDB, _ := gorm.Open("postgres", db)
-		mockDatastore := &delphisDB{
-			dbConfig:  config.TablesConfig{},
-			sql:       gormDB,
-			pg:        db,
-			prepStmts: &dbPrepStmts{},
-			dynamo:    nil,
-			encoder:   nil,
-		}
-		defer db.Close()
-
-		Convey("when preparing statements returns an error", func() {
-			mockPreparedStatementsWithError(mock)
-
-			iter := mockDatastore.GetPublicDiscussions(ctx)
-
-			So(iter.Next(&emptyDisc), ShouldBeFalse)
-			So(iter.Close(), ShouldNotBeNil)
-			So(mock.ExpectationsWereMet(), ShouldBeNil)
-		})
-
-		Convey("when query execution returns an error", func() {
-			mockPreparedStatements(mock)
-			mock.ExpectQuery(getPublicDiscussionsString).WillReturnError(fmt.Errorf("error"))
-
-			iter := mockDatastore.GetPublicDiscussions(ctx)
-
-			So(iter.Next(&emptyDisc), ShouldBeFalse)
-			So(iter.Close(), ShouldNotBeNil)
-			So(mock.ExpectationsWereMet(), ShouldBeNil)
-		})
-
-		Convey("when query execution succeeds and returns discussions", func() {
-			mockPreparedStatements(mock)
-			rs := sqlmock.NewRows([]string{"id", "created_at", "title", "anonymity_type",
-				"moderator_id", "auto_post", "icon_url", "idle_minutes", "public_access"}).
-				AddRow(discObj.ID, discObj.CreatedAt, discObj.Title, discObj.AnonymityType, discObj.ModeratorID,
-					discObj.AutoPost, discObj.IconURL, discObj.IdleMinutes, discObj.PublicAccess)
-
-			mock.ExpectQuery(getPublicDiscussionsString).WillReturnRows(rs)
-
-			iter := mockDatastore.GetPublicDiscussions(ctx)
-
-			So(iter.Next(&emptyDisc), ShouldBeTrue)
-			So(iter.Close(), ShouldBeNil)
-			So(mock.ExpectationsWereMet(), ShouldBeNil)
-		})
-	})
-}
-
-func TestDelphisDB_GetDiscussionsForFlairTemplateByUserID(t *testing.T) {
+func TestDelphisDB_GetDiscussionsForUserAccess(t *testing.T) {
 	ctx := context.Background()
 	now := time.Now()
 	modID := "modID"
@@ -108,13 +32,12 @@ func TestDelphisDB_GetDiscussionsForFlairTemplateByUserID(t *testing.T) {
 		ModeratorID:   &modID,
 		AutoPost:      false,
 		IdleMinutes:   120,
-		PublicAccess:  false,
 		IconURL:       &emptyString,
 	}
 
 	emptyDisc := model.Discussion{}
 
-	Convey("GetDiscussionsForFlairTemplateByUserID", t, func() {
+	Convey("GetDiscussionsByUserAccess", t, func() {
 		db, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
 
 		assert.Nil(t, err, "Failed setting up sqlmock db")
@@ -133,7 +56,7 @@ func TestDelphisDB_GetDiscussionsForFlairTemplateByUserID(t *testing.T) {
 		Convey("when preparing statements returns an error", func() {
 			mockPreparedStatementsWithError(mock)
 
-			iter := mockDatastore.GetDiscussionsForFlairTemplateByUserID(ctx, userID)
+			iter := mockDatastore.GetDiscussionsByUserAccess(ctx, userID)
 
 			So(iter.Next(&emptyDisc), ShouldBeFalse)
 			So(iter.Close(), ShouldNotBeNil)
@@ -142,9 +65,9 @@ func TestDelphisDB_GetDiscussionsForFlairTemplateByUserID(t *testing.T) {
 
 		Convey("when query execution returns an error", func() {
 			mockPreparedStatements(mock)
-			mock.ExpectQuery(getDiscussionsByFlairTemplateForUserString).WithArgs(userID).WillReturnError(fmt.Errorf("error"))
+			mock.ExpectQuery(getDiscussionsByUserAccessString).WithArgs(userID).WillReturnError(fmt.Errorf("error"))
 
-			iter := mockDatastore.GetDiscussionsForFlairTemplateByUserID(ctx, userID)
+			iter := mockDatastore.GetDiscussionsByUserAccess(ctx, userID)
 
 			So(iter.Next(&emptyDisc), ShouldBeFalse)
 			So(iter.Close(), ShouldNotBeNil)
@@ -153,244 +76,20 @@ func TestDelphisDB_GetDiscussionsForFlairTemplateByUserID(t *testing.T) {
 
 		Convey("when query execution succeeds and returns discussions", func() {
 			mockPreparedStatements(mock)
-			rs := sqlmock.NewRows([]string{"id", "created_at", "title", "anonymity_type",
-				"moderator_id", "auto_post", "icon_url", "idle_minutes", "public_access"}).
-				AddRow(discObj.ID, discObj.CreatedAt, discObj.Title, discObj.AnonymityType, discObj.ModeratorID,
-					discObj.AutoPost, discObj.IconURL, discObj.IdleMinutes, discObj.PublicAccess)
+			rs := sqlmock.NewRows([]string{"id", "created_at", "updated_at", "deleted_at", "title",
+				"anonymity_type", "moderator_id", "auto_post", "icon_url", "idle_minutes", "description",
+				"title_history", "description_history", "discussion_joinability"}).
+				AddRow(discObj.ID, discObj.CreatedAt, discObj.UpdatedAt, discObj.DeletedAt,
+					discObj.Title, discObj.AnonymityType, discObj.ModeratorID, discObj.AutoPost,
+					discObj.IconURL, discObj.IdleMinutes, discObj.Description, discObj.TitleHistory,
+					discObj.DescriptionHistory, discObj.DiscussionJoinability)
 
-			mock.ExpectQuery(getDiscussionsByFlairTemplateForUserString).WithArgs(userID).WillReturnRows(rs)
+			mock.ExpectQuery(getDiscussionsByUserAccessString).WithArgs(userID).WillReturnRows(rs)
 
-			iter := mockDatastore.GetDiscussionsForFlairTemplateByUserID(ctx, userID)
+			iter := mockDatastore.GetDiscussionsByUserAccess(ctx, userID)
 
 			So(iter.Next(&emptyDisc), ShouldBeTrue)
 			So(iter.Close(), ShouldBeNil)
-			So(mock.ExpectationsWereMet(), ShouldBeNil)
-		})
-	})
-}
-
-func TestDelphisDB_GetDiscussionsForUserAccessByUserID(t *testing.T) {
-	ctx := context.Background()
-	now := time.Now()
-	modID := "modID"
-	userID := "userID"
-	emptyString := ""
-	discObj := model.Discussion{
-		ID:            "discussion1",
-		CreatedAt:     now,
-		UpdatedAt:     now,
-		DeletedAt:     nil,
-		Title:         "test",
-		AnonymityType: "",
-		ModeratorID:   &modID,
-		AutoPost:      false,
-		IdleMinutes:   120,
-		PublicAccess:  false,
-		IconURL:       &emptyString,
-	}
-
-	emptyDisc := model.Discussion{}
-
-	Convey("GetDiscussionsForUserAccessByUserID", t, func() {
-		db, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
-
-		assert.Nil(t, err, "Failed setting up sqlmock db")
-
-		gormDB, _ := gorm.Open("postgres", db)
-		mockDatastore := &delphisDB{
-			dbConfig:  config.TablesConfig{},
-			sql:       gormDB,
-			pg:        db,
-			prepStmts: &dbPrepStmts{},
-			dynamo:    nil,
-			encoder:   nil,
-		}
-		defer db.Close()
-
-		Convey("when preparing statements returns an error", func() {
-			mockPreparedStatementsWithError(mock)
-
-			iter := mockDatastore.GetDiscussionsForUserAccessByUserID(ctx, userID)
-
-			So(iter.Next(&emptyDisc), ShouldBeFalse)
-			So(iter.Close(), ShouldNotBeNil)
-			So(mock.ExpectationsWereMet(), ShouldBeNil)
-		})
-
-		Convey("when query execution returns an error", func() {
-			mockPreparedStatements(mock)
-			mock.ExpectQuery(getDiscussionsByUserAccessForUserString).WithArgs(userID).WillReturnError(fmt.Errorf("error"))
-
-			iter := mockDatastore.GetDiscussionsForUserAccessByUserID(ctx, userID)
-
-			So(iter.Next(&emptyDisc), ShouldBeFalse)
-			So(iter.Close(), ShouldNotBeNil)
-			So(mock.ExpectationsWereMet(), ShouldBeNil)
-		})
-
-		Convey("when query execution succeeds and returns discussions", func() {
-			mockPreparedStatements(mock)
-			rs := sqlmock.NewRows([]string{"id", "created_at", "title", "anonymity_type",
-				"moderator_id", "auto_post", "icon_url", "idle_minutes", "public_access"}).
-				AddRow(discObj.ID, discObj.CreatedAt, discObj.Title, discObj.AnonymityType, discObj.ModeratorID,
-					discObj.AutoPost, discObj.IconURL, discObj.IdleMinutes, discObj.PublicAccess)
-
-			mock.ExpectQuery(getDiscussionsByUserAccessForUserString).WithArgs(userID).WillReturnRows(rs)
-
-			iter := mockDatastore.GetDiscussionsForUserAccessByUserID(ctx, userID)
-
-			So(iter.Next(&emptyDisc), ShouldBeTrue)
-			So(iter.Close(), ShouldBeNil)
-			So(mock.ExpectationsWereMet(), ShouldBeNil)
-		})
-	})
-}
-
-func TestDelphisDB_GetDiscussionFlairTemplatesAccessByDiscussionID(t *testing.T) {
-	ctx := context.Background()
-	flairTemplateID := "flairID"
-	discussionID := "discussionID"
-	dfaObj := model.DiscussionFlairTemplateAccess{
-		DiscussionID:    discussionID,
-		FlairTemplateID: flairTemplateID,
-	}
-
-	emptyDFA := model.DiscussionFlairTemplateAccess{}
-
-	Convey("GetDiscussionFlairTemplatesAccessByDiscussionID", t, func() {
-		db, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
-
-		assert.Nil(t, err, "Failed setting up sqlmock db")
-
-		gormDB, _ := gorm.Open("postgres", db)
-		mockDatastore := &delphisDB{
-			dbConfig:  config.TablesConfig{},
-			sql:       gormDB,
-			pg:        db,
-			prepStmts: &dbPrepStmts{},
-			dynamo:    nil,
-			encoder:   nil,
-		}
-		defer db.Close()
-
-		Convey("when preparing statements returns an error", func() {
-			mockPreparedStatementsWithError(mock)
-
-			iter := mockDatastore.GetDiscussionFlairTemplatesAccessByDiscussionID(ctx, discussionID)
-
-			So(iter.Next(&emptyDFA), ShouldBeFalse)
-			So(iter.Close(), ShouldNotBeNil)
-			So(mock.ExpectationsWereMet(), ShouldBeNil)
-		})
-
-		Convey("when query execution returns an error", func() {
-			mockPreparedStatements(mock)
-			mock.ExpectQuery(getDiscussionFlairAccessString).WithArgs(discussionID).WillReturnError(fmt.Errorf("error"))
-
-			iter := mockDatastore.GetDiscussionFlairTemplatesAccessByDiscussionID(ctx, discussionID)
-
-			So(iter.Next(&emptyDFA), ShouldBeFalse)
-			So(iter.Close(), ShouldNotBeNil)
-			So(mock.ExpectationsWereMet(), ShouldBeNil)
-		})
-
-		Convey("when query execution succeeds and returns discussions", func() {
-			mockPreparedStatements(mock)
-			rs := sqlmock.NewRows([]string{"discussion_id", "flair_template_id", "created_at", "updated_at"}).
-				AddRow(dfaObj.DiscussionID, dfaObj.FlairTemplateID, dfaObj.CreatedAt, dfaObj.UpdatedAt)
-
-			mock.ExpectQuery(getDiscussionFlairAccessString).WithArgs(discussionID).WillReturnRows(rs)
-
-			iter := mockDatastore.GetDiscussionFlairTemplatesAccessByDiscussionID(ctx, discussionID)
-
-			So(iter.Next(&emptyDFA), ShouldBeTrue)
-			So(iter.Close(), ShouldBeNil)
-			So(mock.ExpectationsWereMet(), ShouldBeNil)
-		})
-	})
-}
-
-func TestDelphisDB_UpsertDiscussionFlairTemplatesAccess(t *testing.T) {
-	ctx := context.Background()
-	flairTemplateID := "flairID"
-	discussionID := "discussionID"
-	dfaObj := model.DiscussionFlairTemplateAccess{
-		DiscussionID:    discussionID,
-		FlairTemplateID: flairTemplateID,
-	}
-
-	Convey("UpsertDiscussionFlairTemplatesAccess", t, func() {
-		db, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
-
-		assert.Nil(t, err, "Failed setting up sqlmock db")
-
-		gormDB, _ := gorm.Open("postgres", db)
-		mockDatastore := &delphisDB{
-			dbConfig:  config.TablesConfig{},
-			sql:       gormDB,
-			pg:        db,
-			prepStmts: &dbPrepStmts{},
-			dynamo:    nil,
-			encoder:   nil,
-		}
-		defer db.Close()
-
-		Convey("when preparing statements returns an error", func() {
-			mock.ExpectBegin()
-			mockPreparedStatementsWithError(mock)
-
-			tx, _ := mockDatastore.BeginTx(ctx)
-			resp, err := mockDatastore.UpsertDiscussionFlairTemplatesAccess(ctx, tx, discussionID, flairTemplateID)
-
-			So(err, ShouldNotBeNil)
-			So(resp, ShouldBeNil)
-			So(mock.ExpectationsWereMet(), ShouldBeNil)
-		})
-
-		Convey("when query execution returns an error", func() {
-			mock.ExpectBegin()
-			mockPreparedStatements(mock)
-			mock.ExpectPrepare(upsertDiscussionFlairAccessString)
-			mock.ExpectQuery(upsertDiscussionFlairAccessString).WithArgs(discussionID, flairTemplateID).WillReturnError(fmt.Errorf("error"))
-
-			tx, _ := mockDatastore.BeginTx(ctx)
-			resp, err := mockDatastore.UpsertDiscussionFlairTemplatesAccess(ctx, tx, discussionID, flairTemplateID)
-
-			So(err, ShouldNotBeNil)
-			So(resp, ShouldBeNil)
-			So(mock.ExpectationsWereMet(), ShouldBeNil)
-		})
-
-		Convey("when there is no new data to upsert", func() {
-			mock.ExpectBegin()
-			mockPreparedStatements(mock)
-			mock.ExpectPrepare(upsertDiscussionFlairAccessString)
-			mock.ExpectQuery(upsertDiscussionFlairAccessString).WithArgs(discussionID, flairTemplateID).WillReturnError(sql.ErrNoRows)
-
-			tx, _ := mockDatastore.BeginTx(ctx)
-			resp, err := mockDatastore.UpsertDiscussionFlairTemplatesAccess(ctx, tx, discussionID, flairTemplateID)
-
-			So(err, ShouldBeNil)
-			So(resp, ShouldNotBeNil)
-			So(resp, ShouldResemble, &model.DiscussionFlairTemplateAccess{})
-			So(mock.ExpectationsWereMet(), ShouldBeNil)
-		})
-
-		Convey("when query execution succeeds and returns discussions", func() {
-			rs := sqlmock.NewRows([]string{"discussion_id", "flair_template_id", "created_at", "updated_at"}).
-				AddRow(dfaObj.DiscussionID, dfaObj.FlairTemplateID, dfaObj.CreatedAt, dfaObj.UpdatedAt)
-
-			mock.ExpectBegin()
-			mockPreparedStatements(mock)
-			mock.ExpectPrepare(upsertDiscussionFlairAccessString)
-			mock.ExpectQuery(upsertDiscussionFlairAccessString).WithArgs(discussionID, flairTemplateID).WillReturnRows(rs)
-
-			tx, _ := mockDatastore.BeginTx(ctx)
-			resp, err := mockDatastore.UpsertDiscussionFlairTemplatesAccess(ctx, tx, discussionID, flairTemplateID)
-
-			So(err, ShouldBeNil)
-			So(resp, ShouldNotBeNil)
-			So(resp, ShouldResemble, &dfaObj)
 			So(mock.ExpectationsWereMet(), ShouldBeNil)
 		})
 	})
@@ -482,77 +181,6 @@ func TestDelphisDB_UpsertDiscussionUserAccess(t *testing.T) {
 	})
 }
 
-func TestDelphisDB_DeleteDiscussionFlairTemplatesAccess(t *testing.T) {
-	ctx := context.Background()
-	flairTemplateID := "flairID"
-	discussionID := "discussionID"
-	dfaObj := model.DiscussionFlairTemplateAccess{
-		DiscussionID:    discussionID,
-		FlairTemplateID: flairTemplateID,
-	}
-
-	Convey("DeleteDiscussionFlairTemplatesAccess", t, func() {
-		db, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
-
-		assert.Nil(t, err, "Failed setting up sqlmock db")
-
-		gormDB, _ := gorm.Open("postgres", db)
-		mockDatastore := &delphisDB{
-			dbConfig:  config.TablesConfig{},
-			sql:       gormDB,
-			pg:        db,
-			prepStmts: &dbPrepStmts{},
-			dynamo:    nil,
-			encoder:   nil,
-		}
-		defer db.Close()
-
-		Convey("when preparing statements returns an error", func() {
-			mock.ExpectBegin()
-			mockPreparedStatementsWithError(mock)
-
-			tx, _ := mockDatastore.BeginTx(ctx)
-			resp, err := mockDatastore.DeleteDiscussionFlairTemplatesAccess(ctx, tx, discussionID, flairTemplateID)
-
-			So(err, ShouldNotBeNil)
-			So(resp, ShouldBeNil)
-			So(mock.ExpectationsWereMet(), ShouldBeNil)
-		})
-
-		Convey("when query execution returns an error", func() {
-			mock.ExpectBegin()
-			mockPreparedStatements(mock)
-			mock.ExpectPrepare(deleteDiscussionFlairAccessString)
-			mock.ExpectQuery(deleteDiscussionFlairAccessString).WithArgs(discussionID, flairTemplateID).WillReturnError(fmt.Errorf("error"))
-
-			tx, _ := mockDatastore.BeginTx(ctx)
-			resp, err := mockDatastore.DeleteDiscussionFlairTemplatesAccess(ctx, tx, discussionID, flairTemplateID)
-
-			So(err, ShouldNotBeNil)
-			So(resp, ShouldBeNil)
-			So(mock.ExpectationsWereMet(), ShouldBeNil)
-		})
-
-		Convey("when query execution succeeds and returns discussions", func() {
-			rs := sqlmock.NewRows([]string{"discussion_id", "flair_template_id", "created_at", "updated_at", "deleted_at"}).
-				AddRow(dfaObj.DiscussionID, dfaObj.FlairTemplateID, dfaObj.CreatedAt, dfaObj.UpdatedAt, dfaObj.DeletedAt)
-
-			mock.ExpectBegin()
-			mockPreparedStatements(mock)
-			mock.ExpectPrepare(deleteDiscussionFlairAccessString)
-			mock.ExpectQuery(deleteDiscussionFlairAccessString).WithArgs(discussionID, flairTemplateID).WillReturnRows(rs)
-
-			tx, err := mockDatastore.BeginTx(ctx)
-			resp, err := mockDatastore.DeleteDiscussionFlairTemplatesAccess(ctx, tx, discussionID, flairTemplateID)
-
-			So(err, ShouldBeNil)
-			So(resp, ShouldNotBeNil)
-			So(resp, ShouldResemble, &dfaObj)
-			So(mock.ExpectationsWereMet(), ShouldBeNil)
-		})
-	})
-}
-
 func TestDelphisDB_DeleteDiscussionUserAccess(t *testing.T) {
 	ctx := context.Background()
 	userID := "userID"
@@ -639,7 +267,6 @@ func TestDiscussionIter_Next(t *testing.T) {
 		ModeratorID:   &modID,
 		AutoPost:      false,
 		IdleMinutes:   120,
-		PublicAccess:  false,
 		IconURL:       &emptyString,
 	}
 	emptyDisc := model.Discussion{}
@@ -674,8 +301,9 @@ func TestDiscussionIter_Next(t *testing.T) {
 		})
 
 		Convey("when the iterator has no more rows to iterate over", func() {
-			rs := sqlmock.NewRows([]string{"id", "created_at", "title", "anonymity_type",
-				"moderator_id", "auto_post", "icon_url", "idle_minutes", "public_access"})
+			rs := sqlmock.NewRows([]string{"id", "created_at", "updated_at", "deleted_at", "title",
+				"anonymity_type", "moderator_id", "auto_post", "icon_url", "idle_minutes", "description",
+				"title_history", "description_history", "discussion_joinability"})
 
 			// Convert mocked rows to sql.Rows
 			mock.ExpectQuery("SELECT").WillReturnRows(rs)
@@ -692,10 +320,13 @@ func TestDiscussionIter_Next(t *testing.T) {
 		})
 
 		Convey("when the iterator errors on scan", func() {
-			rs := sqlmock.NewRows([]string{"id", "created_at", "title", "anonymity_type",
-				"moderator_id", "auto_post", "icon_url", "idle_minutes"}).
-				AddRow(discObj.ID, discObj.CreatedAt, discObj.Title, discObj.AnonymityType, discObj.ModeratorID,
-					discObj.AutoPost, discObj.IconURL, discObj.IdleMinutes)
+			rs := sqlmock.NewRows([]string{"id", "created_at", "updated_at", "deleted_at", "title",
+				"anonymity_type", "moderator_id", "auto_post", "icon_url", "idle_minutes", "description",
+				"title_history", "description_history"}).
+				AddRow(discObj.ID, discObj.CreatedAt, discObj.UpdatedAt, discObj.DeletedAt,
+					discObj.Title, discObj.AnonymityType, discObj.ModeratorID, discObj.AutoPost,
+					discObj.IconURL, discObj.IdleMinutes, discObj.Description, discObj.TitleHistory,
+					discObj.DescriptionHistory)
 
 			// Convert mocked rows to sql.Rows
 			mock.ExpectQuery("SELECT").WillReturnRows(rs)
@@ -712,12 +343,17 @@ func TestDiscussionIter_Next(t *testing.T) {
 		})
 
 		Convey("when the iterator has rows to iterate over", func() {
-			rs := sqlmock.NewRows([]string{"id", "created_at", "title", "anonymity_type",
-				"moderator_id", "auto_post", "icon_url", "idle_minutes", "public_access"}).
-				AddRow(discObj.ID, discObj.CreatedAt, discObj.Title, discObj.AnonymityType, discObj.ModeratorID,
-					discObj.AutoPost, discObj.IconURL, discObj.IdleMinutes, discObj.PublicAccess).
-				AddRow(discObj.ID, discObj.CreatedAt, discObj.Title, discObj.AnonymityType, discObj.ModeratorID,
-					discObj.AutoPost, discObj.IconURL, discObj.IdleMinutes, discObj.PublicAccess)
+			rs := sqlmock.NewRows([]string{"id", "created_at", "updated_at", "deleted_at", "title",
+				"anonymity_type", "moderator_id", "auto_post", "icon_url", "idle_minutes", "description",
+				"title_history", "description_history", "discussion_joinability"}).
+				AddRow(discObj.ID, discObj.CreatedAt, discObj.UpdatedAt, discObj.DeletedAt,
+					discObj.Title, discObj.AnonymityType, discObj.ModeratorID, discObj.AutoPost,
+					discObj.IconURL, discObj.IdleMinutes, discObj.Description, discObj.TitleHistory,
+					discObj.DescriptionHistory, discObj.DiscussionJoinability).
+				AddRow(discObj.ID, discObj.CreatedAt, discObj.UpdatedAt, discObj.DeletedAt,
+					discObj.Title, discObj.AnonymityType, discObj.ModeratorID, discObj.AutoPost,
+					discObj.IconURL, discObj.IdleMinutes, discObj.Description, discObj.TitleHistory,
+					discObj.DescriptionHistory, discObj.DiscussionJoinability)
 
 			// Convert mocked rows to sql.Rows
 			mock.ExpectQuery("SELECT").WillReturnRows(rs)
@@ -755,7 +391,7 @@ func TestDiscussionIter_Close(t *testing.T) {
 
 		Convey("when the iterator errors on rows.Close", func() {
 			rs := sqlmock.NewRows([]string{"id", "created_at", "title", "anonymity_type",
-				"moderator_id", "auto_post", "icon_url", "idle_minutes", "public_access"}).CloseError(fmt.Errorf("error"))
+				"moderator_id", "auto_post", "icon_url", "idle_minutes"}).CloseError(fmt.Errorf("error"))
 
 			// Convert mocked rows to sql.Rows
 			mock.ExpectQuery("SELECT").WillReturnRows(rs)
@@ -918,7 +554,6 @@ func TestDelphisDB_DiscussionIterCollect(t *testing.T) {
 		ModeratorID:   &modID,
 		AutoPost:      false,
 		IdleMinutes:   120,
-		PublicAccess:  false,
 		IconURL:       &emptyString,
 	}
 
@@ -950,12 +585,17 @@ func TestDelphisDB_DiscussionIterCollect(t *testing.T) {
 		})
 
 		Convey("when the iterator has results and returns slice of Discussions", func() {
-			rs := sqlmock.NewRows([]string{"id", "created_at", "title", "anonymity_type",
-				"moderator_id", "auto_post", "icon_url", "idle_minutes", "public_access"}).
-				AddRow(discObj.ID, discObj.CreatedAt, discObj.Title, discObj.AnonymityType, discObj.ModeratorID,
-					discObj.AutoPost, discObj.IconURL, discObj.IdleMinutes, discObj.PublicAccess).
-				AddRow(discObj.ID, discObj.CreatedAt, discObj.Title, discObj.AnonymityType, discObj.ModeratorID,
-					discObj.AutoPost, discObj.IconURL, discObj.IdleMinutes, discObj.PublicAccess)
+			rs := sqlmock.NewRows([]string{"id", "created_at", "updated_at", "deleted_at", "title",
+				"anonymity_type", "moderator_id", "auto_post", "icon_url", "idle_minutes", "description",
+				"title_history", "description_history", "discussion_joinability"}).
+				AddRow(discObj.ID, discObj.CreatedAt, discObj.UpdatedAt, discObj.DeletedAt,
+					discObj.Title, discObj.AnonymityType, discObj.ModeratorID, discObj.AutoPost,
+					discObj.IconURL, discObj.IdleMinutes, discObj.Description, discObj.TitleHistory,
+					discObj.DescriptionHistory, discObj.DiscussionJoinability).
+				AddRow(discObj.ID, discObj.CreatedAt, discObj.UpdatedAt, discObj.DeletedAt,
+					discObj.Title, discObj.AnonymityType, discObj.ModeratorID, discObj.AutoPost,
+					discObj.IconURL, discObj.IdleMinutes, discObj.Description, discObj.TitleHistory,
+					discObj.DescriptionHistory, discObj.DiscussionJoinability)
 
 			// Convert mocked rows to sql.Rows
 			mock.ExpectQuery("SELECT").WillReturnRows(rs)
@@ -971,107 +611,6 @@ func TestDelphisDB_DiscussionIterCollect(t *testing.T) {
 			So(err, ShouldBeNil)
 			So(resp, ShouldNotBeNil)
 			So(resp, ShouldResemble, []*model.Discussion{&discObj, &discObj})
-			So(mock.ExpectationsWereMet(), ShouldBeNil)
-		})
-	})
-}
-
-func TestDelphisDB_FlairTemplatesIterCollect(t *testing.T) {
-	ctx := context.Background()
-	flairTemplateID := "flairID"
-	discussionID := "discussionID"
-	dfaObj := model.DiscussionFlairTemplateAccess{
-		DiscussionID:    discussionID,
-		FlairTemplateID: flairTemplateID,
-	}
-
-	now := time.Now()
-	ftID := "flairTemplateID"
-	displayName := "displayName"
-	imageURL := "imageURL"
-	source := "test"
-	ftObj := model.FlairTemplate{
-		ID:          ftID,
-		DisplayName: &displayName,
-		ImageURL:    &imageURL,
-		Source:      source,
-		CreatedAt:   now,
-		UpdatedAt:   now,
-	}
-
-	expectedQueryStr := `SELECT * FROM "flair_templates" WHERE "flair_templates"."deleted_at" IS NULL AND (("flair_templates"."id" = $1)) ORDER BY "flair_templates"."id" ASC LIMIT 1`
-
-	Convey("FlairTemplatesIterCollect", t, func() {
-		db, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
-		assert.Nil(t, err, "Failed setting up sqlmock db")
-
-		gormDB, _ := gorm.Open("postgres", db)
-		mockDatastore := &delphisDB{
-			dbConfig:  config.TablesConfig{},
-			sql:       gormDB,
-			pg:        db,
-			prepStmts: &dbPrepStmts{},
-			dynamo:    nil,
-			encoder:   nil,
-		}
-		defer db.Close()
-
-		Convey("when the iterator fails to close", func() {
-			iter := &dfaIter{
-				err: fmt.Errorf("error"),
-			}
-
-			resp, err := mockDatastore.FlairTemplatesIterCollect(ctx, iter)
-
-			So(err, ShouldNotBeNil)
-			So(resp, ShouldBeNil)
-			So(mock.ExpectationsWereMet(), ShouldBeNil)
-		})
-		Convey("when the iterator errors on fetching the flair template", func() {
-			rs := sqlmock.NewRows([]string{"discussion_id", "flair_template_id", "created_at", "updated_at"}).
-				AddRow(dfaObj.DiscussionID, dfaObj.FlairTemplateID, dfaObj.CreatedAt, dfaObj.UpdatedAt)
-
-			// Convert mocked rows to sql.Rows
-			mock.ExpectQuery("SELECT").WillReturnRows(rs)
-			rs1, _ := db.Query("SELECT")
-
-			mock.ExpectQuery(expectedQueryStr).WithArgs(dfaObj.FlairTemplateID).WillReturnError(fmt.Errorf("some error"))
-
-			iter := &dfaIter{
-				ctx:  ctx,
-				rows: rs1,
-			}
-
-			resp, err := mockDatastore.FlairTemplatesIterCollect(ctx, iter)
-
-			So(err, ShouldNotBeNil)
-			So(resp, ShouldBeNil)
-			So(mock.ExpectationsWereMet(), ShouldBeNil)
-		})
-
-		Convey("when the iterator has results and returns slice of flair templates", func() {
-			rs := sqlmock.NewRows([]string{"discussion_id", "flair_template_id", "created_at", "updated_at"}).
-				AddRow(dfaObj.DiscussionID, dfaObj.FlairTemplateID, dfaObj.CreatedAt, dfaObj.UpdatedAt)
-
-			templateRs := sqlmock.NewRows([]string{"id", "display_name", "image_url", "source", "created_at", "updated_at", "deleted_at"}).
-				AddRow(ftObj.ID, ftObj.DisplayName, ftObj.ImageURL, ftObj.Source, ftObj.CreatedAt, ftObj.UpdatedAt, ftObj.DeletedAt)
-
-			// Convert mocked rows to sql.Rows
-			mock.ExpectQuery("SELECT").WillReturnRows(rs)
-			rs1, _ := db.Query("SELECT")
-
-			mock.ExpectQuery(expectedQueryStr).WithArgs(dfaObj.FlairTemplateID).WillReturnRows(templateRs)
-
-			iter := &dfaIter{
-				ctx:  ctx,
-				rows: rs1,
-			}
-
-			resp, err := mockDatastore.FlairTemplatesIterCollect(ctx, iter)
-
-			So(err, ShouldBeNil)
-			So(resp, ShouldNotBeNil)
-			So(resp, ShouldResemble, []*model.FlairTemplate{&ftObj})
 			So(mock.ExpectationsWereMet(), ShouldBeNil)
 		})
 	})

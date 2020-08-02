@@ -42,10 +42,6 @@ func (d *delphisBackend) GetSentDiscussionAccessRequestsByUserID(ctx context.Con
 	return d.db.AccessRequestIterCollect(ctx, iter)
 }
 
-func (d *delphisBackend) GetInviteLinksByDiscussionID(ctx context.Context, discussionID string) (*model.DiscussionLinkAccess, error) {
-	return d.db.GetInviteLinksByDiscussionID(ctx, discussionID)
-}
-
 func (d *delphisBackend) InviteUserToDiscussion(ctx context.Context, userID, discussionID, invitingParticipantID string) (*model.DiscussionInvite, error) {
 	invite := model.DiscussionInvite{
 		ID:                    util.UUIDv4(),
@@ -253,39 +249,4 @@ func (d *delphisBackend) RespondToRequestAccess(ctx context.Context, requestID s
 	}
 
 	return requestObj, nil
-}
-
-func (d *delphisBackend) UpsertInviteLinksByDiscussionID(ctx context.Context, discussionID string) (*model.DiscussionLinkAccess, error) {
-	input := model.DiscussionLinkAccess{
-		DiscussionID:      discussionID,
-		InviteLinkSlug:    util.UUIDv4(),
-		VipInviteLinkSlug: util.UUIDv4(),
-	}
-
-	// Begin tx
-	tx, err := d.db.BeginTx(ctx)
-	if err != nil {
-		logrus.WithError(err).Error("failed to begin tx")
-		return nil, err
-	}
-
-	dla, err := d.db.UpsertInviteLinksByDiscussionID(ctx, tx, input)
-	if err != nil {
-		logrus.WithError(err).Error("failed to upsert discussion invite links")
-		// Rollback on errors
-		if txErr := d.db.RollbackTx(ctx, tx); txErr != nil {
-			logrus.WithError(txErr).Error("failed to rollback tx")
-			return nil, multierr.Append(err, txErr)
-		}
-
-		return nil, err
-	}
-
-	// Commit transaction
-	if err := d.db.CommitTx(ctx, tx); err != nil {
-		logrus.WithError(err).Error("failed to commit post tx")
-		return nil, err
-	}
-
-	return dla, nil
 }

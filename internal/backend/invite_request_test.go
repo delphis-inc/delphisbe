@@ -294,48 +294,6 @@ func TestDelphisBackend_GetSentDiscussionAccessRequestsByUserID(t *testing.T) {
 	})
 }
 
-func TestDelphisBackend_GetInviteLinksByDiscussionID(t *testing.T) {
-	ctx := context.Background()
-	now := time.Now()
-
-	discussionID := test_utils.DiscussionID
-
-	dlaObj := test_utils.TestDiscussionLinkAccess()
-
-	Convey("GetInviteLinksByDiscussionID", t, func() {
-		cacheObj := cache.NewInMemoryCache()
-		authObj := auth.NewDelphisAuth(nil)
-		mockDB := &mocks.Datastore{}
-		backendObj := &delphisBackend{
-			db:              mockDB,
-			auth:            authObj,
-			cache:           cacheObj,
-			discussionMutex: sync.Mutex{},
-			config:          config.Config{},
-			timeProvider:    &util.FrozenTime{NowTime: now},
-		}
-
-		Convey("when the query errors out", func() {
-			expectedError := fmt.Errorf("Some Error")
-			mockDB.On("GetInviteLinksByDiscussionID", ctx, discussionID).Return(nil, expectedError)
-
-			resp, err := backendObj.GetInviteLinksByDiscussionID(ctx, discussionID)
-
-			So(err, ShouldEqual, expectedError)
-			So(resp, ShouldBeNil)
-		})
-
-		Convey("when the query returns successfully", func() {
-			mockDB.On("GetInviteLinksByDiscussionID", ctx, discussionID).Return(&dlaObj, nil)
-
-			resp, err := backendObj.GetInviteLinksByDiscussionID(ctx, discussionID)
-
-			So(err, ShouldBeNil)
-			So(resp, ShouldResemble, &dlaObj)
-		})
-	})
-}
-
 func TestDelphisBackend_InviteUserToDiscussion(t *testing.T) {
 	ctx := context.Background()
 	now := time.Now()
@@ -803,90 +761,6 @@ func TestDelphisBackend_RespondToRequestAccess(t *testing.T) {
 			mockDB.On("CommitTx", ctx, mock.Anything).Return(nil)
 
 			resp, err := backendObj.RespondToRequestAccess(ctx, requestID, response, participantID)
-
-			So(err, ShouldBeNil)
-			So(resp, ShouldNotBeNil)
-		})
-	})
-}
-
-func TestDelphisBackend_UpsertInviteLinksByDiscussionID(t *testing.T) {
-	ctx := context.Background()
-	now := time.Now()
-
-	discussionID := test_utils.DiscussionID
-
-	dlaObj := test_utils.TestDiscussionLinkAccess()
-
-	tx := sql.Tx{}
-
-	Convey("RespondToRequestAccess", t, func() {
-		cacheObj := cache.NewInMemoryCache()
-		authObj := auth.NewDelphisAuth(nil)
-		mockDB := &mocks.Datastore{}
-		backendObj := &delphisBackend{
-			db:              mockDB,
-			auth:            authObj,
-			cache:           cacheObj,
-			discussionMutex: sync.Mutex{},
-			config:          config.Config{},
-			timeProvider:    &util.FrozenTime{NowTime: now},
-		}
-
-		Convey("when BeginTx errors out", func() {
-			expectedError := fmt.Errorf("Some Error")
-			mockDB.On("BeginTx", ctx).Return(nil, expectedError)
-
-			resp, err := backendObj.UpsertInviteLinksByDiscussionID(ctx, discussionID)
-
-			So(err, ShouldEqual, expectedError)
-			So(resp, ShouldBeNil)
-		})
-
-		Convey("when UpsertInviteLinksByDiscussionID errors out and Rollback fails", func() {
-			expectedError := fmt.Errorf("Some Error")
-			mockDB.On("BeginTx", ctx).Return(&tx, nil)
-			mockDB.On("UpsertInviteLinksByDiscussionID", ctx, mock.Anything, mock.Anything).Return(nil, expectedError)
-			mockDB.On("RollbackTx", ctx, mock.Anything).Return(expectedError)
-
-			resp, err := backendObj.UpsertInviteLinksByDiscussionID(ctx, discussionID)
-
-			So(err, ShouldNotBeNil)
-			So(resp, ShouldBeNil)
-		})
-
-		Convey("when UpsertInviteLinksByDiscussionID errors out", func() {
-			expectedError := fmt.Errorf("Some Error")
-			mockDB.On("BeginTx", ctx).Return(&tx, nil)
-			mockDB.On("UpsertInviteLinksByDiscussionID", ctx, mock.Anything, mock.Anything).Return(nil, expectedError)
-			mockDB.On("RollbackTx", ctx, mock.Anything).Return(nil)
-
-			resp, err := backendObj.UpsertInviteLinksByDiscussionID(ctx, discussionID)
-
-			So(err, ShouldEqual, expectedError)
-			So(resp, ShouldBeNil)
-		})
-
-		Convey("when CommitTx errors out", func() {
-			expectedError := fmt.Errorf("Some Error")
-			mockDB.On("BeginTx", ctx).Return(&tx, nil)
-			mockDB.On("UpsertInviteLinksByDiscussionID", ctx, mock.Anything, mock.Anything).Return(&dlaObj, nil)
-
-			mockDB.On("CommitTx", ctx, mock.Anything).Return(expectedError)
-
-			resp, err := backendObj.UpsertInviteLinksByDiscussionID(ctx, discussionID)
-
-			So(err, ShouldEqual, expectedError)
-			So(resp, ShouldBeNil)
-		})
-
-		Convey("when response succeeds", func() {
-			mockDB.On("BeginTx", ctx).Return(&tx, nil)
-			mockDB.On("UpsertInviteLinksByDiscussionID", ctx, mock.Anything, mock.Anything).Return(&dlaObj, nil)
-
-			mockDB.On("CommitTx", ctx, mock.Anything).Return(nil)
-
-			resp, err := backendObj.UpsertInviteLinksByDiscussionID(ctx, discussionID)
 
 			So(err, ShouldBeNil)
 			So(resp, ShouldNotBeNil)

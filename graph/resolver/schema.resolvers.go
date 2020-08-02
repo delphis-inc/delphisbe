@@ -144,13 +144,6 @@ func (r *mutationResolver) CreateDiscussion(ctx context.Context, anonymityType m
 		return nil, err
 	}
 
-	trueObj := true
-	_, err = r.DAOManager.CreateParticipantForDiscussion(ctx, discussionObj.ID, authedUser.UserID, model.AddDiscussionParticipantInput{HasJoined: &trueObj})
-
-	if err != nil {
-		return nil, err
-	}
-
 	return discussionObj, nil
 }
 
@@ -416,15 +409,17 @@ func (r *mutationResolver) DeleteDiscussionTags(ctx context.Context, discussionI
 	return r.DAOManager.DeleteDiscussionTags(ctx, discussionID, tags)
 }
 
+// @deprecated
 func (r *mutationResolver) ConciergeMutation(ctx context.Context, discussionID string, mutationID string, selectedOptions []string) (*model.Post, error) {
 	authedUser := auth.GetAuthedUser(ctx)
 	if authedUser == nil {
 		return nil, fmt.Errorf("Need auth")
 	}
 
-	return r.DAOManager.HandleConciergeMutation(ctx, authedUser.UserID, discussionID, mutationID, selectedOptions)
+	return &model.Post{}, nil
 }
 
+// @deprecated
 func (r *mutationResolver) AddDiscussionFlairTemplatesAccess(ctx context.Context, discussionID string, flairTemplateIDs []string) (*model.Discussion, error) {
 	authedUser := auth.GetAuthedUser(ctx)
 	if authedUser == nil {
@@ -437,14 +432,10 @@ func (r *mutationResolver) AddDiscussionFlairTemplatesAccess(ctx context.Context
 		return nil, fmt.Errorf("unauthorized")
 	}
 
-	if _, err := r.DAOManager.PutDiscussionFlairTemplatesAccess(ctx, authedUser.UserID, discussionID, flairTemplateIDs); err != nil {
-		logrus.WithError(err).Error("failed to updated flair templates")
-		return nil, fmt.Errorf("failed to update flair templates")
-	}
-
-	return r.DAOManager.GetDiscussionByID(ctx, discussionID)
+	return &model.Discussion{}, nil
 }
 
+// @deprecated
 func (r *mutationResolver) DeleteDiscussionFlairTemplatesAccess(ctx context.Context, discussionID string, flairTemplateIDs []string) (*model.Discussion, error) {
 	authedUser := auth.GetAuthedUser(ctx)
 	if authedUser == nil {
@@ -457,12 +448,7 @@ func (r *mutationResolver) DeleteDiscussionFlairTemplatesAccess(ctx context.Cont
 		return nil, fmt.Errorf("unauthorized")
 	}
 
-	if _, err := r.DAOManager.DeleteDiscussionFlairTemplatesAccess(ctx, discussionID, flairTemplateIDs); err != nil {
-		logrus.WithError(err).Error("failed to delete flair templates")
-		return nil, fmt.Errorf("failed to delete flair templates")
-	}
-
-	return r.DAOManager.GetDiscussionByID(ctx, discussionID)
+	return &model.Discussion{}, nil
 }
 
 func (r *mutationResolver) InviteUserToDiscussion(ctx context.Context, discussionID string, userID string, invitingParticipantID string) (*model.DiscussionInvite, error) {
@@ -591,32 +577,14 @@ func (r *mutationResolver) RespondToRequestAccess(ctx context.Context, requestID
 	return r.DAOManager.RespondToRequestAccess(ctx, requestID, response, nonAnonUserID)
 }
 
+// @deprecated
 func (r *mutationResolver) JoinDiscussionWithVIPToken(ctx context.Context, discussionID string, vipToken string) (*model.Discussion, error) {
 	authedUser := auth.GetAuthedUser(ctx)
 	if authedUser == nil {
 		return nil, fmt.Errorf("Need auth")
 	}
 
-	discussion, err := r.DAOManager.GetDiscussionByID(ctx, discussionID)
-	if err != nil || discussion == nil {
-		return nil, fmt.Errorf("Discussion not found")
-	}
-
-	discussionLinkAccess, err := r.DAOManager.GetInviteLinksByDiscussionID(ctx, discussionID)
-	if err != nil || discussionLinkAccess == nil {
-		return nil, fmt.Errorf("Discussion not found")
-	}
-
-	if discussionLinkAccess.VipInviteLinkSlug == vipToken {
-		// This means we should add this user to the discussion.
-		_, err := r.DAOManager.GrantUserDiscussionAccess(ctx, authedUser.UserID, discussionID)
-		if err != nil {
-			return nil, fmt.Errorf("Failed granting discussion access to user")
-		}
-		return discussion, nil
-	} else {
-		return nil, fmt.Errorf("Discussion not joined")
-	}
+	return &model.Discussion{}, nil
 }
 
 func (r *mutationResolver) DeletePost(ctx context.Context, discussionID string, postID string) (*model.Post, error) {

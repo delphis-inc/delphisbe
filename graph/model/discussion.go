@@ -11,6 +11,8 @@ const (
 	InviteTypeInvite                InviteType = "invite"
 	InviteTypeAccessRequestAccepted InviteType = "access_granted"
 
+	AccessSlugLength = 12
+
 	InviteLinkHostname string = "https://m.chatham.ai/d"
 )
 
@@ -34,7 +36,6 @@ type Discussion struct {
 	Participants          []*Participant               `json:"participants" dynamodbav:"-" gorm:"foreignKey:DiscussionID;"`
 	AutoPost              bool                         `json:"auto_post"`
 	IdleMinutes           int                          `json:"idle_minutes"`
-	PublicAccess          bool                         `json:"publicAccess"`
 	IconURL               *string                      `json:"icon_url"`
 	DiscussionJoinability DiscussionJoinabilitySetting `json:"discussion_joinability"`
 }
@@ -165,11 +166,10 @@ type DiscussionInvite struct {
 	InviteType            InviteType
 }
 
-type DiscussionLinkAccess struct {
-	DiscussionID      string `json:"discussionID"`
-	InviteLinkSlug    string `json:"inviteLinkSlug"`
-	VipInviteLinkSlug string `json:"vipInviteLinkSlug"`
-	CreatedAt         string `json:"createdAt"`
-	UpdatedAt         string `json:"updatedAt"`
-	IsDeleted         bool   `json:"isDeleted"`
+type DiscussionAccessLink struct {
+	DiscussionID string `json:"discussionID"`
+	LinkSlug     string `json:"linkSlug"`
+	CreatedAt    time.Time
+	UpdatedAt    time.Time
+	DeletedAt    *time.Time
 }

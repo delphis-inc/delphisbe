@@ -11,6 +11,7 @@ const DisplayName = "displayName"
 const UserID = "userID"
 const InviterID = "InviterID"
 const DiscussionID = "discussionID"
+const LinkSlug = "slug"
 const TwitterHandle = "twitterHandle"
 const Token = "token"
 const TokenSecret = "secret"
@@ -85,7 +86,6 @@ func TestDiscussion() model.Discussion {
 		ModeratorID:   &modID,
 		AutoPost:      false,
 		IdleMinutes:   IdleMinutes,
-		PublicAccess:  false,
 	}
 }
 
@@ -276,11 +276,10 @@ func TestDiscussionAccessRequest(status model.InviteRequestStatus) model.Discuss
 	}
 }
 
-func TestDiscussionLinkAccess() model.DiscussionLinkAccess {
-	return model.DiscussionLinkAccess{
-		DiscussionID:      DiscussionID,
-		InviteLinkSlug:    "slug",
-		VipInviteLinkSlug: "vipSlug",
+func TestDiscussionAccessLink() model.DiscussionAccessLink {
+	return model.DiscussionAccessLink{
+		DiscussionID: DiscussionID,
+		LinkSlug:     LinkSlug,
 	}
 }
 

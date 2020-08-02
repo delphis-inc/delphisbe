@@ -96,11 +96,7 @@ type DelphisBackend interface {
 	GetMediaRecord(ctx context.Context, mediaID string) (*model.Media, error)
 	UploadMedia(ctx context.Context, media multipart.File) (string, string, error)
 	GetConciergeParticipantID(ctx context.Context, discussionID string) (string, error)
-	HandleConciergeMutation(ctx context.Context, userID string, discussionID string, mutationID string, selectedOptions []string) (*model.Post, error)
 	GetDiscussionAccessByUserID(ctx context.Context, userID string) ([]*model.Discussion, error)
-	GetDiscussionFlairTemplateAccessByDiscussionID(ctx context.Context, discussionID string) ([]*model.FlairTemplate, error)
-	PutDiscussionFlairTemplatesAccess(ctx context.Context, userID string, discussionID string, flairTemplateIDs []string) ([]*model.DiscussionFlairTemplateAccess, error)
-	DeleteDiscussionFlairTemplatesAccess(ctx context.Context, discussionID string, flairTemplateIDs []string) ([]*model.DiscussionFlairTemplateAccess, error)
 	GetDiscussionInviteByID(ctx context.Context, id string) (*model.DiscussionInvite, error)
 	GetDiscussionRequestAccessByID(ctx context.Context, id string) (*model.DiscussionAccessRequest, error)
 	GetDiscussionInvitesByUserIDAndStatus(ctx context.Context, userID string, status model.InviteRequestStatus) ([]*model.DiscussionInvite, error)
@@ -119,8 +115,9 @@ type DelphisBackend interface {
 	RespondToInvitation(ctx context.Context, inviteID string, response model.InviteRequestStatus, discussionParticipantInput model.AddDiscussionParticipantInput) (*model.DiscussionInvite, error)
 	RequestAccessToDiscussion(ctx context.Context, userID, discussionID string) (*model.DiscussionAccessRequest, error)
 	RespondToRequestAccess(ctx context.Context, requestID string, response model.InviteRequestStatus, invitingParticipantID string) (*model.DiscussionAccessRequest, error)
-	GetInviteLinksByDiscussionID(ctx context.Context, discussionID string) (*model.DiscussionLinkAccess, error)
-	UpsertInviteLinksByDiscussionID(ctx context.Context, discussionID string) (*model.DiscussionLinkAccess, error)
+	GetAccessLinkBySlug(ctx context.Context, slug string) (*model.DiscussionAccessLink, error)
+	GetAccessLinkByDiscussionID(ctx context.Context, discussionID string) (*model.DiscussionAccessLink, error)
+	PutAccessLinkForDiscussion(ctx context.Context, discussionID string) (*model.DiscussionAccessLink, error)
 }
 
 type delphisBackend struct {

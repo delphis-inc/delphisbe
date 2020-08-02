@@ -187,36 +187,6 @@ func (d *delphisDB) GetSentDiscussionAccessRequestsByUserID(ctx context.Context,
 
 }
 
-func (d *delphisDB) GetInviteLinksByDiscussionID(ctx context.Context, discussionID string) (*model.DiscussionLinkAccess, error) {
-	logrus.Debug("GetInviteLinksByDiscussionID::SQL Query")
-	if err := d.initializeStatements(ctx); err != nil {
-		logrus.WithError(err).Error("GetInviteLinksByDiscussionID::failed to initialize statements")
-		return nil, err
-	}
-
-	dla := model.DiscussionLinkAccess{}
-	if err := d.prepStmts.getInviteLinksForDiscussion.QueryRowContext(
-		ctx,
-		discussionID,
-	).Scan(
-		&dla.DiscussionID,
-		&dla.InviteLinkSlug,
-		&dla.VipInviteLinkSlug,
-		&dla.CreatedAt,
-		&dla.UpdatedAt,
-	); err != nil {
-		if err == sql.ErrNoRows {
-			return &model.DiscussionLinkAccess{}, nil
-		}
-		logrus.WithError(err).Error("failed to execute GetDiscussionInviteByID")
-		return nil, err
-	}
-
-	logrus.Debugf("Invite link: %+v\n", dla)
-
-	return &dla, nil
-}
-
 func (d *delphisDB) PutDiscussionInviteRecord(ctx context.Context, tx *sql.Tx, invite model.DiscussionInvite) (*model.DiscussionInvite, error) {
 	logrus.Debug("PutDiscussionInviteRecord::SQL Create")
 	if err := d.initializeStatements(ctx); err != nil {
@@ -329,32 +299,6 @@ func (d *delphisDB) UpdateDiscussionAccessRequestRecord(ctx context.Context, tx 
 	}
 
 	return &request, nil
-}
-
-func (d *delphisDB) UpsertInviteLinksByDiscussionID(ctx context.Context, tx *sql.Tx, input model.DiscussionLinkAccess) (*model.DiscussionLinkAccess, error) {
-	logrus.Debug("UpsertInviteLinksByDiscussionID::SQL Create")
-	if err := d.initializeStatements(ctx); err != nil {
-		logrus.WithError(err).Error("UpsertInviteLinksByDiscussionID::failed to initialize statements")
-		return nil, err
-	}
-
-	if err := tx.StmtContext(ctx, d.prepStmts.upsertInviteLinksForDiscussion).QueryRowContext(
-		ctx,
-		input.DiscussionID,
-		input.InviteLinkSlug,
-		input.VipInviteLinkSlug,
-	).Scan(
-		&input.DiscussionID,
-		&input.InviteLinkSlug,
-		&input.VipInviteLinkSlug,
-		&input.CreatedAt,
-		&input.UpdatedAt,
-	); err != nil {
-		logrus.WithError(err).Error("failed to execute UpsertInviteLinksByDiscussionID")
-		return nil, err
-	}
-
-	return &input, nil
 }
 
 type discussionInviteIter struct {

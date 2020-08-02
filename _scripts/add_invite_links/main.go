@@ -94,7 +94,7 @@ func doWork(ctx context.Context, delphisBackend backend.DelphisBackend) {
 
 	// Iterate over discussions. Check if the concierge user has a participant, if not add one
 	for _, disc := range discussions {
-		if _, err := delphisBackend.UpsertInviteLinksByDiscussionID(ctx, disc.ID); err != nil {
+		if _, err := delphisBackend.PutAccessLinkForDiscussion(ctx, disc.ID); err != nil {
 			logrus.WithError(err).Errorf("failed to upsert invite links for discussion: %v\n", disc.ID)
 			panic(err)
 		}

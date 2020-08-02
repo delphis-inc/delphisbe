@@ -47,6 +47,7 @@ func TestDelphisBackend_CreateNewDiscussion(t *testing.T) {
 	discObj := test_utils.TestDiscussion()
 	flairObj := test_utils.TestFlair()
 	discussionSettings := test_utils.TestDiscussionCreationSettings()
+	discussionUserAccess := test_utils.TestDiscussionUserAccess()
 
 	userObj.UserProfile = &profile
 	modObj.UserProfile = &profile
@@ -92,11 +93,31 @@ func TestDelphisBackend_CreateNewDiscussion(t *testing.T) {
 			So(resp, ShouldBeNil)
 		})
 
+		Convey("when upsert discussion access errors out", func() {
+			expectedError := fmt.Errorf("Some Error")
+
+			mockDB.On("CreateModerator", ctx, mock.Anything).Return(&modObj, nil)
+			mockDB.On("UpsertDiscussion", ctx, mock.Anything).Return(&discObj, nil)
+
+			// Upsert discussion access functions
+			mockDB.On("BeginTx", ctx).Return(nil, expectedError)
+
+			resp, err := backendObj.CreateNewDiscussion(ctx, &userObj, anonymityType, title, description, publicAccess, discussionSettings)
+
+			So(err, ShouldNotBeNil)
+			So(resp, ShouldBeNil)
+		})
+
 		Convey("when create participant errors out", func() {
 			expectedError := fmt.Errorf("Some Error")
 
 			mockDB.On("CreateModerator", ctx, mock.Anything).Return(&modObj, nil)
 			mockDB.On("UpsertDiscussion", ctx, mock.Anything).Return(&discObj, nil)
+
+			// Upsert discussion acces
+			mockDB.On("BeginTx", ctx).Return(&tx, nil)
+			mockDB.On("UpsertDiscussionUserAccess", ctx, mock.Anything, mock.Anything, mock.Anything).Return(&discussionUserAccess, nil)
+			mockDB.On("CommitTx", ctx, &tx).Return(nil)
 
 			// Create participant functions
 			mockDB.On("GetUserByID", ctx, mock.Anything).Return(nil, expectedError)
@@ -112,6 +133,24 @@ func TestDelphisBackend_CreateNewDiscussion(t *testing.T) {
 
 			mockDB.On("CreateModerator", ctx, mock.Anything).Return(&modObj, nil)
 			mockDB.On("UpsertDiscussion", ctx, mock.Anything).Return(&discObj, nil)
+
+			// Upsert discussion access
+			mockDB.On("BeginTx", ctx).Return(&tx, nil)
+			mockDB.On("UpsertDiscussionUserAccess", ctx, mock.Anything, mock.Anything, mock.Anything).Return(&discussionUserAccess, nil)
+			mockDB.On("CommitTx", ctx, &tx).Return(nil)
+
+			// Create participant functions
+			mockDB.On("GetUserByID", ctx, mock.Anything).Return(&userObj, nil)
+			mockDB.On("GetTotalParticipantCountByDiscussionID", ctx, mock.Anything).Return(10)
+			mockDB.On("GetFlairsByUserID", ctx, mock.Anything).Return([]*model.Flair{&flairObj}, nil)
+			mockDB.On("UpsertViewer", ctx, mock.Anything).Return(&viewerObj, nil)
+			mockDB.On("UpsertParticipant", ctx, mock.Anything).Return(&parObj, nil)
+			mockDB.On("GetParticipantsByDiscussionIDUserID", ctx, mock.Anything, mock.Anything).Return([]model.Participant{parObj}, nil)
+
+			// Upsert discussion access
+			mockDB.On("BeginTx", ctx).Return(&tx, nil)
+			mockDB.On("UpsertDiscussionUserAccess", ctx, mock.Anything, mock.Anything, mock.Anything).Return(&discussionUserAccess, nil)
+			mockDB.On("CommitTx", ctx, &tx).Return(nil)
 
 			// Create participant functions
 			mockDB.On("GetUserByID", ctx, mock.Anything).Return(&userObj, nil)
@@ -132,7 +171,7 @@ func TestDelphisBackend_CreateNewDiscussion(t *testing.T) {
 			mockDB.On("GetUserDevicesByUserID", ctx, mock.Anything).Return(nil, nil)
 
 			mockDB.On("BeginTx", ctx).Return(tx, nil)
-			mockDB.On("UpsertInviteLinksByDiscussionID", ctx, mock.Anything, mock.Anything).Return(nil, expectedError)
+			mockDB.On("PutAccessLinkForDiscussion", ctx, mock.Anything, mock.Anything).Return(nil, expectedError)
 			mockDB.On("RollbackTx", ctx, mock.Anything).Return(nil)
 
 			resp, err := backendObj.CreateNewDiscussion(ctx, &userObj, anonymityType, title, description, publicAccess, discussionSettings)
@@ -145,6 +184,24 @@ func TestDelphisBackend_CreateNewDiscussion(t *testing.T) {
 
 			mockDB.On("CreateModerator", ctx, mock.Anything).Return(&modObj, nil)
 			mockDB.On("UpsertDiscussion", ctx, mock.Anything).Return(&discObj, nil)
+
+			// Upsert discussion access
+			mockDB.On("BeginTx", ctx).Return(&tx, nil)
+			mockDB.On("UpsertDiscussionUserAccess", ctx, mock.Anything, mock.Anything, mock.Anything).Return(&discussionUserAccess, nil)
+			mockDB.On("CommitTx", ctx, &tx).Return(nil)
+
+			// Create participant functions
+			mockDB.On("GetUserByID", ctx, mock.Anything).Return(&userObj, nil)
+			mockDB.On("GetTotalParticipantCountByDiscussionID", ctx, mock.Anything).Return(10)
+			mockDB.On("GetFlairsByUserID", ctx, mock.Anything).Return([]*model.Flair{&flairObj}, nil)
+			mockDB.On("UpsertViewer", ctx, mock.Anything).Return(&viewerObj, nil)
+			mockDB.On("UpsertParticipant", ctx, mock.Anything).Return(&parObj, nil)
+			mockDB.On("GetParticipantsByDiscussionIDUserID", ctx, mock.Anything, mock.Anything).Return([]model.Participant{parObj}, nil)
+
+			// Upsert discussion access
+			mockDB.On("BeginTx", ctx).Return(&tx, nil)
+			mockDB.On("UpsertDiscussionUserAccess", ctx, mock.Anything, mock.Anything, mock.Anything).Return(&discussionUserAccess, nil)
+			mockDB.On("CommitTx", ctx, &tx).Return(nil)
 
 			// Create participant functions
 			mockDB.On("GetUserByID", ctx, mock.Anything).Return(&userObj, nil)
@@ -165,8 +222,8 @@ func TestDelphisBackend_CreateNewDiscussion(t *testing.T) {
 			mockDB.On("GetUserDevicesByUserID", ctx, mock.Anything).Return(nil, nil)
 
 			mockDB.On("BeginTx", ctx).Return(tx, nil)
-			mockDB.On("UpsertInviteLinksByDiscussionID", ctx, mock.Anything, mock.Anything).Return(
-				&model.DiscussionLinkAccess{DiscussionID: discussionID}, nil)
+			mockDB.On("PutAccessLinkForDiscussion", ctx, mock.Anything, mock.Anything).Return(
+				&model.DiscussionAccessLink{DiscussionID: discussionID}, nil)
 			mockDB.On("CommitTx", ctx, mock.Anything).Return(nil)
 
 			resp, err := backendObj.CreateNewDiscussion(ctx, &userObj, anonymityType, title, description, publicAccess, discussionSettings)
@@ -1058,7 +1115,6 @@ func TestDelphisBackend_UpdateDiscussionObj(t *testing.T) {
 			So(disc.Title, ShouldResemble, *discInput.Title)
 			So(disc.AutoPost, ShouldResemble, *discInput.AutoPost)
 			So(disc.IdleMinutes, ShouldResemble, *discInput.IdleMinutes)
-			So(disc.PublicAccess, ShouldResemble, *discInput.PublicAccess)
 			So(*disc.IconURL, ShouldResemble, *discInput.IconURL)
 
 		})

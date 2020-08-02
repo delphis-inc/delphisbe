@@ -40,6 +40,7 @@ type Config struct {
 type ResolverRoot interface {
 	ContentQueueRecord() ContentQueueRecordResolver
 	Discussion() DiscussionResolver
+	DiscussionAccessLink() DiscussionAccessLinkResolver
 	DiscussionAccessRequest() DiscussionAccessRequestResolver
 	DiscussionFlairTemplateAccess() DiscussionFlairTemplateAccessResolver
 	DiscussionInvite() DiscussionInviteResolver
@@ -102,6 +103,7 @@ type ComplexityRoot struct {
 		CreatedAt               func(childComplexity int) int
 		Description             func(childComplexity int) int
 		DescriptionHistory      func(childComplexity int) int
+		DiscussionAccessLink    func(childComplexity int) int
 		DiscussionJoinability   func(childComplexity int) int
 		DiscussionLinksAccess   func(childComplexity int) int
 		FlairTemplates          func(childComplexity int) int
@@ -120,6 +122,14 @@ type ComplexityRoot struct {
 		TitleHistory            func(childComplexity int) int
 		UpcomingContent         func(childComplexity int) int
 		UpdatedAt               func(childComplexity int) int
+	}
+
+	DiscussionAccessLink struct {
+		CreatedAt  func(childComplexity int) int
+		Discussion func(childComplexity int) int
+		IsDeleted  func(childComplexity int) int
+		LinkSlug   func(childComplexity int) int
+		UpdatedAt  func(childComplexity int) int
 	}
 
 	DiscussionAccessRequest struct {
@@ -455,7 +465,13 @@ type DiscussionResolver interface {
 	FlairTemplates(ctx context.Context, obj *model.Discussion) ([]*model.FlairTemplate, error)
 	AccessRequests(ctx context.Context, obj *model.Discussion) ([]*model.DiscussionAccessRequest, error)
 	DiscussionLinksAccess(ctx context.Context, obj *model.Discussion) (*model.DiscussionLinkAccess, error)
+	DiscussionAccessLink(ctx context.Context, obj *model.Discussion) (*model.DiscussionAccessLink, error)
 	DiscussionJoinability(ctx context.Context, obj *model.Discussion) (model.DiscussionJoinabilitySetting, error)
+}
+type DiscussionAccessLinkResolver interface {
+	Discussion(ctx context.Context, obj *model.DiscussionAccessLink) (*model.Discussion, error)
+
+	IsDeleted(ctx context.Context, obj *model.DiscussionAccessLink) (bool, error)
 }
 type DiscussionAccessRequestResolver interface {
 	User(ctx context.Context, obj *model.DiscussionAccessRequest) (*model.User, error)
@@ -769,6 +785,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Discussion.DescriptionHistory(childComplexity), true
 
+	case "Discussion.discussionAccessLink":
+		if e.complexity.Discussion.DiscussionAccessLink == nil {
+			break
+		}
+
+		return e.complexity.Discussion.DiscussionAccessLink(childComplexity), true
+
 	case "Discussion.discussionJoinability":
 		if e.complexity.Discussion.DiscussionJoinability == nil {
 			break
@@ -899,6 +922,41 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Discussion.UpdatedAt(childComplexity), true
+
+	case "DiscussionAccessLink.createdAt":
+		if e.complexity.DiscussionAccessLink.CreatedAt == nil {
+			break
+		}
+
+		return e.complexity.DiscussionAccessLink.CreatedAt(childComplexity), true
+
+	case "DiscussionAccessLink.discussion":
+		if e.complexity.DiscussionAccessLink.Discussion == nil {
+			break
+		}
+
+		return e.complexity.DiscussionAccessLink.Discussion(childComplexity), true
+
+	case "DiscussionAccessLink.isDeleted":
+		if e.complexity.DiscussionAccessLink.IsDeleted == nil {
+			break
+		}
+
+		return e.complexity.DiscussionAccessLink.IsDeleted(childComplexity), true
+
+	case "DiscussionAccessLink.linkSlug":
+		if e.complexity.DiscussionAccessLink.LinkSlug == nil {
+			break
+		}
+
+		return e.complexity.DiscussionAccessLink.LinkSlug(childComplexity), true
+
+	case "DiscussionAccessLink.updatedAt":
+		if e.complexity.DiscussionAccessLink.UpdatedAt == nil {
+			break
+		}
+
+		return e.complexity.DiscussionAccessLink.UpdatedAt(childComplexity), true
 
 	case "DiscussionAccessRequest.createdAt":
 		if e.complexity.DiscussionAccessRequest.CreatedAt == nil {
@@ -2527,9 +2585,11 @@ var sources = []*ast.Source{
     idleMinutes: Int!
     tags: [Tag!]
     upcomingContent: [ImportedContent!]
-    flairTemplates: [FlairTemplate!]
+    flairTemplates: [FlairTemplate!] @deprecated(reason: "removed flair template access")
     accessRequests: [DiscussionAccessRequest!]
-    discussionLinksAccess: DiscussionLinkAccess!
+    discussionLinksAccess: DiscussionLinkAccess! @deprecated(reason: "user DiscussionAccessLink")
+
+    discussionAccessLink: DiscussionAccessLink!
 
     discussionJoinability: DiscussionJoinabilitySetting!
 }
@@ -2587,6 +2647,14 @@ type DiscussionLinkAccess {
     vipInviteLinkURL: String!
     createdAt: String!
     updatedAt: String!
+    isDeleted: Boolean!
+}
+
+type DiscussionAccessLink {
+    discussion: Discussion!
+    linkSlug: String!
+    createdAt: Time!
+    updatedAt: Time!
     isDeleted: Boolean!
 }
 
@@ -2969,8 +3037,8 @@ type Mutation {
 
   conciergeMutation(discussionID: ID!, mutationID: ID!, selectedOptions:[String!]): Post! # Heterogeneous endpoint. Think about what we want to return here. Could use entities? What does that gain us?
   # Add flair accessibility to private discussions
-  addDiscussionFlairTemplatesAccess(discussionID: ID!, flairTemplateIDs:[ID!]): Discussion!
-  deleteDiscussionFlairTemplatesAccess(discussionID: ID!, flairTemplateIDs:[ID!]): Discussion!
+  addDiscussionFlairTemplatesAccess(discussionID: ID!, flairTemplateIDs:[ID!]): Discussion! @deprecated(reason: "getting rid of flair template access")
+  deleteDiscussionFlairTemplatesAccess(discussionID: ID!, flairTemplateIDs:[ID!]): Discussion! @deprecated(reason: "getting rid of flair template access")
 
   # Invites
   inviteUserToDiscussion(discussionID: ID!, userID: ID!, invitingParticipantID: ID!): DiscussionInvite!
@@ -2980,7 +3048,7 @@ type Mutation {
   requestAccessToDiscussion(discussionID: ID!): DiscussionAccessRequest!
   respondToRequestAccess(requestID: ID!, response: InviteRequestStatus!): DiscussionAccessRequest!
 
-  joinDiscussionWithVIPToken(discussionID: ID!, vipToken: ID!): Discussion!
+  joinDiscussionWithVIPToken(discussionID: ID!, vipToken: ID!): Discussion! @deprecated(reason: "getting rid of vip links")
 
   # Posts
   deletePost(discussionID: ID!, postID: ID!): Post!
@@ -5238,6 +5306,40 @@ func (ec *executionContext) _Discussion_discussionLinksAccess(ctx context.Contex
 	return ec.marshalNDiscussionLinkAccess2ᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐDiscussionLinkAccess(ctx, field.Selections, res)
 }
 
+func (ec *executionContext) _Discussion_discussionAccessLink(ctx context.Context, field graphql.CollectedField, obj *model.Discussion) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "Discussion",
+		Field:    field,
+		Args:     nil,
+		IsMethod: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Discussion().DiscussionAccessLink(rctx, obj)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.DiscussionAccessLink)
+	fc.Result = res
+	return ec.marshalNDiscussionAccessLink2ᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐDiscussionAccessLink(ctx, field.Selections, res)
+}
+
 func (ec *executionContext) _Discussion_discussionJoinability(ctx context.Context, field graphql.CollectedField, obj *model.Discussion) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -5270,6 +5372,176 @@ func (ec *executionContext) _Discussion_discussionJoinability(ctx context.Contex
 	res := resTmp.(model.DiscussionJoinabilitySetting)
 	fc.Result = res
 	return ec.marshalNDiscussionJoinabilitySetting2githubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐDiscussionJoinabilitySetting(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _DiscussionAccessLink_discussion(ctx context.Context, field graphql.CollectedField, obj *model.DiscussionAccessLink) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "DiscussionAccessLink",
+		Field:    field,
+		Args:     nil,
+		IsMethod: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.DiscussionAccessLink().Discussion(rctx, obj)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.Discussion)
+	fc.Result = res
+	return ec.marshalNDiscussion2ᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐDiscussion(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _DiscussionAccessLink_linkSlug(ctx context.Context, field graphql.CollectedField, obj *model.DiscussionAccessLink) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "DiscussionAccessLink",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.LinkSlug, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _DiscussionAccessLink_createdAt(ctx context.Context, field graphql.CollectedField, obj *model.DiscussionAccessLink) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "DiscussionAccessLink",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.CreatedAt, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(time.Time)
+	fc.Result = res
+	return ec.marshalNTime2timeᚐTime(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _DiscussionAccessLink_updatedAt(ctx context.Context, field graphql.CollectedField, obj *model.DiscussionAccessLink) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "DiscussionAccessLink",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.UpdatedAt, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(time.Time)
+	fc.Result = res
+	return ec.marshalNTime2timeᚐTime(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _DiscussionAccessLink_isDeleted(ctx context.Context, field graphql.CollectedField, obj *model.DiscussionAccessLink) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "DiscussionAccessLink",
+		Field:    field,
+		Args:     nil,
+		IsMethod: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.DiscussionAccessLink().IsDeleted(rctx, obj)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(bool)
+	fc.Result = res
+	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _DiscussionAccessRequest_id(ctx context.Context, field graphql.CollectedField, obj *model.DiscussionAccessRequest) (ret graphql.Marshaler) {
@@ -13763,6 +14035,20 @@ func (ec *executionContext) _Discussion(ctx context.Context, sel ast.SelectionSe
 				}
 				return res
 			})
+		case "discussionAccessLink":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Discussion_discussionAccessLink(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
 		case "discussionJoinability":
 			field := field
 			out.Concurrently(i, func() (res graphql.Marshaler) {
@@ -13772,6 +14058,71 @@ func (ec *executionContext) _Discussion(ctx context.Context, sel ast.SelectionSe
 					}
 				}()
 				res = ec._Discussion_discussionJoinability(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
+var discussionAccessLinkImplementors = []string{"DiscussionAccessLink"}
+
+func (ec *executionContext) _DiscussionAccessLink(ctx context.Context, sel ast.SelectionSet, obj *model.DiscussionAccessLink) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, discussionAccessLinkImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("DiscussionAccessLink")
+		case "discussion":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._DiscussionAccessLink_discussion(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
+		case "linkSlug":
+			out.Values[i] = ec._DiscussionAccessLink_linkSlug(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&invalids, 1)
+			}
+		case "createdAt":
+			out.Values[i] = ec._DiscussionAccessLink_createdAt(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&invalids, 1)
+			}
+		case "updatedAt":
+			out.Values[i] = ec._DiscussionAccessLink_updatedAt(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&invalids, 1)
+			}
+		case "isDeleted":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._DiscussionAccessLink_isDeleted(ctx, field, obj)
 				if res == graphql.Null {
 					atomic.AddUint32(&invalids, 1)
 				}
@@ -16309,6 +16660,20 @@ func (ec *executionContext) marshalNDiscussion2ᚖgithubᚗcomᚋdelphisᚑinc�
 		return graphql.Null
 	}
 	return ec._Discussion(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalNDiscussionAccessLink2githubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐDiscussionAccessLink(ctx context.Context, sel ast.SelectionSet, v model.DiscussionAccessLink) graphql.Marshaler {
+	return ec._DiscussionAccessLink(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNDiscussionAccessLink2ᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐDiscussionAccessLink(ctx context.Context, sel ast.SelectionSet, v *model.DiscussionAccessLink) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	return ec._DiscussionAccessLink(ctx, sel, v)
 }
 
 func (ec *executionContext) marshalNDiscussionAccessRequest2githubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐDiscussionAccessRequest(ctx context.Context, sel ast.SelectionSet, v model.DiscussionAccessRequest) graphql.Marshaler {
