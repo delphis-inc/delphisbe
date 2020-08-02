@@ -409,6 +409,7 @@ func (r *mutationResolver) DeleteDiscussionTags(ctx context.Context, discussionI
 	return r.DAOManager.DeleteDiscussionTags(ctx, discussionID, tags)
 }
 
+// @deprecated
 func (r *mutationResolver) ConciergeMutation(ctx context.Context, discussionID string, mutationID string, selectedOptions []string) (*model.Post, error) {
 	authedUser := auth.GetAuthedUser(ctx)
 	if authedUser == nil {
@@ -418,6 +419,7 @@ func (r *mutationResolver) ConciergeMutation(ctx context.Context, discussionID s
 	return &model.Post{}, nil
 }
 
+// @deprecated
 func (r *mutationResolver) AddDiscussionFlairTemplatesAccess(ctx context.Context, discussionID string, flairTemplateIDs []string) (*model.Discussion, error) {
 	authedUser := auth.GetAuthedUser(ctx)
 	if authedUser == nil {
@@ -433,6 +435,7 @@ func (r *mutationResolver) AddDiscussionFlairTemplatesAccess(ctx context.Context
 	return &model.Discussion{}, nil
 }
 
+// @deprecated
 func (r *mutationResolver) DeleteDiscussionFlairTemplatesAccess(ctx context.Context, discussionID string, flairTemplateIDs []string) (*model.Discussion, error) {
 	authedUser := auth.GetAuthedUser(ctx)
 	if authedUser == nil {
@@ -574,6 +577,7 @@ func (r *mutationResolver) RespondToRequestAccess(ctx context.Context, requestID
 	return r.DAOManager.RespondToRequestAccess(ctx, requestID, response, nonAnonUserID)
 }
 
+// @deprecated
 func (r *mutationResolver) JoinDiscussionWithVIPToken(ctx context.Context, discussionID string, vipToken string) (*model.Discussion, error) {
 	authedUser := auth.GetAuthedUser(ctx)
 	if authedUser == nil {
@@ -769,13 +773,3 @@ func (r *Resolver) Subscription() generated.SubscriptionResolver { return &subsc
 type mutationResolver struct{ *Resolver }
 type queryResolver struct{ *Resolver }
 type subscriptionResolver struct{ *Resolver }
-
-// !!! WARNING !!!
-// The code below was going to be deleted when updating resolvers. It has been copied here so you have
-// one last chance to move it out of harms way if you want. There are two reasons this happens:
-//  - When renaming or deleting a resolver the old code will be put in here. You can safely delete
-//    it when you're done.
-//  - You have helper methods in this file. Move them out to keep these resolver files clean.
-func (r *queryResolver) DiscussionByAccessLink(ctx context.Context, slug string) (*model.Discussion, error) {
-	panic(fmt.Errorf("not implemented"))
-}

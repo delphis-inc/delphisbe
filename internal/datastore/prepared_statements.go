@@ -661,7 +661,7 @@ const getAccessLinkBySlugString = `
 			deleted_at
 		FROM discussion_access_link
 		WHERE link_slug = $1
-			AND deleted_at is null`
+			AND deleted_at is null;`
 
 const getAccessLinkByDiscussionIDString = `
 		SELECT discussion_id,
@@ -671,7 +671,7 @@ const getAccessLinkByDiscussionIDString = `
 			deleted_at
 		FROM discussion_access_link
 		WHERE discussion_id = $1
-			AND deleted_at is null`
+			AND deleted_at is null LIMIT 1;`
 
 const putAccessLinkForDiscussionString = `
 		INSERT into discussion_access_link (
