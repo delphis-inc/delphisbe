@@ -264,6 +264,7 @@ type ComplexityRoot struct {
 	}
 
 	Participant struct {
+		AnonDisplayName                   func(childComplexity int) int
 		Discussion                        func(childComplexity int) int
 		DiscussionNotificationPreferences func(childComplexity int) int
 		Flair                             func(childComplexity int) int
@@ -546,6 +547,8 @@ type ParticipantResolver interface {
 	Inviter(ctx context.Context, obj *model.Participant) (*model.Participant, error)
 
 	UserProfile(ctx context.Context, obj *model.Participant) (*model.UserProfile, error)
+
+	AnonDisplayName(ctx context.Context, obj *model.Participant) (*string, error)
 }
 type ParticipantsConnectionResolver interface {
 	Edges(ctx context.Context, obj *model.ParticipantsConnection) ([]*model.ParticipantsEdge, error)
@@ -1716,6 +1719,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.PageInfo.StartCursor(childComplexity), true
 
+	case "Participant.anonDisplayName":
+		if e.complexity.Participant.AnonDisplayName == nil {
+			break
+		}
+
+		return e.complexity.Participant.AnonDisplayName(childComplexity), true
+
 	case "Participant.discussion":
 		if e.complexity.Participant.Discussion == nil {
 			break
@@ -2670,6 +2680,7 @@ type DiscussionAccessLink {
 # }
 `, BuiltIn: false},
 	&ast.Source{Name: "graph/types/discussion_notification_preferences.graphqls", Input: `union DiscussionNotificationPreferences = ViewerNotificationPreferences | ParticipantNotificationPreferences`, BuiltIn: false},
+	&ast.Source{Name: "graph/types/discussion_shuffle_time.graphqls", Input: ``, BuiltIn: false},
 	&ast.Source{Name: "graph/types/discussion_subscription.graphqls", Input: `interface DiscussionSubscriptionEntity {
     id: ID!
 }
@@ -2853,6 +2864,9 @@ type MediaSize {
     userProfile: UserProfile
 
     isBanned: Boolean!
+
+    # The participant's display name if they are anonymous
+    anonDisplayName: String
 }
 `, BuiltIn: false},
 	&ast.Source{Name: "graph/types/participant_notification_preferences.graphqls", Input: `type ParticipantNotificationPreferences {
@@ -9141,6 +9155,37 @@ func (ec *executionContext) _Participant_isBanned(ctx context.Context, field gra
 	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
 }
 
+func (ec *executionContext) _Participant_anonDisplayName(ctx context.Context, field graphql.CollectedField, obj *model.Participant) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "Participant",
+		Field:    field,
+		Args:     nil,
+		IsMethod: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Participant().AnonDisplayName(rctx, obj)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*string)
+	fc.Result = res
+	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
+}
+
 func (ec *executionContext) _ParticipantNotificationPreferences_id(ctx context.Context, field graphql.CollectedField, obj *model.ParticipantNotificationPreferences) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -15146,6 +15191,17 @@ func (ec *executionContext) _Participant(ctx context.Context, sel ast.SelectionS
 			if out.Values[i] == graphql.Null {
 				atomic.AddUint32(&invalids, 1)
 			}
+		case "anonDisplayName":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Participant_anonDisplayName(ctx, field, obj)
+				return res
+			})
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}

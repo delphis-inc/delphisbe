@@ -85,6 +85,8 @@ type Datastore interface {
 	GetScheduledImportedContentByDiscussionID(ctx context.Context, discussionID string) ContentIter
 	PutImportedContentDiscussionQueue(ctx context.Context, discussionID, contentID string, postedAt *time.Time, matchingTags []string) (*model.ContentQueueRecord, error)
 	UpdateImportedContentDiscussionQueue(ctx context.Context, discussionID, contentID string, postedAt *time.Time) (*model.ContentQueueRecord, error)
+	GetNextShuffleTimeForDiscussionID(ctx context.Context, id string) (*model.DiscussionShuffleTime, error)
+	PutNextShuffleTimeForDiscussionID(ctx context.Context, tx *sql2.Tx, id string, shuffleTime *time.Time) (*model.DiscussionShuffleTime, error)
 
 	// Helper functions
 	PostIterCollect(ctx context.Context, iter PostIter) ([]*model.Post, error)
@@ -433,6 +435,17 @@ func (d *delphisDB) initializeStatements(ctx context.Context) (err error) {
 	if d.prepStmts.putAccessLinkForDiscussionString, err = d.pg.PrepareContext(ctx, putAccessLinkForDiscussionString); err != nil {
 		logrus.WithError(err).Error("failed to prepare putAccessLinkForDiscussionString")
 		return errors.Wrap(err, "failed to prepare putAccessLinkForDiscussionString")
+	}
+
+	// Discussion Shuffle Time
+	if d.prepStmts.getNextShuffleTimeForDiscussionIDString, err = d.pg.PrepareContext(ctx, getNextShuffleTimeForDiscussionIDString); err != nil {
+		logrus.WithError(err).Error("failed to prepare getNextShuffleTimeForDiscussionIDString")
+		return errors.Wrap(err, "failed to prepare getNextShuffleTimeForDiscussionIDString")
+	}
+
+	if d.prepStmts.putNextShuffleTimeForDiscussionIDString, err = d.pg.PrepareContext(ctx, putNextShuffleTimeForDiscussionIDString); err != nil {
+		logrus.WithError(err).Error("failed to prepare putNextShuffleTimeForDiscussionIDString")
+		return errors.Wrap(err, "failed to prepare putNextShuffleTimeForDiscussionIDString")
 	}
 
 	d.ready = true

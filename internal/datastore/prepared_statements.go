@@ -69,6 +69,10 @@ type dbPrepStmts struct {
 	getAccessLinkBySlugStmt           *sql2.Stmt
 	getAccessLinkByDiscussionIDString *sql2.Stmt
 	putAccessLinkForDiscussionString  *sql2.Stmt
+
+	// DiscussionShuffleTimes
+	getNextShuffleTimeForDiscussionIDString *sql2.Stmt
+	putNextShuffleTimeForDiscussionIDString *sql2.Stmt
 }
 
 const getPostByIDString = `
@@ -683,3 +687,20 @@ const putAccessLinkForDiscussionString = `
 			created_at,
 			updated_at,
 			deleted_at;`
+
+const getNextShuffleTimeForDiscussionIDString = `
+		SELECT discussion_id,
+			shuffle_time
+		from discussion_shuffle_time
+		WHERE discussion_id = $1;`
+
+const putNextShuffleTimeForDiscussionIDString = `
+		INSERT INTO discussion_shuffle_time (
+			discussion_id,
+			shuffle_time
+		) VALUES ($1, $2)
+		ON CONFLICT (discussion_id)
+		DO UPDATE SET shuffle_time = $2
+		RETURNING
+			discussion_id
+			shuffle_time;`

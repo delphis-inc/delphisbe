@@ -23,4 +23,7 @@ type Participant implements Entity & DiscussionSubscriptionEntity {
     userProfile: UserProfile
 
     isBanned: Boolean!
+
+    # The participant's display name if they are anonymous
+    anonDisplayName: String
 }

@@ -118,6 +118,8 @@ type DelphisBackend interface {
 	GetAccessLinkBySlug(ctx context.Context, slug string) (*model.DiscussionAccessLink, error)
 	GetAccessLinkByDiscussionID(ctx context.Context, discussionID string) (*model.DiscussionAccessLink, error)
 	PutAccessLinkForDiscussion(ctx context.Context, discussionID string) (*model.DiscussionAccessLink, error)
+	GetNextDiscussionShuffleTime(ctx context.Context, discussionID string) (*model.DiscussionShuffleTime, error)
+	PutDiscussionShuffleTime(ctx context.Context, discussionID string, shuffleTime *time.Time) (*model.DiscussionShuffleTime, error)
 }
 
 type delphisBackend struct {

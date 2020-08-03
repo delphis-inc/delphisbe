@@ -127,6 +127,10 @@ func (r *participantResolver) UserProfile(ctx context.Context, obj *model.Partic
 	return userProfile, nil
 }
 
+func (r *participantResolver) AnonDisplayName(ctx context.Context, obj *model.Participant) (*string, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
 // Participant returns generated.ParticipantResolver implementation.
 func (r *Resolver) Participant() generated.ParticipantResolver { return &participantResolver{r} }
 
