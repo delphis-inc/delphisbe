@@ -92,7 +92,7 @@ func doWork(ctx context.Context, delphisBackend backend.DelphisBackend) {
 		}
 	}
 
-	// Iterate over discussions. Check if the concierge user has a participant, if not add one
+	// Iterate over discussions. Update discussions with last post
 	for _, disc := range discussions {
 		post, err := delphisBackend.GetLastPostByDiscussionID(ctx, disc.ID)
 		if err != nil {
