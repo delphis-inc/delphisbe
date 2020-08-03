@@ -409,8 +409,8 @@ func (r *mutationResolver) DeleteDiscussionTags(ctx context.Context, discussionI
 	return r.DAOManager.DeleteDiscussionTags(ctx, discussionID, tags)
 }
 
-// @deprecated
 func (r *mutationResolver) ConciergeMutation(ctx context.Context, discussionID string, mutationID string, selectedOptions []string) (*model.Post, error) {
+	// @deprecated
 	authedUser := auth.GetAuthedUser(ctx)
 	if authedUser == nil {
 		return nil, fmt.Errorf("Need auth")
@@ -419,8 +419,8 @@ func (r *mutationResolver) ConciergeMutation(ctx context.Context, discussionID s
 	return &model.Post{}, nil
 }
 
-// @deprecated
 func (r *mutationResolver) AddDiscussionFlairTemplatesAccess(ctx context.Context, discussionID string, flairTemplateIDs []string) (*model.Discussion, error) {
+	// @deprecated
 	authedUser := auth.GetAuthedUser(ctx)
 	if authedUser == nil {
 		return nil, fmt.Errorf("Need auth")
@@ -435,8 +435,8 @@ func (r *mutationResolver) AddDiscussionFlairTemplatesAccess(ctx context.Context
 	return &model.Discussion{}, nil
 }
 
-// @deprecated
 func (r *mutationResolver) DeleteDiscussionFlairTemplatesAccess(ctx context.Context, discussionID string, flairTemplateIDs []string) (*model.Discussion, error) {
+	// @deprecated
 	authedUser := auth.GetAuthedUser(ctx)
 	if authedUser == nil {
 		return nil, fmt.Errorf("Need auth")
@@ -577,8 +577,8 @@ func (r *mutationResolver) RespondToRequestAccess(ctx context.Context, requestID
 	return r.DAOManager.RespondToRequestAccess(ctx, requestID, response, nonAnonUserID)
 }
 
-// @deprecated
 func (r *mutationResolver) JoinDiscussionWithVIPToken(ctx context.Context, discussionID string, vipToken string) (*model.Discussion, error) {
+	// @deprecated
 	authedUser := auth.GetAuthedUser(ctx)
 	if authedUser == nil {
 		return nil, fmt.Errorf("Need auth")
