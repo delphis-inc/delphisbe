@@ -38,8 +38,8 @@ type Discussion struct {
 	IdleMinutes           int                          `json:"idle_minutes"`
 	IconURL               *string                      `json:"icon_url"`
 	DiscussionJoinability DiscussionJoinabilitySetting `json:"discussion_joinability"`
-	LastPostID            string                       `json:"last_post_id"`
-	LastPostCreatedAt     time.Time                    `json:"last_post_created_at"`
+	LastPostID            *string                      `json:"last_post_id"`
+	LastPostCreatedAt     *time.Time                   `json:"last_post_created_at"`
 }
 
 type DiscussionInput struct {

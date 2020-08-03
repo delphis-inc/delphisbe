@@ -411,7 +411,6 @@ func TestDelphisDB_GetLastPostByDiscussionID(t *testing.T) {
 		QuotedPostID: &postID,
 		PostType:     model.PostTypeStandard,
 	}
-	minuteRange := 120
 
 	Convey("GetLastPostByDiscussionID", t, func() {
 		db, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
@@ -441,7 +440,7 @@ func TestDelphisDB_GetLastPostByDiscussionID(t *testing.T) {
 
 		Convey("when query execution returns an error", func() {
 			mockPreparedStatements(mock)
-			mock.ExpectQuery(getLastPostByDiscussionIDStmt).WithArgs(discussionID, minuteRange).WillReturnError(fmt.Errorf("error"))
+			mock.ExpectQuery(getLastPostByDiscussionIDStmt).WithArgs(discussionID).WillReturnError(fmt.Errorf("error"))
 
 			resp, err := mockDatastore.GetLastPostByDiscussionID(ctx, discussionID)
 
@@ -452,7 +451,7 @@ func TestDelphisDB_GetLastPostByDiscussionID(t *testing.T) {
 
 		Convey("when query execution returns no rows", func() {
 			mockPreparedStatements(mock)
-			mock.ExpectQuery(getLastPostByDiscussionIDStmt).WithArgs(discussionID, minuteRange).WillReturnError(sql.ErrNoRows)
+			mock.ExpectQuery(getLastPostByDiscussionIDStmt).WithArgs(discussionID).WillReturnError(sql.ErrNoRows)
 
 			resp, err := mockDatastore.GetLastPostByDiscussionID(ctx, discussionID)
 
@@ -468,7 +467,7 @@ func TestDelphisDB_GetLastPostByDiscussionID(t *testing.T) {
 				AddRow(postObject.ID, postObject.CreatedAt, postObject.UpdatedAt, postObject.DeletedAt, postObject.DeletedReasonCode, postObject.DiscussionID,
 					postObject.ParticipantID, postObject.QuotedPostID, postObject.MediaID, postObject.ImportedContentID, postObject.PostType, postObject.PostContent.ID, postObject.PostContent.Content, pq.Array(postObject.PostContent.MentionedEntities))
 
-			mock.ExpectQuery(getLastPostByDiscussionIDStmt).WithArgs(discussionID, minuteRange).WillReturnRows(rs)
+			mock.ExpectQuery(getLastPostByDiscussionIDStmt).WithArgs(discussionID).WillReturnRows(rs)
 
 			resp, err := mockDatastore.GetLastPostByDiscussionID(ctx, discussionID)
 
