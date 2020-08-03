@@ -38,6 +38,21 @@ type Discussion struct {
 	IdleMinutes           int                          `json:"idle_minutes"`
 	IconURL               *string                      `json:"icon_url"`
 	DiscussionJoinability DiscussionJoinabilitySetting `json:"discussion_joinability"`
+	LastPostID            string                       `json:"last_post_id"`
+	LastPostCreatedAt     time.Time                    `json:"last_post_created_at"`
+}
+
+type DiscussionInput struct {
+	AnonymityType         *AnonymityType                `json:"anonymityType"`
+	Title                 *string                       `json:"title"`
+	Description           *string                       `json:"description"`
+	AutoPost              *bool                         `json:"autoPost"`
+	IdleMinutes           *int                          `json:"idleMinutes"`
+	PublicAccess          *bool                         `json:"publicAccess"`
+	IconURL               *string                       `json:"iconURL"`
+	DiscussionJoinability *DiscussionJoinabilitySetting `json:"discussionJoinability"`
+	LastPostID            *string                       `json:"lastPostID"`
+	LastPostCreatedAt     *time.Time                    `json:"lastPostCreatedAt"`
 }
 
 func (Discussion) IsEntity() {}

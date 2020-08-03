@@ -154,6 +154,8 @@ func (d *delphisDB) UpsertDiscussion(ctx context.Context, discussion model.Discu
 			"TitleHistory":          discussion.TitleHistory,
 			"DescriptionHistory":    discussion.DescriptionHistory,
 			"DiscussionJoinability": discussion.DiscussionJoinability,
+			"LastPostID":            discussion.LastPostID,
+			"LastPostCreatedAt":     discussion.LastPostCreatedAt,
 		}).First(&found).Error; err != nil {
 			logrus.WithError(err).Errorf("UpsertDiscussion::Failed updating disucssion object")
 			return nil, err

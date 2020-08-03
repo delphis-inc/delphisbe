@@ -432,7 +432,7 @@ func TestDelphisDB_GetLastPostByDiscussionID(t *testing.T) {
 		Convey("when preparing statements returns an error", func() {
 			mockPreparedStatementsWithError(mock)
 
-			resp, err := mockDatastore.GetLastPostByDiscussionID(ctx, discussionID, minuteRange)
+			resp, err := mockDatastore.GetLastPostByDiscussionID(ctx, discussionID)
 
 			So(err, ShouldNotBeNil)
 			So(resp, ShouldBeNil)
@@ -443,7 +443,7 @@ func TestDelphisDB_GetLastPostByDiscussionID(t *testing.T) {
 			mockPreparedStatements(mock)
 			mock.ExpectQuery(getLastPostByDiscussionIDStmt).WithArgs(discussionID, minuteRange).WillReturnError(fmt.Errorf("error"))
 
-			resp, err := mockDatastore.GetLastPostByDiscussionID(ctx, discussionID, minuteRange)
+			resp, err := mockDatastore.GetLastPostByDiscussionID(ctx, discussionID)
 
 			So(err, ShouldNotBeNil)
 			So(resp, ShouldBeNil)
@@ -454,7 +454,7 @@ func TestDelphisDB_GetLastPostByDiscussionID(t *testing.T) {
 			mockPreparedStatements(mock)
 			mock.ExpectQuery(getLastPostByDiscussionIDStmt).WithArgs(discussionID, minuteRange).WillReturnError(sql.ErrNoRows)
 
-			resp, err := mockDatastore.GetLastPostByDiscussionID(ctx, discussionID, minuteRange)
+			resp, err := mockDatastore.GetLastPostByDiscussionID(ctx, discussionID)
 
 			So(err, ShouldBeNil)
 			So(resp, ShouldBeNil)
@@ -470,7 +470,7 @@ func TestDelphisDB_GetLastPostByDiscussionID(t *testing.T) {
 
 			mock.ExpectQuery(getLastPostByDiscussionIDStmt).WithArgs(discussionID, minuteRange).WillReturnRows(rs)
 
-			resp, err := mockDatastore.GetLastPostByDiscussionID(ctx, discussionID, minuteRange)
+			resp, err := mockDatastore.GetLastPostByDiscussionID(ctx, discussionID)
 
 			So(err, ShouldBeNil)
 			So(resp, ShouldNotBeNil)

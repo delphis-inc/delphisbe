@@ -50,17 +50,6 @@ type DiscussionCreationSettings struct {
 	DiscussionJoinability DiscussionJoinabilitySetting `json:"discussionJoinability"`
 }
 
-type DiscussionInput struct {
-	AnonymityType         *AnonymityType                `json:"anonymityType"`
-	Title                 *string                       `json:"title"`
-	Description           *string                       `json:"description"`
-	AutoPost              *bool                         `json:"autoPost"`
-	IdleMinutes           *int                          `json:"idleMinutes"`
-	PublicAccess          *bool                         `json:"publicAccess"`
-	IconURL               *string                       `json:"iconURL"`
-	DiscussionJoinability *DiscussionJoinabilitySetting `json:"discussionJoinability"`
-}
-
 type DiscussionLinkAccess struct {
 	DiscussionID     string `json:"discussionID"`
 	InviteLinkURL    string `json:"inviteLinkURL"`
