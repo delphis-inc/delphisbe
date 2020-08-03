@@ -750,7 +750,7 @@ func (_m *Datastore) GetInvitedTwitterHandlesByDiscussionIDAndInviterID(ctx cont
 }
 
 // GetLastPostByDiscussionID provides a mock function with given fields: ctx, discussionID, minutes
-func (_m *Datastore) GetLastPostByDiscussionID(ctx context.Context, discussionID string, minutes int) (*model.Post, error) {
+func (_m *Datastore) GetLastPostByDiscussionID(ctx context.Context, discussionID string) (*model.Post, error) {
 	ret := _m.Called(ctx, discussionID, minutes)
 
 	var r0 *model.Post

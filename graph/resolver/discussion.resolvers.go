@@ -202,6 +202,7 @@ func (r *discussionResolver) UpcomingContent(ctx context.Context, obj *model.Dis
 }
 
 func (r *discussionResolver) FlairTemplates(ctx context.Context, obj *model.Discussion) ([]*model.FlairTemplate, error) {
+	// @deprecated
 	return []*model.FlairTemplate{}, nil
 }
 
@@ -221,6 +222,7 @@ func (r *discussionResolver) AccessRequests(ctx context.Context, obj *model.Disc
 }
 
 func (r *discussionResolver) DiscussionLinksAccess(ctx context.Context, obj *model.Discussion) (*model.DiscussionLinkAccess, error) {
+	// @deprecated
 	authedUser := auth.GetAuthedUser(ctx)
 	if authedUser == nil {
 		return nil, fmt.Errorf("Need auth")
@@ -288,26 +290,32 @@ func (r *discussionAccessRequestResolver) Discussion(ctx context.Context, obj *m
 }
 
 func (r *discussionFlairTemplateAccessResolver) ID(ctx context.Context, obj *model.DiscussionFlairTemplateAccess) (string, error) {
+	// @deprecated
 	return "", nil
 }
 
 func (r *discussionFlairTemplateAccessResolver) Discussion(ctx context.Context, obj *model.DiscussionFlairTemplateAccess) (*model.Discussion, error) {
+	// @deprecated
 	return &model.Discussion{}, nil
 }
 
 func (r *discussionFlairTemplateAccessResolver) FlairTemplate(ctx context.Context, obj *model.DiscussionFlairTemplateAccess) (*model.FlairTemplate, error) {
+	// @deprecated
 	return &model.FlairTemplate{}, nil
 }
 
 func (r *discussionFlairTemplateAccessResolver) CreatedAt(ctx context.Context, obj *model.DiscussionFlairTemplateAccess) (string, error) {
+	// @deprecated
 	return "", nil
 }
 
 func (r *discussionFlairTemplateAccessResolver) UpdatedAt(ctx context.Context, obj *model.DiscussionFlairTemplateAccess) (string, error) {
+	// @deprecated
 	return "", nil
 }
 
 func (r *discussionFlairTemplateAccessResolver) IsDeleted(ctx context.Context, obj *model.DiscussionFlairTemplateAccess) (bool, error) {
+	// @deprecated
 	return false, nil
 }
 
@@ -320,10 +328,12 @@ func (r *discussionInviteResolver) InvitingParticipant(ctx context.Context, obj 
 }
 
 func (r *discussionLinkAccessResolver) InviteLinkURL(ctx context.Context, obj *model.DiscussionLinkAccess) (string, error) {
+	// @deprecated
 	return "", nil
 }
 
 func (r *discussionLinkAccessResolver) VipInviteLinkURL(ctx context.Context, obj *model.DiscussionLinkAccess) (string, error) {
+	// @deprecated
 	return "", nil
 }
 

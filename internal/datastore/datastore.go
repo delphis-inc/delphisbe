@@ -52,7 +52,7 @@ type Datastore interface {
 	GetPostsByDiscussionIDIter(ctx context.Context, discussionID string) PostIter
 	GetPostsByDiscussionIDFromCursorIter(ctx context.Context, discussionID string, cursor string, limit int) PostIter
 	GetPostsConnectionByDiscussionID(ctx context.Context, discussionID string, cursor string, limit int) (*model.PostsConnection, error)
-	GetLastPostByDiscussionID(ctx context.Context, discussionID string, minutes int) (*model.Post, error)
+	GetLastPostByDiscussionID(ctx context.Context, discussionID string) (*model.Post, error)
 	GetPostContentByID(ctx context.Context, id string) (*model.PostContent, error)
 	PutPost(ctx context.Context, tx *sql2.Tx, post model.Post) (*model.Post, error)
 	PutPostContent(ctx context.Context, tx *sql2.Tx, postContent model.PostContent) error

@@ -161,7 +161,7 @@ func (d *delphisDB) GetPostsConnectionByDiscussionID(ctx context.Context, discus
 	}, nil
 }
 
-func (d *delphisDB) GetLastPostByDiscussionID(ctx context.Context, discussionID string, minutes int) (*model.Post, error) {
+func (d *delphisDB) GetLastPostByDiscussionID(ctx context.Context, discussionID string) (*model.Post, error) {
 	logrus.Debug("GetLastPostByDiscussionID::SQL Query")
 	if err := d.initializeStatements(ctx); err != nil {
 		logrus.WithError(err).Error("GetLastPostByDiscussionID::failed to initialize statements")
@@ -173,7 +173,6 @@ func (d *delphisDB) GetLastPostByDiscussionID(ctx context.Context, discussionID 
 	if err := d.prepStmts.getLastPostByDiscussionIDStmt.QueryRowContext(
 		ctx,
 		discussionID,
-		minutes,
 	).Scan(
 		&post.ID,
 		&post.CreatedAt,

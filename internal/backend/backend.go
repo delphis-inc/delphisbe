@@ -64,7 +64,7 @@ type DelphisBackend interface {
 	NotifySubscribersOfBannedParticipant(ctx context.Context, participant *model.Participant, discussionID string) error
 	GetPostsConnectionByDiscussionID(ctx context.Context, discussionID string, cursor string, limit int) (*model.PostsConnection, error)
 	GetPostsByDiscussionID(ctx context.Context, userID string, discussionID string) ([]*model.Post, error)
-	GetLastPostByDiscussionID(ctx context.Context, discussionID string, minutes int) (*model.Post, error)
+	GetLastPostByDiscussionID(ctx context.Context, discussionID string) (*model.Post, error)
 	GetPostContentByID(ctx context.Context, id string) (*model.PostContent, error)
 	DeletePostByID(ctx context.Context, discussionID string, postID string, requestingUserID string) (*model.Post, error)
 	GetUserProfileByID(ctx context.Context, id string) (*model.UserProfile, error)

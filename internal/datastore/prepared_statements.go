@@ -188,7 +188,6 @@ const getLastPostByDiscussionIDStmt = `
 		INNER JOIN post_contents pc
 		ON p.post_content_id = pc.id
 		WHERE p.discussion_id = $1
-			AND p.created_at > now() - interval '1 minute' * $2
 		ORDER BY p.created_at desc
 		LIMIT 1;`
 
@@ -476,12 +475,15 @@ const getDiscussionsByUserAccessString = `
 			d.description,
 			d.title_history,
 			d.description_history,
-			d.discussion_joinability
+			d.discussion_joinability,
+			d.last_post_id,
+			d.last_post_created_at
 		FROM discussion_user_access dua
 		INNER JOIN discussions d
 			ON dua.discussion_id = d.id
 		WHERE dua.user_id = $1
-			AND d.deleted_at is null;`
+			AND d.deleted_at is null
+		ORDER BY last_post_created_at desc;`
 
 const upsertDiscussionUserAccessString = `
 		INSERT INTO discussion_user_access (
@@ -656,7 +658,6 @@ const getInvitedTwitterHandlesByDiscussionIDAndInviterIDString = `
 		WHERE dui.discussion_id=$1 AND dui.invite_from_participant_id=$2;`
 
 // AccessLinks
-
 const getAccessLinkBySlugString = `
 		SELECT discussion_id,
 			link_slug,
