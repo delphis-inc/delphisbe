@@ -46,6 +46,10 @@ func (d *delphisBackend) checkIdleTime(ctx context.Context, discussionID string,
 		return false, err
 	}
 
+	if post == nil {
+		return true, nil
+	}
+
 	// Return true if no posts in the idle window
 	if time.Now().Add(-1 * time.Duration(minutes) * time.Minute).After(post.CreatedAt) {
 		return true, nil

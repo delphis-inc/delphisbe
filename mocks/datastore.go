@@ -749,13 +749,13 @@ func (_m *Datastore) GetInvitedTwitterHandlesByDiscussionIDAndInviterID(ctx cont
 	return r0, r1
 }
 
-// GetLastPostByDiscussionID provides a mock function with given fields: ctx, discussionID, minutes
+// GetLastPostByDiscussionID provides a mock function with given fields: ctx, discussionID
 func (_m *Datastore) GetLastPostByDiscussionID(ctx context.Context, discussionID string) (*model.Post, error) {
-	ret := _m.Called(ctx, discussionID, minutes)
+	ret := _m.Called(ctx, discussionID)
 
 	var r0 *model.Post
-	if rf, ok := ret.Get(0).(func(context.Context, string, int) *model.Post); ok {
-		r0 = rf(ctx, discussionID, minutes)
+	if rf, ok := ret.Get(0).(func(context.Context, string) *model.Post); ok {
+		r0 = rf(ctx, discussionID)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(*model.Post)
@@ -763,8 +763,8 @@ func (_m *Datastore) GetLastPostByDiscussionID(ctx context.Context, discussionID
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func(context.Context, string, int) error); ok {
-		r1 = rf(ctx, discussionID, minutes)
+	if rf, ok := ret.Get(1).(func(context.Context, string) error); ok {
+		r1 = rf(ctx, discussionID)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -903,6 +903,29 @@ func (_m *Datastore) GetModeratorParticipantsByDiscussionID(ctx context.Context,
 	var r1 error
 	if rf, ok := ret.Get(1).(func(context.Context, string) error); ok {
 		r1 = rf(ctx, discussionID)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// GetNextShuffleTimeForDiscussionID provides a mock function with given fields: ctx, id
+func (_m *Datastore) GetNextShuffleTimeForDiscussionID(ctx context.Context, id string) (*model.DiscussionShuffleTime, error) {
+	ret := _m.Called(ctx, id)
+
+	var r0 *model.DiscussionShuffleTime
+	if rf, ok := ret.Get(0).(func(context.Context, string) *model.DiscussionShuffleTime); ok {
+		r0 = rf(ctx, id)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*model.DiscussionShuffleTime)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(context.Context, string) error); ok {
+		r1 = rf(ctx, id)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -1582,6 +1605,29 @@ func (_m *Datastore) PutMediaRecord(ctx context.Context, tx *sql.Tx, media model
 	}
 
 	return r0
+}
+
+// PutNextShuffleTimeForDiscussionID provides a mock function with given fields: ctx, tx, id, shuffleTime
+func (_m *Datastore) PutNextShuffleTimeForDiscussionID(ctx context.Context, tx *sql.Tx, id string, shuffleTime *time.Time) (*model.DiscussionShuffleTime, error) {
+	ret := _m.Called(ctx, tx, id, shuffleTime)
+
+	var r0 *model.DiscussionShuffleTime
+	if rf, ok := ret.Get(0).(func(context.Context, *sql.Tx, string, *time.Time) *model.DiscussionShuffleTime); ok {
+		r0 = rf(ctx, tx, id, shuffleTime)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*model.DiscussionShuffleTime)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(context.Context, *sql.Tx, string, *time.Time) error); ok {
+		r1 = rf(ctx, tx, id, shuffleTime)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
 }
 
 // PutPost provides a mock function with given fields: ctx, tx, post

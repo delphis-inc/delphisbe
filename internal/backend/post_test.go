@@ -342,6 +342,7 @@ func TestDelphisBackend_CreatePost(t *testing.T) {
 			mockDB.On("PutActivity", ctx, mock.Anything, mock.Anything).Return(nil)
 			mockDB.On("CommitTx", ctx, mock.Anything).Return(nil)
 			mockDB.On("GetDiscussionByID", ctx, discussionID).Return(&discObj, nil)
+			mockDB.On("UpsertDiscussion", ctx, mock.Anything).Return(&discObj, nil)
 			mockDB.On("GetParticipantsByDiscussionID", ctx, discussionID).Return(nil, expectedError)
 			mockDB.On("GetUserDevicesByUserID", ctx, mock.Anything).Return(nil, expectedError)
 
@@ -358,6 +359,7 @@ func TestDelphisBackend_CreatePost(t *testing.T) {
 			mockDB.On("PutActivity", ctx, mock.Anything, mock.Anything).Return(nil)
 			mockDB.On("CommitTx", ctx, mock.Anything).Return(nil)
 			mockDB.On("GetDiscussionByID", ctx, discussionID).Return(&discObj, nil)
+			mockDB.On("UpsertDiscussion", ctx, mock.Anything).Return(&discObj, nil)
 			mockDB.On("GetParticipantsByDiscussionID", ctx, discussionID).Return(nil, nil)
 			mockDB.On("GetUserDevicesByUserID", ctx, mock.Anything).Return(nil, nil)
 
@@ -447,6 +449,7 @@ func TestDelphisBackend_CreateAlertPost(t *testing.T) {
 			mockDB.On("PutActivity", ctx, mock.Anything, mock.Anything).Return(nil)
 			mockDB.On("CommitTx", ctx, mock.Anything).Return(nil)
 			mockDB.On("GetDiscussionByID", ctx, discussionID).Return(&discObj, nil)
+			mockDB.On("UpsertDiscussion", ctx, mock.Anything).Return(&discObj, nil)
 			mockDB.On("GetParticipantsByDiscussionID", ctx, discussionID).Return(nil, nil)
 			mockDB.On("GetUserDevicesByUserID", ctx, mock.Anything).Return(nil, nil)
 
@@ -525,6 +528,7 @@ func TestDelphisBackend_PostImportedContent(t *testing.T) {
 			mockDB.On("PutActivity", ctx, mock.Anything, mock.Anything).Return(nil)
 			mockDB.On("CommitTx", ctx, mock.Anything).Return(nil)
 			mockDB.On("GetDiscussionByID", ctx, discussionID).Return(&discObj, nil)
+			mockDB.On("UpsertDiscussion", ctx, mock.Anything).Return(&discObj, nil)
 			mockDB.On("GetParticipantsByDiscussionID", ctx, discussionID).Return(nil, nil)
 			mockDB.On("GetUserDevicesByUserID", ctx, mock.Anything).Return(nil, nil)
 
@@ -547,6 +551,7 @@ func TestDelphisBackend_PostImportedContent(t *testing.T) {
 			mockDB.On("PutActivity", ctx, mock.Anything, mock.Anything).Return(nil)
 			mockDB.On("CommitTx", ctx, mock.Anything).Return(nil)
 			mockDB.On("GetDiscussionByID", ctx, discussionID).Return(&discObj, nil)
+			mockDB.On("UpsertDiscussion", ctx, mock.Anything).Return(&discObj, nil)
 			mockDB.On("GetParticipantsByDiscussionID", ctx, discussionID).Return(nil, nil)
 			mockDB.On("GetUserDevicesByUserID", ctx, mock.Anything).Return(nil, nil)
 
