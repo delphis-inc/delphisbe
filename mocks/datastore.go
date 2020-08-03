@@ -749,13 +749,13 @@ func (_m *Datastore) GetInvitedTwitterHandlesByDiscussionIDAndInviterID(ctx cont
 	return r0, r1
 }
 
-// GetLastPostByDiscussionID provides a mock function with given fields: ctx, discussionID, minutes
-func (_m *Datastore) GetLastPostByDiscussionID(ctx context.Context, discussionID string, minutes int) (*model.Post, error) {
-	ret := _m.Called(ctx, discussionID, minutes)
+// GetLastPostByDiscussionID provides a mock function with given fields: ctx, discussionID
+func (_m *Datastore) GetLastPostByDiscussionID(ctx context.Context, discussionID string) (*model.Post, error) {
+	ret := _m.Called(ctx, discussionID)
 
 	var r0 *model.Post
-	if rf, ok := ret.Get(0).(func(context.Context, string, int) *model.Post); ok {
-		r0 = rf(ctx, discussionID, minutes)
+	if rf, ok := ret.Get(0).(func(context.Context, string) *model.Post); ok {
+		r0 = rf(ctx, discussionID)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(*model.Post)
@@ -763,8 +763,8 @@ func (_m *Datastore) GetLastPostByDiscussionID(ctx context.Context, discussionID
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func(context.Context, string, int) error); ok {
-		r1 = rf(ctx, discussionID, minutes)
+	if rf, ok := ret.Get(1).(func(context.Context, string) error); ok {
+		r1 = rf(ctx, discussionID)
 	} else {
 		r1 = ret.Error(1)
 	}

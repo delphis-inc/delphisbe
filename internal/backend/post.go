@@ -103,8 +103,13 @@ func (d *delphisBackend) CreatePost(ctx context.Context, discussionID string, pa
 			return nil, err
 		}
 
+		discInput := model.DiscussionInput{
+			LastPostID:        &post.ID,
+			LastPostCreatedAt: &post.CreatedAt,
+		}
+
+		discussion, err := d.UpdateDiscussion(ctx, discussionID, discInput)
 		// If we reach this point then the transaction is succesfully committed and we should not retry
-		discussion, err := d.db.GetDiscussionByID(ctx, discussionID)
 		if err != nil {
 			logrus.WithError(err).Debugf("Skipping notification to subscribers because of an error")
 		} else {
@@ -298,8 +303,8 @@ func (d *delphisBackend) GetPostsByDiscussionID(ctx context.Context, userID stri
 	return posts, nil
 }
 
-func (d *delphisBackend) GetLastPostByDiscussionID(ctx context.Context, discussionID string, minutes int) (*model.Post, error) {
-	return d.db.GetLastPostByDiscussionID(ctx, discussionID, minutes)
+func (d *delphisBackend) GetLastPostByDiscussionID(ctx context.Context, discussionID string) (*model.Post, error) {
+	return d.db.GetLastPostByDiscussionID(ctx, discussionID)
 }
 
 func (d *delphisBackend) GetPostsConnectionByDiscussionID(ctx context.Context, discussionID string, cursor string, limit int) (*model.PostsConnection, error) {

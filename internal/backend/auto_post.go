@@ -39,14 +39,23 @@ func (d *delphisBackend) AutoPostContent() {
 }
 
 func (d *delphisBackend) checkIdleTime(ctx context.Context, discussionID string, minutes int) (bool, error) {
-	post, err := d.GetLastPostByDiscussionID(ctx, discussionID, minutes)
+	post, err := d.GetLastPostByDiscussionID(ctx, discussionID)
 
 	if err != nil {
 		logrus.WithError(err).Error("failed to get last post by discussion ID")
 		return false, err
 	}
 
-	return post == nil, nil
+	if post == nil {
+		return true, nil
+	}
+
+	// Return true if no posts in the idle window
+	if time.Now().Add(-1 * time.Duration(minutes) * time.Minute).After(post.CreatedAt) {
+		return true, nil
+	}
+
+	return false, nil
 }
 
 func (d *delphisBackend) postNextContent(ctx context.Context, discussionID string) error {

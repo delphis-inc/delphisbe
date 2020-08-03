@@ -201,8 +201,8 @@ func (r *discussionResolver) UpcomingContent(ctx context.Context, obj *model.Dis
 	return r.DAOManager.GetUpcomingImportedContentByDiscussionID(ctx, obj.ID)
 }
 
-// @deprecated
 func (r *discussionResolver) FlairTemplates(ctx context.Context, obj *model.Discussion) ([]*model.FlairTemplate, error) {
+	// @deprecated
 	return []*model.FlairTemplate{}, nil
 }
 
@@ -221,8 +221,8 @@ func (r *discussionResolver) AccessRequests(ctx context.Context, obj *model.Disc
 	return r.DAOManager.GetDiscussionAccessRequestsByDiscussionID(ctx, obj.ID)
 }
 
-// @deprecated
 func (r *discussionResolver) DiscussionLinksAccess(ctx context.Context, obj *model.Discussion) (*model.DiscussionLinkAccess, error) {
+	// @deprecated
 	authedUser := auth.GetAuthedUser(ctx)
 	if authedUser == nil {
 		return nil, fmt.Errorf("Need auth")
@@ -289,33 +289,33 @@ func (r *discussionAccessRequestResolver) Discussion(ctx context.Context, obj *m
 	return r.DAOManager.GetDiscussionByID(ctx, obj.DiscussionID)
 }
 
-// @deprecated
 func (r *discussionFlairTemplateAccessResolver) ID(ctx context.Context, obj *model.DiscussionFlairTemplateAccess) (string, error) {
+	// @deprecated
 	return "", nil
 }
 
-// @deprecated
 func (r *discussionFlairTemplateAccessResolver) Discussion(ctx context.Context, obj *model.DiscussionFlairTemplateAccess) (*model.Discussion, error) {
+	// @deprecated
 	return &model.Discussion{}, nil
 }
 
-// @deprecated
 func (r *discussionFlairTemplateAccessResolver) FlairTemplate(ctx context.Context, obj *model.DiscussionFlairTemplateAccess) (*model.FlairTemplate, error) {
+	// @deprecated
 	return &model.FlairTemplate{}, nil
 }
 
-// @deprecated
 func (r *discussionFlairTemplateAccessResolver) CreatedAt(ctx context.Context, obj *model.DiscussionFlairTemplateAccess) (string, error) {
+	// @deprecated
 	return "", nil
 }
 
-// @deprecated
 func (r *discussionFlairTemplateAccessResolver) UpdatedAt(ctx context.Context, obj *model.DiscussionFlairTemplateAccess) (string, error) {
+	// @deprecated
 	return "", nil
 }
 
-// @deprecated
 func (r *discussionFlairTemplateAccessResolver) IsDeleted(ctx context.Context, obj *model.DiscussionFlairTemplateAccess) (bool, error) {
+	// @deprecated
 	return false, nil
 }
 
@@ -327,13 +327,13 @@ func (r *discussionInviteResolver) InvitingParticipant(ctx context.Context, obj 
 	return r.DAOManager.GetParticipantByID(ctx, obj.InvitingParticipantID)
 }
 
-// @deprecated
 func (r *discussionLinkAccessResolver) InviteLinkURL(ctx context.Context, obj *model.DiscussionLinkAccess) (string, error) {
+	// @deprecated
 	return "", nil
 }
 
-// @deprecated
 func (r *discussionLinkAccessResolver) VipInviteLinkURL(ctx context.Context, obj *model.DiscussionLinkAccess) (string, error) {
+	// @deprecated
 	return "", nil
 }
 

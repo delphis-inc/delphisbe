@@ -433,6 +433,12 @@ func updateDiscussionObj(disc *model.Discussion, input model.DiscussionInput) {
 	if input.IconURL != nil {
 		disc.IconURL = input.IconURL
 	}
+	if input.LastPostID != nil {
+		disc.LastPostID = input.LastPostID
+	}
+	if input.LastPostCreatedAt != nil {
+		disc.LastPostCreatedAt = input.LastPostCreatedAt
+	}
 }
 
 func dedupeDiscussions(discussions []*model.Discussion) []*model.Discussion {
