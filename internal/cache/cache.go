@@ -25,6 +25,13 @@ func NewInMemoryCache() ChathamCache {
 	}
 }
 
+func NewNonDeletedInMemoryCache() ChathamCache {
+	return &inMemoryCache{
+		c:         goCache.New(0, 0),
+		keyPrefix: KEY_PREFIX,
+	}
+}
+
 func (c *inMemoryCache) Set(key string, val interface{}, dur time.Duration) {
 	c.c.Set(key, val, dur)
 }

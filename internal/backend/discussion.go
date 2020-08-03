@@ -434,10 +434,13 @@ func updateDiscussionObj(disc *model.Discussion, input model.DiscussionInput) {
 		disc.IconURL = input.IconURL
 	}
 	if input.LastPostID != nil {
-		disc.LastPostID = *input.LastPostID
+		disc.LastPostID = input.LastPostID
 	}
 	if input.LastPostCreatedAt != nil {
-		disc.LastPostCreatedAt = *input.LastPostCreatedAt
+		disc.LastPostCreatedAt = input.LastPostCreatedAt
+	}
+	if input.ShuffleID != nil {
+		disc.ShuffleID = *input.ShuffleID
 	}
 }
 

@@ -84,6 +84,8 @@ models:
         resolver: true
       posts:
         resolver: true
+      gradientColor:
+        resolver: true
   Post:
     fields:
       discussion:

@@ -38,8 +38,9 @@ type Discussion struct {
 	IdleMinutes           int                          `json:"idle_minutes"`
 	IconURL               *string                      `json:"icon_url"`
 	DiscussionJoinability DiscussionJoinabilitySetting `json:"discussion_joinability"`
-	LastPostID            string                       `json:"last_post_id"`
-	LastPostCreatedAt     time.Time                    `json:"last_post_created_at"`
+	LastPostID            *string                      `json:"last_post_id"`
+	LastPostCreatedAt     *time.Time                   `json:"last_post_created_at"`
+	ShuffleID             int                          `json:"shuffle_id"`
 }
 
 type DiscussionInput struct {
@@ -53,6 +54,7 @@ type DiscussionInput struct {
 	DiscussionJoinability *DiscussionJoinabilitySetting `json:"discussionJoinability"`
 	LastPostID            *string                       `json:"lastPostID"`
 	LastPostCreatedAt     *time.Time                    `json:"lastPostCreatedAt"`
+	ShuffleID             *int                          `json:"shuffleID"`
 }
 
 func (Discussion) IsEntity() {}

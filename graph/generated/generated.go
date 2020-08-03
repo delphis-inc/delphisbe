@@ -543,6 +543,7 @@ type ParticipantResolver interface {
 	DiscussionNotificationPreferences(ctx context.Context, obj *model.Participant) (model.DiscussionNotificationPreferences, error)
 	Posts(ctx context.Context, obj *model.Participant) ([]*model.Post, error)
 
+	GradientColor(ctx context.Context, obj *model.Participant) (*model.GradientColor, error)
 	Flair(ctx context.Context, obj *model.Participant) (*model.Flair, error)
 	Inviter(ctx context.Context, obj *model.Participant) (*model.Participant, error)
 
@@ -8971,13 +8972,13 @@ func (ec *executionContext) _Participant_gradientColor(ctx context.Context, fiel
 		Object:   "Participant",
 		Field:    field,
 		Args:     nil,
-		IsMethod: false,
+		IsMethod: true,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.GradientColor, nil
+		return ec.resolvers.Participant().GradientColor(rctx, obj)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -15144,7 +15145,16 @@ func (ec *executionContext) _Participant(ctx context.Context, sel ast.SelectionS
 				atomic.AddUint32(&invalids, 1)
 			}
 		case "gradientColor":
-			out.Values[i] = ec._Participant_gradientColor(ctx, field, obj)
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Participant_gradientColor(ctx, field, obj)
+				return res
+			})
 		case "flair":
 			field := field
 			out.Concurrently(i, func() (res graphql.Marshaler) {

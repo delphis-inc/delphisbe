@@ -15,6 +15,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/99designs/gqlgen/graphql"
+
 	"github.com/aws/aws-sdk-go/aws/credentials/endpointcreds"
 	"github.com/delphis-inc/delphisbe/internal/worker"
 	"github.com/gorilla/websocket"
@@ -118,6 +120,15 @@ func main() {
 				return true
 			},
 		},
+	})
+
+	srv.AroundOperations(func(ctx context.Context, next graphql.OperationHandler) graphql.ResponseHandler {
+		// This function will be called around every operation, next() will return a function that when
+		// called will evaluate one response. Eventually next will return nil, signalling there are no
+		// more results to be returned by the server.
+		cachedContext := resolver.GenerateCachedOperationContext(ctx)
+		fmt.Printf("in around operations")
+		return next(cachedContext)
 	})
 
 	// Kickoff sqs workers

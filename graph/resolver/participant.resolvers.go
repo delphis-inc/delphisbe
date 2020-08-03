@@ -5,10 +5,13 @@ package resolver
 
 import (
 	"context"
+	"crypto/sha1"
+	"encoding/binary"
 	"fmt"
 
 	"github.com/delphis-inc/delphisbe/graph/generated"
 	"github.com/delphis-inc/delphisbe/graph/model"
+	"github.com/delphis-inc/delphisbe/internal/util"
 )
 
 func (r *participantResolver) Discussion(ctx context.Context, obj *model.Participant) (*model.Discussion, error) {
@@ -70,6 +73,26 @@ func (r *participantResolver) Posts(ctx context.Context, obj *model.Participant)
 	return posts, nil
 }
 
+func (r *participantResolver) GradientColor(ctx context.Context, obj *model.Participant) (*model.GradientColor, error) {
+	var gradientColor model.GradientColor = model.GradientColorUnknown
+	if obj.IsAnonymous {
+		if obj.Discussion == nil && obj.DiscussionID != nil {
+			disc, err := r.resolveDiscussionByID(ctx, *obj.DiscussionID)
+			if err != nil {
+				return nil, err
+			}
+			obj.Discussion = disc
+		}
+		if obj.Discussion == nil {
+			return nil, fmt.Errorf("Could not find discussion for participant")
+		}
+
+		hashAsInt64 := generateParticipantSeed(*obj.Discussion, *obj)
+		gradientColor = util.GenerateGradient(hashAsInt64)
+	}
+	return &gradientColor, nil
+}
+
 func (r *participantResolver) Flair(ctx context.Context, obj *model.Participant) (*model.Flair, error) {
 	if obj.IsBanned {
 		return nil, nil
@@ -128,7 +151,32 @@ func (r *participantResolver) UserProfile(ctx context.Context, obj *model.Partic
 }
 
 func (r *participantResolver) AnonDisplayName(ctx context.Context, obj *model.Participant) (*string, error) {
-	panic(fmt.Errorf("not implemented"))
+	if !obj.IsAnonymous {
+		return nil, nil
+	}
+
+	if obj.Discussion == nil && obj.DiscussionID != nil {
+		disc, err := r.resolveDiscussionByID(ctx, *obj.DiscussionID)
+		if err != nil {
+			return nil, err
+		}
+		obj.Discussion = disc
+	}
+
+	if obj.Discussion == nil {
+		return nil, fmt.Errorf("Could not find associated discussion")
+	}
+
+	hashAsInt64 := generateParticipantSeed(*obj.Discussion, *obj)
+	fullDisplayName := util.GenerateFullDisplayName(hashAsInt64)
+	return &fullDisplayName, nil
+}
+
+func generateParticipantSeed(discussion model.Discussion, participant model.Participant) uint64 {
+	// We generate the display name by SHA-1(discussion_id, participant.id, shuffle_id) without
+	// commas, just concatenated.
+	h := sha1.Sum([]byte(fmt.Sprintf("%s%s%d", discussion.ID, participant.ID, discussion.ShuffleID)))
+	return binary.BigEndian.Uint64(h[:])
 }
 
 // Participant returns generated.ParticipantResolver implementation.
