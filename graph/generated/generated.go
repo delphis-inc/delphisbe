@@ -117,6 +117,8 @@ type ComplexityRoot struct {
 		Participants            func(childComplexity int) int
 		Posts                   func(childComplexity int) int
 		PostsConnection         func(childComplexity int, after *string) int
+		SecondsUntilShuffle     func(childComplexity int) int
+		ShuffleCount            func(childComplexity int) int
 		Tags                    func(childComplexity int) int
 		Title                   func(childComplexity int) int
 		TitleHistory            func(childComplexity int) int
@@ -251,6 +253,7 @@ type ComplexityRoot struct {
 		RespondToInvite                      func(childComplexity int, inviteID string, response model.InviteRequestStatus, discussionParticipantInput model.AddDiscussionParticipantInput) int
 		RespondToRequestAccess               func(childComplexity int, requestID string, response model.InviteRequestStatus) int
 		ScheduleImportedContent              func(childComplexity int, discussionID string, contentID string) int
+		ShuffleDiscussion                    func(childComplexity int, discussionID string, inFutureSeconds *int) int
 		UnassignFlair                        func(childComplexity int, participantID string) int
 		UpdateDiscussion                     func(childComplexity int, discussionID string, input model.DiscussionInput) int
 		UpdateParticipant                    func(childComplexity int, discussionID string, participantID string, updateInput model.UpdateParticipantInput) int
@@ -468,6 +471,8 @@ type DiscussionResolver interface {
 	DiscussionLinksAccess(ctx context.Context, obj *model.Discussion) (*model.DiscussionLinkAccess, error)
 	DiscussionAccessLink(ctx context.Context, obj *model.Discussion) (*model.DiscussionAccessLink, error)
 	DiscussionJoinability(ctx context.Context, obj *model.Discussion) (model.DiscussionJoinabilitySetting, error)
+	ShuffleCount(ctx context.Context, obj *model.Discussion) (int, error)
+	SecondsUntilShuffle(ctx context.Context, obj *model.Discussion) (*int, error)
 }
 type DiscussionAccessLinkResolver interface {
 	Discussion(ctx context.Context, obj *model.DiscussionAccessLink) (*model.Discussion, error)
@@ -536,6 +541,7 @@ type MutationResolver interface {
 	JoinDiscussionWithVIPToken(ctx context.Context, discussionID string, vipToken string) (*model.Discussion, error)
 	DeletePost(ctx context.Context, discussionID string, postID string) (*model.Post, error)
 	BanParticipant(ctx context.Context, discussionID string, participantID string) (*model.Participant, error)
+	ShuffleDiscussion(ctx context.Context, discussionID string, inFutureSeconds *int) (*model.Discussion, error)
 }
 type ParticipantResolver interface {
 	Discussion(ctx context.Context, obj *model.Participant) (*model.Discussion, error)
@@ -891,6 +897,20 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Discussion.PostsConnection(childComplexity, args["after"].(*string)), true
+
+	case "Discussion.secondsUntilShuffle":
+		if e.complexity.Discussion.SecondsUntilShuffle == nil {
+			break
+		}
+
+		return e.complexity.Discussion.SecondsUntilShuffle(childComplexity), true
+
+	case "Discussion.shuffleCount":
+		if e.complexity.Discussion.ShuffleCount == nil {
+			break
+		}
+
+		return e.complexity.Discussion.ShuffleCount(childComplexity), true
 
 	case "Discussion.tags":
 		if e.complexity.Discussion.Tags == nil {
@@ -1650,6 +1670,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Mutation.ScheduleImportedContent(childComplexity, args["discussionID"].(string), args["contentID"].(string)), true
+
+	case "Mutation.shuffleDiscussion":
+		if e.complexity.Mutation.ShuffleDiscussion == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_shuffleDiscussion_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.ShuffleDiscussion(childComplexity, args["discussionID"].(string), args["inFutureSeconds"].(*int)), true
 
 	case "Mutation.unassignFlair":
 		if e.complexity.Mutation.UnassignFlair == nil {
@@ -2603,6 +2635,9 @@ var sources = []*ast.Source{
     discussionAccessLink: DiscussionAccessLink!
 
     discussionJoinability: DiscussionJoinabilitySetting!
+
+    shuffleCount: Int!
+    secondsUntilShuffle: Int
 }
 
 type CanJoinDiscussionResponse {
@@ -3070,6 +3105,8 @@ type Mutation {
 
   # Banning
   banParticipant(discussionID: ID!, participantID: ID!): Participant!
+
+  shuffleDiscussion(discussionID: ID!, inFutureSeconds: Int): Discussion!
 }
 
 type Subscription {
@@ -3768,6 +3805,28 @@ func (ec *executionContext) field_Mutation_scheduleImportedContent_args(ctx cont
 		}
 	}
 	args["contentID"] = arg1
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_shuffleDiscussion_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 string
+	if tmp, ok := rawArgs["discussionID"]; ok {
+		arg0, err = ec.unmarshalNID2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["discussionID"] = arg0
+	var arg1 *int
+	if tmp, ok := rawArgs["inFutureSeconds"]; ok {
+		arg1, err = ec.unmarshalOInt2ᚖint(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["inFutureSeconds"] = arg1
 	return args, nil
 }
 
@@ -5387,6 +5446,71 @@ func (ec *executionContext) _Discussion_discussionJoinability(ctx context.Contex
 	res := resTmp.(model.DiscussionJoinabilitySetting)
 	fc.Result = res
 	return ec.marshalNDiscussionJoinabilitySetting2githubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐDiscussionJoinabilitySetting(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Discussion_shuffleCount(ctx context.Context, field graphql.CollectedField, obj *model.Discussion) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "Discussion",
+		Field:    field,
+		Args:     nil,
+		IsMethod: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Discussion().ShuffleCount(rctx, obj)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(int)
+	fc.Result = res
+	return ec.marshalNInt2int(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Discussion_secondsUntilShuffle(ctx context.Context, field graphql.CollectedField, obj *model.Discussion) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "Discussion",
+		Field:    field,
+		Args:     nil,
+		IsMethod: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Discussion().SecondsUntilShuffle(rctx, obj)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*int)
+	fc.Result = res
+	return ec.marshalOInt2ᚖint(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _DiscussionAccessLink_discussion(ctx context.Context, field graphql.CollectedField, obj *model.DiscussionAccessLink) (ret graphql.Marshaler) {
@@ -8634,6 +8758,47 @@ func (ec *executionContext) _Mutation_banParticipant(ctx context.Context, field 
 	res := resTmp.(*model.Participant)
 	fc.Result = res
 	return ec.marshalNParticipant2ᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐParticipant(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Mutation_shuffleDiscussion(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "Mutation",
+		Field:    field,
+		Args:     nil,
+		IsMethod: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Mutation_shuffleDiscussion_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().ShuffleDiscussion(rctx, args["discussionID"].(string), args["inFutureSeconds"].(*int))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.Discussion)
+	fc.Result = res
+	return ec.marshalNDiscussion2ᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐDiscussion(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _PageInfo_startCursor(ctx context.Context, field graphql.CollectedField, obj *model.PageInfo) (ret graphql.Marshaler) {
@@ -14109,6 +14274,31 @@ func (ec *executionContext) _Discussion(ctx context.Context, sel ast.SelectionSe
 				}
 				return res
 			})
+		case "shuffleCount":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Discussion_shuffleCount(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
+		case "secondsUntilShuffle":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Discussion_secondsUntilShuffle(ctx, field, obj)
+				return res
+			})
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -15026,6 +15216,11 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			}
 		case "banParticipant":
 			out.Values[i] = ec._Mutation_banParticipant(ctx, field)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "shuffleDiscussion":
+			out.Values[i] = ec._Mutation_shuffleDiscussion(ctx, field)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}

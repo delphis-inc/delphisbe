@@ -44,6 +44,9 @@ type Discussion implements Entity {
     discussionAccessLink: DiscussionAccessLink!
 
     discussionJoinability: DiscussionJoinabilitySetting!
+
+    shuffleCount: Int!
+    secondsUntilShuffle: Int
 }
 
 type CanJoinDiscussionResponse {

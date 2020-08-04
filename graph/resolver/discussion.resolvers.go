@@ -7,6 +7,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"math"
 	"time"
 
 	"github.com/delphis-inc/delphisbe/graph/generated"
@@ -258,6 +259,25 @@ func (r *discussionResolver) DiscussionJoinability(ctx context.Context, obj *mod
 	}
 
 	return obj.DiscussionJoinability, nil
+}
+
+func (r *discussionResolver) ShuffleCount(ctx context.Context, obj *model.Discussion) (int, error) {
+	return obj.ShuffleID, nil
+}
+
+func (r *discussionResolver) SecondsUntilShuffle(ctx context.Context, obj *model.Discussion) (*int, error) {
+	nextShuffle, err := r.DAOManager.GetNextDiscussionShuffleTime(ctx, obj.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	if nextShuffle == nil || nextShuffle.ShuffleTime == nil {
+		return nil, nil
+	}
+
+	seconds := int(math.Max(0, time.Until(*nextShuffle.ShuffleTime).Seconds()))
+
+	return &seconds, nil
 }
 
 func (r *discussionAccessLinkResolver) Discussion(ctx context.Context, obj *model.DiscussionAccessLink) (*model.Discussion, error) {

@@ -172,14 +172,20 @@ func (r *participantResolver) AnonDisplayName(ctx context.Context, obj *model.Pa
 	return &fullDisplayName, nil
 }
 
+// Participant returns generated.ParticipantResolver implementation.
+func (r *Resolver) Participant() generated.ParticipantResolver { return &participantResolver{r} }
+
+type participantResolver struct{ *Resolver }
+
+// !!! WARNING !!!
+// The code below was going to be deleted when updating resolvers. It has been copied here so you have
+// one last chance to move it out of harms way if you want. There are two reasons this happens:
+//  - When renaming or deleting a resolver the old code will be put in here. You can safely delete
+//    it when you're done.
+//  - You have helper methods in this file. Move them out to keep these resolver files clean.
 func generateParticipantSeed(discussion model.Discussion, participant model.Participant) uint64 {
 	// We generate the display name by SHA-1(discussion_id, participant.id, shuffle_id) without
 	// commas, just concatenated.
 	h := sha1.Sum([]byte(fmt.Sprintf("%s%s%d", discussion.ID, participant.ID, discussion.ShuffleID)))
 	return binary.BigEndian.Uint64(h[:])
 }
-
-// Participant returns generated.ParticipantResolver implementation.
-func (r *Resolver) Participant() generated.ParticipantResolver { return &participantResolver{r} }
-
-type participantResolver struct{ *Resolver }

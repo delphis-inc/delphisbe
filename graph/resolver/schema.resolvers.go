@@ -627,6 +627,38 @@ func (r *mutationResolver) BanParticipant(ctx context.Context, discussionID stri
 	return bannedParticipant, nil
 }
 
+func (r *mutationResolver) ShuffleDiscussion(ctx context.Context, discussionID string, inFutureSeconds *int) (*model.Discussion, error) {
+	authedUser := auth.GetAuthedUser(ctx)
+	if authedUser == nil {
+		return nil, fmt.Errorf("Need auth")
+	}
+
+	modCheck, err := r.DAOManager.CheckIfModeratorForDiscussion(ctx, authedUser.UserID, discussionID)
+	if err != nil || !modCheck {
+		return nil, fmt.Errorf("Unauthorized")
+	}
+
+	seconds := 0
+	// Time check
+	if inFutureSeconds != nil {
+		// Must be between now and 7 days from now.
+		if *inFutureSeconds < 0 || *inFutureSeconds > 7*86400 {
+			return nil, fmt.Errorf("Invalid future seconds provided.")
+		}
+		seconds = *inFutureSeconds
+	}
+
+	shuffleTimeAsTime := time.Now().Add(time.Duration(seconds) * time.Second)
+
+	_, err = r.DAOManager.PutDiscussionShuffleTime(ctx, discussionID, &shuffleTimeAsTime)
+	if err != nil {
+		return nil, err
+	}
+
+	return r.DAOManager.GetDiscussionByID(ctx, discussionID)
+
+}
+
 func (r *queryResolver) Discussion(ctx context.Context, id string) (*model.Discussion, error) {
 	return r.resolveDiscussionByID(ctx, id)
 }
