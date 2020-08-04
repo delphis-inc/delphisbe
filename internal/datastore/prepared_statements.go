@@ -464,29 +464,30 @@ const deleteDiscussionTagsString = `
 
 // Discussion Access
 const getDiscussionsByUserAccessString = `
-SELECT d.id,
-	d.created_at,
-	d.updated_at,
-	d.deleted_at,
-	d.title,
-	d.anonymity_type,
-	d.moderator_id,
-	d.auto_post,
-	d.icon_url,
-	d.idle_minutes,
-	d.description,
-	d.title_history,
-	d.description_history,
-	d.discussion_joinability,
-	d.last_post_id,
-	d.last_post_created_at,
-	d.shuffle_count
-FROM discussion_user_access dua
-INNER JOIN discussions d
-	ON dua.discussion_id = d.id
-WHERE dua.user_id = $1
-	AND d.deleted_at is null
-ORDER BY last_post_created_at desc;`
+		SELECT d.id,
+			d.created_at,
+			d.updated_at,
+			d.deleted_at,
+			d.title,
+			d.anonymity_type,
+			d.moderator_id,
+			d.auto_post,
+			d.icon_url,
+			d.idle_minutes,
+			d.description,
+			d.title_history,
+			d.description_history,
+			d.discussion_joinability,
+			d.last_post_id,
+			d.last_post_created_at,
+			d.shuffle_count
+		FROM discussion_user_access dua
+		INNER JOIN discussions d
+			ON dua.discussion_id = d.id
+		WHERE dua.user_id = $1
+			AND d.deleted_at is null
+		ORDER BY last_post_created_at desc;
+`
 
 const upsertDiscussionUserAccessString = `
 		INSERT INTO discussion_user_access (
