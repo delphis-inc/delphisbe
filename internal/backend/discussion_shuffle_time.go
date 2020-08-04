@@ -36,6 +36,12 @@ func (d *delphisBackend) GetDiscussionIDsToBeShuffledBeforeTime(ctx context.Cont
 		return nil, err
 	}
 
+	if !isTxPassed {
+		// This transaction does not mutate anything so no commit is required.
+		_ = d.rollbackTx(ctx, tx)
+		// We are going to ignore this error.
+	}
+
 	resp := make([]string, 0)
 	for _, discussion := range discussionObjs {
 		resp = append(resp, discussion.ID)
@@ -77,13 +83,15 @@ func (d *delphisBackend) ShuffleDiscussionsIfNecessary() {
 		return
 	}
 
-	discussionIDsToShuffle, err := d.GetDiscussionIDsToBeShuffledBeforeTime(ctx, tx, time.Now())
+	now := d.timeProvider.Now()
+	discussionIDsToShuffle, err := d.GetDiscussionIDsToBeShuffledBeforeTime(ctx, tx, now)
 	if err != nil {
+		_ = d.rollbackTx(ctx, tx)
 		return
 	}
 
 	for _, discussionID := range discussionIDsToShuffle {
-		_, err := d.IncrementDiscussionShuffleID(ctx, tx, discussionID)
+		_, err := d.IncrementDiscussionShuffleCount(ctx, tx, discussionID)
 		if err != nil {
 			// We failed partway through but let's keep going, I suppose.
 			logrus.Warnf("failed to increment shuffle ID for discussion but continuing.")
@@ -99,7 +107,7 @@ func (d *delphisBackend) ShuffleDiscussionsIfNecessary() {
 		}
 	}
 
-	txErr := tx.Commit()
+	txErr := d.db.CommitTx(ctx, tx)
 	if txErr != nil {
 		logrus.WithError(txErr).Errorf("failed committing transaction")
 		return

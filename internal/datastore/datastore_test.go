@@ -250,6 +250,16 @@ func TestDelphisDB_InitializeStatements(t *testing.T) {
 
 				Test: putNextShuffleTimeForDiscussionIDString,
 			},
+			{
+				Name: "getDiscussionsToShuffle",
+
+				Test: getDiscussionsToShuffle,
+			},
+			{
+				Name: "incrDiscussionShuffleCount",
+
+				Test: incrDiscussionShuffleCount,
+			},
 		}
 
 		for index, test := range tests {

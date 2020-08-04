@@ -20,20 +20,28 @@ func (d *delphisDB) GetDiscussionByID(ctx context.Context, id string) (*model.Di
 	return discussions[id], nil
 }
 
-func (d *delphisDB) IncrementDiscussionShuffleID(ctx context.Context, tx *sql.Tx, id string) (*int, error) {
-	logrus.Debug("IncrementDiscussionShuffleID::SQL Update")
+func (d *delphisDB) IncrementDiscussionShuffleCount(ctx context.Context, tx *sql.Tx, id string) (*int, error) {
+	logrus.Debug("IncrementDiscussionShuffleCount::SQL Update")
+	if err := d.initializeStatements(ctx); err != nil {
+		logrus.WithError(err).Error("IncrementDiscussionShuffleCount::failed to initialize statements")
+		return nil, err
+	}
+
 	discussion := model.Discussion{}
-	if err := tx.StmtContext(ctx, d.prepStmts.incrDiscussionShuffleID).QueryRowContext(
+	if err := tx.StmtContext(ctx, d.prepStmts.incrDiscussionShuffleCount).QueryRowContext(
 		ctx,
 		id,
 	).Scan(
-		&discussion.ShuffleID,
+		&discussion.ShuffleCount,
 	); err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
 		logrus.WithError(err).Errorf("failed to increment Shuffle ID for discussion with ID %s", id)
 		return nil, err
 	}
 
-	return &discussion.ShuffleID, nil
+	return &discussion.ShuffleCount, nil
 }
 
 func (d *delphisDB) GetDiscussionsByIDs(ctx context.Context, ids []string) (map[string]*model.Discussion, error) {
@@ -172,7 +180,6 @@ func (d *delphisDB) UpsertDiscussion(ctx context.Context, discussion model.Discu
 			"DiscussionJoinability": discussion.DiscussionJoinability,
 			"LastPostID":            discussion.LastPostID,
 			"LastPostCreatedAt":     discussion.LastPostCreatedAt,
-			"ShuffleID":             discussion.ShuffleID,
 		}).First(&found).Error; err != nil {
 			logrus.WithError(err).Errorf("UpsertDiscussion::Failed updating disucssion object")
 			return nil, err

@@ -123,7 +123,7 @@ type DelphisBackend interface {
 	GetNextDiscussionShuffleTime(ctx context.Context, discussionID string) (*model.DiscussionShuffleTime, error)
 	PutDiscussionShuffleTime(ctx context.Context, discussionID string, shuffleTime *time.Time) (*model.DiscussionShuffleTime, error)
 	ShuffleDiscussionsIfNecessary()
-	IncrementDiscussionShuffleID(ctx context.Context, tx *sql.Tx, id string) (*int, error)
+	IncrementDiscussionShuffleCount(ctx context.Context, tx *sql.Tx, id string) (*int, error)
 	GetDiscussionIDsToBeShuffledBeforeTime(ctx context.Context, tx *sql.Tx, epoc time.Time) ([]string, error)
 }
 

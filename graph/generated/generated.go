@@ -471,7 +471,7 @@ type DiscussionResolver interface {
 	DiscussionLinksAccess(ctx context.Context, obj *model.Discussion) (*model.DiscussionLinkAccess, error)
 	DiscussionAccessLink(ctx context.Context, obj *model.Discussion) (*model.DiscussionAccessLink, error)
 	DiscussionJoinability(ctx context.Context, obj *model.Discussion) (model.DiscussionJoinabilitySetting, error)
-	ShuffleCount(ctx context.Context, obj *model.Discussion) (int, error)
+
 	SecondsUntilShuffle(ctx context.Context, obj *model.Discussion) (*int, error)
 }
 type DiscussionAccessLinkResolver interface {
@@ -5459,13 +5459,13 @@ func (ec *executionContext) _Discussion_shuffleCount(ctx context.Context, field 
 		Object:   "Discussion",
 		Field:    field,
 		Args:     nil,
-		IsMethod: true,
+		IsMethod: false,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Discussion().ShuffleCount(rctx, obj)
+		return obj.ShuffleCount, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -14275,19 +14275,10 @@ func (ec *executionContext) _Discussion(ctx context.Context, sel ast.SelectionSe
 				return res
 			})
 		case "shuffleCount":
-			field := field
-			out.Concurrently(i, func() (res graphql.Marshaler) {
-				defer func() {
-					if r := recover(); r != nil {
-						ec.Error(ctx, ec.Recover(ctx, r))
-					}
-				}()
-				res = ec._Discussion_shuffleCount(ctx, field, obj)
-				if res == graphql.Null {
-					atomic.AddUint32(&invalids, 1)
-				}
-				return res
-			})
+			out.Values[i] = ec._Discussion_shuffleCount(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&invalids, 1)
+			}
 		case "secondsUntilShuffle":
 			field := field
 			out.Concurrently(i, func() (res graphql.Marshaler) {

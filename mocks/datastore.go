@@ -1349,8 +1349,8 @@ func (_m *Datastore) GetViewersByIDs(ctx context.Context, viewerIDs []string) (m
 	return r0, r1
 }
 
-// IncrementDiscussionShuffleID provides a mock function with given fields: ctx, tx, id
-func (_m *Datastore) IncrementDiscussionShuffleID(ctx context.Context, tx *sql.Tx, id string) (*int, error) {
+// IncrementDiscussionShuffleCount provides a mock function with given fields: ctx, tx, id
+func (_m *Datastore) IncrementDiscussionShuffleCount(ctx context.Context, tx *sql.Tx, id string) (*int, error) {
 	ret := _m.Called(ctx, tx, id)
 
 	var r0 *int

@@ -656,7 +656,6 @@ func (r *mutationResolver) ShuffleDiscussion(ctx context.Context, discussionID s
 	}
 
 	return r.DAOManager.GetDiscussionByID(ctx, discussionID)
-
 }
 
 func (r *queryResolver) Discussion(ctx context.Context, id string) (*model.Discussion, error) {

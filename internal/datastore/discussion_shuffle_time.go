@@ -61,7 +61,7 @@ func (d *delphisDB) GetDiscussionsToBeShuffledBeforeTime(ctx context.Context, tx
 		elem := model.Discussion{}
 		err := rows.Scan(
 			&elem.ID,
-			&elem.ShuffleID,
+			&elem.ShuffleCount,
 		)
 		if err != nil {
 			logrus.WithError(err).Error("failed to scan row")

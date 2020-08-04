@@ -8,4 +8,4 @@ ALTER TABLE discussion_shuffle_time
 
 CREATE INDEX IF NOT EXISTS discussion_shuffle_time_idx on discussion_shuffle_time (shuffle_time);
 
-ALTER TABLE discussions ADD COLUMN shuffle_id int default 0;
+ALTER TABLE discussions ADD COLUMN shuffle_count int default 0;

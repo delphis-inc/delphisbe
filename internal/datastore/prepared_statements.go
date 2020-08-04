@@ -74,7 +74,7 @@ type dbPrepStmts struct {
 	getNextShuffleTimeForDiscussionIDString *sql2.Stmt
 	putNextShuffleTimeForDiscussionIDString *sql2.Stmt
 	getDiscussionsToShuffle                 *sql2.Stmt
-	incrDiscussionShuffleID                 *sql2.Stmt
+	incrDiscussionShuffleCount              *sql2.Stmt
 }
 
 const getPostByIDString = `
@@ -480,7 +480,7 @@ SELECT d.id,
 	d.discussion_joinability,
 	d.last_post_id,
 	d.last_post_created_at,
-	d.shuffle_id
+	d.shuffle_count
 FROM discussion_user_access dua
 INNER JOIN discussions d
 	ON dua.discussion_id = d.id
@@ -711,7 +711,7 @@ const putNextShuffleTimeForDiscussionIDString = `
 
 const getDiscussionsToShuffle = `
 		SELECT d.id,
-			d.shuffle_id
+			d.shuffle_count
 		FROM discussion_shuffle_time s
 		JOIN discussions d ON d.id = s.discussion_id
 		WHERE shuffle_time is not NULL 
@@ -721,10 +721,10 @@ const getDiscussionsToShuffle = `
 // This may cause multiple updates to happen to the same row but since
 // shuffling is sort of idempotent (no expected outcome) it's a good
 // non-locking approach for now!
-const incrDiscussionShuffleID = `
+const incrDiscussionShuffleCount = `
 		UPDATE discussions
-		SET shuffle_id = shuffle_id + 1
+		SET shuffle_count = shuffle_count + 1
 		WHERE id = $1
 		RETURNING
-			shuffle_id;
+			shuffle_count;
 `

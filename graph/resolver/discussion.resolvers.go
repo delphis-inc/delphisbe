@@ -261,10 +261,6 @@ func (r *discussionResolver) DiscussionJoinability(ctx context.Context, obj *mod
 	return obj.DiscussionJoinability, nil
 }
 
-func (r *discussionResolver) ShuffleCount(ctx context.Context, obj *model.Discussion) (int, error) {
-	return obj.ShuffleID, nil
-}
-
 func (r *discussionResolver) SecondsUntilShuffle(ctx context.Context, obj *model.Discussion) (*int, error) {
 	nextShuffle, err := r.DAOManager.GetNextDiscussionShuffleTime(ctx, obj.ID)
 	if err != nil {

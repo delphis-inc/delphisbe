@@ -54,6 +54,8 @@ func mockPreparedStatements(mock sqlmock.Sqlmock) {
 	mock.ExpectPrepare(putAccessLinkForDiscussionString)
 	mock.ExpectPrepare(getNextShuffleTimeForDiscussionIDString)
 	mock.ExpectPrepare(putNextShuffleTimeForDiscussionIDString)
+	mock.ExpectPrepare(getDiscussionsToShuffle)
+	mock.ExpectPrepare(incrDiscussionShuffleCount)
 }
 
 func mockPreparedStatementsWithError(mock sqlmock.Sqlmock) {
