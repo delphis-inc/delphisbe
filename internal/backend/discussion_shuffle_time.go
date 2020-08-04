@@ -2,6 +2,7 @@ package backend
 
 import (
 	"context"
+	"database/sql"
 	"time"
 
 	"github.com/delphis-inc/delphisbe/graph/model"
@@ -11,6 +12,35 @@ import (
 
 func (d *delphisBackend) GetNextDiscussionShuffleTime(ctx context.Context, discussionID string) (*model.DiscussionShuffleTime, error) {
 	return d.db.GetNextShuffleTimeForDiscussionID(ctx, discussionID)
+}
+
+func (d *delphisBackend) GetDiscussionIDsToBeShuffledBeforeTime(ctx context.Context, tx *sql.Tx, epoc time.Time) ([]string, error) {
+	isTxPassed := tx != nil
+	if tx == nil {
+		var err error
+		tx, err = d.db.BeginTx(ctx)
+		if err != nil {
+			logrus.WithError(err).Error("failed to begin tx")
+			return nil, err
+		}
+	}
+
+	discussionObjs, err := d.db.GetDiscussionsToBeShuffledBeforeTime(ctx, tx, epoc)
+	if err != nil {
+		if !isTxPassed {
+			txErr := d.rollbackTx(ctx, tx)
+			if txErr != nil {
+				return nil, multierr.Append(err, txErr)
+			}
+		}
+		return nil, err
+	}
+
+	resp := make([]string, 0)
+	for _, discussion := range discussionObjs {
+		resp = append(resp, discussion.ID)
+	}
+	return resp, nil
 }
 
 func (d *delphisBackend) PutDiscussionShuffleTime(ctx context.Context, discussionID string, shuffleTime *time.Time) (*model.DiscussionShuffleTime, error) {
@@ -36,4 +66,42 @@ func (d *delphisBackend) PutDiscussionShuffleTime(ctx context.Context, discussio
 	}
 
 	return dst, nil
+}
+
+func (d *delphisBackend) ShuffleDiscussionsIfNecessary() {
+	ctx := context.Background()
+
+	tx, err := d.db.BeginTx(ctx)
+	if err != nil {
+		logrus.WithError(err).Error("failed to begin tx")
+		return
+	}
+
+	discussionIDsToShuffle, err := d.GetDiscussionIDsToBeShuffledBeforeTime(ctx, tx, time.Now())
+	if err != nil {
+		return
+	}
+
+	for _, discussionID := range discussionIDsToShuffle {
+		_, err := d.IncrementDiscussionShuffleID(ctx, tx, discussionID)
+		if err != nil {
+			// We failed partway through but let's keep going, I suppose.
+			logrus.Warnf("failed to increment shuffle ID for discussion but continuing.")
+		} else {
+			_, err := d.db.PutNextShuffleTimeForDiscussionID(ctx, tx, discussionID, nil)
+			if err != nil {
+				logrus.WithError(err).Errorf("Failed to unset the next shuffle time so failing!")
+				if txErr := d.rollbackTx(ctx, tx); txErr != nil {
+					return
+				}
+				return
+			}
+		}
+	}
+
+	txErr := tx.Commit()
+	if txErr != nil {
+		logrus.WithError(txErr).Errorf("failed committing transaction")
+		return
+	}
 }

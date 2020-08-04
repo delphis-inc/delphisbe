@@ -7,13 +7,13 @@ import (
 	"github.com/delphis-inc/delphisbe/graph/model"
 )
 
-// Pull the entropy from the 8 most significant bits
+// Pull the entropy from bits 0-7 (most significant, big endian)
 func GenerateAnimalDisplayName(seed uint64) string {
 	seedShifted := seed >> 56
 	return AnimalArray[seedShifted%uint64(len(AnimalArray))]
 }
 
-// Pull the entropy from the second 8 most significant bits
+// Pull the entropy from bits 8-15 (most significant, big endian)
 func GenerateGradient(seed uint64) model.GradientColor {
 	seedShifted := (seed << 8) >> 56
 	// NOTE: The first element in the gradient color array is `Unknown` so we
@@ -23,9 +23,9 @@ func GenerateGradient(seed uint64) model.GradientColor {
 	return model.AllGradientColor[index]
 }
 
-// Pull the entropy from the third 8 most significant bits
+// Pull the entropy from bits 16-25 (most significant)
 func GenerateDisplayNameIndex(seed uint64) int {
-	seedShifted := (seed << 16) >> 56
+	seedShifted := (seed << 16) >> 54
 
 	return int(seedShifted % uint64(1024))
 }

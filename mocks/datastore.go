@@ -602,6 +602,29 @@ func (_m *Datastore) GetDiscussionsByUserAccess(ctx context.Context, userID stri
 	return r0
 }
 
+// GetDiscussionsToBeShuffledBeforeTime provides a mock function with given fields: ctx, tx, epoc
+func (_m *Datastore) GetDiscussionsToBeShuffledBeforeTime(ctx context.Context, tx *sql.Tx, epoc time.Time) ([]model.Discussion, error) {
+	ret := _m.Called(ctx, tx, epoc)
+
+	var r0 []model.Discussion
+	if rf, ok := ret.Get(0).(func(context.Context, *sql.Tx, time.Time) []model.Discussion); ok {
+		r0 = rf(ctx, tx, epoc)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]model.Discussion)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(context.Context, *sql.Tx, time.Time) error); ok {
+		r1 = rf(ctx, tx, epoc)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // GetFlairByID provides a mock function with given fields: ctx, id
 func (_m *Datastore) GetFlairByID(ctx context.Context, id string) (*model.Flair, error) {
 	ret := _m.Called(ctx, id)
@@ -1319,6 +1342,29 @@ func (_m *Datastore) GetViewersByIDs(ctx context.Context, viewerIDs []string) (m
 	var r1 error
 	if rf, ok := ret.Get(1).(func(context.Context, []string) error); ok {
 		r1 = rf(ctx, viewerIDs)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// IncrementDiscussionShuffleID provides a mock function with given fields: ctx, tx, id
+func (_m *Datastore) IncrementDiscussionShuffleID(ctx context.Context, tx *sql.Tx, id string) (*int, error) {
+	ret := _m.Called(ctx, tx, id)
+
+	var r0 *int
+	if rf, ok := ret.Get(0).(func(context.Context, *sql.Tx, string) *int); ok {
+		r0 = rf(ctx, tx, id)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*int)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(context.Context, *sql.Tx, string) error); ok {
+		r1 = rf(ctx, tx, id)
 	} else {
 		r1 = ret.Error(1)
 	}

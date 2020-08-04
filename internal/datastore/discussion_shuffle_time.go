@@ -32,14 +32,45 @@ func (d *delphisDB) GetNextShuffleTimeForDiscussionID(ctx context.Context, id st
 		return nil, err
 	}
 
-	fiveMinutesAgo := time.Now().Add(time.Minute * 5)
-
-	if dst.ShuffleTime == nil || dst.ShuffleTime.Before(fiveMinutesAgo) {
-		// If the shuffle time is in the past then return nil.
+	if dst.ShuffleTime == nil {
 		return nil, nil
 	}
 
 	return &dst, nil
+}
+
+// NOTE: This only returns the discussion IDs and their shuffle IDs.
+func (d *delphisDB) GetDiscussionsToBeShuffledBeforeTime(ctx context.Context, tx *sql2.Tx, epoc time.Time) ([]model.Discussion, error) {
+	logrus.Debug("GetDiscussionsToBeShuffledBeforeTime::SQL Query")
+	if err := d.initializeStatements(ctx); err != nil {
+		logrus.WithError(err).Error("GetDiscussionsToBeShuffledBeforeTime::failed to initialize statements")
+		return nil, err
+	}
+
+	resp := make([]model.Discussion, 0)
+	rows, err := tx.StmtContext(ctx, d.prepStmts.getDiscussionsToShuffle).QueryContext(
+		ctx,
+		epoc,
+	)
+	if err != nil {
+		logrus.WithError(err).Errorf("failed to get discussions to shuffle")
+		return nil, err
+	}
+
+	for rows.Next() {
+		elem := model.Discussion{}
+		err := rows.Scan(
+			&elem.ID,
+			&elem.ShuffleID,
+		)
+		if err != nil {
+			logrus.WithError(err).Error("failed to scan row")
+			return nil, err
+		}
+		resp = append(resp, elem)
+	}
+
+	return resp, nil
 }
 
 func (d *delphisDB) PutNextShuffleTimeForDiscussionID(ctx context.Context, tx *sql2.Tx, id string, shuffleTime *time.Time) (*model.DiscussionShuffleTime, error) {

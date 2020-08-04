@@ -87,6 +87,8 @@ type Datastore interface {
 	UpdateImportedContentDiscussionQueue(ctx context.Context, discussionID, contentID string, postedAt *time.Time) (*model.ContentQueueRecord, error)
 	GetNextShuffleTimeForDiscussionID(ctx context.Context, id string) (*model.DiscussionShuffleTime, error)
 	PutNextShuffleTimeForDiscussionID(ctx context.Context, tx *sql2.Tx, id string, shuffleTime *time.Time) (*model.DiscussionShuffleTime, error)
+	IncrementDiscussionShuffleID(ctx context.Context, tx *sql.Tx, id string) (*int, error)
+	GetDiscussionsToBeShuffledBeforeTime(ctx context.Context, tx *sql2.Tx, epoc time.Time) ([]model.Discussion, error)
 
 	// Helper functions
 	PostIterCollect(ctx context.Context, iter PostIter) ([]*model.Post, error)
@@ -442,10 +444,17 @@ func (d *delphisDB) initializeStatements(ctx context.Context) (err error) {
 		logrus.WithError(err).Error("failed to prepare getNextShuffleTimeForDiscussionIDString")
 		return errors.Wrap(err, "failed to prepare getNextShuffleTimeForDiscussionIDString")
 	}
-
 	if d.prepStmts.putNextShuffleTimeForDiscussionIDString, err = d.pg.PrepareContext(ctx, putNextShuffleTimeForDiscussionIDString); err != nil {
 		logrus.WithError(err).Error("failed to prepare putNextShuffleTimeForDiscussionIDString")
 		return errors.Wrap(err, "failed to prepare putNextShuffleTimeForDiscussionIDString")
+	}
+	if d.prepStmts.getDiscussionsToShuffle, err = d.pg.PrepareContext(ctx, getDiscussionsToShuffle); err != nil {
+		logrus.WithError(err).Error("failed to prepare getDiscussionsToShuffle")
+		return errors.Wrap(err, "failed to prepare getDiscussionsToShuffle")
+	}
+	if d.prepStmts.incrDiscussionShuffleID, err = d.pg.PrepareContext(ctx, incrDiscussionShuffleID); err != nil {
+		logrus.WithError(err).Error("failed to prepare incrDiscussionShuffleID")
+		return errors.Wrap(err, "failed to prepare incrDiscussionShuffleID")
 	}
 
 	d.ready = true

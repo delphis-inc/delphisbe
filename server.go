@@ -18,7 +18,6 @@ import (
 	"github.com/99designs/gqlgen/graphql"
 
 	"github.com/aws/aws-sdk-go/aws/credentials/endpointcreds"
-	"github.com/delphis-inc/delphisbe/internal/worker"
 	"github.com/gorilla/websocket"
 	"github.com/robfig/cron/v3"
 
@@ -53,7 +52,6 @@ func main() {
 	logrus.SetLevel(logrus.DebugLevel)
 	logrus.Debugf("Starting")
 
-	ctx := context.Background()
 	rand.Seed(time.Now().Unix())
 
 	port := os.Getenv("PORT")
@@ -127,25 +125,14 @@ func main() {
 		// called will evaluate one response. Eventually next will return nil, signalling there are no
 		// more results to be returned by the server.
 		cachedContext := resolver.GenerateCachedOperationContext(ctx)
-		fmt.Printf("in around operations")
 		return next(cachedContext)
 	})
 
-	// Kickoff sqs workers
-	dripWorker := worker.NewDripWorker(*conf, delphisBackend, awsSession)
-	go func() {
-		logrus.Debugf("Kicking off drip sqs")
-		for {
-			if err := dripWorker.Start(ctx); err != nil {
-				logrus.WithError(err).Error("failed to start drip worker")
-				time.Sleep(1 * time.Second)
-			}
-		}
-	}()
+	delphisBackend.ShuffleDiscussionsIfNecessary()
 
 	// Kickoff cron job
 	c := cron.New()
-	c.AddFunc("@every 5m", delphisBackend.AutoPostContent)
+	c.AddFunc("@every 1m", delphisBackend.ShuffleDiscussionsIfNecessary)
 	c.Start()
 
 	http.Handle("/.well-known/apple-app-site-association", appleSiteAssociationHandler(conf))
