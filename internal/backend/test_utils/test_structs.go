@@ -327,6 +327,7 @@ func TestDiscussionUserAccess() model.DiscussionUserAccess {
 	return model.DiscussionUserAccess{
 		DiscussionID: DiscussionID,
 		UserID:       UserID,
+		State:        model.DiscussionUserAccessStateActive,
 	}
 }
 

@@ -5,6 +5,8 @@ import (
 	"database/sql"
 	"fmt"
 
+	"github.com/delphis-inc/delphisbe/internal/backend/test_utils"
+
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/delphis-inc/delphisbe/graph/model"
 	"github.com/delphis-inc/delphisbe/internal/config"
@@ -21,6 +23,7 @@ func TestDelphisDB_GetDiscussionsForUserAccess(t *testing.T) {
 	now := time.Now()
 	modID := "modID"
 	userID := "userID"
+	state := model.DiscussionUserAccessStateActive
 	emptyString := ""
 	discObj := model.Discussion{
 		ID:            "discussion1",
@@ -56,7 +59,7 @@ func TestDelphisDB_GetDiscussionsForUserAccess(t *testing.T) {
 		Convey("when preparing statements returns an error", func() {
 			mockPreparedStatementsWithError(mock)
 
-			iter := mockDatastore.GetDiscussionsByUserAccess(ctx, userID)
+			iter := mockDatastore.GetDiscussionsByUserAccess(ctx, userID, state)
 
 			So(iter.Next(&emptyDisc), ShouldBeFalse)
 			So(iter.Close(), ShouldNotBeNil)
@@ -65,9 +68,9 @@ func TestDelphisDB_GetDiscussionsForUserAccess(t *testing.T) {
 
 		Convey("when query execution returns an error", func() {
 			mockPreparedStatements(mock)
-			mock.ExpectQuery(getDiscussionsByUserAccessString).WithArgs(userID).WillReturnError(fmt.Errorf("error"))
+			mock.ExpectQuery(getDiscussionsByUserAccessString).WithArgs(userID, state).WillReturnError(fmt.Errorf("error"))
 
-			iter := mockDatastore.GetDiscussionsByUserAccess(ctx, userID)
+			iter := mockDatastore.GetDiscussionsByUserAccess(ctx, userID, state)
 
 			So(iter.Next(&emptyDisc), ShouldBeFalse)
 			So(iter.Close(), ShouldNotBeNil)
@@ -84,12 +87,88 @@ func TestDelphisDB_GetDiscussionsForUserAccess(t *testing.T) {
 					discObj.IconURL, discObj.IdleMinutes, discObj.Description, discObj.TitleHistory,
 					discObj.DescriptionHistory, discObj.DiscussionJoinability, discObj.LastPostID, discObj.LastPostCreatedAt)
 
-			mock.ExpectQuery(getDiscussionsByUserAccessString).WithArgs(userID).WillReturnRows(rs)
+			mock.ExpectQuery(getDiscussionsByUserAccessString).WithArgs(userID, state).WillReturnRows(rs)
 
-			iter := mockDatastore.GetDiscussionsByUserAccess(ctx, userID)
+			iter := mockDatastore.GetDiscussionsByUserAccess(ctx, userID, state)
 
 			So(iter.Next(&emptyDisc), ShouldBeTrue)
 			So(iter.Close(), ShouldBeNil)
+			So(mock.ExpectationsWereMet(), ShouldBeNil)
+		})
+	})
+}
+
+func TestDelphisDB_GetDiscussionUserAccess(t *testing.T) {
+	ctx := context.Background()
+	userID := "userID"
+	discussionID := "discussionID"
+	requestID := "requestID"
+	duaObj := test_utils.TestDiscussionUserAccess()
+
+	duaObj.RequestID = &requestID
+
+	Convey("GetDiscussionUserAccess", t, func() {
+		db, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
+
+		assert.Nil(t, err, "Failed setting up sqlmock db")
+
+		gormDB, _ := gorm.Open("postgres", db)
+		mockDatastore := &delphisDB{
+			dbConfig:  config.TablesConfig{},
+			sql:       gormDB,
+			pg:        db,
+			prepStmts: &dbPrepStmts{},
+			dynamo:    nil,
+			encoder:   nil,
+		}
+		defer db.Close()
+
+		Convey("when preparing statements returns an error", func() {
+			mockPreparedStatementsWithError(mock)
+
+			resp, err := mockDatastore.GetDiscussionUserAccess(ctx, discussionID, userID)
+
+			So(err, ShouldNotBeNil)
+			So(resp, ShouldBeNil)
+			So(mock.ExpectationsWereMet(), ShouldBeNil)
+		})
+
+		Convey("when query execution returns an error", func() {
+			mockPreparedStatements(mock)
+			mock.ExpectQuery(getDiscussionUserAccessString).WithArgs(discussionID, userID).WillReturnError(fmt.Errorf("error"))
+
+			resp, err := mockDatastore.GetDiscussionUserAccess(ctx, discussionID, userID)
+
+			So(err, ShouldNotBeNil)
+			So(resp, ShouldBeNil)
+			So(mock.ExpectationsWereMet(), ShouldBeNil)
+		})
+
+		Convey("when there is no data returned", func() {
+			mockPreparedStatements(mock)
+			mock.ExpectQuery(getDiscussionUserAccessString).WithArgs(discussionID, userID).WillReturnError(sql.ErrNoRows)
+
+			resp, err := mockDatastore.GetDiscussionUserAccess(ctx, discussionID, userID)
+
+			So(err, ShouldBeNil)
+			So(resp, ShouldBeNil)
+			So(mock.ExpectationsWereMet(), ShouldBeNil)
+		})
+
+		Convey("when query execution succeeds", func() {
+			rs := sqlmock.NewRows([]string{"discussion_id", "user_id", "state", "request_id",
+				"created_at", "updated_at", "deleted_at"}).
+				AddRow(duaObj.DiscussionID, duaObj.UserID, duaObj.State, duaObj.RequestID,
+					duaObj.CreatedAt, duaObj.UpdatedAt, duaObj.DeletedAt)
+
+			mockPreparedStatements(mock)
+			mock.ExpectQuery(getDiscussionUserAccessString).WithArgs(discussionID, userID).WillReturnRows(rs)
+
+			resp, err := mockDatastore.GetDiscussionUserAccess(ctx, discussionID, userID)
+
+			So(err, ShouldBeNil)
+			So(resp, ShouldNotBeNil)
+			So(resp, ShouldResemble, &duaObj)
 			So(mock.ExpectationsWereMet(), ShouldBeNil)
 		})
 	})
@@ -99,10 +178,11 @@ func TestDelphisDB_UpsertDiscussionUserAccess(t *testing.T) {
 	ctx := context.Background()
 	userID := "userID"
 	discussionID := "discussionID"
-	duaObj := model.DiscussionUserAccess{
-		DiscussionID: discussionID,
-		UserID:       userID,
-	}
+	state := model.DiscussionUserAccessStateActive
+	requestID := "requestID"
+	duaObj := test_utils.TestDiscussionUserAccess()
+
+	duaObj.RequestID = &requestID
 
 	Convey("UpsertDiscussionUserAccess", t, func() {
 		db, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
@@ -125,7 +205,7 @@ func TestDelphisDB_UpsertDiscussionUserAccess(t *testing.T) {
 			mockPreparedStatementsWithError(mock)
 
 			tx, _ := mockDatastore.BeginTx(ctx)
-			resp, err := mockDatastore.UpsertDiscussionUserAccess(ctx, tx, discussionID, userID)
+			resp, err := mockDatastore.UpsertDiscussionUserAccess(ctx, tx, duaObj)
 
 			So(err, ShouldNotBeNil)
 			So(resp, ShouldBeNil)
@@ -136,10 +216,10 @@ func TestDelphisDB_UpsertDiscussionUserAccess(t *testing.T) {
 			mock.ExpectBegin()
 			mockPreparedStatements(mock)
 			mock.ExpectPrepare(upsertDiscussionUserAccessString)
-			mock.ExpectQuery(upsertDiscussionUserAccessString).WithArgs(discussionID, userID).WillReturnError(fmt.Errorf("error"))
+			mock.ExpectQuery(upsertDiscussionUserAccessString).WithArgs(discussionID, userID, state, &requestID).WillReturnError(fmt.Errorf("error"))
 
 			tx, _ := mockDatastore.BeginTx(ctx)
-			resp, err := mockDatastore.UpsertDiscussionUserAccess(ctx, tx, discussionID, userID)
+			resp, err := mockDatastore.UpsertDiscussionUserAccess(ctx, tx, duaObj)
 
 			So(err, ShouldNotBeNil)
 			So(resp, ShouldBeNil)
@@ -150,10 +230,10 @@ func TestDelphisDB_UpsertDiscussionUserAccess(t *testing.T) {
 			mock.ExpectBegin()
 			mockPreparedStatements(mock)
 			mock.ExpectPrepare(upsertDiscussionUserAccessString)
-			mock.ExpectQuery(upsertDiscussionUserAccessString).WithArgs(discussionID, userID).WillReturnError(sql.ErrNoRows)
+			mock.ExpectQuery(upsertDiscussionUserAccessString).WithArgs(discussionID, userID, state, &requestID).WillReturnError(sql.ErrNoRows)
 
 			tx, _ := mockDatastore.BeginTx(ctx)
-			resp, err := mockDatastore.UpsertDiscussionUserAccess(ctx, tx, discussionID, userID)
+			resp, err := mockDatastore.UpsertDiscussionUserAccess(ctx, tx, duaObj)
 
 			So(err, ShouldBeNil)
 			So(resp, ShouldNotBeNil)
@@ -162,16 +242,18 @@ func TestDelphisDB_UpsertDiscussionUserAccess(t *testing.T) {
 		})
 
 		Convey("when query execution succeeds and returns discussions", func() {
-			rs := sqlmock.NewRows([]string{"discussion_id", "user_id", "created_at", "updated_at"}).
-				AddRow(duaObj.DiscussionID, duaObj.UserID, duaObj.CreatedAt, duaObj.UpdatedAt)
+			rs := sqlmock.NewRows([]string{"discussion_id", "user_id", "state", "request_id",
+				"created_at", "updated_at", "deleted_at"}).
+				AddRow(duaObj.DiscussionID, duaObj.UserID, duaObj.State, duaObj.RequestID,
+					duaObj.CreatedAt, duaObj.UpdatedAt, duaObj.DeletedAt)
 
 			mock.ExpectBegin()
 			mockPreparedStatements(mock)
 			mock.ExpectPrepare(upsertDiscussionUserAccessString)
-			mock.ExpectQuery(upsertDiscussionUserAccessString).WithArgs(discussionID, userID).WillReturnRows(rs)
+			mock.ExpectQuery(upsertDiscussionUserAccessString).WithArgs(discussionID, userID, state, &requestID).WillReturnRows(rs)
 
 			tx, _ := mockDatastore.BeginTx(ctx)
-			resp, err := mockDatastore.UpsertDiscussionUserAccess(ctx, tx, discussionID, userID)
+			resp, err := mockDatastore.UpsertDiscussionUserAccess(ctx, tx, duaObj)
 
 			So(err, ShouldBeNil)
 			So(resp, ShouldNotBeNil)

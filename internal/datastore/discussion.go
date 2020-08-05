@@ -127,11 +127,13 @@ func (d *delphisDB) ListDiscussions(ctx context.Context) (*model.DiscussionsConn
 	}, nil
 }
 
-func (d *delphisDB) ListDiscussionsByUserID(ctx context.Context, userID string) (*model.DiscussionsConnection, error) {
+func (d *delphisDB) ListDiscussionsByUserID(ctx context.Context, userID string, state model.DiscussionUserAccessState) (*model.DiscussionsConnection, error) {
 	//TODO: this should take in paging params and return based on those.
 	logrus.Debugf("ListDiscussions::SQL Query")
 
-	iter := d.GetDiscussionsByUserAccess(ctx, userID)
+	logrus.Infof("State: %+v\n", state)
+
+	iter := d.GetDiscussionsByUserAccess(ctx, userID, state)
 	discArr, err := d.DiscussionIterCollect(ctx, iter)
 	if err != nil {
 		logrus.WithError(err).Error("failed to collect discussions from iter")

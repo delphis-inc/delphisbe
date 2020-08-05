@@ -461,6 +461,7 @@ func TestDelphisDB_ListDiscussionsByUserID(t *testing.T) {
 	now := time.Now()
 	modID := "modID"
 	userID := "userID"
+	state := model.DiscussionUserAccessStateActive
 	discObj := model.Discussion{
 		ID:            "discussion1",
 		CreatedAt:     now,
@@ -493,7 +494,7 @@ func TestDelphisDB_ListDiscussionsByUserID(t *testing.T) {
 		Convey("when preparing statements returns an error", func() {
 			mockPreparedStatementsWithError(mock)
 
-			resp, err := mockDatastore.ListDiscussionsByUserID(ctx, userID)
+			resp, err := mockDatastore.ListDiscussionsByUserID(ctx, userID, state)
 
 			So(err, ShouldNotBeNil)
 			So(resp, ShouldBeNil)
@@ -502,9 +503,9 @@ func TestDelphisDB_ListDiscussionsByUserID(t *testing.T) {
 
 		Convey("when query execution returns an error", func() {
 			mockPreparedStatements(mock)
-			mock.ExpectQuery(getDiscussionsByUserAccessString).WithArgs(userID).WillReturnError(fmt.Errorf("error"))
+			mock.ExpectQuery(getDiscussionsByUserAccessString).WithArgs(userID, state).WillReturnError(fmt.Errorf("error"))
 
-			resp, err := mockDatastore.ListDiscussionsByUserID(ctx, userID)
+			resp, err := mockDatastore.ListDiscussionsByUserID(ctx, userID, state)
 
 			So(err, ShouldNotBeNil)
 			So(resp, ShouldBeNil)
@@ -525,9 +526,9 @@ func TestDelphisDB_ListDiscussionsByUserID(t *testing.T) {
 					discObj.IconURL, discObj.IdleMinutes, discObj.Description, discObj.TitleHistory,
 					discObj.DescriptionHistory, discObj.DiscussionJoinability, discObj.LastPostID, discObj.LastPostCreatedAt)
 
-			mock.ExpectQuery(getDiscussionsByUserAccessString).WithArgs(userID).WillReturnRows(rs)
+			mock.ExpectQuery(getDiscussionsByUserAccessString).WithArgs(userID, state).WillReturnRows(rs)
 
-			resp, err := mockDatastore.ListDiscussionsByUserID(ctx, userID)
+			resp, err := mockDatastore.ListDiscussionsByUserID(ctx, userID, state)
 
 			verifyDC := model.DiscussionsConnection{
 				Edges: []*model.DiscussionsEdge{

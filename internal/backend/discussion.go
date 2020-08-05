@@ -257,8 +257,8 @@ func (d *delphisBackend) ListDiscussions(ctx context.Context) (*model.Discussion
 	return d.db.ListDiscussions(ctx)
 }
 
-func (d *delphisBackend) ListDiscussionsByUserID(ctx context.Context, userID string) (*model.DiscussionsConnection, error) {
-	return d.db.ListDiscussionsByUserID(ctx, userID)
+func (d *delphisBackend) ListDiscussionsByUserID(ctx context.Context, userID string, state model.DiscussionUserAccessState) (*model.DiscussionsConnection, error) {
+	return d.db.ListDiscussionsByUserID(ctx, userID, state)
 }
 
 func (d *delphisBackend) SubscribeToDiscussion(ctx context.Context, subscriberUserID string, postChannel chan *model.Post, discussionID string) error {
@@ -428,7 +428,7 @@ func (d *delphisBackend) grantAccessAndCreateParticipants(ctx context.Context, d
 	trueObj := true
 	for _, id := range userIDs {
 		// Grant access
-		if _, err := d.GrantUserDiscussionAccess(ctx, id, discussionID); err != nil {
+		if _, err := d.UpsertUserDiscussionAccess(ctx, id, discussionID, model.DiscussionUserAccessStateActive); err != nil {
 			logrus.WithError(err).Error("failed to grant access")
 			return err
 		}
