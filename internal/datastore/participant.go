@@ -119,6 +119,15 @@ func (d *delphisDB) AssignFlair(ctx context.Context, participant model.Participa
 	return &participant, nil
 }
 
+func (d *delphisDB) SetParticipantsMutedUntil(ctx context.Context, participants []*model.Participant, mutedUntil *time.Time) ([]*model.Participant, error) {
+	logrus.Debug("SetParticipantsMutedUntil::SQL Update")
+	if err := d.sql.Where(&participants).UpdateColumn("MutedUntil", mutedUntil).Find(&participants).Error; err != nil {
+		logrus.WithError(err).Errorf("SetParticipantsMutedUntil::Failed to update")
+		return participants, err
+	}
+	return participants, nil
+}
+
 func (d *delphisDB) GetTotalParticipantCountByDiscussionID(ctx context.Context, discussionID string) int {
 	count := 0
 	d.sql.Model(&model.Participant{}).Where(&model.Participant{DiscussionID: &discussionID}).Count(&count)

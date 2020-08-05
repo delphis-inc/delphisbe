@@ -658,6 +658,91 @@ func (r *mutationResolver) ShuffleDiscussion(ctx context.Context, discussionID s
 	return r.DAOManager.GetDiscussionByID(ctx, discussionID)
 }
 
+func (r *mutationResolver) MuteParticipants(ctx context.Context, discussionID string, participantIDs []string, mutedForSeconds int) ([]*model.Participant, error) {
+	authedUser := auth.GetAuthedUser(ctx)
+	if authedUser == nil {
+		return nil, fmt.Errorf("Need auth")
+	}
+
+	/* Only moderators can use this mutation */
+	modCheck, err := r.DAOManager.CheckIfModerator(ctx, authedUser.UserID)
+	if err != nil || !modCheck {
+		return nil, fmt.Errorf("unauthorized")
+	}
+
+	/* Get discussion participants */
+	participants, err := r.DAOManager.GetParticipantsByDiscussionID(ctx, discussionID)
+	if err != nil {
+		return nil, err
+	} else if participants == nil {
+		return nil, fmt.Errorf("Error fetching participants with discussionID (%s)", discussionID)
+	} else if len(participants) == 0 {
+		return []*model.Participant{}, nil
+	}
+
+	/* Check participants validity and retrieve the ones we need to modify */
+	var participantsToEdit []*model.Participant
+	for _, participantID := range participantIDs {
+		found := false
+		for _, participant := range participants {
+			if participant.ID == participantID {
+				found = true
+				p := participant
+				participantsToEdit = append(participantsToEdit, &p)
+				break
+			}
+		}
+		if !found {
+			return nil, fmt.Errorf("Participant with ID (%s) is not associated with discussionID (%s)", participantID, discussionID)
+		}
+	}
+
+	return r.DAOManager.MuteParticipants(ctx, participantsToEdit, mutedForSeconds)
+
+}
+
+func (r *mutationResolver) UnmuteParticipants(ctx context.Context, discussionID string, participantIDs []string) ([]*model.Participant, error) {
+	authedUser := auth.GetAuthedUser(ctx)
+	if authedUser == nil {
+		return nil, fmt.Errorf("Need auth")
+	}
+
+	/* Only moderators can use this mutation */
+	modCheck, err := r.DAOManager.CheckIfModerator(ctx, authedUser.UserID)
+	if err != nil || !modCheck {
+		return nil, fmt.Errorf("unauthorized")
+	}
+
+	/* Get discussion participants */
+	participants, err := r.DAOManager.GetParticipantsByDiscussionID(ctx, discussionID)
+	if err != nil {
+		return nil, err
+	} else if participants == nil {
+		return nil, fmt.Errorf("Error fetching participants with discussionID (%s)", discussionID)
+	} else if len(participants) == 0 {
+		return []*model.Participant{}, nil
+	}
+
+	/* Check participants validity and retrieve the ones we need to modify */
+	var participantsToEdit []*model.Participant
+	for _, participantID := range participantIDs {
+		found := false
+		for _, participant := range participants {
+			if participant.ID == participantID {
+				found = true
+				p := participant
+				participantsToEdit = append(participantsToEdit, &p)
+				break
+			}
+		}
+		if !found {
+			return nil, fmt.Errorf("Participant with ID (%s) is not associated with discussionID (%s)", participantID, discussionID)
+		}
+	}
+
+	return r.DAOManager.UnmuteParticipants(ctx, participantsToEdit)
+}
+
 func (r *queryResolver) Discussion(ctx context.Context, id string) (*model.Discussion, error) {
 	return r.resolveDiscussionByID(ctx, id)
 }

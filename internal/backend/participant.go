@@ -209,6 +209,15 @@ func (d *delphisBackend) UnassignFlair(ctx context.Context, participant model.Pa
 	return d.db.AssignFlair(ctx, participant, nil)
 }
 
+func (d *delphisBackend) MuteParticipants(ctx context.Context, participants []*model.Participant, muteForSeconds int) ([]*model.Participant, error) {
+	newTime := time.Now().Add(time.Duration(muteForSeconds) * time.Second)
+	return d.db.SetParticipantsMutedUntil(ctx, participants, &newTime)
+}
+
+func (d *delphisBackend) UnmuteParticipants(ctx context.Context, participants []*model.Participant) ([]*model.Participant, error) {
+	return d.db.SetParticipantsMutedUntil(ctx, participants, nil)
+}
+
 func (d *delphisBackend) GetTotalParticipantCountByDiscussionID(ctx context.Context, discussionID string) int {
 	return d.db.GetTotalParticipantCountByDiscussionID(ctx, discussionID)
 }
