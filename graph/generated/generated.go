@@ -277,6 +277,7 @@ type ComplexityRoot struct {
 		Inviter                           func(childComplexity int) int
 		IsAnonymous                       func(childComplexity int) int
 		IsBanned                          func(childComplexity int) int
+		MutedForSeconds                   func(childComplexity int) int
 		ParticipantID                     func(childComplexity int) int
 		Posts                             func(childComplexity int) int
 		UserProfile                       func(childComplexity int) int
@@ -556,6 +557,7 @@ type ParticipantResolver interface {
 	UserProfile(ctx context.Context, obj *model.Participant) (*model.UserProfile, error)
 
 	AnonDisplayName(ctx context.Context, obj *model.Participant) (*string, error)
+	MutedForSeconds(ctx context.Context, obj *model.Participant) (*int, error)
 }
 type ParticipantsConnectionResolver interface {
 	Edges(ctx context.Context, obj *model.ParticipantsConnection) ([]*model.ParticipantsEdge, error)
@@ -1822,6 +1824,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Participant.IsBanned(childComplexity), true
 
+	case "Participant.mutedForSeconds":
+		if e.complexity.Participant.MutedForSeconds == nil {
+			break
+		}
+
+		return e.complexity.Participant.MutedForSeconds(childComplexity), true
+
 	case "Participant.participantID":
 		if e.complexity.Participant.ParticipantID == nil {
 			break
@@ -2903,6 +2912,12 @@ type MediaSize {
 
     # The participant's display name if they are anonymous
     anonDisplayName: String
+
+    # Seconds remaining before the user will become unmuted again
+    # (i.e. capable of posting). This is not a DateTime in order
+    # to avoid any timezone or clock time skew problems. The seconds
+    # are calculated relatively to the timestamp of the query.
+    mutedForSeconds: Int
 }
 `, BuiltIn: false},
 	&ast.Source{Name: "graph/types/participant_notification_preferences.graphqls", Input: `type ParticipantNotificationPreferences {
@@ -9352,6 +9367,37 @@ func (ec *executionContext) _Participant_anonDisplayName(ctx context.Context, fi
 	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
 }
 
+func (ec *executionContext) _Participant_mutedForSeconds(ctx context.Context, field graphql.CollectedField, obj *model.Participant) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "Participant",
+		Field:    field,
+		Args:     nil,
+		IsMethod: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Participant().MutedForSeconds(rctx, obj)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*int)
+	fc.Result = res
+	return ec.marshalOInt2ᚖint(ctx, field.Selections, res)
+}
+
 func (ec *executionContext) _ParticipantNotificationPreferences_id(ctx context.Context, field graphql.CollectedField, obj *model.ParticipantNotificationPreferences) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -15396,6 +15442,17 @@ func (ec *executionContext) _Participant(ctx context.Context, sel ast.SelectionS
 					}
 				}()
 				res = ec._Participant_anonDisplayName(ctx, field, obj)
+				return res
+			})
+		case "mutedForSeconds":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Participant_mutedForSeconds(ctx, field, obj)
 				return res
 			})
 		default:

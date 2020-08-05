@@ -26,8 +26,9 @@ type Participant struct {
 
 	IsBanned bool `json:"isBanned" gorm:"type:boolean;"`
 
-	HasJoined   bool `json:"hasJoined" gorm:"type:boolean;"`
-	IsAnonymous bool `json:"isAnonymous"`
+	HasJoined   bool       `json:"hasJoined" gorm:"type:boolean;"`
+	IsAnonymous bool       `json:"isAnonymous"`
+	MutedUntil  *time.Time `json:"mutedUntil"`
 }
 
 func (Participant) IsEntity() {}
