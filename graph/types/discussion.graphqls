@@ -113,6 +113,16 @@ type DiscussionAccessLink {
     isDeleted: Boolean!
 }
 
+type DiscussionUserAccess{
+    discussion: Discussion!
+    user: User!
+    state: DiscussionUserAccessState!
+    createdAt: Time!
+    updatedAt: Time!
+    isDeleted: Boolean!
+    request: DiscussionAccessRequest
+}
+
 # type DiscussionsConnection {
 #     totalCount: Int!
 #     edges: [DiscussionsEdge]

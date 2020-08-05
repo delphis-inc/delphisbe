@@ -56,6 +56,64 @@ type DiscussionInput struct {
 	LastPostCreatedAt     *time.Time                    `json:"lastPostCreatedAt"`
 }
 
+type HistoricalString struct {
+	Value     string    `json:"value"`
+	CreatedAt time.Time `json:"createdAt"`
+}
+
+type DiscussionAutoPost struct {
+	ID          string
+	IdleMinutes int
+}
+
+type DiscussionFlairTemplateAccess struct {
+	DiscussionID    string
+	FlairTemplateID string
+	CreatedAt       time.Time
+	UpdatedAt       time.Time
+	DeletedAt       *time.Time
+}
+
+type DiscussionUserAccess struct {
+	DiscussionID string
+	UserID       string
+	State        DiscussionUserAccessState
+	CreatedAt    time.Time
+	UpdatedAt    time.Time
+	DeletedAt    *time.Time
+	RequestID    *string
+}
+
+type DiscussionAccessRequest struct {
+	ID           string `json:"id"`
+	UserID       string
+	DiscussionID string
+	CreatedAt    string              `json:"createdAt"`
+	UpdatedAt    string              `json:"updatedAt"`
+	IsDeleted    bool                `json:"isDeleted"`
+	Status       InviteRequestStatus `json:"status"`
+}
+
+type DiscussionInvite struct {
+	ID                    string `json:"id"`
+	UserID                string
+	DiscussionID          string
+	InvitingParticipantID string
+	CreatedAt             string              `json:"createdAt"`
+	UpdatedAt             string              `json:"updatedAt"`
+	IsDeleted             bool                `json:"isDeleted"`
+	Status                InviteRequestStatus `json:"status"`
+	InviteType            InviteType
+}
+
+type DiscussionAccessLink struct {
+	DiscussionID string `json:"discussionID"`
+	LinkSlug     string `json:"linkSlug"`
+	CreatedAt    time.Time
+	UpdatedAt    time.Time
+	DeletedAt    *time.Time
+}
+
 func (Discussion) IsEntity() {}
 
 func (d *Discussion) TitleHistoryAsObject() ([]*HistoricalString, error) {
@@ -132,60 +190,4 @@ func (d *Discussion) AddDescriptionToHistory(description string) error {
 	d.DescriptionHistory = postgres.Jsonb{RawMessage: marshaled}
 
 	return nil
-}
-
-type HistoricalString struct {
-	Value     string    `json:"value"`
-	CreatedAt time.Time `json:"createdAt"`
-}
-
-type DiscussionAutoPost struct {
-	ID          string
-	IdleMinutes int
-}
-
-type DiscussionFlairTemplateAccess struct {
-	DiscussionID    string
-	FlairTemplateID string
-	CreatedAt       time.Time
-	UpdatedAt       time.Time
-	DeletedAt       *time.Time
-}
-
-type DiscussionUserAccess struct {
-	DiscussionID string
-	UserID       string
-	CreatedAt    time.Time
-	UpdatedAt    time.Time
-	DeletedAt    *time.Time
-}
-
-type DiscussionAccessRequest struct {
-	ID           string `json:"id"`
-	UserID       string
-	DiscussionID string
-	CreatedAt    string              `json:"createdAt"`
-	UpdatedAt    string              `json:"updatedAt"`
-	IsDeleted    bool                `json:"isDeleted"`
-	Status       InviteRequestStatus `json:"status"`
-}
-
-type DiscussionInvite struct {
-	ID                    string `json:"id"`
-	UserID                string
-	DiscussionID          string
-	InvitingParticipantID string
-	CreatedAt             string              `json:"createdAt"`
-	UpdatedAt             string              `json:"updatedAt"`
-	IsDeleted             bool                `json:"isDeleted"`
-	Status                InviteRequestStatus `json:"status"`
-	InviteType            InviteType
-}
-
-type DiscussionAccessLink struct {
-	DiscussionID string `json:"discussionID"`
-	LinkSlug     string `json:"linkSlug"`
-	CreatedAt    time.Time
-	UpdatedAt    time.Time
-	DeletedAt    *time.Time
 }

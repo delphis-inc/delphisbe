@@ -94,7 +94,7 @@ func (r *userResolver) Devices(ctx context.Context, obj *model.User) ([]*model.U
 	return resp, nil
 }
 
-func (r *userResolver) Discussions(ctx context.Context, obj *model.User) ([]*model.Discussion, error) {
+func (r *userResolver) Discussions(ctx context.Context, obj *model.User, state model.DiscussionUserAccessState) ([]*model.Discussion, error) {
 	authedUser := auth.GetAuthedUser(ctx)
 	if authedUser == nil {
 		return nil, fmt.Errorf("Need auth")
@@ -105,7 +105,7 @@ func (r *userResolver) Discussions(ctx context.Context, obj *model.User) ([]*mod
 		return nil, fmt.Errorf("unauthorized")
 	}
 
-	return r.DAOManager.GetDiscussionAccessByUserID(ctx, authedUser.UserID)
+	return r.DAOManager.GetDiscussionAccessByUserID(ctx, authedUser.UserID, state)
 }
 
 func (r *userResolver) DiscussionInvites(ctx context.Context, obj *model.User, status model.InviteRequestStatus) ([]*model.DiscussionInvite, error) {
