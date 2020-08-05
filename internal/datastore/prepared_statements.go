@@ -79,6 +79,7 @@ type dbPrepStmts struct {
 
 	// Viewers
 	getViewerForDiscussionIDUserID *sql2.Stmt
+	updateViewerLastViewed         *sql2.Stmt
 }
 
 const getPostByIDString = `
@@ -738,8 +739,7 @@ const getDiscussionsToShuffle = `
 		FROM discussion_shuffle_time s
 		JOIN discussions d ON d.id = s.discussion_id
 		WHERE shuffle_time is not NULL 
-		AND shuffle_time <= $1;
-`
+		AND shuffle_time <= $1;`
 
 // This may cause multiple updates to happen to the same row but since
 // shuffling is sort of idempotent (no expected outcome) it's a good
@@ -749,8 +749,7 @@ const incrDiscussionShuffleCount = `
 		SET shuffle_count = shuffle_count + 1
 		WHERE id = $1
 		RETURNING
-			shuffle_count;
-`
+			shuffle_count;`
 
 const getViewerForDiscussionIDUserID = `
 		SELECT
@@ -765,5 +764,17 @@ const getViewerForDiscussionIDUserID = `
 		WHERE 
 			discussion_id = $1 
 			AND user_id = $2
-			AND deleted_at is NULL;
-`
+			AND deleted_at is NULL;`
+
+const updateViewerLastViewed = `
+		UPDATE viewers
+		SET last_viewed = $2, last_viewed_post_id = $3
+		WHERE id = $1
+		RETURNING 
+			id,
+			created_at,
+			updated_at,
+			last_viewed,
+			last_viewed_post_id,
+			discussion_id,
+			user_id;`

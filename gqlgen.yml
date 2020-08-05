@@ -122,6 +122,8 @@ models:
         resolver: true
       bookmarks:
         resolver: true
+      lastViewedPost:
+        resolver: true
   DiscussionLinkAccess:
     fields:
       inviteLinkURL:

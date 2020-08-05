@@ -25,6 +25,12 @@ func (d *delphisBackend) CreateViewerForDiscussion(ctx context.Context, discussi
 	return &viewerObj, err
 }
 
+func (d *delphisBackend) SetViewerLastPostViewed(ctx context.Context, viewerID, postID string) (*model.Viewer, error) {
+	now := d.timeProvider.Now()
+
+	return d.db.SetViewerLastPostViewed(ctx, viewerID, postID, now)
+}
+
 func (d *delphisBackend) GetViewerForDiscussion(ctx context.Context, discussionID, userID string, createIfNotFound bool) (*model.Viewer, error) {
 	viewer, err := d.db.GetViewerForDiscussion(ctx, discussionID, userID)
 	if err != nil {

@@ -128,6 +128,9 @@ type Mutation {
   banParticipant(discussionID: ID!, participantID: ID!): Participant!
 
   shuffleDiscussion(discussionID: ID!, inFutureSeconds: Int): Discussion!
+
+  # Viewer
+  setLastPostViewed(viewerID: ID!, postID: ID!): Viewer!
 }
 
 type Subscription {

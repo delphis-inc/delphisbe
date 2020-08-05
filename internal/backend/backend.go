@@ -64,6 +64,7 @@ type DelphisBackend interface {
 	NotifySubscribersOfCreatedPost(ctx context.Context, post *model.Post, discussionID string) error
 	NotifySubscribersOfDeletedPost(ctx context.Context, post *model.Post, discussionID string) error
 	NotifySubscribersOfBannedParticipant(ctx context.Context, participant *model.Participant, discussionID string) error
+	GetPostByDiscussionPostID(ctx context.Context, discussionID, postID string) (*model.Post, error)
 	GetPostsConnectionByDiscussionID(ctx context.Context, discussionID string, cursor string, limit int) (*model.PostsConnection, error)
 	GetPostsByDiscussionID(ctx context.Context, userID string, discussionID string) ([]*model.Post, error)
 	GetLastPostByDiscussionID(ctx context.Context, discussionID string) (*model.Post, error)
@@ -82,6 +83,7 @@ type DelphisBackend interface {
 	GetViewersByIDs(ctx context.Context, viewerIDs []string) (map[string]*model.Viewer, error)
 	CreateViewerForDiscussion(ctx context.Context, discussionID string, userID string) (*model.Viewer, error)
 	GetViewerForDiscussion(ctx context.Context, discussionID, userID string, createIfNotFound bool) (*model.Viewer, error)
+	SetViewerLastPostViewed(ctx context.Context, viewerID, postID string) (*model.Viewer, error)
 	GetSocialInfosByUserProfileID(ctx context.Context, userProfileID string) ([]model.SocialInfo, error)
 	UpsertSocialInfo(ctx context.Context, socialInfo model.SocialInfo) (*model.SocialInfo, error)
 	GetMentionedEntities(ctx context.Context, entityIDs []string) (map[string]model.Entity, error)
