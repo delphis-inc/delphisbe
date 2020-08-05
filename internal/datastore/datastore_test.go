@@ -260,6 +260,11 @@ func TestDelphisDB_InitializeStatements(t *testing.T) {
 
 				Test: incrDiscussionShuffleCount,
 			},
+			{
+				Name: "getViewerForDiscussionIDUserID",
+
+				Test: getViewerForDiscussionIDUserID,
+			},
 		}
 
 		for index, test := range tests {

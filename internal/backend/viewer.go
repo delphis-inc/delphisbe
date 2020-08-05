@@ -2,7 +2,6 @@ package backend
 
 import (
 	"context"
-	"time"
 
 	"github.com/delphis-inc/delphisbe/graph/model"
 	"github.com/delphis-inc/delphisbe/internal/util"
@@ -10,8 +9,8 @@ import (
 
 func (d *delphisBackend) CreateViewerForDiscussion(ctx context.Context, discussionID string, userID string) (*model.Viewer, error) {
 	viewerObj := model.Viewer{
-		CreatedAt:    time.Now(),
-		UpdatedAt:    time.Now(),
+		CreatedAt:    d.timeProvider.Now(),
+		UpdatedAt:    d.timeProvider.Now(),
 		ID:           util.UUIDv4(),
 		DiscussionID: &discussionID,
 		UserID:       &userID,
@@ -24,6 +23,19 @@ func (d *delphisBackend) CreateViewerForDiscussion(ctx context.Context, discussi
 	}
 
 	return &viewerObj, err
+}
+
+func (d *delphisBackend) GetViewerForDiscussion(ctx context.Context, discussionID, userID string, createIfNotFound bool) (*model.Viewer, error) {
+	viewer, err := d.db.GetViewerForDiscussion(ctx, discussionID, userID)
+	if err != nil {
+		return nil, err
+	}
+
+	if viewer == nil && createIfNotFound {
+		return d.CreateViewerForDiscussion(ctx, discussionID, userID)
+	}
+
+	return viewer, nil
 }
 
 func (d *delphisBackend) GetViewersByIDs(ctx context.Context, viewerIDs []string) (map[string]*model.Viewer, error) {

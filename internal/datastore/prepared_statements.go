@@ -76,6 +76,9 @@ type dbPrepStmts struct {
 	putNextShuffleTimeForDiscussionIDString *sql2.Stmt
 	getDiscussionsToShuffle                 *sql2.Stmt
 	incrDiscussionShuffleCount              *sql2.Stmt
+
+	// Viewers
+	getViewerForDiscussionIDUserID *sql2.Stmt
 }
 
 const getPostByIDString = `
@@ -747,4 +750,20 @@ const incrDiscussionShuffleCount = `
 		WHERE id = $1
 		RETURNING
 			shuffle_count;
+`
+
+const getViewerForDiscussionIDUserID = `
+		SELECT
+			id,
+			created_at,
+			updated_at,
+			last_viewed,
+			last_viewed_post_id,
+			discussion_id,
+			user_id
+		FROM viewers
+		WHERE 
+			discussion_id = $1 
+			AND user_id = $2
+			AND deleted_at is NULL;
 `

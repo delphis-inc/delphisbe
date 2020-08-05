@@ -2,6 +2,7 @@ package datastore
 
 import (
 	"context"
+	"database/sql"
 
 	"github.com/delphis-inc/delphisbe/graph/model"
 	"github.com/jinzhu/gorm"
@@ -31,6 +32,37 @@ func (d *delphisDB) UpsertViewer(ctx context.Context, viewer model.Viewer) (*mod
 		}
 	}
 	return &found, nil
+}
+
+func (d *delphisDB) GetViewerForDiscussion(ctx context.Context, discussionID, userID string) (*model.Viewer, error) {
+	logrus.Debug("GetViewerForDiscussion::SQL Query")
+	if err := d.initializeStatements(ctx); err != nil {
+		logrus.WithError(err).Error("GetViewerForDiscussion::failed to initialize statements")
+		return nil, err
+	}
+
+	viewer := model.Viewer{}
+	if err := d.prepStmts.getViewerForDiscussionIDUserID.QueryRowContext(
+		ctx,
+		discussionID,
+		userID,
+	).Scan(
+		&viewer.ID,
+		&viewer.CreatedAt,
+		&viewer.UpdatedAt,
+		&viewer.LastViewed,
+		&viewer.LastViewedPostID,
+		&viewer.DiscussionID,
+		&viewer.UserID,
+	); err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		logrus.WithError(err).Error("failed to execute GetViewerForDiscussion")
+		return nil, err
+	}
+
+	return &viewer, nil
 }
 
 func (d *delphisDB) GetViewerByID(ctx context.Context, viewerID string) (*model.Viewer, error) {

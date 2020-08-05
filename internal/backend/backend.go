@@ -81,6 +81,7 @@ type DelphisBackend interface {
 	GetViewerByID(ctx context.Context, viewerID string) (*model.Viewer, error)
 	GetViewersByIDs(ctx context.Context, viewerIDs []string) (map[string]*model.Viewer, error)
 	CreateViewerForDiscussion(ctx context.Context, discussionID string, userID string) (*model.Viewer, error)
+	GetViewerForDiscussion(ctx context.Context, discussionID, userID string, createIfNotFound bool) (*model.Viewer, error)
 	GetSocialInfosByUserProfileID(ctx context.Context, userProfileID string) ([]model.SocialInfo, error)
 	UpsertSocialInfo(ctx context.Context, socialInfo model.SocialInfo) (*model.SocialInfo, error)
 	GetMentionedEntities(ctx context.Context, entityIDs []string) (map[string]model.Entity, error)

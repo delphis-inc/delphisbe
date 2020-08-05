@@ -114,6 +114,7 @@ type ComplexityRoot struct {
 		MeAvailableParticipants func(childComplexity int) int
 		MeCanJoinDiscussion     func(childComplexity int) int
 		MeParticipant           func(childComplexity int) int
+		MeViewer                func(childComplexity int) int
 		Moderator               func(childComplexity int) int
 		Participants            func(childComplexity int) int
 		Posts                   func(childComplexity int) int
@@ -475,6 +476,7 @@ type DiscussionResolver interface {
 	MeParticipant(ctx context.Context, obj *model.Discussion) (*model.Participant, error)
 	MeAvailableParticipants(ctx context.Context, obj *model.Discussion) ([]*model.Participant, error)
 	MeCanJoinDiscussion(ctx context.Context, obj *model.Discussion) (*model.CanJoinDiscussionResponse, error)
+	MeViewer(ctx context.Context, obj *model.Discussion) (*model.Viewer, error)
 
 	Tags(ctx context.Context, obj *model.Discussion) ([]*model.Tag, error)
 	UpcomingContent(ctx context.Context, obj *model.Discussion) ([]*model.ImportedContent, error)
@@ -884,6 +886,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Discussion.MeParticipant(childComplexity), true
+
+	case "Discussion.meViewer":
+		if e.complexity.Discussion.MeViewer == nil {
+			break
+		}
+
+		return e.complexity.Discussion.MeViewer(childComplexity), true
 
 	case "Discussion.moderator":
 		if e.complexity.Discussion.Moderator == nil {
@@ -2714,6 +2723,8 @@ var sources = []*ast.Source{
     meAvailableParticipants: [Participant!]
 
     meCanJoinDiscussion: CanJoinDiscussionResponse!
+
+    meViewer: Viewer
 
     autoPost: Boolean!
     idleMinutes: Int!
@@ -5310,6 +5321,37 @@ func (ec *executionContext) _Discussion_meCanJoinDiscussion(ctx context.Context,
 	res := resTmp.(*model.CanJoinDiscussionResponse)
 	fc.Result = res
 	return ec.marshalNCanJoinDiscussionResponse2ᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐCanJoinDiscussionResponse(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Discussion_meViewer(ctx context.Context, field graphql.CollectedField, obj *model.Discussion) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "Discussion",
+		Field:    field,
+		Args:     nil,
+		IsMethod: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Discussion().MeViewer(rctx, obj)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*model.Viewer)
+	fc.Result = res
+	return ec.marshalOViewer2ᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐViewer(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Discussion_autoPost(ctx context.Context, field graphql.CollectedField, obj *model.Discussion) (ret graphql.Marshaler) {
@@ -14624,6 +14666,17 @@ func (ec *executionContext) _Discussion(ctx context.Context, sel ast.SelectionSe
 				if res == graphql.Null {
 					atomic.AddUint32(&invalids, 1)
 				}
+				return res
+			})
+		case "meViewer":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Discussion_meViewer(ctx, field, obj)
 				return res
 			})
 		case "autoPost":
