@@ -81,11 +81,13 @@ func TestDelphisDB_GetDiscussionsForUserAccess(t *testing.T) {
 			mockPreparedStatements(mock)
 			rs := sqlmock.NewRows([]string{"id", "created_at", "updated_at", "deleted_at", "title",
 				"anonymity_type", "moderator_id", "auto_post", "icon_url", "idle_minutes", "description",
-				"title_history", "description_history", "discussion_joinability", "last_post_id", "last_post_created_at"}).
+				"title_history", "description_history", "discussion_joinability", "last_post_id", "last_post_created_at",
+				"shuffle_count"}).
 				AddRow(discObj.ID, discObj.CreatedAt, discObj.UpdatedAt, discObj.DeletedAt,
 					discObj.Title, discObj.AnonymityType, discObj.ModeratorID, discObj.AutoPost,
 					discObj.IconURL, discObj.IdleMinutes, discObj.Description, discObj.TitleHistory,
-					discObj.DescriptionHistory, discObj.DiscussionJoinability, discObj.LastPostID, discObj.LastPostCreatedAt)
+					discObj.DescriptionHistory, discObj.DiscussionJoinability, discObj.LastPostID, discObj.LastPostCreatedAt,
+					discObj.ShuffleCount)
 
 			mock.ExpectQuery(getDiscussionsByUserAccessString).WithArgs(userID, state).WillReturnRows(rs)
 
@@ -427,15 +429,18 @@ func TestDiscussionIter_Next(t *testing.T) {
 		Convey("when the iterator has rows to iterate over", func() {
 			rs := sqlmock.NewRows([]string{"id", "created_at", "updated_at", "deleted_at", "title",
 				"anonymity_type", "moderator_id", "auto_post", "icon_url", "idle_minutes", "description",
-				"title_history", "description_history", "discussion_joinability", "last_post_id", "last_post_created_at"}).
+				"title_history", "description_history", "discussion_joinability", "last_post_id", "last_post_created_at",
+				"shuffle_count"}).
 				AddRow(discObj.ID, discObj.CreatedAt, discObj.UpdatedAt, discObj.DeletedAt,
 					discObj.Title, discObj.AnonymityType, discObj.ModeratorID, discObj.AutoPost,
 					discObj.IconURL, discObj.IdleMinutes, discObj.Description, discObj.TitleHistory,
-					discObj.DescriptionHistory, discObj.DiscussionJoinability, discObj.LastPostID, discObj.LastPostCreatedAt).
+					discObj.DescriptionHistory, discObj.DiscussionJoinability, discObj.LastPostID, discObj.LastPostCreatedAt,
+					discObj.ShuffleCount).
 				AddRow(discObj.ID, discObj.CreatedAt, discObj.UpdatedAt, discObj.DeletedAt,
 					discObj.Title, discObj.AnonymityType, discObj.ModeratorID, discObj.AutoPost,
 					discObj.IconURL, discObj.IdleMinutes, discObj.Description, discObj.TitleHistory,
-					discObj.DescriptionHistory, discObj.DiscussionJoinability, discObj.LastPostID, discObj.LastPostCreatedAt)
+					discObj.DescriptionHistory, discObj.DiscussionJoinability, discObj.LastPostID, discObj.LastPostCreatedAt,
+					discObj.ShuffleCount)
 
 			// Convert mocked rows to sql.Rows
 			mock.ExpectQuery("SELECT").WillReturnRows(rs)
@@ -669,15 +674,18 @@ func TestDelphisDB_DiscussionIterCollect(t *testing.T) {
 		Convey("when the iterator has results and returns slice of Discussions", func() {
 			rs := sqlmock.NewRows([]string{"id", "created_at", "updated_at", "deleted_at", "title",
 				"anonymity_type", "moderator_id", "auto_post", "icon_url", "idle_minutes", "description",
-				"title_history", "description_history", "discussion_joinability", "last_post_id", "last_post_created_at"}).
+				"title_history", "description_history", "discussion_joinability", "last_post_id", "last_post_created_at",
+				"shuffle_count"}).
 				AddRow(discObj.ID, discObj.CreatedAt, discObj.UpdatedAt, discObj.DeletedAt,
 					discObj.Title, discObj.AnonymityType, discObj.ModeratorID, discObj.AutoPost,
 					discObj.IconURL, discObj.IdleMinutes, discObj.Description, discObj.TitleHistory,
-					discObj.DescriptionHistory, discObj.DiscussionJoinability, discObj.LastPostID, discObj.LastPostCreatedAt).
+					discObj.DescriptionHistory, discObj.DiscussionJoinability, discObj.LastPostID, discObj.LastPostCreatedAt,
+					discObj.ShuffleCount).
 				AddRow(discObj.ID, discObj.CreatedAt, discObj.UpdatedAt, discObj.DeletedAt,
 					discObj.Title, discObj.AnonymityType, discObj.ModeratorID, discObj.AutoPost,
 					discObj.IconURL, discObj.IdleMinutes, discObj.Description, discObj.TitleHistory,
-					discObj.DescriptionHistory, discObj.DiscussionJoinability, discObj.LastPostID, discObj.LastPostCreatedAt)
+					discObj.DescriptionHistory, discObj.DiscussionJoinability, discObj.LastPostID, discObj.LastPostCreatedAt,
+					discObj.ShuffleCount)
 
 			// Convert mocked rows to sql.Rows
 			mock.ExpectQuery("SELECT").WillReturnRows(rs)
