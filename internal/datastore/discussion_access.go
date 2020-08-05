@@ -163,6 +163,7 @@ func (iter *discussionIter) Next(discussion *model.Discussion) bool {
 		&discussion.DiscussionJoinability,
 		&discussion.LastPostID,
 		&discussion.LastPostCreatedAt,
+		&discussion.ShuffleCount,
 	); iter.err != nil {
 		logrus.WithError(iter.err).Error("iterator failed to scan row")
 		return false
