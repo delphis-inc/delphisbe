@@ -711,7 +711,6 @@ func (r *mutationResolver) MuteParticipants(ctx context.Context, discussionID st
 	}
 
 	return r.DAOManager.MuteParticipants(ctx, participantsToEdit, mutedForSeconds)
-
 }
 
 func (r *mutationResolver) UnmuteParticipants(ctx context.Context, discussionID string, participantIDs []string) ([]*model.Participant, error) {

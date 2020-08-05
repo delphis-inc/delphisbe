@@ -4028,6 +4028,28 @@ func (ec *executionContext) field_Mutation_unassignFlair_args(ctx context.Contex
 	return args, nil
 }
 
+func (ec *executionContext) field_Mutation_unmuteParticipants_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 string
+	if tmp, ok := rawArgs["discussionID"]; ok {
+		arg0, err = ec.unmarshalNID2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["discussionID"] = arg0
+	var arg1 []string
+	if tmp, ok := rawArgs["participantIDs"]; ok {
+		arg1, err = ec.unmarshalNID2ᚕstringᚄ(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["participantIDs"] = arg1
+	return args, nil
+}
+
 func (ec *executionContext) field_Mutation_updateDiscussionUserState_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
