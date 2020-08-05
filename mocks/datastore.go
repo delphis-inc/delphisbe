@@ -1773,6 +1773,29 @@ func (_m *Datastore) RollbackTx(ctx context.Context, tx *sql.Tx) error {
 	return r0
 }
 
+// SetParticipantsMutedUntil provides a mock function with given fields: ctx, participants, mutedUntil
+func (_m *Datastore) SetParticipantsMutedUntil(ctx context.Context, participants []*model.Participant, mutedUntil *time.Time) ([]*model.Participant, error) {
+	ret := _m.Called(ctx, participants, mutedUntil)
+
+	var r0 []*model.Participant
+	if rf, ok := ret.Get(0).(func(context.Context, []*model.Participant, *time.Time) []*model.Participant); ok {
+		r0 = rf(ctx, participants, mutedUntil)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]*model.Participant)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(context.Context, []*model.Participant, *time.Time) error); ok {
+		r1 = rf(ctx, participants, mutedUntil)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // TagIterCollect provides a mock function with given fields: ctx, iter
 func (_m *Datastore) TagIterCollect(ctx context.Context, iter datastore.TagIter) ([]*model.Tag, error) {
 	ret := _m.Called(ctx, iter)

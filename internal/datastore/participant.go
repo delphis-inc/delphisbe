@@ -121,7 +121,11 @@ func (d *delphisDB) AssignFlair(ctx context.Context, participant model.Participa
 
 func (d *delphisDB) SetParticipantsMutedUntil(ctx context.Context, participants []*model.Participant, mutedUntil *time.Time) ([]*model.Participant, error) {
 	logrus.Debug("SetParticipantsMutedUntil::SQL Update")
-	if err := d.sql.Where(&participants).UpdateColumn("MutedUntil", mutedUntil).Find(&participants).Error; err != nil {
+	var ids []string
+	for _, p := range participants {
+		ids = append(ids, p.ID)
+	}
+	if err := d.sql.Table("participants").Where("id IN (?)", ids).UpdateColumn("muted_until", mutedUntil).Find(&participants).Error; err != nil {
 		logrus.WithError(err).Errorf("SetParticipantsMutedUntil::Failed to update")
 		return participants, err
 	}
