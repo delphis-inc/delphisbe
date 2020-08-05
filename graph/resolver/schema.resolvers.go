@@ -659,6 +659,10 @@ func (r *mutationResolver) ShuffleDiscussion(ctx context.Context, discussionID s
 }
 
 func (r *mutationResolver) MuteParticipants(ctx context.Context, discussionID string, participantIDs []string, mutedForSeconds int) ([]*model.Participant, error) {
+	if mutedForSeconds < 0 || mutedForSeconds > 86400 {
+		return nil, fmt.Errorf("mutedForSeconds value is invalid")
+	}
+
 	authedUser := auth.GetAuthedUser(ctx)
 	if authedUser == nil {
 		return nil, fmt.Errorf("Need auth")

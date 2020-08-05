@@ -747,6 +747,29 @@ func TestDelphisDB_SetParticipantsMutedUntil(t *testing.T) {
 			So(mock.ExpectationsWereMet(), ShouldBeNil)
 		})
 
+		Convey("when everything succeeds with nil time", func() {
+			expectedParObj := parObj
+			expectedParObj.MutedUntil = nil
+			expectedParListObj := []*model.Participant{&expectedParObj}
+			mock.ExpectBegin()
+			mock.ExpectExec(expectedUpdateStr).WithArgs(nil, parID).WillReturnResult(sqlmock.NewResult(0, 1))
+			mock.ExpectCommit()
+			mock.ExpectQuery(expectedSelectStr).WithArgs(parID).WillReturnRows(sqlmock.NewRows([]string{
+				"id", "participant_id", "created_at", "updated_at",
+				"deleted_at", "discussion_id", "viewer_id", "flair_id", "gradient_color", "user_id",
+				"has_joined", "is_anonymous", "is_banned", "muted_until"}).
+				AddRow(parObj.ID, parObj.ParticipantID, parObj.CreatedAt, parObj.UpdatedAt,
+					parObj.DeletedAt, parObj.DiscussionID, parObj.ViewerID, parObj.FlairID,
+					parObj.GradientColor, parObj.UserID, parObj.HasJoined, parObj.IsAnonymous, parObj.IsBanned, nil))
+
+			resp, err := mockDatastore.SetParticipantsMutedUntil(ctx, parListObj, nil)
+
+			So(err, ShouldBeNil)
+			So(resp, ShouldNotBeNil)
+			So(resp, ShouldResemble, expectedParListObj)
+			So(mock.ExpectationsWereMet(), ShouldBeNil)
+		})
+
 	})
 }
 
