@@ -234,6 +234,119 @@ func TestDelphisBackend_CreateNewDiscussion(t *testing.T) {
 	})
 }
 
+func TestDelphisBackend_IncrementDiscussionShuffleCount(t *testing.T) {
+	ctx := context.Background()
+
+	discussionObj := test_utils.TestDiscussion()
+
+	Convey("IncrementDiscussionShuffleCount", t, func() {
+		var tx *sql.Tx
+		now := time.Now()
+		cacheObj := cache.NewInMemoryCache()
+		authObj := auth.NewDelphisAuth(nil)
+		mockDB := &mocks.Datastore{}
+		backendObj := &delphisBackend{
+			db:              mockDB,
+			auth:            authObj,
+			cache:           cacheObj,
+			discussionMutex: sync.Mutex{},
+			config:          config.Config{},
+			timeProvider:    &util.FrozenTime{NowTime: now},
+		}
+		Convey("when tx is not passed", func() {
+			Convey("when beginning a tx fails it returns an error", func() {
+				expectedError := fmt.Errorf("Some Error")
+				mockDB.On("BeginTx", ctx).Return(nil, expectedError)
+
+				resp, err := backendObj.IncrementDiscussionShuffleCount(ctx, nil, discussionObj.ID)
+
+				So(err, ShouldEqual, expectedError)
+				So(resp, ShouldBeNil)
+			})
+			Convey("when increment returns an error", func() {
+				tx = &sql.Tx{}
+				Convey("and rolling back tx fails", func() {
+					mockDB.On("BeginTx", ctx).Return(tx, nil)
+					mockDB.On("IncrementDiscussionShuffleCount", ctx, tx, discussionObj.ID).Return(nil, fmt.Errorf("sth"))
+					mockDB.On("RollbackTx", ctx, tx).Return(fmt.Errorf("sth"))
+
+					resp, err := backendObj.IncrementDiscussionShuffleCount(ctx, nil, discussionObj.ID)
+
+					So(err, ShouldNotBeNil)
+					So(resp, ShouldBeNil)
+				})
+
+				Convey("and rolling back tx succeeds", func() {
+					mockDB.On("BeginTx", ctx).Return(tx, nil)
+					mockDB.On("IncrementDiscussionShuffleCount", ctx, tx, discussionObj.ID).Return(nil, fmt.Errorf("sth"))
+					mockDB.On("RollbackTx", ctx, tx).Return(nil)
+
+					resp, err := backendObj.IncrementDiscussionShuffleCount(ctx, nil, discussionObj.ID)
+
+					So(err, ShouldNotBeNil)
+					So(resp, ShouldBeNil)
+				})
+			})
+			Convey("when increment succeeds", func() {
+				tx = &sql.Tx{}
+				newShuffleCount := 1
+				Convey("and commit fails and rollback fails", func() {
+					mockDB.On("BeginTx", ctx).Return(tx, nil)
+					mockDB.On("IncrementDiscussionShuffleCount", ctx, tx, discussionObj.ID).Return(&newShuffleCount, nil)
+					mockDB.On("CommitTx", ctx, tx).Return(fmt.Errorf("sth"))
+					mockDB.On("RollbackTx", ctx, tx).Return(fmt.Errorf("sth"))
+
+					resp, err := backendObj.IncrementDiscussionShuffleCount(ctx, nil, discussionObj.ID)
+
+					So(err, ShouldNotBeNil)
+					So(resp, ShouldBeNil)
+				})
+				Convey("and commit fails and rollback succeeds", func() {
+					mockDB.On("BeginTx", ctx).Return(tx, nil)
+					mockDB.On("IncrementDiscussionShuffleCount", ctx, tx, discussionObj.ID).Return(&newShuffleCount, nil)
+					mockDB.On("CommitTx", ctx, tx).Return(fmt.Errorf("sth"))
+					mockDB.On("RollbackTx", ctx, tx).Return(nil)
+
+					resp, err := backendObj.IncrementDiscussionShuffleCount(ctx, nil, discussionObj.ID)
+
+					So(err, ShouldNotBeNil)
+					So(resp, ShouldBeNil)
+				})
+				Convey("and commit succeeds", func() {
+					mockDB.On("BeginTx", ctx).Return(tx, nil)
+					mockDB.On("IncrementDiscussionShuffleCount", ctx, tx, discussionObj.ID).Return(&newShuffleCount, nil)
+					mockDB.On("CommitTx", ctx, tx).Return(nil)
+
+					resp, err := backendObj.IncrementDiscussionShuffleCount(ctx, nil, discussionObj.ID)
+
+					So(err, ShouldBeNil)
+					So(resp, ShouldEqual, &newShuffleCount)
+				})
+			})
+		})
+		Convey("when tx is passed", func() {
+			tx := &sql.Tx{}
+			Convey("and increment discussion returns an error", func() {
+				mockDB.On("IncrementDiscussionShuffleCount", ctx, tx, discussionObj.ID).Return(nil, fmt.Errorf("sth"))
+
+				resp, err := backendObj.IncrementDiscussionShuffleCount(ctx, tx, discussionObj.ID)
+
+				So(err, ShouldNotBeNil)
+				So(resp, ShouldBeNil)
+			})
+			Convey("and increment discussion succeeds", func() {
+				newShuffleCount := 1
+				mockDB.On("IncrementDiscussionShuffleCount", ctx, tx, discussionObj.ID).Return(&newShuffleCount, nil)
+
+				resp, err := backendObj.IncrementDiscussionShuffleCount(ctx, tx, discussionObj.ID)
+
+				So(err, ShouldBeNil)
+				So(resp, ShouldEqual, &newShuffleCount)
+			})
+		})
+	})
+}
+
 func TestDelphisBackend_GetDiscussionJoinabilityForUser(t *testing.T) {
 	ctx := context.Background()
 

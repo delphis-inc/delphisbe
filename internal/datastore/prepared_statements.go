@@ -69,6 +69,12 @@ type dbPrepStmts struct {
 	getAccessLinkBySlugStmt           *sql2.Stmt
 	getAccessLinkByDiscussionIDString *sql2.Stmt
 	putAccessLinkForDiscussionString  *sql2.Stmt
+
+	// DiscussionShuffleTimes
+	getNextShuffleTimeForDiscussionIDString *sql2.Stmt
+	putNextShuffleTimeForDiscussionIDString *sql2.Stmt
+	getDiscussionsToShuffle                 *sql2.Stmt
+	incrDiscussionShuffleCount              *sql2.Stmt
 }
 
 const getPostByIDString = `
@@ -473,13 +479,15 @@ const getDiscussionsByUserAccessString = `
 			d.description_history,
 			d.discussion_joinability,
 			d.last_post_id,
-			d.last_post_created_at
+			d.last_post_created_at,
+			d.shuffle_count
 		FROM discussion_user_access dua
 		INNER JOIN discussions d
 			ON dua.discussion_id = d.id
 		WHERE dua.user_id = $1
 			AND d.deleted_at is null
-		ORDER BY last_post_created_at desc;`
+		ORDER BY last_post_created_at desc;
+`
 
 const upsertDiscussionUserAccessString = `
 		INSERT INTO discussion_user_access (
@@ -684,3 +692,40 @@ const putAccessLinkForDiscussionString = `
 			created_at,
 			updated_at,
 			deleted_at;`
+
+const getNextShuffleTimeForDiscussionIDString = `
+		SELECT discussion_id,
+			shuffle_time
+		from discussion_shuffle_time
+		WHERE discussion_id = $1;`
+
+const putNextShuffleTimeForDiscussionIDString = `
+		INSERT INTO discussion_shuffle_time (
+			discussion_id,
+			shuffle_time
+		) VALUES ($1, $2)
+		ON CONFLICT (discussion_id)
+		DO UPDATE SET shuffle_time = $2
+		RETURNING
+			discussion_id,
+			shuffle_time;`
+
+const getDiscussionsToShuffle = `
+		SELECT d.id,
+			d.shuffle_count
+		FROM discussion_shuffle_time s
+		JOIN discussions d ON d.id = s.discussion_id
+		WHERE shuffle_time is not NULL 
+		AND shuffle_time <= $1;
+`
+
+// This may cause multiple updates to happen to the same row but since
+// shuffling is sort of idempotent (no expected outcome) it's a good
+// non-locking approach for now!
+const incrDiscussionShuffleCount = `
+		UPDATE discussions
+		SET shuffle_count = shuffle_count + 1
+		WHERE id = $1
+		RETURNING
+			shuffle_count;
+`

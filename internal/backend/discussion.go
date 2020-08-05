@@ -2,6 +2,7 @@ package backend
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
 	"fmt"
 	"time"
@@ -85,6 +86,39 @@ func (d *delphisBackend) CreateNewDiscussion(ctx context.Context, creatingUser *
 	}
 
 	return &discussionObj, nil
+}
+
+func (d *delphisBackend) IncrementDiscussionShuffleCount(ctx context.Context, tx *sql.Tx, id string) (*int, error) {
+	isPassedTx := tx != nil
+	if tx == nil {
+		var err error
+		tx, err = d.db.BeginTx(ctx)
+		if err != nil {
+			logrus.WithError(err).Error("failed to begin tx")
+			return nil, err
+		}
+	}
+
+	newShuffleCount, err := d.db.IncrementDiscussionShuffleCount(ctx, tx, id)
+	if err != nil {
+		if !isPassedTx {
+			txErr := d.rollbackTx(ctx, tx)
+			if txErr != nil {
+				return nil, multierr.Append(err, txErr)
+			}
+		}
+		return nil, err
+	} else if !isPassedTx {
+		err := d.db.CommitTx(ctx, tx)
+		if err != nil {
+			txErr := d.rollbackTx(ctx, tx)
+			if txErr != nil {
+				return nil, multierr.Append(err, txErr)
+			}
+			return nil, err
+		}
+	}
+	return newShuffleCount, nil
 }
 
 func (d *delphisBackend) GetDiscussionJoinabilityForUser(ctx context.Context, userObj *model.User, discussionObj *model.Discussion, meParticipant *model.Participant) (*model.CanJoinDiscussionResponse, error) {

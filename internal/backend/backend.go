@@ -2,12 +2,14 @@ package backend
 
 import (
 	"context"
+	"database/sql"
 	"mime/multipart"
 	"sync"
 	"time"
 
 	"github.com/delphis-inc/delphisbe/internal/mediadb"
 	"github.com/delphis-inc/delphisbe/internal/twitter"
+	"github.com/sirupsen/logrus"
 
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/delphis-inc/delphisbe/graph/model"
@@ -118,6 +120,11 @@ type DelphisBackend interface {
 	GetAccessLinkBySlug(ctx context.Context, slug string) (*model.DiscussionAccessLink, error)
 	GetAccessLinkByDiscussionID(ctx context.Context, discussionID string) (*model.DiscussionAccessLink, error)
 	PutAccessLinkForDiscussion(ctx context.Context, discussionID string) (*model.DiscussionAccessLink, error)
+	GetNextDiscussionShuffleTime(ctx context.Context, discussionID string) (*model.DiscussionShuffleTime, error)
+	PutDiscussionShuffleTime(ctx context.Context, discussionID string, shuffleTime *time.Time) (*model.DiscussionShuffleTime, error)
+	ShuffleDiscussionsIfNecessary()
+	IncrementDiscussionShuffleCount(ctx context.Context, tx *sql.Tx, id string) (*int, error)
+	GetDiscussionIDsToBeShuffledBeforeTime(ctx context.Context, tx *sql.Tx, epoc time.Time) ([]string, error)
 }
 
 type delphisBackend struct {
@@ -143,4 +150,12 @@ func NewDelphisBackend(conf config.Config, awsSession *session.Session) DelphisB
 		mediadb:         mediadb.NewMediaDB(conf, awsSession),
 		twitterBackend:  &twitter.TwitterBackendImpl{},
 	}
+}
+
+func (d *delphisBackend) rollbackTx(ctx context.Context, tx *sql.Tx) error {
+	if txErr := d.db.RollbackTx(ctx, tx); txErr != nil {
+		logrus.WithError(txErr).Error("failed to rollback tx")
+		return txErr
+	}
+	return nil
 }

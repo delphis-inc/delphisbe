@@ -589,7 +589,7 @@ func TestDelphisDB_UpsertDiscussion(t *testing.T) {
 		defer db.Close()
 
 		expectedFindQueryStr := `SELECT * FROM "discussions" WHERE "discussions"."deleted_at" IS NULL AND (("discussions"."id" = $1)) ORDER BY "discussions"."id" ASC LIMIT 1`
-		createQueryStr := `INSERT INTO "discussions" ("id","created_at","updated_at","deleted_at","title","description","title_history","description_history","anonymity_type","moderator_id","auto_post","idle_minutes","icon_url","discussion_joinability","last_post_id","last_post_created_at") VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16) RETURNING "discussions"."id"`
+		createQueryStr := `INSERT INTO "discussions" ("id","created_at","updated_at","deleted_at","title","description","title_history","description_history","anonymity_type","moderator_id","auto_post","idle_minutes","icon_url","discussion_joinability","last_post_id","last_post_created_at","shuffle_count") VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17) RETURNING "discussions"."id"`
 
 		expectedNewObjectRow := sqlmock.NewRows([]string{"id", "created_at", "updated_at", "deleted_at", "title", "description", "title_history", "description_history", "anonymity_type", "moderator_id", "icon_url",
 			"auto_post", "idle_minutes", "discussion_joinability"}).
@@ -623,6 +623,7 @@ func TestDelphisDB_UpsertDiscussion(t *testing.T) {
 					discObj.Description, discObj.TitleHistory, discObj.DescriptionHistory, discObj.AnonymityType,
 					discObj.ModeratorID, discObj.AutoPost, discObj.IdleMinutes, discObj.IconURL,
 					discObj.DiscussionJoinability, discObj.LastPostID, discObj.LastPostCreatedAt,
+					discObj.ShuffleCount,
 				).WillReturnError(expectedError)
 
 				resp, err := mockDatastore.UpsertDiscussion(ctx, discObj)
@@ -640,6 +641,7 @@ func TestDelphisDB_UpsertDiscussion(t *testing.T) {
 					discObj.TitleHistory, discObj.DescriptionHistory, discObj.AnonymityType,
 					discObj.ModeratorID, discObj.AutoPost, discObj.IdleMinutes, discObj.IconURL,
 					discObj.DiscussionJoinability, discObj.LastPostID, discObj.LastPostCreatedAt,
+					discObj.ShuffleCount,
 				).WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(discObj.ID))
 				mock.ExpectCommit()
 				mock.ExpectQuery(expectedFindQueryStr).WithArgs(discObj.ID).WillReturnRows(expectedNewObjectRow)
@@ -794,6 +796,86 @@ func TestDelphisDB_GetDiscussionTags(t *testing.T) {
 
 			So(iter.Next(&emptyTag), ShouldBeTrue)
 			So(iter.Close(), ShouldBeNil)
+			So(mock.ExpectationsWereMet(), ShouldBeNil)
+		})
+	})
+}
+
+func TestDelphisDB_IncrementDiscussionShuffleCount(t *testing.T) {
+	ctx := context.Background()
+	discussionID := "discussion1"
+
+	Convey("IncrementDiscussionShuffleCount", t, func() {
+		db, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
+
+		assert.Nil(t, err, "Failed setting up sqlmock db")
+
+		gormDB, _ := gorm.Open("postgres", db)
+		mockDatastore := &delphisDB{
+			dbConfig:  config.TablesConfig{},
+			sql:       gormDB,
+			pg:        db,
+			prepStmts: &dbPrepStmts{},
+			dynamo:    nil,
+			encoder:   nil,
+		}
+		defer db.Close()
+
+		Convey("when preparing statements returns an error", func() {
+			mock.ExpectBegin()
+			mockPreparedStatementsWithError(mock)
+
+			tx, err := mockDatastore.BeginTx(ctx)
+			resp, err := mockDatastore.IncrementDiscussionShuffleCount(ctx, tx, discussionID)
+
+			So(err, ShouldNotBeNil)
+			So(resp, ShouldBeNil)
+			So(mock.ExpectationsWereMet(), ShouldBeNil)
+		})
+
+		Convey("when query execution returns an error", func() {
+			mock.ExpectBegin()
+			mockPreparedStatements(mock)
+			mock.ExpectPrepare(incrDiscussionShuffleCount)
+			mock.ExpectQuery(incrDiscussionShuffleCount).WithArgs(discussionID).WillReturnError(fmt.Errorf("error"))
+
+			tx, err := mockDatastore.BeginTx(ctx)
+			resp, err := mockDatastore.IncrementDiscussionShuffleCount(ctx, tx, discussionID)
+
+			So(err, ShouldNotBeNil)
+			So(resp, ShouldBeNil)
+			So(mock.ExpectationsWereMet(), ShouldBeNil)
+		})
+		Convey("when query execution has a conflilct and doesn't return a row", func() {
+			mock.ExpectBegin()
+			mockPreparedStatements(mock)
+			mock.ExpectPrepare(incrDiscussionShuffleCount)
+			mock.ExpectQuery(incrDiscussionShuffleCount).WithArgs(discussionID).WillReturnError(sql.ErrNoRows)
+
+			tx, err := mockDatastore.BeginTx(ctx)
+			resp, err := mockDatastore.IncrementDiscussionShuffleCount(ctx, tx, discussionID)
+
+			So(err, ShouldBeNil)
+			So(resp, ShouldBeNil)
+			So(mock.ExpectationsWereMet(), ShouldBeNil)
+		})
+
+		Convey("when put post succeeds and returns an object", func() {
+			newShuffleCount := 1
+			rs := sqlmock.NewRows([]string{"shuffle_count"}).
+				AddRow(newShuffleCount)
+
+			mock.ExpectBegin()
+			mockPreparedStatements(mock)
+			mock.ExpectPrepare(incrDiscussionShuffleCount)
+			mock.ExpectQuery(incrDiscussionShuffleCount).WithArgs(discussionID).WillReturnRows(rs)
+
+			tx, err := mockDatastore.BeginTx(ctx)
+			resp, err := mockDatastore.IncrementDiscussionShuffleCount(ctx, tx, discussionID)
+
+			So(err, ShouldBeNil)
+			So(resp, ShouldNotBeNil)
+			So(resp, ShouldResemble, &newShuffleCount)
 			So(mock.ExpectationsWereMet(), ShouldBeNil)
 		})
 	})

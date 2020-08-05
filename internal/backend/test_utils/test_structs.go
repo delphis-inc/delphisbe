@@ -1,6 +1,8 @@
 package test_utils
 
 import (
+	"time"
+
 	"github.com/delphis-inc/delphisbe/graph/model"
 	"github.com/delphis-inc/delphisbe/internal/auth"
 	"github.com/delphis-inc/delphisbe/internal/util"
@@ -37,6 +39,8 @@ const RequestID = "requestID"
 const InvitingParticipantID = "invite_participating_id"
 const GradientColor = model.GradientColorAzalea
 const AnonymityType = model.AnonymityTypeStrong
+
+var Now = time.Now()
 
 func TestUser() model.User {
 	return model.User{
@@ -86,6 +90,13 @@ func TestDiscussion() model.Discussion {
 		ModeratorID:   &modID,
 		AutoPost:      false,
 		IdleMinutes:   IdleMinutes,
+	}
+}
+
+func TestDiscussionShuffleTime() model.DiscussionShuffleTime {
+	return model.DiscussionShuffleTime{
+		DiscussionID: DiscussionID,
+		ShuffleTime:  &Now,
 	}
 }
 

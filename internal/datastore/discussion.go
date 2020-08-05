@@ -20,6 +20,30 @@ func (d *delphisDB) GetDiscussionByID(ctx context.Context, id string) (*model.Di
 	return discussions[id], nil
 }
 
+func (d *delphisDB) IncrementDiscussionShuffleCount(ctx context.Context, tx *sql.Tx, id string) (*int, error) {
+	logrus.Debug("IncrementDiscussionShuffleCount::SQL Update")
+	if err := d.initializeStatements(ctx); err != nil {
+		logrus.WithError(err).Error("IncrementDiscussionShuffleCount::failed to initialize statements")
+		return nil, err
+	}
+
+	discussion := model.Discussion{}
+	if err := tx.StmtContext(ctx, d.prepStmts.incrDiscussionShuffleCount).QueryRowContext(
+		ctx,
+		id,
+	).Scan(
+		&discussion.ShuffleCount,
+	); err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		logrus.WithError(err).Errorf("failed to increment Shuffle ID for discussion with ID %s", id)
+		return nil, err
+	}
+
+	return &discussion.ShuffleCount, nil
+}
+
 func (d *delphisDB) GetDiscussionsByIDs(ctx context.Context, ids []string) (map[string]*model.Discussion, error) {
 	logrus.Debug("GetDiscussionsByIDs::SQL Query")
 	discussions := []model.Discussion{}

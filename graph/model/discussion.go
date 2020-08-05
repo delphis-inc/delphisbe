@@ -40,6 +40,7 @@ type Discussion struct {
 	DiscussionJoinability DiscussionJoinabilitySetting `json:"discussion_joinability"`
 	LastPostID            *string                      `json:"last_post_id"`
 	LastPostCreatedAt     *time.Time                   `json:"last_post_created_at"`
+	ShuffleCount          int                          `json:"shuffle_count"`
 }
 
 type DiscussionInput struct {
