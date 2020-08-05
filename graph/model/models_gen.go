@@ -325,6 +325,49 @@ func (e DiscussionSubscriptionEventType) MarshalGQL(w io.Writer) {
 	fmt.Fprint(w, strconv.Quote(e.String()))
 }
 
+type DiscussionUserAccessState string
+
+const (
+	DiscussionUserAccessStateActive   DiscussionUserAccessState = "ACTIVE"
+	DiscussionUserAccessStateArchived DiscussionUserAccessState = "ARCHIVED"
+	DiscussionUserAccessStateDeleted  DiscussionUserAccessState = "DELETED"
+)
+
+var AllDiscussionUserAccessState = []DiscussionUserAccessState{
+	DiscussionUserAccessStateActive,
+	DiscussionUserAccessStateArchived,
+	DiscussionUserAccessStateDeleted,
+}
+
+func (e DiscussionUserAccessState) IsValid() bool {
+	switch e {
+	case DiscussionUserAccessStateActive, DiscussionUserAccessStateArchived, DiscussionUserAccessStateDeleted:
+		return true
+	}
+	return false
+}
+
+func (e DiscussionUserAccessState) String() string {
+	return string(e)
+}
+
+func (e *DiscussionUserAccessState) UnmarshalGQL(v interface{}) error {
+	str, ok := v.(string)
+	if !ok {
+		return fmt.Errorf("enums must be strings")
+	}
+
+	*e = DiscussionUserAccessState(str)
+	if !e.IsValid() {
+		return fmt.Errorf("%s is not a valid DiscussionUserAccessState", str)
+	}
+	return nil
+}
+
+func (e DiscussionUserAccessState) MarshalGQL(w io.Writer) {
+	fmt.Fprint(w, strconv.Quote(e.String()))
+}
+
 type GradientColor string
 
 const (

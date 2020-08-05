@@ -64,3 +64,9 @@ enum DiscussionJoinabilityResponse {
     APPROVAL_REQUIRED,
     DENIED,
 }
+
+enum DiscussionUserAccessState {
+    ACTIVE,
+    ARCHIVED,
+    DELETED
+}

@@ -379,6 +379,15 @@ func (r *mutationResolver) UpdateDiscussion(ctx context.Context, discussionID st
 	return r.DAOManager.UpdateDiscussion(ctx, discussionID, input)
 }
 
+func (r *mutationResolver) UpdateDiscussionUserState(ctx context.Context, discussionID string, state model.DiscussionUserAccessState) (*model.DiscussionUserAccess, error) {
+	authedUser := auth.GetAuthedUser(ctx)
+	if authedUser == nil {
+		return nil, fmt.Errorf("Need auth")
+	}
+
+	return r.DAOManager.UpsertUserDiscussionAccess(ctx, authedUser.UserID, discussionID, state)
+}
+
 func (r *mutationResolver) AddDiscussionTags(ctx context.Context, discussionID string, tags []string) ([]*model.Tag, error) {
 	authedUser := auth.GetAuthedUser(ctx)
 	if authedUser == nil {
@@ -751,13 +760,13 @@ func (r *queryResolver) Discussion(ctx context.Context, id string) (*model.Discu
 	return r.resolveDiscussionByID(ctx, id)
 }
 
-func (r *queryResolver) ListDiscussions(ctx context.Context) ([]*model.Discussion, error) {
+func (r *queryResolver) ListDiscussions(ctx context.Context, state model.DiscussionUserAccessState) ([]*model.Discussion, error) {
 	authedUser := auth.GetAuthedUser(ctx)
 	if authedUser == nil {
 		return nil, fmt.Errorf("Need auth")
 	}
 
-	connection, err := r.DAOManager.ListDiscussionsByUserID(ctx, authedUser.UserID)
+	connection, err := r.DAOManager.ListDiscussionsByUserID(ctx, authedUser.UserID, state)
 	if err != nil {
 		return nil, err
 	}

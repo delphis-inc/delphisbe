@@ -31,7 +31,7 @@ type Datastore interface {
 	GetModeratorByUserID(ctx context.Context, id string) (*model.Moderator, error)
 	GetModeratorByUserIDAndDiscussionID(ctx context.Context, userID, discussionID string) (*model.Moderator, error)
 	ListDiscussions(ctx context.Context) (*model.DiscussionsConnection, error)
-	ListDiscussionsByUserID(ctx context.Context, userID string) (*model.DiscussionsConnection, error)
+	ListDiscussionsByUserID(ctx context.Context, userID string, state model.DiscussionUserAccessState) (*model.DiscussionsConnection, error)
 	UpsertDiscussion(ctx context.Context, discussion model.Discussion) (*model.Discussion, error)
 	AssignFlair(ctx context.Context, participant model.Participant, flairID *string) (*model.Participant, error)
 	GetFlairByID(ctx context.Context, id string) (*model.Flair, error)
@@ -100,8 +100,9 @@ type Datastore interface {
 	DiscussionInviteIterCollect(ctx context.Context, iter DiscussionInviteIter) ([]*model.DiscussionInvite, error)
 	AccessRequestIterCollect(ctx context.Context, iter DiscussionAccessRequestIter) ([]*model.DiscussionAccessRequest, error)
 
-	GetDiscussionsByUserAccess(ctx context.Context, userID string) DiscussionIter
-	UpsertDiscussionUserAccess(ctx context.Context, tx *sql2.Tx, discussionID, userID string) (*model.DiscussionUserAccess, error)
+	GetDiscussionsByUserAccess(ctx context.Context, userID string, state model.DiscussionUserAccessState) DiscussionIter
+	GetDiscussionUserAccess(ctx context.Context, discussionID, userID string) (*model.DiscussionUserAccess, error)
+	UpsertDiscussionUserAccess(ctx context.Context, tx *sql2.Tx, dua model.DiscussionUserAccess) (*model.DiscussionUserAccess, error)
 	DeleteDiscussionUserAccess(ctx context.Context, tx *sql2.Tx, discussionID, userID string) (*model.DiscussionUserAccess, error)
 	GetDiscussionInviteByID(ctx context.Context, id string) (*model.DiscussionInvite, error)
 	GetDiscussionRequestAccessByID(ctx context.Context, id string) (*model.DiscussionAccessRequest, error)
@@ -365,6 +366,10 @@ func (d *delphisDB) initializeStatements(ctx context.Context) (err error) {
 	if d.prepStmts.getDiscussionsByUserAccessStmt, err = d.pg.PrepareContext(ctx, getDiscussionsByUserAccessString); err != nil {
 		logrus.WithError(err).Error("failed to prepare getDiscussionsByUserAccessStmt")
 		return errors.Wrap(err, "failed to prepare getDiscussionsByUserAccessStmt")
+	}
+	if d.prepStmts.getDiscussionUserAccessStmt, err = d.pg.PrepareContext(ctx, getDiscussionUserAccessString); err != nil {
+		logrus.WithError(err).Error("failed to prepare getDiscussionUserAccessStmt")
+		return errors.Wrap(err, "failed to prepare getDiscussionUserAccessStmt")
 	}
 	if d.prepStmts.upsertDiscussionUserAccessStmt, err = d.pg.PrepareContext(ctx, upsertDiscussionUserAccessString); err != nil {
 		logrus.WithError(err).Error("failed to prepare upsertDiscussionUserAccessStmt")

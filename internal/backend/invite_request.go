@@ -148,7 +148,13 @@ func (d *delphisBackend) RespondToInvitation(ctx context.Context, inviteID strin
 
 	// If user has accepted the request, update discussion_user_access_table and create new participant
 	if response == model.InviteRequestStatusAccepted {
-		if _, err := d.db.UpsertDiscussionUserAccess(ctx, tx, inviteObj.DiscussionID, inviteObj.UserID); err != nil {
+		input := model.DiscussionUserAccess{
+			DiscussionID: inviteObj.DiscussionID,
+			UserID:       inviteObj.UserID,
+			State:        model.DiscussionUserAccessStateActive,
+		}
+
+		if _, err := d.db.UpsertDiscussionUserAccess(ctx, tx, input); err != nil {
 			logrus.WithError(err).Error("failed to update user access")
 
 			// Rollback on errors
@@ -208,7 +214,13 @@ func (d *delphisBackend) RespondToRequestAccess(ctx context.Context, requestID s
 
 	// If user has accepted the request, update discussion_user_access_table to allow user to create participant when they join.
 	if response == model.InviteRequestStatusAccepted {
-		if _, err := d.db.UpsertDiscussionUserAccess(ctx, tx, requestObj.DiscussionID, requestObj.UserID); err != nil {
+		input := model.DiscussionUserAccess{
+			DiscussionID: requestObj.DiscussionID,
+			UserID:       requestObj.UserID,
+			State:        model.DiscussionUserAccessStateActive,
+			RequestID:    &requestObj.ID,
+		}
+		if _, err := d.db.UpsertDiscussionUserAccess(ctx, tx, input); err != nil {
 			logrus.WithError(err).Error("failed to update user access")
 
 			// Rollback on errors

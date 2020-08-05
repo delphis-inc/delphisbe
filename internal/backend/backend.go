@@ -33,7 +33,7 @@ type DelphisBackend interface {
 	SubscribeToDiscussionEvent(ctx context.Context, subscriberUserID string, eventChannel chan *model.DiscussionSubscriptionEvent, discussionID string) error
 	UnSubscribeFromDiscussionEvent(ctx context.Context, subscriberUserID string, discussionID string) error
 	ListDiscussions(ctx context.Context) (*model.DiscussionsConnection, error)
-	ListDiscussionsByUserID(ctx context.Context, userID string) (*model.DiscussionsConnection, error)
+	ListDiscussionsByUserID(ctx context.Context, userID string, state model.DiscussionUserAccessState) (*model.DiscussionsConnection, error)
 	GetModeratorByID(ctx context.Context, id string) (*model.Moderator, error)
 	GetModeratorByUserID(ctx context.Context, userID string) (*model.Moderator, error)
 	CheckIfModerator(ctx context.Context, userID string) (bool, error)
@@ -100,7 +100,7 @@ type DelphisBackend interface {
 	GetMediaRecord(ctx context.Context, mediaID string) (*model.Media, error)
 	UploadMedia(ctx context.Context, media multipart.File) (string, string, error)
 	GetConciergeParticipantID(ctx context.Context, discussionID string) (string, error)
-	GetDiscussionAccessByUserID(ctx context.Context, userID string) ([]*model.Discussion, error)
+	GetDiscussionAccessByUserID(ctx context.Context, userID string, state model.DiscussionUserAccessState) ([]*model.Discussion, error)
 	GetDiscussionInviteByID(ctx context.Context, id string) (*model.DiscussionInvite, error)
 	GetDiscussionRequestAccessByID(ctx context.Context, id string) (*model.DiscussionAccessRequest, error)
 	GetDiscussionInvitesByUserIDAndStatus(ctx context.Context, userID string, status model.InviteRequestStatus) ([]*model.DiscussionInvite, error)
@@ -108,7 +108,7 @@ type DelphisBackend interface {
 	GetDiscussionAccessRequestsByDiscussionID(ctx context.Context, discussionID string) ([]*model.DiscussionAccessRequest, error)
 	GetDiscussionAccessRequestByDiscussionIDUserID(ctx context.Context, discussionID string, UserID string) (*model.DiscussionAccessRequest, error)
 	GetSentDiscussionAccessRequestsByUserID(ctx context.Context, userID string) ([]*model.DiscussionAccessRequest, error)
-	GrantUserDiscussionAccess(ctx context.Context, userID string, discussionID string) (*model.DiscussionUserAccess, error)
+	UpsertUserDiscussionAccess(ctx context.Context, userID string, discussionID string, state model.DiscussionUserAccessState) (*model.DiscussionUserAccess, error)
 	InviteUserToDiscussion(ctx context.Context, userID, discussionID, invitingParticipantID string) (*model.DiscussionInvite, error)
 	InviteTwitterUsersToDiscussion(ctx context.Context, twitterClient twitter.TwitterClient, twitterUserInfos []*model.TwitterUserInput, discussionID, invitingParticipantID string) ([]*model.DiscussionInvite, error)
 	GetTwitterUserHandleAutocompletes(ctx context.Context, twitterClient twitter.TwitterClient, query string, discussionID string, invitingParticipantID string) ([]*model.TwitterUserInfo, error)

@@ -10,7 +10,7 @@ import (
 	"github.com/delphis-inc/delphisbe/graph/model"
 )
 
-func (d *delphisDB) GetDiscussionsByUserAccess(ctx context.Context, userID string) DiscussionIter {
+func (d *delphisDB) GetDiscussionsByUserAccess(ctx context.Context, userID string, state model.DiscussionUserAccessState) DiscussionIter {
 	logrus.Debug("GetDiscussionsByUserAccess::SQL Query")
 	if err := d.initializeStatements(ctx); err != nil {
 		logrus.WithError(err).Error("GetDiscussionsByUserAccess::failed to initialize statements")
@@ -20,6 +20,7 @@ func (d *delphisDB) GetDiscussionsByUserAccess(ctx context.Context, userID strin
 	rows, err := d.prepStmts.getDiscussionsByUserAccessStmt.QueryContext(
 		ctx,
 		userID,
+		state,
 	)
 	if err != nil {
 		logrus.WithError(err).Error("failed to query GetDiscussionsByUserAccess")
@@ -32,23 +33,58 @@ func (d *delphisDB) GetDiscussionsByUserAccess(ctx context.Context, userID strin
 	}
 }
 
-func (d *delphisDB) UpsertDiscussionUserAccess(ctx context.Context, tx *sql.Tx, discussionID, userID string) (*model.DiscussionUserAccess, error) {
-	logrus.Debug("UpsertDiscussionUserAccess::SQL Create")
+func (d *delphisDB) GetDiscussionUserAccess(ctx context.Context, discussionID, userID string) (*model.DiscussionUserAccess, error) {
+	logrus.Debug("GetDiscussionUserAccess::SQL Query")
 	if err := d.initializeStatements(ctx); err != nil {
-		logrus.WithError(err).Error("UpsertDiscussionUserAccess::failed to initialize statements")
+		logrus.WithError(err).Error("GetDiscussionUserAccess::failed to initialize statements")
 		return nil, err
 	}
 
 	dua := model.DiscussionUserAccess{}
-	if err := tx.StmtContext(ctx, d.prepStmts.upsertDiscussionUserAccessStmt).QueryRowContext(
+	if err := d.prepStmts.getDiscussionUserAccessStmt.QueryRowContext(
 		ctx,
 		discussionID,
 		userID,
 	).Scan(
 		&dua.DiscussionID,
 		&dua.UserID,
+		&dua.State,
+		&dua.RequestID,
 		&dua.CreatedAt,
 		&dua.UpdatedAt,
+		&dua.DeletedAt,
+	); err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		logrus.WithError(err).Error("failed to query GetDiscussionsByUserAccess")
+		return nil, err
+	}
+
+	return &dua, nil
+}
+
+func (d *delphisDB) UpsertDiscussionUserAccess(ctx context.Context, tx *sql.Tx, dua model.DiscussionUserAccess) (*model.DiscussionUserAccess, error) {
+	logrus.Debug("UpsertDiscussionUserAccess::SQL Create")
+	if err := d.initializeStatements(ctx); err != nil {
+		logrus.WithError(err).Error("UpsertDiscussionUserAccess::failed to initialize statements")
+		return nil, err
+	}
+
+	if err := tx.StmtContext(ctx, d.prepStmts.upsertDiscussionUserAccessStmt).QueryRowContext(
+		ctx,
+		dua.DiscussionID,
+		dua.UserID,
+		dua.State,
+		dua.RequestID,
+	).Scan(
+		&dua.DiscussionID,
+		&dua.UserID,
+		&dua.State,
+		&dua.RequestID,
+		&dua.CreatedAt,
+		&dua.UpdatedAt,
+		&dua.DeletedAt,
 	); err != nil {
 		if err == sql.ErrNoRows {
 			return &model.DiscussionUserAccess{}, nil

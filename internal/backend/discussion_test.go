@@ -114,9 +114,10 @@ func TestDelphisBackend_CreateNewDiscussion(t *testing.T) {
 			mockDB.On("CreateModerator", ctx, mock.Anything).Return(&modObj, nil)
 			mockDB.On("UpsertDiscussion", ctx, mock.Anything).Return(&discObj, nil)
 
-			// Upsert discussion acces
+			// Upsert discussion access
 			mockDB.On("BeginTx", ctx).Return(&tx, nil)
-			mockDB.On("UpsertDiscussionUserAccess", ctx, mock.Anything, mock.Anything, mock.Anything).Return(&discussionUserAccess, nil)
+			mockDB.On("GetDiscussionUserAccess", ctx, mock.Anything, mock.Anything).Return(&discussionUserAccess, nil)
+			mockDB.On("UpsertDiscussionUserAccess", ctx, &tx, mock.Anything).Return(&discussionUserAccess, nil)
 			mockDB.On("CommitTx", ctx, &tx).Return(nil)
 
 			// Create participant functions
@@ -136,7 +137,8 @@ func TestDelphisBackend_CreateNewDiscussion(t *testing.T) {
 
 			// Upsert discussion access
 			mockDB.On("BeginTx", ctx).Return(&tx, nil)
-			mockDB.On("UpsertDiscussionUserAccess", ctx, mock.Anything, mock.Anything, mock.Anything).Return(&discussionUserAccess, nil)
+			mockDB.On("GetDiscussionUserAccess", ctx, mock.Anything, mock.Anything).Return(&discussionUserAccess, nil)
+			mockDB.On("UpsertDiscussionUserAccess", ctx, &tx, mock.Anything).Return(&discussionUserAccess, nil)
 			mockDB.On("CommitTx", ctx, &tx).Return(nil)
 
 			// Create participant functions
@@ -187,7 +189,8 @@ func TestDelphisBackend_CreateNewDiscussion(t *testing.T) {
 
 			// Upsert discussion access
 			mockDB.On("BeginTx", ctx).Return(&tx, nil)
-			mockDB.On("UpsertDiscussionUserAccess", ctx, mock.Anything, mock.Anything, mock.Anything).Return(&discussionUserAccess, nil)
+			mockDB.On("GetDiscussionUserAccess", ctx, mock.Anything, mock.Anything).Return(&discussionUserAccess, nil)
+			mockDB.On("UpsertDiscussionUserAccess", ctx, &tx, mock.Anything).Return(&discussionUserAccess, nil)
 			mockDB.On("CommitTx", ctx, &tx).Return(nil)
 
 			// Create participant functions
@@ -955,6 +958,7 @@ func TestDelphisBackend_ListDiscussionsByUserID(t *testing.T) {
 	ctx := context.Background()
 
 	dcObj := test_utils.TestDiscussionsConnection()
+	state := model.DiscussionUserAccessStateActive
 
 	Convey("ListDiscussionsByUserID", t, func() {
 		now := time.Now()
@@ -973,18 +977,18 @@ func TestDelphisBackend_ListDiscussionsByUserID(t *testing.T) {
 
 		Convey("when the query errors out", func() {
 			expectedError := fmt.Errorf("Some Error")
-			mockDB.On("ListDiscussionsByUserID", ctx, userID).Return(nil, expectedError)
+			mockDB.On("ListDiscussionsByUserID", ctx, userID, state).Return(nil, expectedError)
 
-			resp, err := backendObj.ListDiscussionsByUserID(ctx, userID)
+			resp, err := backendObj.ListDiscussionsByUserID(ctx, userID, state)
 
 			So(err, ShouldEqual, expectedError)
 			So(resp, ShouldBeNil)
 		})
 
 		Convey("when the query returns successfully", func() {
-			mockDB.On("ListDiscussionsByUserID", ctx, userID).Return(&dcObj, nil)
+			mockDB.On("ListDiscussionsByUserID", ctx, userID, state).Return(&dcObj, nil)
 
-			resp, err := backendObj.ListDiscussionsByUserID(ctx, userID)
+			resp, err := backendObj.ListDiscussionsByUserID(ctx, userID, state)
 
 			So(err, ShouldBeNil)
 			So(resp, ShouldResemble, &dcObj)

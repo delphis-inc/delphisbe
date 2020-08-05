@@ -8,9 +8,9 @@ import (
 	"go.uber.org/multierr"
 )
 
-func (d *delphisBackend) GetDiscussionAccessByUserID(ctx context.Context, userID string) ([]*model.Discussion, error) {
+func (d *delphisBackend) GetDiscussionAccessByUserID(ctx context.Context, userID string, state model.DiscussionUserAccessState) ([]*model.Discussion, error) {
 	// Get discussions the user was invited to
-	userDiscIter := d.db.GetDiscussionsByUserAccess(ctx, userID)
+	userDiscIter := d.db.GetDiscussionsByUserAccess(ctx, userID, state)
 	userDiscussions, err := d.db.DiscussionIterCollect(ctx, userDiscIter)
 	if err != nil {
 		logrus.WithError(err).Error("failed to get user access discussions")
@@ -22,13 +22,33 @@ func (d *delphisBackend) GetDiscussionAccessByUserID(ctx context.Context, userID
 	return dedupedDiscs, nil
 }
 
-func (d *delphisBackend) GrantUserDiscussionAccess(ctx context.Context, userID string, discussionID string) (*model.DiscussionUserAccess, error) {
+func (d *delphisBackend) UpsertUserDiscussionAccess(ctx context.Context, userID string, discussionID string, state model.DiscussionUserAccessState) (*model.DiscussionUserAccess, error) {
 	tx, err := d.db.BeginTx(ctx)
 	if err != nil {
 		logrus.WithError(err).Error("failed to begin tx")
 		return nil, err
 	}
-	access, err := d.db.UpsertDiscussionUserAccess(ctx, tx, discussionID, userID)
+
+	input := model.DiscussionUserAccess{
+		DiscussionID: discussionID,
+		UserID:       userID,
+		State:        state,
+		RequestID:    nil,
+	}
+
+	dua, err := d.db.GetDiscussionUserAccess(ctx, discussionID, userID)
+	if err != nil {
+		logrus.WithError(err).Error("failed to get discussion user access")
+		return nil, err
+	}
+
+	if dua != nil {
+		if dua.RequestID != nil {
+			input.RequestID = dua.RequestID
+		}
+	}
+
+	access, err := d.db.UpsertDiscussionUserAccess(ctx, tx, input)
 	if err != nil {
 		// Rollback tx.
 		if txErr := d.db.RollbackTx(ctx, tx); txErr != nil {
@@ -44,29 +64,4 @@ func (d *delphisBackend) GrantUserDiscussionAccess(ctx context.Context, userID s
 	}
 
 	return access, nil
-}
-
-func (d *delphisBackend) validateFlairTemplatesToAdd(ctx context.Context, userID string, templates []string) ([]string, error) {
-	userFlairs, err := d.GetFlairsByUserID(ctx, userID)
-	if err != nil {
-		logrus.WithError(err).Error("failed to get flairs for user")
-		return nil, err
-	}
-	var validatedTemplates []string
-
-	flairMap := make(map[string]int)
-
-	// Build map out of user's flairs
-	for _, val := range userFlairs {
-		flairMap[val.TemplateID]++
-	}
-
-	// Validate that the passed in flairs are owned by the user
-	for _, val := range templates {
-		if _, ok := flairMap[val]; ok {
-			validatedTemplates = append(validatedTemplates, val)
-		}
-	}
-
-	return validatedTemplates, nil
 }

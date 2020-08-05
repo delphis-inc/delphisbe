@@ -353,6 +353,22 @@ func (r *discussionLinkAccessResolver) VipInviteLinkURL(ctx context.Context, obj
 	return "", nil
 }
 
+func (r *discussionUserAccessResolver) Discussion(ctx context.Context, obj *model.DiscussionUserAccess) (*model.Discussion, error) {
+	return r.DAOManager.GetDiscussionByID(ctx, obj.DiscussionID)
+}
+
+func (r *discussionUserAccessResolver) User(ctx context.Context, obj *model.DiscussionUserAccess) (*model.User, error) {
+	return r.DAOManager.GetUserByID(ctx, obj.UserID)
+}
+
+func (r *discussionUserAccessResolver) IsDeleted(ctx context.Context, obj *model.DiscussionUserAccess) (bool, error) {
+	return obj.DeletedAt != nil, nil
+}
+
+func (r *discussionUserAccessResolver) Request(ctx context.Context, obj *model.DiscussionUserAccess) (*model.DiscussionAccessRequest, error) {
+	return r.DAOManager.GetDiscussionRequestAccessByID(ctx, *obj.RequestID)
+}
+
 func (r *tagResolver) CreatedAt(ctx context.Context, obj *model.Tag) (string, error) {
 	return obj.CreatedAt.Format(time.RFC3339), nil
 }
@@ -389,6 +405,11 @@ func (r *Resolver) DiscussionLinkAccess() generated.DiscussionLinkAccessResolver
 	return &discussionLinkAccessResolver{r}
 }
 
+// DiscussionUserAccess returns generated.DiscussionUserAccessResolver implementation.
+func (r *Resolver) DiscussionUserAccess() generated.DiscussionUserAccessResolver {
+	return &discussionUserAccessResolver{r}
+}
+
 // Tag returns generated.TagResolver implementation.
 func (r *Resolver) Tag() generated.TagResolver { return &tagResolver{r} }
 
@@ -398,4 +419,5 @@ type discussionAccessRequestResolver struct{ *Resolver }
 type discussionFlairTemplateAccessResolver struct{ *Resolver }
 type discussionInviteResolver struct{ *Resolver }
 type discussionLinkAccessResolver struct{ *Resolver }
+type discussionUserAccessResolver struct{ *Resolver }
 type tagResolver struct{ *Resolver }

@@ -547,6 +547,29 @@ func (_m *Datastore) GetDiscussionTags(ctx context.Context, id string) datastore
 	return r0
 }
 
+// GetDiscussionUserAccess provides a mock function with given fields: ctx, discussionID, userID
+func (_m *Datastore) GetDiscussionUserAccess(ctx context.Context, discussionID string, userID string) (*model.DiscussionUserAccess, error) {
+	ret := _m.Called(ctx, discussionID, userID)
+
+	var r0 *model.DiscussionUserAccess
+	if rf, ok := ret.Get(0).(func(context.Context, string, string) *model.DiscussionUserAccess); ok {
+		r0 = rf(ctx, discussionID, userID)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*model.DiscussionUserAccess)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(context.Context, string, string) error); ok {
+		r1 = rf(ctx, discussionID, userID)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // GetDiscussionsAutoPost provides a mock function with given fields: ctx
 func (_m *Datastore) GetDiscussionsAutoPost(ctx context.Context) datastore.AutoPostDiscussionIter {
 	ret := _m.Called(ctx)
@@ -586,13 +609,13 @@ func (_m *Datastore) GetDiscussionsByIDs(ctx context.Context, ids []string) (map
 	return r0, r1
 }
 
-// GetDiscussionsByUserAccess provides a mock function with given fields: ctx, userID
-func (_m *Datastore) GetDiscussionsByUserAccess(ctx context.Context, userID string) datastore.DiscussionIter {
-	ret := _m.Called(ctx, userID)
+// GetDiscussionsByUserAccess provides a mock function with given fields: ctx, userID, state
+func (_m *Datastore) GetDiscussionsByUserAccess(ctx context.Context, userID string, state model.DiscussionUserAccessState) datastore.DiscussionIter {
+	ret := _m.Called(ctx, userID, state)
 
 	var r0 datastore.DiscussionIter
-	if rf, ok := ret.Get(0).(func(context.Context, string) datastore.DiscussionIter); ok {
-		r0 = rf(ctx, userID)
+	if rf, ok := ret.Get(0).(func(context.Context, string, model.DiscussionUserAccessState) datastore.DiscussionIter); ok {
+		r0 = rf(ctx, userID, state)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(datastore.DiscussionIter)
@@ -1395,13 +1418,13 @@ func (_m *Datastore) ListDiscussions(ctx context.Context) (*model.DiscussionsCon
 	return r0, r1
 }
 
-// ListDiscussionsByUserID provides a mock function with given fields: ctx, userID
-func (_m *Datastore) ListDiscussionsByUserID(ctx context.Context, userID string) (*model.DiscussionsConnection, error) {
-	ret := _m.Called(ctx, userID)
+// ListDiscussionsByUserID provides a mock function with given fields: ctx, userID, state
+func (_m *Datastore) ListDiscussionsByUserID(ctx context.Context, userID string, state model.DiscussionUserAccessState) (*model.DiscussionsConnection, error) {
+	ret := _m.Called(ctx, userID, state)
 
 	var r0 *model.DiscussionsConnection
-	if rf, ok := ret.Get(0).(func(context.Context, string) *model.DiscussionsConnection); ok {
-		r0 = rf(ctx, userID)
+	if rf, ok := ret.Get(0).(func(context.Context, string, model.DiscussionUserAccessState) *model.DiscussionsConnection); ok {
+		r0 = rf(ctx, userID, state)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(*model.DiscussionsConnection)
@@ -1409,8 +1432,8 @@ func (_m *Datastore) ListDiscussionsByUserID(ctx context.Context, userID string)
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func(context.Context, string) error); ok {
-		r1 = rf(ctx, userID)
+	if rf, ok := ret.Get(1).(func(context.Context, string, model.DiscussionUserAccessState) error); ok {
+		r1 = rf(ctx, userID, state)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -1911,13 +1934,13 @@ func (_m *Datastore) UpsertDiscussion(ctx context.Context, discussion model.Disc
 	return r0, r1
 }
 
-// UpsertDiscussionUserAccess provides a mock function with given fields: ctx, tx, discussionID, userID
-func (_m *Datastore) UpsertDiscussionUserAccess(ctx context.Context, tx *sql.Tx, discussionID string, userID string) (*model.DiscussionUserAccess, error) {
-	ret := _m.Called(ctx, tx, discussionID, userID)
+// UpsertDiscussionUserAccess provides a mock function with given fields: ctx, tx, dua
+func (_m *Datastore) UpsertDiscussionUserAccess(ctx context.Context, tx *sql.Tx, dua model.DiscussionUserAccess) (*model.DiscussionUserAccess, error) {
+	ret := _m.Called(ctx, tx, dua)
 
 	var r0 *model.DiscussionUserAccess
-	if rf, ok := ret.Get(0).(func(context.Context, *sql.Tx, string, string) *model.DiscussionUserAccess); ok {
-		r0 = rf(ctx, tx, discussionID, userID)
+	if rf, ok := ret.Get(0).(func(context.Context, *sql.Tx, model.DiscussionUserAccess) *model.DiscussionUserAccess); ok {
+		r0 = rf(ctx, tx, dua)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(*model.DiscussionUserAccess)
@@ -1925,8 +1948,8 @@ func (_m *Datastore) UpsertDiscussionUserAccess(ctx context.Context, tx *sql.Tx,
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func(context.Context, *sql.Tx, string, string) error); ok {
-		r1 = rf(ctx, tx, discussionID, userID)
+	if rf, ok := ret.Get(1).(func(context.Context, *sql.Tx, model.DiscussionUserAccess) error); ok {
+		r1 = rf(ctx, tx, dua)
 	} else {
 		r1 = ret.Error(1)
 	}

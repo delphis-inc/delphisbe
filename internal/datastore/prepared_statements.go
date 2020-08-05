@@ -48,6 +48,7 @@ type dbPrepStmts struct {
 
 	// Discussion Access
 	getDiscussionsByUserAccessStmt *sql2.Stmt
+	getDiscussionUserAccessStmt    *sql2.Stmt
 	upsertDiscussionUserAccessStmt *sql2.Stmt
 	deleteDiscussionUserAccessStmt *sql2.Stmt
 
@@ -485,22 +486,40 @@ const getDiscussionsByUserAccessString = `
 		INNER JOIN discussions d
 			ON dua.discussion_id = d.id
 		WHERE dua.user_id = $1
+			AND dua.state = $2
 			AND d.deleted_at is null
-		ORDER BY last_post_created_at desc;
-`
+		ORDER BY d.last_post_created_at desc;`
+
+const getDiscussionUserAccessString = `
+		SELECT 	discussion_id,
+			user_id,
+			state,
+			request_id,
+			created_at,
+			updated_at,
+			deleted_at
+		FROM discussion_user_access
+		WHERE discussion_id = $1
+			AND user_id = $2;`
 
 const upsertDiscussionUserAccessString = `
 		INSERT INTO discussion_user_access (
 			discussion_id,
-			user_id
-		) VALUES ($1, $2)
+			user_id,
+			state,
+			request_id
+		) VALUES ($1, $2, $3, $4)
 		ON CONFLICT (discussion_id, user_id)
-		DO UPDATE SET deleted_at = null
+		DO UPDATE SET state = $3,
+			request_id = $4
 		RETURNING
 			discussion_id,
 			user_id,
+			state,
+			request_id,
 			created_at,
-			updated_at;`
+			updated_at,
+			deleted_at;`
 
 const deleteDiscussionUserAccessString = `
 		UPDATE discussion_user_access
