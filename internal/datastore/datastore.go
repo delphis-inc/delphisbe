@@ -49,6 +49,7 @@ type Datastore interface {
 	GetParticipantsByDiscussionIDUserID(ctx context.Context, discussionID string, userID string) ([]model.Participant, error)
 	GetModeratorParticipantsByDiscussionID(ctx context.Context, discussionID string) ([]model.Participant, error)
 	UpsertParticipant(ctx context.Context, participant model.Participant) (*model.Participant, error)
+	SetParticipantsMutedUntil(ctx context.Context, participants []*model.Participant, mutedUntil *time.Time) ([]*model.Participant, error)
 	GetPostsByDiscussionIDIter(ctx context.Context, discussionID string) PostIter
 	GetPostsByDiscussionIDFromCursorIter(ctx context.Context, discussionID string, cursor string, limit int) PostIter
 	GetPostsConnectionByDiscussionID(ctx context.Context, discussionID string, cursor string, limit int) (*model.PostsConnection, error)

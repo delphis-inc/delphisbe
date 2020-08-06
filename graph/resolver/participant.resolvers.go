@@ -6,6 +6,7 @@ package resolver
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/delphis-inc/delphisbe/graph/generated"
 	"github.com/delphis-inc/delphisbe/graph/model"
@@ -168,6 +169,16 @@ func (r *participantResolver) AnonDisplayName(ctx context.Context, obj *model.Pa
 	hashAsInt64 := util.GenerateParticipantSeed(obj.Discussion.ID, obj.ID, obj.Discussion.ShuffleCount)
 	fullDisplayName := util.GenerateFullDisplayName(hashAsInt64)
 	return &fullDisplayName, nil
+}
+
+func (r *participantResolver) MutedForSeconds(ctx context.Context, obj *model.Participant) (*int, error) {
+	var result int
+
+	result = 0
+	if obj.MutedUntil != nil {
+		result = int(obj.MutedUntil.Sub(time.Now()).Seconds())
+	}
+	return &result, nil
 }
 
 // Participant returns generated.ParticipantResolver implementation.
