@@ -738,6 +738,81 @@ func TestDelphisBackend_GetPostsByDiscussionID(t *testing.T) {
 	})
 }
 
+func TestDelphisBackend_GetPostByDiscussionPostID(t *testing.T) {
+	ctx := context.Background()
+	discussionID := test_utils.DiscussionID
+
+	postObject := test_utils.TestPost()
+
+	Convey("GetPostByDiscussionPostID", t, func() {
+		now := time.Now()
+		cacheObj := cache.NewInMemoryCache()
+		authObj := auth.NewDelphisAuth(nil)
+		mockDB := &mocks.Datastore{}
+		backendObj := &delphisBackend{
+			db:              mockDB,
+			auth:            authObj,
+			cache:           cacheObj,
+			discussionMutex: sync.Mutex{},
+			config:          config.Config{},
+			timeProvider:    &util.FrozenTime{NowTime: now},
+		}
+
+		Convey("when GetPostByID returns an error", func() {
+			mockDB.On("GetPostByID", ctx, postObject.ID).Return(nil, fmt.Errorf("sth"))
+
+			resp, err := backendObj.GetPostByDiscussionPostID(ctx, discussionID, postObject.ID)
+
+			So(err, ShouldNotBeNil)
+			So(resp, ShouldBeNil)
+		})
+
+		Convey("when response from GetPostID is nil", func() {
+			mockDB.On("GetPostByID", ctx, postObject.ID).Return(nil, nil)
+
+			resp, err := backendObj.GetPostByDiscussionPostID(ctx, discussionID, postObject.ID)
+
+			So(err, ShouldBeNil)
+			So(resp, ShouldBeNil)
+		})
+
+		Convey("when response from GetPostID has nil DiscussionID", func() {
+			returnedPost := postObject
+			returnedPost.DiscussionID = nil
+			mockDB.On("GetPostByID", ctx, postObject.ID).Return(&returnedPost, nil)
+
+			resp, err := backendObj.GetPostByDiscussionPostID(ctx, discussionID, postObject.ID)
+
+			So(err, ShouldBeNil)
+			So(resp, ShouldBeNil)
+		})
+
+		Convey("when response from GetPostID has different discussionID than requested", func() {
+			returnedPost := postObject
+			discID := "foo"
+			returnedPost.DiscussionID = &discID
+			mockDB.On("GetPostByID", ctx, postObject.ID).Return(&returnedPost, nil)
+
+			resp, err := backendObj.GetPostByDiscussionPostID(ctx, discussionID, postObject.ID)
+
+			So(err, ShouldBeNil)
+			So(resp, ShouldBeNil)
+		})
+
+		Convey("when response from GetPostID is set and matches the discussionID", func() {
+			returnedPost := postObject
+			returnedPost.DiscussionID = &discussionID
+			mockDB.On("GetPostByID", ctx, postObject.ID).Return(&returnedPost, nil)
+
+			resp, err := backendObj.GetPostByDiscussionPostID(ctx, discussionID, postObject.ID)
+
+			So(err, ShouldBeNil)
+			So(resp, ShouldResemble, &returnedPost)
+		})
+	})
+
+}
+
 func TestDelphisBackend_GetPostsConnectionByDiscussionID(t *testing.T) {
 	ctx := context.Background()
 	discussionID := test_utils.DiscussionID

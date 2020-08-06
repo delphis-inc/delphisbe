@@ -265,6 +265,11 @@ func TestDelphisDB_InitializeStatements(t *testing.T) {
 
 				Test: getViewerForDiscussionIDUserID,
 			},
+			{
+				Name: "updateViewerLastViewed",
+
+				Test: updateViewerLastViewed,
+			},
 		}
 
 		for index, test := range tests {

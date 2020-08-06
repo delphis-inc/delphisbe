@@ -16,13 +16,13 @@ func (d *delphisBackend) CreateViewerForDiscussion(ctx context.Context, discussi
 		UserID:       &userID,
 	}
 
-	_, err := d.db.UpsertViewer(ctx, viewerObj)
+	resp, err := d.db.UpsertViewer(ctx, viewerObj)
 
 	if err != nil {
 		return nil, err
 	}
 
-	return &viewerObj, err
+	return resp, err
 }
 
 func (d *delphisBackend) SetViewerLastPostViewed(ctx context.Context, viewerID, postID string) (*model.Viewer, error) {
