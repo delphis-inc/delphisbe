@@ -516,15 +516,18 @@ func TestDelphisDB_ListDiscussionsByUserID(t *testing.T) {
 			mockPreparedStatements(mock)
 			rs := sqlmock.NewRows([]string{"id", "created_at", "updated_at", "deleted_at", "title",
 				"anonymity_type", "moderator_id", "auto_post", "icon_url", "idle_minutes", "description",
-				"title_history", "description_history", "discussion_joinability", "last_post_id", "last_post_created_at"}).
+				"title_history", "description_history", "discussion_joinability", "last_post_id", "last_post_created_at",
+				"shuffle_count"}).
 				AddRow(discObj.ID, discObj.CreatedAt, discObj.UpdatedAt, discObj.DeletedAt,
 					discObj.Title, discObj.AnonymityType, discObj.ModeratorID, discObj.AutoPost,
 					discObj.IconURL, discObj.IdleMinutes, discObj.Description, discObj.TitleHistory,
-					discObj.DescriptionHistory, discObj.DiscussionJoinability, discObj.LastPostID, discObj.LastPostCreatedAt).
+					discObj.DescriptionHistory, discObj.DiscussionJoinability, discObj.LastPostID, discObj.LastPostCreatedAt,
+					discObj.ShuffleCount).
 				AddRow(discObj.ID, discObj.CreatedAt, discObj.UpdatedAt, discObj.DeletedAt,
 					discObj.Title, discObj.AnonymityType, discObj.ModeratorID, discObj.AutoPost,
 					discObj.IconURL, discObj.IdleMinutes, discObj.Description, discObj.TitleHistory,
-					discObj.DescriptionHistory, discObj.DiscussionJoinability, discObj.LastPostID, discObj.LastPostCreatedAt)
+					discObj.DescriptionHistory, discObj.DiscussionJoinability, discObj.LastPostID, discObj.LastPostCreatedAt,
+					discObj.ShuffleCount)
 
 			mock.ExpectQuery(getDiscussionsByUserAccessString).WithArgs(userID, state).WillReturnRows(rs)
 
