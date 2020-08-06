@@ -1819,6 +1819,29 @@ func (_m *Datastore) RollbackTx(ctx context.Context, tx *sql.Tx) error {
 	return r0
 }
 
+// SetParticipantsMutedUntil provides a mock function with given fields: ctx, participants, mutedUntil
+func (_m *Datastore) SetParticipantsMutedUntil(ctx context.Context, participants []*model.Participant, mutedUntil *time.Time) ([]*model.Participant, error) {
+	ret := _m.Called(ctx, participants, mutedUntil)
+
+	var r0 []*model.Participant
+	if rf, ok := ret.Get(0).(func(context.Context, []*model.Participant, *time.Time) []*model.Participant); ok {
+		r0 = rf(ctx, participants, mutedUntil)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]*model.Participant)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(context.Context, []*model.Participant, *time.Time) error); ok {
+		r1 = rf(ctx, participants, mutedUntil)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // SetViewerLastPostViewed provides a mock function with given fields: ctx, viewerID, postID, viewedTime
 func (_m *Datastore) SetViewerLastPostViewed(ctx context.Context, viewerID string, postID string, viewedTime time.Time) (*model.Viewer, error) {
 	ret := _m.Called(ctx, viewerID, postID, viewedTime)

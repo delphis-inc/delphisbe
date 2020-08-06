@@ -131,6 +131,10 @@ type Mutation {
 
   # Viewer
   setLastPostViewed(viewerID: ID!, postID: ID!): Viewer!
+
+  # Muting
+  muteParticipants(discussionID: ID!, participantIDs: [ID!]!, mutedForSeconds: Int!): [Participant!]!
+  unmuteParticipants(discussionID: ID!, participantIDs: [ID!]!): [Participant!]!
 }
 
 type Subscription {

@@ -258,6 +258,7 @@ type ComplexityRoot struct {
 		InviteTwitterUsersToDiscussion       func(childComplexity int, discussionID string, twitterUsers []*model.TwitterUserInput, invitingParticipantID string) int
 		InviteUserToDiscussion               func(childComplexity int, discussionID string, userID string, invitingParticipantID string) int
 		JoinDiscussionWithVIPToken           func(childComplexity int, discussionID string, vipToken string) int
+		MuteParticipants                     func(childComplexity int, discussionID string, participantIDs []string, mutedForSeconds int) int
 		PostImportedContent                  func(childComplexity int, discussionID string, participantID string, contentID string) int
 		RemoveFlair                          func(childComplexity int, id string) int
 		RemoveFlairTemplate                  func(childComplexity int, id string) int
@@ -268,6 +269,7 @@ type ComplexityRoot struct {
 		SetLastPostViewed                    func(childComplexity int, viewerID string, postID string) int
 		ShuffleDiscussion                    func(childComplexity int, discussionID string, inFutureSeconds *int) int
 		UnassignFlair                        func(childComplexity int, participantID string) int
+		UnmuteParticipants                   func(childComplexity int, discussionID string, participantIDs []string) int
 		UpdateDiscussion                     func(childComplexity int, discussionID string, input model.DiscussionInput) int
 		UpdateDiscussionUserState            func(childComplexity int, discussionID string, state model.DiscussionUserAccessState) int
 		UpdateParticipant                    func(childComplexity int, discussionID string, participantID string, updateInput model.UpdateParticipantInput) int
@@ -291,6 +293,7 @@ type ComplexityRoot struct {
 		Inviter                           func(childComplexity int) int
 		IsAnonymous                       func(childComplexity int) int
 		IsBanned                          func(childComplexity int) int
+		MutedForSeconds                   func(childComplexity int) int
 		ParticipantID                     func(childComplexity int) int
 		Posts                             func(childComplexity int) int
 		UserProfile                       func(childComplexity int) int
@@ -566,6 +569,8 @@ type MutationResolver interface {
 	BanParticipant(ctx context.Context, discussionID string, participantID string) (*model.Participant, error)
 	ShuffleDiscussion(ctx context.Context, discussionID string, inFutureSeconds *int) (*model.Discussion, error)
 	SetLastPostViewed(ctx context.Context, viewerID string, postID string) (*model.Viewer, error)
+	MuteParticipants(ctx context.Context, discussionID string, participantIDs []string, mutedForSeconds int) ([]*model.Participant, error)
+	UnmuteParticipants(ctx context.Context, discussionID string, participantIDs []string) ([]*model.Participant, error)
 }
 type ParticipantResolver interface {
 	Discussion(ctx context.Context, obj *model.Participant) (*model.Discussion, error)
@@ -580,6 +585,7 @@ type ParticipantResolver interface {
 	UserProfile(ctx context.Context, obj *model.Participant) (*model.UserProfile, error)
 
 	AnonDisplayName(ctx context.Context, obj *model.Participant) (*string, error)
+	MutedForSeconds(ctx context.Context, obj *model.Participant) (*int, error)
 }
 type ParticipantsConnectionResolver interface {
 	Edges(ctx context.Context, obj *model.ParticipantsConnection) ([]*model.ParticipantsEdge, error)
@@ -1668,6 +1674,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Mutation.JoinDiscussionWithVIPToken(childComplexity, args["discussionID"].(string), args["vipToken"].(string)), true
 
+	case "Mutation.muteParticipants":
+		if e.complexity.Mutation.MuteParticipants == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_muteParticipants_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.MuteParticipants(childComplexity, args["discussionID"].(string), args["participantIDs"].([]string), args["mutedForSeconds"].(int)), true
+
 	case "Mutation.postImportedContent":
 		if e.complexity.Mutation.PostImportedContent == nil {
 			break
@@ -1787,6 +1805,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Mutation.UnassignFlair(childComplexity, args["participantID"].(string)), true
+
+	case "Mutation.unmuteParticipants":
+		if e.complexity.Mutation.UnmuteParticipants == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_unmuteParticipants_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.UnmuteParticipants(childComplexity, args["discussionID"].(string), args["participantIDs"].([]string)), true
 
 	case "Mutation.updateDiscussion":
 		if e.complexity.Mutation.UpdateDiscussion == nil {
@@ -1926,6 +1956,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Participant.IsBanned(childComplexity), true
+
+	case "Participant.mutedForSeconds":
+		if e.complexity.Participant.MutedForSeconds == nil {
+			break
+		}
+
+		return e.complexity.Participant.MutedForSeconds(childComplexity), true
 
 	case "Participant.participantID":
 		if e.complexity.Participant.ParticipantID == nil {
@@ -3036,6 +3073,12 @@ type MediaSize {
 
     # The participant's display name if they are anonymous
     anonDisplayName: String
+
+    # Seconds remaining before the user will become unmuted again
+    # (i.e. capable of posting). This is not a DateTime in order
+    # to avoid any timezone or clock time skew problems. The seconds
+    # are calculated relatively to the timestamp of the query.
+    mutedForSeconds: Int
 }
 `, BuiltIn: false},
 	&ast.Source{Name: "graph/types/participant_notification_preferences.graphqls", Input: `type ParticipantNotificationPreferences {
@@ -3244,6 +3287,10 @@ type Mutation {
 
   # Viewer
   setLastPostViewed(viewerID: ID!, postID: ID!): Viewer!
+
+  # Muting
+  muteParticipants(discussionID: ID!, participantIDs: [ID!]!, mutedForSeconds: Int!): [Participant!]!
+  unmuteParticipants(discussionID: ID!, participantIDs: [ID!]!): [Participant!]!
 }
 
 type Subscription {
@@ -3799,6 +3846,36 @@ func (ec *executionContext) field_Mutation_joinDiscussionWithVIPToken_args(ctx c
 	return args, nil
 }
 
+func (ec *executionContext) field_Mutation_muteParticipants_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 string
+	if tmp, ok := rawArgs["discussionID"]; ok {
+		arg0, err = ec.unmarshalNID2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["discussionID"] = arg0
+	var arg1 []string
+	if tmp, ok := rawArgs["participantIDs"]; ok {
+		arg1, err = ec.unmarshalNID2ᚕstringᚄ(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["participantIDs"] = arg1
+	var arg2 int
+	if tmp, ok := rawArgs["mutedForSeconds"]; ok {
+		arg2, err = ec.unmarshalNInt2int(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["mutedForSeconds"] = arg2
+	return args, nil
+}
+
 func (ec *executionContext) field_Mutation_postImportedContent_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
@@ -4000,6 +4077,28 @@ func (ec *executionContext) field_Mutation_unassignFlair_args(ctx context.Contex
 		}
 	}
 	args["participantID"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_unmuteParticipants_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 string
+	if tmp, ok := rawArgs["discussionID"]; ok {
+		arg0, err = ec.unmarshalNID2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["discussionID"] = arg0
+	var arg1 []string
+	if tmp, ok := rawArgs["participantIDs"]; ok {
+		arg1, err = ec.unmarshalNID2ᚕstringᚄ(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["participantIDs"] = arg1
 	return args, nil
 }
 
@@ -9358,6 +9457,88 @@ func (ec *executionContext) _Mutation_setLastPostViewed(ctx context.Context, fie
 	return ec.marshalNViewer2ᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐViewer(ctx, field.Selections, res)
 }
 
+func (ec *executionContext) _Mutation_muteParticipants(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "Mutation",
+		Field:    field,
+		Args:     nil,
+		IsMethod: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Mutation_muteParticipants_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().MuteParticipants(rctx, args["discussionID"].(string), args["participantIDs"].([]string), args["mutedForSeconds"].(int))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]*model.Participant)
+	fc.Result = res
+	return ec.marshalNParticipant2ᚕᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐParticipantᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Mutation_unmuteParticipants(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "Mutation",
+		Field:    field,
+		Args:     nil,
+		IsMethod: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Mutation_unmuteParticipants_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().UnmuteParticipants(rctx, args["discussionID"].(string), args["participantIDs"].([]string))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]*model.Participant)
+	fc.Result = res
+	return ec.marshalNParticipant2ᚕᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐParticipantᚄ(ctx, field.Selections, res)
+}
+
 func (ec *executionContext) _PageInfo_startCursor(ctx context.Context, field graphql.CollectedField, obj *model.PageInfo) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -9907,6 +10088,37 @@ func (ec *executionContext) _Participant_anonDisplayName(ctx context.Context, fi
 	res := resTmp.(*string)
 	fc.Result = res
 	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Participant_mutedForSeconds(ctx context.Context, field graphql.CollectedField, obj *model.Participant) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "Participant",
+		Field:    field,
+		Args:     nil,
+		IsMethod: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Participant().MutedForSeconds(rctx, obj)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*int)
+	fc.Result = res
+	return ec.marshalOInt2ᚖint(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _ParticipantNotificationPreferences_id(ctx context.Context, field graphql.CollectedField, obj *model.ParticipantNotificationPreferences) (ret graphql.Marshaler) {
@@ -15897,6 +16109,16 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
+		case "muteParticipants":
+			out.Values[i] = ec._Mutation_muteParticipants(ctx, field)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "unmuteParticipants":
+			out.Values[i] = ec._Mutation_unmuteParticipants(ctx, field)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -16078,6 +16300,17 @@ func (ec *executionContext) _Participant(ctx context.Context, sel ast.SelectionS
 					}
 				}()
 				res = ec._Participant_anonDisplayName(ctx, field, obj)
+				return res
+			})
+		case "mutedForSeconds":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Participant_mutedForSeconds(ctx, field, obj)
 				return res
 			})
 		default:
@@ -17856,6 +18089,35 @@ func (ec *executionContext) marshalNID2string(ctx context.Context, sel ast.Selec
 	return res
 }
 
+func (ec *executionContext) unmarshalNID2ᚕstringᚄ(ctx context.Context, v interface{}) ([]string, error) {
+	var vSlice []interface{}
+	if v != nil {
+		if tmp1, ok := v.([]interface{}); ok {
+			vSlice = tmp1
+		} else {
+			vSlice = []interface{}{v}
+		}
+	}
+	var err error
+	res := make([]string, len(vSlice))
+	for i := range vSlice {
+		res[i], err = ec.unmarshalNID2string(ctx, vSlice[i])
+		if err != nil {
+			return nil, err
+		}
+	}
+	return res, nil
+}
+
+func (ec *executionContext) marshalNID2ᚕstringᚄ(ctx context.Context, sel ast.SelectionSet, v []string) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	for i := range v {
+		ret[i] = ec.marshalNID2string(ctx, sel, v[i])
+	}
+
+	return ret
+}
+
 func (ec *executionContext) marshalNImportedContent2githubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐImportedContent(ctx context.Context, sel ast.SelectionSet, v model.ImportedContent) graphql.Marshaler {
 	return ec._ImportedContent(ctx, sel, &v)
 }
@@ -17913,6 +18175,43 @@ func (ec *executionContext) marshalNPageInfo2githubᚗcomᚋdelphisᚑincᚋdelp
 
 func (ec *executionContext) marshalNParticipant2githubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐParticipant(ctx context.Context, sel ast.SelectionSet, v model.Participant) graphql.Marshaler {
 	return ec._Participant(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNParticipant2ᚕᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐParticipantᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.Participant) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNParticipant2ᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐParticipant(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+	return ret
 }
 
 func (ec *executionContext) marshalNParticipant2ᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐParticipant(ctx context.Context, sel ast.SelectionSet, v *model.Participant) graphql.Marshaler {

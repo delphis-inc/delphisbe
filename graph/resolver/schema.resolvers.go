@@ -56,6 +56,8 @@ func (r *mutationResolver) AddPost(ctx context.Context, discussionID string, par
 		return nil, fmt.Errorf("Could not find Participant with ID %s", participantID)
 	} else if participant.IsBanned {
 		return nil, fmt.Errorf("Banned")
+	} else if participant.MutedUntil != nil && participant.MutedUntil.After(time.Now()) {
+		return nil, fmt.Errorf("This participant is muted")
 	}
 
 	// Verify that the posting participant belongs to the logged-in user
@@ -689,6 +691,100 @@ func (r *mutationResolver) SetLastPostViewed(ctx context.Context, viewerID strin
 	}
 
 	return r.DAOManager.SetViewerLastPostViewed(ctx, viewerID, postID)
+}
+
+func (r *mutationResolver) MuteParticipants(ctx context.Context, discussionID string, participantIDs []string, mutedForSeconds int) ([]*model.Participant, error) {
+	authedUser := auth.GetAuthedUser(ctx)
+	if authedUser == nil {
+		return nil, fmt.Errorf("Need auth")
+	}
+
+	if mutedForSeconds < 0 || mutedForSeconds > 86400 {
+		return nil, fmt.Errorf("mutedForSeconds value is invalid")
+	}
+
+	/* Only moderators can use this mutation */
+	modCheck, err := r.DAOManager.CheckIfModerator(ctx, authedUser.UserID)
+	if err != nil || !modCheck {
+		return nil, fmt.Errorf("unauthorized")
+	}
+
+	/* Get discussion participants */
+	participants, err := r.DAOManager.GetParticipantsByDiscussionID(ctx, discussionID)
+	if err != nil {
+		return nil, err
+	} else if participants == nil {
+		return nil, fmt.Errorf("Error fetching participants with discussionID (%s)", discussionID)
+	} else if len(participants) == 0 {
+		return []*model.Participant{}, nil
+	}
+
+	/* Check participants validity and retrieve the ones we need to modify */
+	var participantsToEdit []*model.Participant
+	for _, participantID := range participantIDs {
+		found := false
+		for _, participant := range participants {
+			if participant.ID == participantID {
+				if *participant.UserID == authedUser.UserID {
+					return nil, fmt.Errorf("You cannot mute yourself")
+				}
+				found = true
+				p := participant
+				participantsToEdit = append(participantsToEdit, &p)
+				break
+			}
+		}
+		if !found {
+			return nil, fmt.Errorf("Participant with ID (%s) is not associated with discussionID (%s)", participantID, discussionID)
+		}
+	}
+
+	return r.DAOManager.MuteParticipants(ctx, participantsToEdit, mutedForSeconds)
+}
+
+func (r *mutationResolver) UnmuteParticipants(ctx context.Context, discussionID string, participantIDs []string) ([]*model.Participant, error) {
+	authedUser := auth.GetAuthedUser(ctx)
+	if authedUser == nil {
+		return nil, fmt.Errorf("Need auth")
+	}
+
+	/* Only moderators can use this mutation */
+	modCheck, err := r.DAOManager.CheckIfModerator(ctx, authedUser.UserID)
+	if err != nil || !modCheck {
+		return nil, fmt.Errorf("unauthorized")
+	}
+
+	/* Get discussion participants */
+	participants, err := r.DAOManager.GetParticipantsByDiscussionID(ctx, discussionID)
+	if err != nil {
+		return nil, err
+	} else if participants == nil {
+		return nil, fmt.Errorf("Error fetching participants with discussionID (%s)", discussionID)
+	} else if len(participants) == 0 {
+		return []*model.Participant{}, nil
+	}
+
+	/* Check participants validity and retrieve the ones we need to modify */
+	var participantsToEdit []*model.Participant
+	for _, participantID := range participantIDs {
+		found := false
+		for _, participant := range participants {
+			if participant.ID == participantID {
+				if *participant.UserID == authedUser.UserID {
+					return nil, fmt.Errorf("You cannot unmute yourself")
+				}
+				found = true
+				p := participant
+				participantsToEdit = append(participantsToEdit, &p)
+				break
+			}
+		}
+		if !found {
+			return nil, fmt.Errorf("Participant with ID (%s) is not associated with discussionID (%s)", participantID, discussionID)
+		}
+	}
+
+	return r.DAOManager.UnmuteParticipants(ctx, participantsToEdit)
 }
 
 func (r *queryResolver) Discussion(ctx context.Context, id string) (*model.Discussion, error) {

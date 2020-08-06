@@ -487,9 +487,9 @@ func TestDelphisDB_UpsertParticipant(t *testing.T) {
 		defer db.Close()
 
 		expectedFindQueryStr := `SELECT * FROM "participants" WHERE "participants"."deleted_at" IS NULL AND (("participants"."id" = $1)) ORDER BY "participants"."id" ASC LIMIT 1`
-		createQueryStr := `INSERT INTO "participants" ("id","participant_id","created_at","updated_at","deleted_at","discussion_id","viewer_id","flair_id","gradient_color","user_id","inviter_id","is_banned","has_joined","is_anonymous") VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14) RETURNING "participants"."id"`
-		expectedNewObjectRow := sqlmock.NewRows([]string{"id", "participant_id", "created_at", "updated_at", "deleted_at", "discussion_id", "viewer_id", "flair_id", "gradient_color", "user_id", "is_banned", "has_joined", "is_anonymous"}).
-			AddRow(parObj.ID, parObj.ParticipantID, parObj.CreatedAt, parObj.UpdatedAt, parObj.DeletedAt, parObj.DiscussionID, parObj.ViewerID, parObj.FlairID, parObj.GradientColor, parObj.UserID, parObj.IsBanned, parObj.HasJoined, parObj.IsAnonymous)
+		createQueryStr := `INSERT INTO "participants" ("id","participant_id","created_at","updated_at","deleted_at","discussion_id","viewer_id","flair_id","gradient_color","user_id","inviter_id","is_banned","has_joined","is_anonymous","muted_until") VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15) RETURNING "participants"."id"`
+		expectedNewObjectRow := sqlmock.NewRows([]string{"id", "participant_id", "created_at", "updated_at", "deleted_at", "discussion_id", "viewer_id", "flair_id", "gradient_color", "user_id", "is_banned", "has_joined", "is_anonymous", "muted_until"}).
+			AddRow(parObj.ID, parObj.ParticipantID, parObj.CreatedAt, parObj.UpdatedAt, parObj.DeletedAt, parObj.DiscussionID, parObj.ViewerID, parObj.FlairID, parObj.GradientColor, parObj.UserID, parObj.IsBanned, parObj.HasJoined, parObj.IsAnonymous, parObj.MutedUntil)
 		expectedUpdateStr := `UPDATE "participants" SET "flair_id" = $1, "gradient_color" = $2, "has_joined" = $3, "is_banned" = $4, "updated_at" = $5 WHERE "participants"."deleted_at" IS NULL AND "participants"."id" = $6`
 		expectedPostUpdateSelectStr := `SELECT * FROM "participants" WHERE "participants"."deleted_at" IS NULL AND "participants"."id" = $1 ORDER BY "participants"."id" ASC LIMIT 1`
 
@@ -514,7 +514,7 @@ func TestDelphisDB_UpsertParticipant(t *testing.T) {
 				mock.ExpectQuery(createQueryStr).WithArgs(
 					parObj.ID, parObj.ParticipantID, parObj.CreatedAt, parObj.UpdatedAt, parObj.DeletedAt,
 					parObj.DiscussionID, parObj.ViewerID, parObj.FlairID, parObj.GradientColor, parObj.UserID, parObj.InviterID, parObj.IsBanned,
-					parObj.HasJoined, parObj.IsAnonymous,
+					parObj.HasJoined, parObj.IsAnonymous, parObj.MutedUntil,
 				).WillReturnError(expectedError)
 
 				resp, err := mockDatastore.UpsertParticipant(ctx, parObj)
@@ -530,7 +530,7 @@ func TestDelphisDB_UpsertParticipant(t *testing.T) {
 				mock.ExpectQuery(createQueryStr).WithArgs(
 					parObj.ID, parObj.ParticipantID, parObj.CreatedAt, parObj.UpdatedAt, parObj.DeletedAt,
 					parObj.DiscussionID, parObj.ViewerID, parObj.FlairID, parObj.GradientColor, parObj.UserID, parObj.InviterID, parObj.IsBanned,
-					parObj.HasJoined, parObj.IsAnonymous,
+					parObj.HasJoined, parObj.IsAnonymous, parObj.MutedUntil,
 				).WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(parObj.ID))
 				mock.ExpectCommit()
 				mock.ExpectQuery(expectedFindQueryStr).WithArgs(parObj.ID).WillReturnRows(expectedNewObjectRow)
@@ -649,6 +649,127 @@ func TestDelphisDB_AssignFlair(t *testing.T) {
 			So(resp, ShouldResemble, &parObj)
 			So(mock.ExpectationsWereMet(), ShouldBeNil)
 		})
+	})
+}
+
+func TestDelphisDB_SetParticipantsMutedUntil(t *testing.T) {
+	ctx := context.Background()
+	now := time.Now()
+
+	parID := "parID"
+	discussionID := "discussionID"
+	viewerID := "viewerID"
+	flairID := "flairID"
+	gradientColor := model.GradientColorAzalea
+	userID := "userID"
+	parObj := model.Participant{
+		ID:            parID,
+		ParticipantID: 0,
+		DiscussionID:  &discussionID,
+		ViewerID:      &viewerID,
+		FlairID:       &flairID,
+		GradientColor: &gradientColor,
+		UserID:        &userID,
+		HasJoined:     true,
+		IsAnonymous:   false,
+		CreatedAt:     now,
+		UpdatedAt:     now,
+	}
+	emptyListObj := []*model.Participant{}
+	parListObj := []*model.Participant{&parObj}
+	timeObj := time.Now().Add(time.Duration(60) * time.Second)
+
+	Convey("SetParticipantsMutedUntil", t, func() {
+		db, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
+
+		assert.Nil(t, err, "Failed setting up sqlmock db")
+
+		gormDB, _ := gorm.Open("postgres", db)
+		mockDatastore := &delphisDB{
+			dbConfig: config.TablesConfig{},
+			sql:      gormDB,
+			dynamo:   nil,
+			encoder:  nil,
+		}
+		defer db.Close()
+
+		expectedUpdateStr := `UPDATE "participants" SET "muted_until" = $1 WHERE (id IN ($2))`
+		expectedSelectStr := `SELECT * FROM "participants" WHERE "participants"."deleted_at" IS NULL AND ((id IN ($1)))`
+
+		Convey("when update query errors out", func() {
+			expectedError := fmt.Errorf("Some fake error")
+			mock.ExpectBegin()
+			mock.ExpectExec(expectedUpdateStr).WithArgs(&timeObj, parID).WillReturnError(expectedError)
+
+			resp, err := mockDatastore.SetParticipantsMutedUntil(ctx, parListObj, &timeObj)
+
+			So(err, ShouldNotBeNil)
+			So(err, ShouldEqual, expectedError)
+			So(resp, ShouldResemble, emptyListObj)
+			So(mock.ExpectationsWereMet(), ShouldBeNil)
+		})
+
+		Convey("when find query errors out", func() {
+			expectedError := fmt.Errorf("Some fake error")
+			mock.ExpectBegin()
+			mock.ExpectExec(expectedUpdateStr).WithArgs(&timeObj, parID).WillReturnResult(sqlmock.NewResult(0, 1))
+			mock.ExpectCommit()
+			mock.ExpectQuery(expectedSelectStr).WithArgs(parID).WillReturnError(expectedError)
+
+			resp, err := mockDatastore.SetParticipantsMutedUntil(ctx, parListObj, &timeObj)
+
+			So(err, ShouldNotBeNil)
+			So(err, ShouldEqual, expectedError)
+			So(resp, ShouldResemble, emptyListObj)
+			So(mock.ExpectationsWereMet(), ShouldBeNil)
+		})
+
+		Convey("when find query succeeds", func() {
+			expectedParObj := parObj
+			expectedParObj.MutedUntil = &timeObj
+			expectedParListObj := []*model.Participant{&expectedParObj}
+			mock.ExpectBegin()
+			mock.ExpectExec(expectedUpdateStr).WithArgs(&timeObj, parID).WillReturnResult(sqlmock.NewResult(0, 1))
+			mock.ExpectCommit()
+			mock.ExpectQuery(expectedSelectStr).WithArgs(parID).WillReturnRows(sqlmock.NewRows([]string{
+				"id", "participant_id", "created_at", "updated_at",
+				"deleted_at", "discussion_id", "viewer_id", "flair_id", "gradient_color", "user_id",
+				"has_joined", "is_anonymous", "is_banned", "muted_until"}).
+				AddRow(parObj.ID, parObj.ParticipantID, parObj.CreatedAt, parObj.UpdatedAt,
+					parObj.DeletedAt, parObj.DiscussionID, parObj.ViewerID, parObj.FlairID,
+					parObj.GradientColor, parObj.UserID, parObj.HasJoined, parObj.IsAnonymous, parObj.IsBanned, timeObj))
+
+			resp, err := mockDatastore.SetParticipantsMutedUntil(ctx, parListObj, &timeObj)
+
+			So(err, ShouldBeNil)
+			So(resp, ShouldNotBeNil)
+			So(resp, ShouldResemble, expectedParListObj)
+			So(mock.ExpectationsWereMet(), ShouldBeNil)
+		})
+
+		Convey("when everything succeeds with nil time", func() {
+			expectedParObj := parObj
+			expectedParObj.MutedUntil = nil
+			expectedParListObj := []*model.Participant{&expectedParObj}
+			mock.ExpectBegin()
+			mock.ExpectExec(expectedUpdateStr).WithArgs(nil, parID).WillReturnResult(sqlmock.NewResult(0, 1))
+			mock.ExpectCommit()
+			mock.ExpectQuery(expectedSelectStr).WithArgs(parID).WillReturnRows(sqlmock.NewRows([]string{
+				"id", "participant_id", "created_at", "updated_at",
+				"deleted_at", "discussion_id", "viewer_id", "flair_id", "gradient_color", "user_id",
+				"has_joined", "is_anonymous", "is_banned", "muted_until"}).
+				AddRow(parObj.ID, parObj.ParticipantID, parObj.CreatedAt, parObj.UpdatedAt,
+					parObj.DeletedAt, parObj.DiscussionID, parObj.ViewerID, parObj.FlairID,
+					parObj.GradientColor, parObj.UserID, parObj.HasJoined, parObj.IsAnonymous, parObj.IsBanned, nil))
+
+			resp, err := mockDatastore.SetParticipantsMutedUntil(ctx, parListObj, nil)
+
+			So(err, ShouldBeNil)
+			So(resp, ShouldNotBeNil)
+			So(resp, ShouldResemble, expectedParListObj)
+			So(mock.ExpectationsWereMet(), ShouldBeNil)
+		})
+
 	})
 }
 

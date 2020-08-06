@@ -416,6 +416,89 @@ func TestDelphisBackend_AssignFlair(t *testing.T) {
 	})
 }
 
+func TestDelphisBackend_MuteParticipants(t *testing.T) {
+	ctx := context.Background()
+	now := time.Now()
+
+	parObj := test_utils.TestParticipant()
+	parListObj := []*model.Participant{&parObj}
+	seconds := 5
+
+	Convey("MuteParticipants", t, func() {
+		cacheObj := cache.NewInMemoryCache()
+		authObj := auth.NewDelphisAuth(nil)
+		mockDB := &mocks.Datastore{}
+		backendObj := &delphisBackend{
+			db:              mockDB,
+			auth:            authObj,
+			cache:           cacheObj,
+			discussionMutex: sync.Mutex{},
+			config:          config.Config{},
+			timeProvider:    &util.FrozenTime{NowTime: now},
+		}
+
+		Convey("when the query errors out", func() {
+			expectedError := fmt.Errorf("Some Error")
+			mockDB.On("SetParticipantsMutedUntil", ctx, parListObj, mock.AnythingOfType("*time.Time")).Return(nil, expectedError)
+
+			resp, err := backendObj.MuteParticipants(ctx, parListObj, seconds)
+
+			So(err, ShouldEqual, expectedError)
+			So(resp, ShouldBeNil)
+		})
+
+		Convey("when the query returns successfully", func() {
+			mockDB.On("SetParticipantsMutedUntil", ctx, parListObj, mock.AnythingOfType("*time.Time")).Return(parListObj, nil)
+
+			resp, err := backendObj.MuteParticipants(ctx, parListObj, seconds)
+
+			So(err, ShouldBeNil)
+			So(resp, ShouldResemble, parListObj)
+		})
+	})
+}
+
+func TestDelphisBackend_UnmuteParticipants(t *testing.T) {
+	ctx := context.Background()
+	now := time.Now()
+
+	parObj := test_utils.TestParticipant()
+	parListObj := []*model.Participant{&parObj}
+
+	Convey("UnmuteParticipants", t, func() {
+		cacheObj := cache.NewInMemoryCache()
+		authObj := auth.NewDelphisAuth(nil)
+		mockDB := &mocks.Datastore{}
+		backendObj := &delphisBackend{
+			db:              mockDB,
+			auth:            authObj,
+			cache:           cacheObj,
+			discussionMutex: sync.Mutex{},
+			config:          config.Config{},
+			timeProvider:    &util.FrozenTime{NowTime: now},
+		}
+
+		Convey("when the query errors out", func() {
+			expectedError := fmt.Errorf("Some Error")
+			mockDB.On("SetParticipantsMutedUntil", ctx, parListObj, (*time.Time)(nil)).Return(nil, expectedError)
+
+			resp, err := backendObj.UnmuteParticipants(ctx, parListObj)
+
+			So(err, ShouldEqual, expectedError)
+			So(resp, ShouldBeNil)
+		})
+
+		Convey("when the query returns successfully", func() {
+			mockDB.On("SetParticipantsMutedUntil", ctx, parListObj, (*time.Time)(nil)).Return(parListObj, nil)
+
+			resp, err := backendObj.UnmuteParticipants(ctx, parListObj)
+
+			So(err, ShouldBeNil)
+			So(resp, ShouldResemble, parListObj)
+		})
+	})
+}
+
 func TestDelphisBackend_UnassignFlair(t *testing.T) {
 	ctx := context.Background()
 	now := time.Now()

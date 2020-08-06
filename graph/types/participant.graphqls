@@ -26,4 +26,10 @@ type Participant implements Entity & DiscussionSubscriptionEntity {
 
     # The participant's display name if they are anonymous
     anonDisplayName: String
+
+    # Seconds remaining before the user will become unmuted again
+    # (i.e. capable of posting). This is not a DateTime in order
+    # to avoid any timezone or clock time skew problems. The seconds
+    # are calculated relatively to the timestamp of the query.
+    mutedForSeconds: Int
 }
