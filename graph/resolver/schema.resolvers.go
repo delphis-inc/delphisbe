@@ -699,6 +699,9 @@ func (r *mutationResolver) MuteParticipants(ctx context.Context, discussionID st
 		found := false
 		for _, participant := range participants {
 			if participant.ID == participantID {
+				if *participant.UserID == authedUser.UserID {
+					return nil, fmt.Errorf("You cannot mute yourself")
+				}
 				found = true
 				p := participant
 				participantsToEdit = append(participantsToEdit, &p)
@@ -741,6 +744,9 @@ func (r *mutationResolver) UnmuteParticipants(ctx context.Context, discussionID 
 		found := false
 		for _, participant := range participants {
 			if participant.ID == participantID {
+				if *participant.UserID == authedUser.UserID {
+					return nil, fmt.Errorf("You cannot unmute yourself")
+				}
 				found = true
 				p := participant
 				participantsToEdit = append(participantsToEdit, &p)
