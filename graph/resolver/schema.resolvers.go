@@ -56,6 +56,8 @@ func (r *mutationResolver) AddPost(ctx context.Context, discussionID string, par
 		return nil, fmt.Errorf("Could not find Participant with ID %s", participantID)
 	} else if participant.IsBanned {
 		return nil, fmt.Errorf("Banned")
+	} else if participant.MutedUntil != nil && participant.MutedUntil.After(time.Now()) {
+		return nil, fmt.Errorf("This participant is muted")
 	}
 
 	// Verify that the posting participant belongs to the logged-in user
