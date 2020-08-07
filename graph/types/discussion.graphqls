@@ -51,6 +51,8 @@ type Discussion implements Entity {
 
     shuffleCount: Int!
     secondsUntilShuffle: Int
+
+    lockStatus: Boolean!
 }
 
 type CanJoinDiscussionResponse {

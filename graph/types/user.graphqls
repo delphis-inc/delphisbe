@@ -23,6 +23,8 @@ type User {
     # The user's devices.
     devices: [UserDevice!]
 
+    moderatedDiscussions: [Discussion!]
+
     discussions(state: DiscussionUserAccessState! = ACTIVE): [Discussion!]
     discussionInvites(status: InviteRequestStatus!): [DiscussionInvite!]
     sentDiscussionInvites: [DiscussionInvite!]

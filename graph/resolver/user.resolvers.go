@@ -94,6 +94,15 @@ func (r *userResolver) Devices(ctx context.Context, obj *model.User) ([]*model.U
 	return resp, nil
 }
 
+func (r *userResolver) ModeratedDiscussions(ctx context.Context, obj *model.User) ([]*model.Discussion, error) {
+	authedUser := auth.GetAuthedUser(ctx)
+	if authedUser == nil {
+		return nil, fmt.Errorf("Need auth")
+	}
+
+	return r.DAOManager.GetModeratedDiscussionsByUserID(ctx, obj.ID)
+}
+
 func (r *userResolver) Discussions(ctx context.Context, obj *model.User, state model.DiscussionUserAccessState) ([]*model.Discussion, error) {
 	authedUser := auth.GetAuthedUser(ctx)
 	if authedUser == nil {

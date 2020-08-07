@@ -919,6 +919,22 @@ func (_m *Datastore) GetMediaRecordByID(ctx context.Context, mediaID string) (*m
 	return r0, r1
 }
 
+// GetModeratedDiscussionsByUserID provides a mock function with given fields: ctx, userID
+func (_m *Datastore) GetModeratedDiscussionsByUserID(ctx context.Context, userID string) datastore.DiscussionIter {
+	ret := _m.Called(ctx, userID)
+
+	var r0 datastore.DiscussionIter
+	if rf, ok := ret.Get(0).(func(context.Context, string) datastore.DiscussionIter); ok {
+		r0 = rf(ctx, userID)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(datastore.DiscussionIter)
+		}
+	}
+
+	return r0
+}
+
 // GetModeratorByID provides a mock function with given fields: ctx, id
 func (_m *Datastore) GetModeratorByID(ctx context.Context, id string) (*model.Moderator, error) {
 	ret := _m.Called(ctx, id)

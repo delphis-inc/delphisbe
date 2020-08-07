@@ -41,6 +41,7 @@ type Discussion struct {
 	LastPostID            *string                      `json:"last_post_id"`
 	LastPostCreatedAt     *time.Time                   `json:"last_post_created_at"`
 	ShuffleCount          int                          `json:"shuffle_count"`
+	LockStatus            bool                         `json:"lock_status"`
 }
 
 type DiscussionInput struct {
@@ -54,6 +55,7 @@ type DiscussionInput struct {
 	DiscussionJoinability *DiscussionJoinabilitySetting `json:"discussionJoinability"`
 	LastPostID            *string                       `json:"lastPostID"`
 	LastPostCreatedAt     *time.Time                    `json:"lastPostCreatedAt"`
+	LockStatus            *bool                         `json:"lockStatus"`
 }
 
 type HistoricalString struct {

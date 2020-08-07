@@ -29,6 +29,7 @@ type dbPrepStmts struct {
 	// Moderator
 	getModeratorByUserIDStmt                *sql2.Stmt
 	getModeratorByUserIDAndDiscussionIDStmt *sql2.Stmt
+	getModeratedDiscussionsByUserIDStmt     *sql2.Stmt
 
 	// ImportedContent
 	getImportedContentByIDStmt                    *sql2.Stmt
@@ -288,6 +289,33 @@ const getModeratorByUserIDAndDiscussionIDString = `
 		ON m.id = d.moderator_id
 		WHERE u.user_id = $1 and d.id = $2;`
 
+const getModeratedDiscussionsByUserIDString = `
+		SELECT d.id,
+			d.created_at,
+			d.updated_at,
+			d.deleted_at,
+			d.title,
+			d.anonymity_type,
+			d.moderator_id,
+			d.auto_post,
+			d.icon_url,
+			d.idle_minutes,
+			d.description,
+			d.title_history,
+			d.description_history,
+			d.discussion_joinability,
+			d.last_post_id,
+			d.last_post_created_at,
+			d.shuffle_count,
+			d.lock_status
+		FROM moderators m
+		INNER JOIN user_profiles u
+		ON m.user_profile_id = u.id
+		INNER JOIN discussions d
+		ON m.id = d.moderator_id
+		WHERE u.user_id = $1;
+`
+
 const getImportedContentByIDString = `
 		SELECT id,
 			created_at,
@@ -487,12 +515,14 @@ const getDiscussionsByUserAccessString = `
 			d.discussion_joinability,
 			d.last_post_id,
 			d.last_post_created_at,
-			d.shuffle_count
+			d.shuffle_count,
+			d.lock_status
 		FROM discussion_user_access dua
 		INNER JOIN discussions d
 			ON dua.discussion_id = d.id
 		WHERE dua.user_id = $1
 			AND dua.state = $2
+			AND d.lock_status = false
 			AND d.deleted_at is null
 		ORDER BY d.last_post_created_at desc;`
 
