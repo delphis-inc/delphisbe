@@ -421,7 +421,10 @@ func TestDelphisBackend_MuteParticipants(t *testing.T) {
 	now := time.Now()
 
 	parObj := test_utils.TestParticipant()
+	parIDListObj := []string{parObj.ID}
 	parListObj := []*model.Participant{&parObj}
+	discussionID := "discussionID"
+	authedUser := test_utils.TestDelphisAuthedUser()
 	seconds := 5
 
 	Convey("MuteParticipants", t, func() {
@@ -437,20 +440,55 @@ func TestDelphisBackend_MuteParticipants(t *testing.T) {
 			timeProvider:    &util.FrozenTime{NowTime: now},
 		}
 
-		Convey("when the query errors out", func() {
-			expectedError := fmt.Errorf("Some Error")
-			mockDB.On("SetParticipantsMutedUntil", ctx, parListObj, mock.AnythingOfType("*time.Time")).Return(nil, expectedError)
+		Convey("when user is not authed", func() {
+			resp, err := backendObj.MuteParticipants(ctx, discussionID, parIDListObj, seconds)
 
-			resp, err := backendObj.MuteParticipants(ctx, parListObj, seconds)
+			So(err, ShouldNotEqual, nil)
+			So(resp, ShouldBeNil)
+		})
+		ctx = auth.WithAuthedUser(ctx, &authedUser)
+
+		Convey("when the participant query errors out", func() {
+			expectedError := fmt.Errorf("Some Error")
+			mockDB.On("GetParticipantsByDiscussionID", ctx, discussionID).Return(nil, expectedError)
+
+			resp, err := backendObj.MuteParticipants(ctx, discussionID, parIDListObj, seconds)
 
 			So(err, ShouldEqual, expectedError)
 			So(resp, ShouldBeNil)
 		})
 
-		Convey("when the query returns successfully", func() {
+		Convey("when the muted query errors out", func() {
+			expectedError := fmt.Errorf("Some Error")
+			participants := []model.Participant{parObj}
+			mockDB.On("GetParticipantsByDiscussionID", ctx, discussionID).Return(participants, nil)
+			mockDB.On("SetParticipantsMutedUntil", ctx, parListObj, mock.AnythingOfType("*time.Time")).Return(nil, expectedError)
+
+			resp, err := backendObj.MuteParticipants(ctx, discussionID, parIDListObj, seconds)
+
+			So(err, ShouldEqual, expectedError)
+			So(resp, ShouldBeNil)
+		})
+
+		Convey("when the participant is not in discussion", func() {
+			otherParticipant := parObj
+			otherParticipant.ID = "OtherPartID"
+			participants := []model.Participant{otherParticipant}
+			mockDB.On("GetParticipantsByDiscussionID", ctx, discussionID).Return(participants, nil)
 			mockDB.On("SetParticipantsMutedUntil", ctx, parListObj, mock.AnythingOfType("*time.Time")).Return(parListObj, nil)
 
-			resp, err := backendObj.MuteParticipants(ctx, parListObj, seconds)
+			resp, err := backendObj.MuteParticipants(ctx, discussionID, parIDListObj, seconds)
+
+			So(err, ShouldNotBeNil)
+			So(resp, ShouldBeNil)
+		})
+
+		Convey("when the query returns successfully", func() {
+			participants := []model.Participant{parObj}
+			mockDB.On("GetParticipantsByDiscussionID", ctx, discussionID).Return(participants, nil)
+			mockDB.On("SetParticipantsMutedUntil", ctx, parListObj, mock.AnythingOfType("*time.Time")).Return(parListObj, nil)
+
+			resp, err := backendObj.MuteParticipants(ctx, discussionID, parIDListObj, seconds)
 
 			So(err, ShouldBeNil)
 			So(resp, ShouldResemble, parListObj)
@@ -463,7 +501,10 @@ func TestDelphisBackend_UnmuteParticipants(t *testing.T) {
 	now := time.Now()
 
 	parObj := test_utils.TestParticipant()
+	parIDListObj := []string{parObj.ID}
 	parListObj := []*model.Participant{&parObj}
+	discussionID := "discussionID"
+	authedUser := test_utils.TestDelphisAuthedUser()
 
 	Convey("UnmuteParticipants", t, func() {
 		cacheObj := cache.NewInMemoryCache()
@@ -478,20 +519,55 @@ func TestDelphisBackend_UnmuteParticipants(t *testing.T) {
 			timeProvider:    &util.FrozenTime{NowTime: now},
 		}
 
-		Convey("when the query errors out", func() {
-			expectedError := fmt.Errorf("Some Error")
-			mockDB.On("SetParticipantsMutedUntil", ctx, parListObj, (*time.Time)(nil)).Return(nil, expectedError)
+		Convey("when user is not authed", func() {
+			resp, err := backendObj.UnmuteParticipants(ctx, discussionID, parIDListObj)
 
-			resp, err := backendObj.UnmuteParticipants(ctx, parListObj)
+			So(err, ShouldNotEqual, nil)
+			So(resp, ShouldBeNil)
+		})
+		ctx = auth.WithAuthedUser(ctx, &authedUser)
+
+		Convey("when the participant query errors out", func() {
+			expectedError := fmt.Errorf("Some Error")
+			mockDB.On("GetParticipantsByDiscussionID", ctx, discussionID).Return(nil, expectedError)
+
+			resp, err := backendObj.UnmuteParticipants(ctx, discussionID, parIDListObj)
 
 			So(err, ShouldEqual, expectedError)
 			So(resp, ShouldBeNil)
 		})
 
-		Convey("when the query returns successfully", func() {
+		Convey("when the muted query errors out", func() {
+			expectedError := fmt.Errorf("Some Error")
+			participants := []model.Participant{parObj}
+			mockDB.On("GetParticipantsByDiscussionID", ctx, discussionID).Return(participants, nil)
+			mockDB.On("SetParticipantsMutedUntil", ctx, parListObj, (*time.Time)(nil)).Return(nil, expectedError)
+
+			resp, err := backendObj.UnmuteParticipants(ctx, discussionID, parIDListObj)
+
+			So(err, ShouldEqual, expectedError)
+			So(resp, ShouldBeNil)
+		})
+
+		Convey("when the participant is not in discussion", func() {
+			otherParticipant := parObj
+			otherParticipant.ID = "OtherPartID"
+			participants := []model.Participant{otherParticipant}
+			mockDB.On("GetParticipantsByDiscussionID", ctx, discussionID).Return(participants, nil)
 			mockDB.On("SetParticipantsMutedUntil", ctx, parListObj, (*time.Time)(nil)).Return(parListObj, nil)
 
-			resp, err := backendObj.UnmuteParticipants(ctx, parListObj)
+			resp, err := backendObj.UnmuteParticipants(ctx, discussionID, parIDListObj)
+
+			So(err, ShouldNotBeNil)
+			So(resp, ShouldBeNil)
+		})
+
+		Convey("when the query returns successfully", func() {
+			participants := []model.Participant{parObj}
+			mockDB.On("GetParticipantsByDiscussionID", ctx, discussionID).Return(participants, nil)
+			mockDB.On("SetParticipantsMutedUntil", ctx, parListObj, (*time.Time)(nil)).Return(parListObj, nil)
+
+			resp, err := backendObj.UnmuteParticipants(ctx, discussionID, parIDListObj)
 
 			So(err, ShouldBeNil)
 			So(resp, ShouldResemble, parListObj)

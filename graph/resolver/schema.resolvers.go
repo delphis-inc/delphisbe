@@ -685,37 +685,7 @@ func (r *mutationResolver) MuteParticipants(ctx context.Context, discussionID st
 		return nil, fmt.Errorf("unauthorized")
 	}
 
-	/* Get discussion participants */
-	participants, err := r.DAOManager.GetParticipantsByDiscussionID(ctx, discussionID)
-	if err != nil {
-		return nil, err
-	} else if participants == nil {
-		return nil, fmt.Errorf("Error fetching participants with discussionID (%s)", discussionID)
-	} else if len(participants) == 0 {
-		return []*model.Participant{}, nil
-	}
-
-	/* Check participants validity and retrieve the ones we need to modify */
-	var participantsToEdit []*model.Participant
-	for _, participantID := range participantIDs {
-		found := false
-		for _, participant := range participants {
-			if participant.ID == participantID {
-				if *participant.UserID == authedUser.UserID {
-					return nil, fmt.Errorf("You cannot mute yourself")
-				}
-				found = true
-				p := participant
-				participantsToEdit = append(participantsToEdit, &p)
-				break
-			}
-		}
-		if !found {
-			return nil, fmt.Errorf("Participant with ID (%s) is not associated with discussionID (%s)", participantID, discussionID)
-		}
-	}
-
-	return r.DAOManager.MuteParticipants(ctx, participantsToEdit, mutedForSeconds)
+	return r.DAOManager.MuteParticipants(ctx, discussionID, participantIDs, mutedForSeconds)
 }
 
 func (r *mutationResolver) UnmuteParticipants(ctx context.Context, discussionID string, participantIDs []string) ([]*model.Participant, error) {
@@ -730,37 +700,7 @@ func (r *mutationResolver) UnmuteParticipants(ctx context.Context, discussionID 
 		return nil, fmt.Errorf("unauthorized")
 	}
 
-	/* Get discussion participants */
-	participants, err := r.DAOManager.GetParticipantsByDiscussionID(ctx, discussionID)
-	if err != nil {
-		return nil, err
-	} else if participants == nil {
-		return nil, fmt.Errorf("Error fetching participants with discussionID (%s)", discussionID)
-	} else if len(participants) == 0 {
-		return []*model.Participant{}, nil
-	}
-
-	/* Check participants validity and retrieve the ones we need to modify */
-	var participantsToEdit []*model.Participant
-	for _, participantID := range participantIDs {
-		found := false
-		for _, participant := range participants {
-			if participant.ID == participantID {
-				if *participant.UserID == authedUser.UserID {
-					return nil, fmt.Errorf("You cannot unmute yourself")
-				}
-				found = true
-				p := participant
-				participantsToEdit = append(participantsToEdit, &p)
-				break
-			}
-		}
-		if !found {
-			return nil, fmt.Errorf("Participant with ID (%s) is not associated with discussionID (%s)", participantID, discussionID)
-		}
-	}
-
-	return r.DAOManager.UnmuteParticipants(ctx, participantsToEdit)
+	return r.DAOManager.UnmuteParticipants(ctx, discussionID, participantIDs)
 }
 
 func (r *queryResolver) Discussion(ctx context.Context, id string) (*model.Discussion, error) {
