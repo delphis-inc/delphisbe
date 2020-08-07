@@ -28,12 +28,51 @@ func (r *mutationResolver) AddDiscussionParticipant(ctx context.Context, discuss
 		}
 	}
 
-	participantObj, err := r.DAOManager.CreateParticipantForDiscussion(ctx, discussionID, authedUser.UserID, discussionParticipantInput)
+	existingParticipants, err := r.DAOManager.GetParticipantsByDiscussionIDUserID(ctx, discussionID, userID)
 	if err != nil {
 		return nil, err
 	}
 
-	return participantObj, nil
+	if existingParticipants != nil && (existingParticipants.Anon != nil || existingParticipants.NonAnon != nil) {
+		if discussionParticipantInput.IsAnonymous && existingParticipants.Anon != nil {
+			return existingParticipants.Anon, nil
+		} else if discussionParticipantInput.IsAnonymous {
+			return r.DAOManager.CreateParticipantForDiscussion(ctx, discussionID, authedUser.UserID, discussionParticipantInput)
+		}
+
+		if !discussionParticipantInput.IsAnonymous && existingParticipants.NonAnon != nil {
+			return existingParticipants.NonAnon, nil
+		} else if !discussionParticipantInput.IsAnonymous {
+			return r.DAOManager.CreateParticipantForDiscussion(ctx, discussionID, authedUser.UserID, discussionParticipantInput)
+		}
+	}
+
+	discussionObj, err := r.DAOManager.GetDiscussionByID(ctx, discussionID)
+	if err != nil || discussionObj == nil {
+		return nil, err
+	}
+	joinability, err := r.DAOManager.GetDiscussionJoinabilityForUser(ctx, authedUser.User, discussionObj, nil)
+
+	if joinability.Response == model.DiscussionJoinabilityResponseApprovedNotJoined {
+		state := model.DiscussionUserAccessStateActive
+		setting := model.DiscussionUserNotificationSettingEverything
+		_, err := r.DAOManager.UpsertUserDiscussionAccess(ctx, authedUser.UserID, discussionID, model.DiscussionUserSettings{
+			State:        &state,
+			NotifSetting: &setting,
+		})
+		if err != nil {
+			return nil, err
+		}
+		participantObj, err := r.DAOManager.CreateParticipantForDiscussion(ctx, discussionID, authedUser.UserID, discussionParticipantInput)
+		if err != nil {
+			// This is a weird case but we've added discussion user access so it's a fast
+			// retry.
+			return nil, err
+		}
+		return participantObj, nil
+	} else {
+		return nil, fmt.Errorf("Unauthorized")
+	}
 }
 
 func (r *mutationResolver) AddPost(ctx context.Context, discussionID string, participantID string, postContent model.PostContentInput) (*model.Post, error) {
