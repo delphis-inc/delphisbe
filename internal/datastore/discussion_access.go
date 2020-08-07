@@ -174,82 +174,16 @@ func (d *delphisDB) DeleteDiscussionUserAccess(ctx context.Context, tx *sql.Tx, 
 	return &dua, nil
 }
 
-type discussionIter struct {
-	err  error
-	ctx  context.Context
-	rows *sql.Rows
-}
-
-func (iter *discussionIter) Next(discussion *model.Discussion) bool {
-	if iter.err != nil {
-		logrus.WithError(iter.err).Error("iterator error")
-		return false
-	}
-
-	if iter.err = iter.ctx.Err(); iter.err != nil {
-		logrus.WithError(iter.err).Error("iterator context error")
-		return false
-	}
-
-	if !iter.rows.Next() {
-		return false
-	}
-
-	titleHistory := make([]byte, 0)
-	descriptionHistory := make([]byte, 0)
-
-	if iter.err = iter.rows.Scan(
-		&discussion.ID,
-		&discussion.CreatedAt,
-		&discussion.UpdatedAt,
-		&discussion.DeletedAt,
-		&discussion.Title,
-		&discussion.AnonymityType,
-		&discussion.ModeratorID,
-		&discussion.AutoPost,
-		&discussion.IconURL,
-		&discussion.IdleMinutes,
-		&discussion.Description,
-		&titleHistory,
-		&descriptionHistory,
-		&discussion.DiscussionJoinability,
-		&discussion.LastPostID,
-		&discussion.LastPostCreatedAt,
-		&discussion.ShuffleCount,
-	); iter.err != nil {
-		logrus.WithError(iter.err).Error("iterator failed to scan row")
-		return false
-	}
-
-	discussion.TitleHistory.RawMessage = titleHistory
-	discussion.DescriptionHistory.RawMessage = descriptionHistory
-
-	return true
-}
-
-func (iter *discussionIter) Close() error {
-	if err := iter.err; err != nil {
-		logrus.WithError(err).Error("iter error on close")
-		return err
-	}
-	if err := iter.rows.Close(); err != nil {
-		logrus.WithError(err).Error("iter rows close on close")
-		return err
-	}
-
-	return nil
-}
-
-func (d *delphisDB) DiscussionIterCollect(ctx context.Context, iter DiscussionIter) ([]*model.Discussion, error) {
-	var discussions []*model.Discussion
-	disc := model.Discussion{}
+func (d *delphisDB) DuaIterCollect(ctx context.Context, iter DiscussionUserAccessIter) ([]*model.DiscussionUserAccess, error) {
+	var duaArr []*model.DiscussionUserAccess
+	dua := model.DiscussionUserAccess{}
 
 	defer iter.Close()
 
-	for iter.Next(&disc) {
-		tempDisc := disc
+	for iter.Next(&dua) {
+		tempDua := dua
 
-		discussions = append(discussions, &tempDisc)
+		duaArr = append(duaArr, &tempDua)
 	}
 
 	if err := iter.Close(); err != nil && err != io.EOF {
@@ -257,7 +191,7 @@ func (d *delphisDB) DiscussionIterCollect(ctx context.Context, iter DiscussionIt
 		return nil, err
 	}
 
-	return discussions, nil
+	return duaArr, nil
 }
 
 type duaIter struct {
@@ -309,24 +243,4 @@ func (iter *duaIter) Close() error {
 	}
 
 	return nil
-}
-
-func (d *delphisDB) DuaIterCollect(ctx context.Context, iter DiscussionUserAccessIter) ([]*model.DiscussionUserAccess, error) {
-	var duaArr []*model.DiscussionUserAccess
-	dua := model.DiscussionUserAccess{}
-
-	defer iter.Close()
-
-	for iter.Next(&dua) {
-		tempDua := dua
-
-		duaArr = append(duaArr, &tempDua)
-	}
-
-	if err := iter.Close(); err != nil && err != io.EOF {
-		logrus.WithError(err).Error("failed to close iter")
-		return nil, err
-	}
-
-	return duaArr, nil
 }

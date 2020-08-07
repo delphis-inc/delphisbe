@@ -63,6 +63,7 @@ input DiscussionInput {
   publicAccess: Boolean
   iconURL: String
   discussionJoinability: DiscussionJoinabilitySetting
+  lockStatus: Boolean
 }
 
 input DiscussionCreationSettings {

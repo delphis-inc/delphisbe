@@ -111,6 +111,7 @@ type ComplexityRoot struct {
 		ID                      func(childComplexity int) int
 		IconURL                 func(childComplexity int) int
 		IdleMinutes             func(childComplexity int) int
+		LockStatus              func(childComplexity int) int
 		MeAvailableParticipants func(childComplexity int) int
 		MeCanJoinDiscussion     func(childComplexity int) int
 		MeNotificationSettings  func(childComplexity int) int
@@ -408,6 +409,7 @@ type ComplexityRoot struct {
 		Discussions                  func(childComplexity int, state model.DiscussionUserAccessState) int
 		Flairs                       func(childComplexity int) int
 		ID                           func(childComplexity int) int
+		ModeratedDiscussions         func(childComplexity int) int
 		Participants                 func(childComplexity int) int
 		Profile                      func(childComplexity int) int
 		SentDiscussionAccessRequests func(childComplexity int) int
@@ -471,7 +473,10 @@ type DiscussionResolver interface {
 	MeParticipant(ctx context.Context, obj *model.Discussion) (*model.Participant, error)
 	MeAvailableParticipants(ctx context.Context, obj *model.Discussion) ([]*model.Participant, error)
 	MeCanJoinDiscussion(ctx context.Context, obj *model.Discussion) (*model.CanJoinDiscussionResponse, error)
+<<<<<<< HEAD
 	MeViewer(ctx context.Context, obj *model.Discussion) (*model.Viewer, error)
+=======
+>>>>>>> squash
 	MeNotificationSettings(ctx context.Context, obj *model.Discussion) (*model.DiscussionUserNotificationSetting, error)
 
 	Tags(ctx context.Context, obj *model.Discussion) ([]*model.Tag, error)
@@ -625,6 +630,7 @@ type UserResolver interface {
 	Profile(ctx context.Context, obj *model.User) (*model.UserProfile, error)
 	Flairs(ctx context.Context, obj *model.User) ([]*model.Flair, error)
 	Devices(ctx context.Context, obj *model.User) ([]*model.UserDevice, error)
+	ModeratedDiscussions(ctx context.Context, obj *model.User) ([]*model.Discussion, error)
 	Discussions(ctx context.Context, obj *model.User, state model.DiscussionUserAccessState) ([]*model.Discussion, error)
 	DiscussionInvites(ctx context.Context, obj *model.User, status model.InviteRequestStatus) ([]*model.DiscussionInvite, error)
 	SentDiscussionInvites(ctx context.Context, obj *model.User) ([]*model.DiscussionInvite, error)
@@ -864,6 +870,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Discussion.IdleMinutes(childComplexity), true
+
+	case "Discussion.lockStatus":
+		if e.complexity.Discussion.LockStatus == nil {
+			break
+		}
+
+		return e.complexity.Discussion.LockStatus(childComplexity), true
 
 	case "Discussion.meAvailableParticipants":
 		if e.complexity.Discussion.MeAvailableParticipants == nil {
@@ -2461,6 +2474,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.User.ID(childComplexity), true
 
+	case "User.moderatedDiscussions":
+		if e.complexity.User.ModeratedDiscussions == nil {
+			break
+		}
+
+		return e.complexity.User.ModeratedDiscussions(childComplexity), true
+
 	case "User.participants":
 		if e.complexity.User.Participants == nil {
 			break
@@ -2745,7 +2765,10 @@ var sources = []*ast.Source{
 
     meCanJoinDiscussion: CanJoinDiscussionResponse!
 
+<<<<<<< HEAD
     meViewer: Viewer
+=======
+>>>>>>> squash
     # Notification setting for logged in user
     meNotificationSettings: DiscussionUserNotificationSetting
 
@@ -2763,6 +2786,8 @@ var sources = []*ast.Source{
 
     shuffleCount: Int!
     secondsUntilShuffle: Int
+
+    lockStatus: Boolean!
 }
 
 type CanJoinDiscussionResponse {
@@ -3190,6 +3215,7 @@ input DiscussionInput {
   publicAccess: Boolean
   iconURL: String
   discussionJoinability: DiscussionJoinabilitySetting
+  lockStatus: Boolean
 }
 
 input DiscussionCreationSettings {
@@ -3325,6 +3351,8 @@ type User {
     flairs: [Flair!]
     # The user's devices.
     devices: [UserDevice!]
+
+    moderatedDiscussions: [Discussion!]
 
     discussions(state: DiscussionUserAccessState! = ACTIVE): [Discussion!]
     discussionInvites(status: InviteRequestStatus!): [DiscussionInvite!]
@@ -5433,6 +5461,7 @@ func (ec *executionContext) _Discussion_meCanJoinDiscussion(ctx context.Context,
 	return ec.marshalNCanJoinDiscussionResponse2ᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐCanJoinDiscussionResponse(ctx, field.Selections, res)
 }
 
+<<<<<<< HEAD
 func (ec *executionContext) _Discussion_meViewer(ctx context.Context, field graphql.CollectedField, obj *model.Discussion) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -5464,6 +5493,8 @@ func (ec *executionContext) _Discussion_meViewer(ctx context.Context, field grap
 	return ec.marshalOViewer2ᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐViewer(ctx, field.Selections, res)
 }
 
+=======
+>>>>>>> squash
 func (ec *executionContext) _Discussion_meNotificationSettings(ctx context.Context, field graphql.CollectedField, obj *model.Discussion) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -5852,6 +5883,40 @@ func (ec *executionContext) _Discussion_secondsUntilShuffle(ctx context.Context,
 	res := resTmp.(*int)
 	fc.Result = res
 	return ec.marshalOInt2ᚖint(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Discussion_lockStatus(ctx context.Context, field graphql.CollectedField, obj *model.Discussion) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "Discussion",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.LockStatus, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(bool)
+	fc.Result = res
+	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _DiscussionAccessLink_discussion(ctx context.Context, field graphql.CollectedField, obj *model.DiscussionAccessLink) (ret graphql.Marshaler) {
@@ -12279,6 +12344,37 @@ func (ec *executionContext) _User_devices(ctx context.Context, field graphql.Col
 	return ec.marshalOUserDevice2ᚕᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐUserDeviceᚄ(ctx, field.Selections, res)
 }
 
+func (ec *executionContext) _User_moderatedDiscussions(ctx context.Context, field graphql.CollectedField, obj *model.User) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "User",
+		Field:    field,
+		Args:     nil,
+		IsMethod: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.User().ModeratedDiscussions(rctx, obj)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.([]*model.Discussion)
+	fc.Result = res
+	return ec.marshalODiscussion2ᚕᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐDiscussionᚄ(ctx, field.Selections, res)
+}
+
 func (ec *executionContext) _User_discussions(ctx context.Context, field graphql.CollectedField, obj *model.User) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -14208,6 +14304,36 @@ func (ec *executionContext) unmarshalInputDiscussionInput(ctx context.Context, o
 			if err != nil {
 				return it, err
 			}
+		case "lockStatus":
+			var err error
+			it.LockStatus, err = ec.unmarshalOBoolean2ᚖbool(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		}
+	}
+
+	return it, nil
+}
+
+func (ec *executionContext) unmarshalInputDiscussionUserSettings(ctx context.Context, obj interface{}) (model.DiscussionUserSettings, error) {
+	var it model.DiscussionUserSettings
+	var asMap = obj.(map[string]interface{})
+
+	for k, v := range asMap {
+		switch k {
+		case "state":
+			var err error
+			it.State, err = ec.unmarshalODiscussionUserAccessState2ᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐDiscussionUserAccessState(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "notifSetting":
+			var err error
+			it.NotifSetting, err = ec.unmarshalODiscussionUserNotificationSetting2ᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐDiscussionUserNotificationSetting(ctx, v)
+			if err != nil {
+				return it, err
+			}
 		}
 	}
 
@@ -14828,6 +14954,7 @@ func (ec *executionContext) _Discussion(ctx context.Context, sel ast.SelectionSe
 				}
 				return res
 			})
+<<<<<<< HEAD
 		case "meViewer":
 			field := field
 			out.Concurrently(i, func() (res graphql.Marshaler) {
@@ -14839,6 +14966,8 @@ func (ec *executionContext) _Discussion(ctx context.Context, sel ast.SelectionSe
 				res = ec._Discussion_meViewer(ctx, field, obj)
 				return res
 			})
+=======
+>>>>>>> squash
 		case "meNotificationSettings":
 			field := field
 			out.Concurrently(i, func() (res graphql.Marshaler) {
@@ -14962,6 +15091,11 @@ func (ec *executionContext) _Discussion(ctx context.Context, sel ast.SelectionSe
 				res = ec._Discussion_secondsUntilShuffle(ctx, field, obj)
 				return res
 			})
+		case "lockStatus":
+			out.Values[i] = ec._Discussion_lockStatus(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&invalids, 1)
+			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -17001,6 +17135,17 @@ func (ec *executionContext) _User(ctx context.Context, sel ast.SelectionSet, obj
 				res = ec._User_devices(ctx, field, obj)
 				return res
 			})
+		case "moderatedDiscussions":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._User_moderatedDiscussions(ctx, field, obj)
+				return res
+			})
 		case "discussions":
 			field := field
 			out.Concurrently(i, func() (res graphql.Marshaler) {
@@ -17189,6 +17334,7 @@ func (ec *executionContext) _Viewer(ctx context.Context, sel ast.SelectionSet, o
 				atomic.AddUint32(&invalids, 1)
 			}
 		case "discussion":
+<<<<<<< HEAD
 			field := field
 			out.Concurrently(i, func() (res graphql.Marshaler) {
 				defer func() {
@@ -17202,6 +17348,8 @@ func (ec *executionContext) _Viewer(ctx context.Context, sel ast.SelectionSet, o
 		case "lastViewed":
 			out.Values[i] = ec._Viewer_lastViewed(ctx, field, obj)
 		case "lastViewedPost":
+=======
+>>>>>>> squash
 			field := field
 			out.Concurrently(i, func() (res graphql.Marshaler) {
 				defer func() {

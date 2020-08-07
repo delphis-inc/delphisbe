@@ -67,6 +67,7 @@ func (d *delphisBackend) CreateNewDiscussion(ctx context.Context, creatingUser *
 		},
 		ModeratorID:           &moderatorObj.ID,
 		DiscussionJoinability: discussionSettings.DiscussionJoinability,
+		LockStatus:            false,
 	}
 
 	_, err = d.db.UpsertDiscussion(ctx, discussionObj)
@@ -484,6 +485,9 @@ func updateDiscussionObj(disc *model.Discussion, input model.DiscussionInput) {
 	}
 	if input.LastPostCreatedAt != nil {
 		disc.LastPostCreatedAt = input.LastPostCreatedAt
+	}
+	if input.LockStatus != nil {
+		disc.LockStatus = *input.LockStatus
 	}
 }
 

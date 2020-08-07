@@ -22,16 +22,6 @@ func (d *delphisDB) GetModeratorByID(ctx context.Context, id string) (*model.Mod
 	return &moderator, nil
 }
 
-func (d *delphisDB) CreateModerator(ctx context.Context, moderator model.Moderator) (*model.Moderator, error) {
-	logrus.Debugf("CreateModerator::SQL Insert")
-	found := model.Moderator{}
-	if err := d.sql.Create(&moderator).First(&found, model.Moderator{ID: moderator.ID}).Error; err != nil {
-		logrus.WithError(err).Errorf("Failed to create moderator")
-		return nil, err
-	}
-	return &found, nil
-}
-
 func (d *delphisDB) GetModeratorByUserID(ctx context.Context, id string) (*model.Moderator, error) {
 	logrus.Debug("GetModeratorByUserID::SQL Query")
 	if err := d.initializeStatements(ctx); err != nil {
@@ -87,4 +77,36 @@ func (d *delphisDB) GetModeratorByUserIDAndDiscussionID(ctx context.Context, use
 	}
 
 	return &moderator, nil
+}
+
+func (d *delphisDB) GetModeratedDiscussionsByUserID(ctx context.Context, userID string) DiscussionIter {
+	logrus.Debug("GetModeratedDiscussionsByUserID::SQL Query")
+	if err := d.initializeStatements(ctx); err != nil {
+		logrus.WithError(err).Error("GetModeratedDiscussionsByUserID::failed to initialize statements")
+		return &discussionIter{err: err}
+	}
+
+	rows, err := d.prepStmts.getModeratedDiscussionsByUserIDStmt.QueryContext(
+		ctx,
+		userID,
+	)
+	if err != nil {
+		logrus.WithError(err).Error("failed to query getModeratedDiscussionsByUserIDStmt")
+		return &discussionIter{err: err}
+	}
+
+	return &discussionIter{
+		ctx:  ctx,
+		rows: rows,
+	}
+}
+
+func (d *delphisDB) CreateModerator(ctx context.Context, moderator model.Moderator) (*model.Moderator, error) {
+	logrus.Debugf("CreateModerator::SQL Insert")
+	found := model.Moderator{}
+	if err := d.sql.Create(&moderator).First(&found, model.Moderator{ID: moderator.ID}).Error; err != nil {
+		logrus.WithError(err).Errorf("Failed to create moderator")
+		return nil, err
+	}
+	return &found, nil
 }

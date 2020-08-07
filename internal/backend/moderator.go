@@ -8,20 +8,25 @@ import (
 	"github.com/delphis-inc/delphisbe/graph/model"
 )
 
-func (b *delphisBackend) GetModeratorByID(ctx context.Context, id string) (*model.Moderator, error) {
-	return b.db.GetModeratorByID(ctx, id)
+func (d *delphisBackend) GetModeratorByID(ctx context.Context, id string) (*model.Moderator, error) {
+	return d.db.GetModeratorByID(ctx, id)
 }
 
-func (b *delphisBackend) GetModeratorByUserID(ctx context.Context, userID string) (*model.Moderator, error) {
-	return b.db.GetModeratorByUserID(ctx, userID)
+func (d *delphisBackend) GetModeratorByUserID(ctx context.Context, userID string) (*model.Moderator, error) {
+	return d.db.GetModeratorByUserID(ctx, userID)
 }
 
-func (b *delphisBackend) GetModeratorByUserIDAndDiscussionID(ctx context.Context, userID, discussionID string) (*model.Moderator, error) {
-	return b.db.GetModeratorByUserIDAndDiscussionID(ctx, userID, discussionID)
+func (d *delphisBackend) GetModeratorByUserIDAndDiscussionID(ctx context.Context, userID, discussionID string) (*model.Moderator, error) {
+	return d.db.GetModeratorByUserIDAndDiscussionID(ctx, userID, discussionID)
 }
 
-func (b *delphisBackend) CheckIfModerator(ctx context.Context, userID string) (bool, error) {
-	mod, err := b.GetModeratorByUserID(ctx, userID)
+func (d *delphisBackend) GetModeratedDiscussionsByUserID(ctx context.Context, userID string) ([]*model.Discussion, error) {
+	iter := d.db.GetModeratedDiscussionsByUserID(ctx, userID)
+	return d.db.DiscussionIterCollect(ctx, iter)
+}
+
+func (d *delphisBackend) CheckIfModerator(ctx context.Context, userID string) (bool, error) {
+	mod, err := d.GetModeratorByUserID(ctx, userID)
 	if err != nil {
 		logrus.WithError(err).Error("failed to get moderator by userID")
 		return false, err
@@ -30,8 +35,8 @@ func (b *delphisBackend) CheckIfModerator(ctx context.Context, userID string) (b
 	return mod != nil, nil
 }
 
-func (b *delphisBackend) CheckIfModeratorForDiscussion(ctx context.Context, userID string, discussionID string) (bool, error) {
-	mod, err := b.GetModeratorByUserIDAndDiscussionID(ctx, userID, discussionID)
+func (d *delphisBackend) CheckIfModeratorForDiscussion(ctx context.Context, userID string, discussionID string) (bool, error) {
+	mod, err := d.GetModeratorByUserIDAndDiscussionID(ctx, userID, discussionID)
 	if err != nil {
 		logrus.WithError(err).Error("failed to get moderator by userID")
 		return false, err
