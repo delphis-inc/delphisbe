@@ -45,7 +45,7 @@ type Discussion implements Entity {
     accessRequests: [DiscussionAccessRequest!]
     discussionLinksAccess: DiscussionLinkAccess! @deprecated(reason: "user DiscussionAccessLink")
 
-    discussionAccessLink: DiscussionAccessLink!
+    discussionAccessLink: DiscussionAccessLink
 
     discussionJoinability: DiscussionJoinabilitySetting!
 
@@ -114,6 +114,7 @@ type DiscussionLinkAccess {
 type DiscussionAccessLink {
     discussion: Discussion!
     linkSlug: String!
+    url: String!
     createdAt: Time!
     updatedAt: Time!
     isDeleted: Boolean!

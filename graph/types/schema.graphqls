@@ -7,6 +7,7 @@ schema {
 # The Query type represents all of the entry points into the API.
 type Query {
   discussion(id: ID!): Discussion
+  discussionByLinkSlug(slug: String!): Discussion
   listDiscussions(state: DiscussionUserAccessState! = ACTIVE): [Discussion!]
   flairTemplates(query: String): [FlairTemplate!]
   # Need to add verification that the caller is the user.
