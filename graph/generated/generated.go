@@ -114,6 +114,7 @@ type ComplexityRoot struct {
 		MeAvailableParticipants func(childComplexity int) int
 		MeCanJoinDiscussion     func(childComplexity int) int
 		MeParticipant           func(childComplexity int) int
+		MeViewer                func(childComplexity int) int
 		Moderator               func(childComplexity int) int
 		Participants            func(childComplexity int) int
 		Posts                   func(childComplexity int) int
@@ -265,6 +266,7 @@ type ComplexityRoot struct {
 		RespondToInvite                      func(childComplexity int, inviteID string, response model.InviteRequestStatus, discussionParticipantInput model.AddDiscussionParticipantInput) int
 		RespondToRequestAccess               func(childComplexity int, requestID string, response model.InviteRequestStatus) int
 		ScheduleImportedContent              func(childComplexity int, discussionID string, contentID string) int
+		SetLastPostViewed                    func(childComplexity int, viewerID string, postID string) int
 		ShuffleDiscussion                    func(childComplexity int, discussionID string, inFutureSeconds *int) int
 		UnassignFlair                        func(childComplexity int, participantID string) int
 		UnmuteParticipants                   func(childComplexity int, discussionID string, participantIDs []string) int
@@ -478,6 +480,7 @@ type DiscussionResolver interface {
 	MeParticipant(ctx context.Context, obj *model.Discussion) (*model.Participant, error)
 	MeAvailableParticipants(ctx context.Context, obj *model.Discussion) ([]*model.Participant, error)
 	MeCanJoinDiscussion(ctx context.Context, obj *model.Discussion) (*model.CanJoinDiscussionResponse, error)
+	MeViewer(ctx context.Context, obj *model.Discussion) (*model.Viewer, error)
 
 	Tags(ctx context.Context, obj *model.Discussion) ([]*model.Tag, error)
 	UpcomingContent(ctx context.Context, obj *model.Discussion) ([]*model.ImportedContent, error)
@@ -565,6 +568,7 @@ type MutationResolver interface {
 	DeletePost(ctx context.Context, discussionID string, postID string) (*model.Post, error)
 	BanParticipant(ctx context.Context, discussionID string, participantID string) (*model.Participant, error)
 	ShuffleDiscussion(ctx context.Context, discussionID string, inFutureSeconds *int) (*model.Discussion, error)
+	SetLastPostViewed(ctx context.Context, viewerID string, postID string) (*model.Viewer, error)
 	MuteParticipants(ctx context.Context, discussionID string, participantIDs []string, mutedForSeconds int) ([]*model.Participant, error)
 	UnmuteParticipants(ctx context.Context, discussionID string, participantIDs []string) ([]*model.Participant, error)
 }
@@ -646,6 +650,7 @@ type ViewerResolver interface {
 	NotificationPreferences(ctx context.Context, obj *model.Viewer) (model.DiscussionNotificationPreferences, error)
 	Discussion(ctx context.Context, obj *model.Viewer) (*model.Discussion, error)
 
+	LastViewedPost(ctx context.Context, obj *model.Viewer) (*model.Post, error)
 	Bookmarks(ctx context.Context, obj *model.Viewer) ([]*model.PostBookmark, error)
 }
 type ViewersConnectionResolver interface {
@@ -890,6 +895,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Discussion.MeParticipant(childComplexity), true
+
+	case "Discussion.meViewer":
+		if e.complexity.Discussion.MeViewer == nil {
+			break
+		}
+
+		return e.complexity.Discussion.MeViewer(childComplexity), true
 
 	case "Discussion.moderator":
 		if e.complexity.Discussion.Moderator == nil {
@@ -1757,6 +1769,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Mutation.ScheduleImportedContent(childComplexity, args["discussionID"].(string), args["contentID"].(string)), true
+
+	case "Mutation.setLastPostViewed":
+		if e.complexity.Mutation.SetLastPostViewed == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_setLastPostViewed_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.SetLastPostViewed(childComplexity, args["viewerID"].(string), args["postID"].(string)), true
 
 	case "Mutation.shuffleDiscussion":
 		if e.complexity.Mutation.ShuffleDiscussion == nil {
@@ -2752,6 +2776,8 @@ var sources = []*ast.Source{
 
     meCanJoinDiscussion: CanJoinDiscussionResponse!
 
+    meViewer: Viewer
+
     autoPost: Boolean!
     idleMinutes: Int!
     tags: [Tag!]
@@ -3259,6 +3285,10 @@ type Mutation {
 
   shuffleDiscussion(discussionID: ID!, inFutureSeconds: Int): Discussion!
 
+  # Viewer
+  setLastPostViewed(viewerID: ID!, postID: ID!): Viewer!
+
+  # Muting
   muteParticipants(discussionID: ID!, participantIDs: [ID!]!, mutedForSeconds: Int!): [Participant!]!
   unmuteParticipants(discussionID: ID!, participantIDs: [ID!]!): [Participant!]!
 }
@@ -3989,6 +4019,28 @@ func (ec *executionContext) field_Mutation_scheduleImportedContent_args(ctx cont
 		}
 	}
 	args["contentID"] = arg1
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_setLastPostViewed_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 string
+	if tmp, ok := rawArgs["viewerID"]; ok {
+		arg0, err = ec.unmarshalNID2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["viewerID"] = arg0
+	var arg1 string
+	if tmp, ok := rawArgs["postID"]; ok {
+		arg1, err = ec.unmarshalNID2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["postID"] = arg1
 	return args, nil
 }
 
@@ -5408,6 +5460,37 @@ func (ec *executionContext) _Discussion_meCanJoinDiscussion(ctx context.Context,
 	res := resTmp.(*model.CanJoinDiscussionResponse)
 	fc.Result = res
 	return ec.marshalNCanJoinDiscussionResponse2ᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐCanJoinDiscussionResponse(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Discussion_meViewer(ctx context.Context, field graphql.CollectedField, obj *model.Discussion) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "Discussion",
+		Field:    field,
+		Args:     nil,
+		IsMethod: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Discussion().MeViewer(rctx, obj)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*model.Viewer)
+	fc.Result = res
+	return ec.marshalOViewer2ᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐViewer(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Discussion_autoPost(ctx context.Context, field graphql.CollectedField, obj *model.Discussion) (ret graphql.Marshaler) {
@@ -9333,6 +9416,47 @@ func (ec *executionContext) _Mutation_shuffleDiscussion(ctx context.Context, fie
 	return ec.marshalNDiscussion2ᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐDiscussion(ctx, field.Selections, res)
 }
 
+func (ec *executionContext) _Mutation_setLastPostViewed(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "Mutation",
+		Field:    field,
+		Args:     nil,
+		IsMethod: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Mutation_setLastPostViewed_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().SetLastPostViewed(rctx, args["viewerID"].(string), args["postID"].(string))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.Viewer)
+	fc.Result = res
+	return ec.marshalNViewer2ᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐViewer(ctx, field.Selections, res)
+}
+
 func (ec *executionContext) _Mutation_muteParticipants(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -12806,13 +12930,13 @@ func (ec *executionContext) _Viewer_lastViewedPost(ctx context.Context, field gr
 		Object:   "Viewer",
 		Field:    field,
 		Args:     nil,
-		IsMethod: false,
+		IsMethod: true,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.LastViewedPost, nil
+		return ec.resolvers.Viewer().LastViewedPost(rctx, obj)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -14837,6 +14961,17 @@ func (ec *executionContext) _Discussion(ctx context.Context, sel ast.SelectionSe
 				}
 				return res
 			})
+		case "meViewer":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Discussion_meViewer(ctx, field, obj)
+				return res
+			})
 		case "autoPost":
 			out.Values[i] = ec._Discussion_autoPost(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
@@ -15966,6 +16101,11 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			}
 		case "shuffleDiscussion":
 			out.Values[i] = ec._Mutation_shuffleDiscussion(ctx, field)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "setLastPostViewed":
+			out.Values[i] = ec._Mutation_setLastPostViewed(ctx, field)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
@@ -17239,7 +17379,16 @@ func (ec *executionContext) _Viewer(ctx context.Context, sel ast.SelectionSet, o
 		case "lastViewed":
 			out.Values[i] = ec._Viewer_lastViewed(ctx, field, obj)
 		case "lastViewedPost":
-			out.Values[i] = ec._Viewer_lastViewedPost(ctx, field, obj)
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Viewer_lastViewedPost(ctx, field, obj)
+				return res
+			})
 		case "bookmarks":
 			field := field
 			out.Concurrently(i, func() (res graphql.Marshaler) {

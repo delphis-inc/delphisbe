@@ -669,14 +669,38 @@ func (r *mutationResolver) ShuffleDiscussion(ctx context.Context, discussionID s
 	return r.DAOManager.GetDiscussionByID(ctx, discussionID)
 }
 
-func (r *mutationResolver) MuteParticipants(ctx context.Context, discussionID string, participantIDs []string, mutedForSeconds int) ([]*model.Participant, error) {
-	if mutedForSeconds < 0 || mutedForSeconds > 86400 {
-		return nil, fmt.Errorf("mutedForSeconds value is invalid")
-	}
-
+func (r *mutationResolver) SetLastPostViewed(ctx context.Context, viewerID string, postID string) (*model.Viewer, error) {
 	authedUser := auth.GetAuthedUser(ctx)
 	if authedUser == nil {
 		return nil, fmt.Errorf("Need auth")
+	}
+
+	viewer, err := r.DAOManager.GetViewerByID(ctx, viewerID)
+	if err != nil {
+		return nil, err
+	}
+
+	// TODO: Let's create a viewer. However this should be created earlier
+	// so something strange is going on. I'd rather not bandaid it here.
+	if viewer == nil || viewer.UserID == nil {
+		return nil, fmt.Errorf("Failed to find viewer")
+	}
+
+	if *viewer.UserID != authedUser.UserID {
+		return nil, fmt.Errorf("Unauthorized")
+	}
+
+	return r.DAOManager.SetViewerLastPostViewed(ctx, viewerID, postID)
+}
+
+func (r *mutationResolver) MuteParticipants(ctx context.Context, discussionID string, participantIDs []string, mutedForSeconds int) ([]*model.Participant, error) {
+	authedUser := auth.GetAuthedUser(ctx)
+	if authedUser == nil {
+		return nil, fmt.Errorf("Need auth")
+	}
+
+	if mutedForSeconds < 0 || mutedForSeconds > 86400 {
+		return nil, fmt.Errorf("mutedForSeconds value is invalid")
 	}
 
 	/* Only moderators can use this mutation */

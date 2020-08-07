@@ -33,6 +33,8 @@ type Discussion implements Entity {
 
     meCanJoinDiscussion: CanJoinDiscussionResponse!
 
+    meViewer: Viewer
+
     autoPost: Boolean!
     idleMinutes: Int!
     tags: [Tag!]

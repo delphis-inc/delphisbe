@@ -57,6 +57,8 @@ func mockPreparedStatements(mock sqlmock.Sqlmock) {
 	mock.ExpectPrepare(putNextShuffleTimeForDiscussionIDString)
 	mock.ExpectPrepare(getDiscussionsToShuffle)
 	mock.ExpectPrepare(incrDiscussionShuffleCount)
+	mock.ExpectPrepare(getViewerForDiscussionIDUserID)
+	mock.ExpectPrepare(updateViewerLastViewed)
 }
 
 func mockPreparedStatementsWithError(mock sqlmock.Sqlmock) {

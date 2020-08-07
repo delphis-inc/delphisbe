@@ -1349,6 +1349,29 @@ func (_m *Datastore) GetUserProfileByUserID(ctx context.Context, userID string) 
 	return r0, r1
 }
 
+// GetViewerForDiscussion provides a mock function with given fields: ctx, discussionID, userID
+func (_m *Datastore) GetViewerForDiscussion(ctx context.Context, discussionID string, userID string) (*model.Viewer, error) {
+	ret := _m.Called(ctx, discussionID, userID)
+
+	var r0 *model.Viewer
+	if rf, ok := ret.Get(0).(func(context.Context, string, string) *model.Viewer); ok {
+		r0 = rf(ctx, discussionID, userID)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*model.Viewer)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(context.Context, string, string) error); ok {
+		r1 = rf(ctx, discussionID, userID)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // GetViewersByIDs provides a mock function with given fields: ctx, viewerIDs
 func (_m *Datastore) GetViewersByIDs(ctx context.Context, viewerIDs []string) (map[string]*model.Viewer, error) {
 	ret := _m.Called(ctx, viewerIDs)
@@ -1812,6 +1835,29 @@ func (_m *Datastore) SetParticipantsMutedUntil(ctx context.Context, participants
 	var r1 error
 	if rf, ok := ret.Get(1).(func(context.Context, []*model.Participant, *time.Time) error); ok {
 		r1 = rf(ctx, participants, mutedUntil)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// SetViewerLastPostViewed provides a mock function with given fields: ctx, viewerID, postID, viewedTime
+func (_m *Datastore) SetViewerLastPostViewed(ctx context.Context, viewerID string, postID string, viewedTime time.Time) (*model.Viewer, error) {
+	ret := _m.Called(ctx, viewerID, postID, viewedTime)
+
+	var r0 *model.Viewer
+	if rf, ok := ret.Get(0).(func(context.Context, string, string, time.Time) *model.Viewer); ok {
+		r0 = rf(ctx, viewerID, postID, viewedTime)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*model.Viewer)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(context.Context, string, string, time.Time) error); ok {
+		r1 = rf(ctx, viewerID, postID, viewedTime)
 	} else {
 		r1 = ret.Error(1)
 	}

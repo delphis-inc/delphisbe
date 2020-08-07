@@ -380,6 +380,20 @@ func (d *delphisBackend) GetPostByID(ctx context.Context, id string) (*model.Pos
 	return d.db.GetPostByID(ctx, id)
 }
 
+// This filters the post to ensure it belongs to the correct discussionID!
+func (d *delphisBackend) GetPostByDiscussionPostID(ctx context.Context, discussionID, postID string) (*model.Post, error) {
+	post, err := d.db.GetPostByID(ctx, postID)
+	if err != nil {
+		return nil, err
+	}
+
+	if post != nil && (post.DiscussionID == nil || *post.DiscussionID != discussionID) {
+		return nil, nil
+	}
+
+	return post, nil
+}
+
 func (d *delphisBackend) DeletePostByID(ctx context.Context, discussionID string, postID string, requestingUserID string) (*model.Post, error) {
 	disc, err := d.GetDiscussionByID(ctx, discussionID)
 	if err != nil || disc == nil {

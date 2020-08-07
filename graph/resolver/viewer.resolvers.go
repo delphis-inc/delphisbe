@@ -27,6 +27,21 @@ func (r *viewerResolver) Discussion(ctx context.Context, obj *model.Viewer) (*mo
 	return obj.Discussion, nil
 }
 
+func (r *viewerResolver) LastViewedPost(ctx context.Context, obj *model.Viewer) (*model.Post, error) {
+	if obj.LastViewedPostID == nil || obj.DiscussionID == nil {
+		return nil, nil
+	}
+	if obj.LastViewedPost == nil {
+		post, err := r.DAOManager.GetPostByDiscussionPostID(ctx, *obj.DiscussionID, *obj.LastViewedPostID)
+		if err != nil {
+			return nil, err
+		}
+
+		obj.LastViewedPost = post
+	}
+	return obj.LastViewedPost, nil
+}
+
 func (r *viewerResolver) Bookmarks(ctx context.Context, obj *model.Viewer) ([]*model.PostBookmark, error) {
 	panic(fmt.Errorf("not implemented"))
 }

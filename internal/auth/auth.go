@@ -26,7 +26,6 @@ func WithAuthedUser(ctx context.Context, user *DelphisAuthedUser) context.Contex
 
 func GetAuthedUser(ctx context.Context) *DelphisAuthedUser {
 	val := ctx.Value(authedUserContextString)
-	logrus.Debugf("Val: %v\n", val)
 	if valAsAuthedUser, ok := val.(*DelphisAuthedUser); ok {
 		return valAsAuthedUser
 	}

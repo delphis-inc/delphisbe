@@ -70,6 +70,8 @@ type Datastore interface {
 	UpsertUserDevice(ctx context.Context, userDevice model.UserDevice) (*model.UserDevice, error)
 	GetViewersByIDs(ctx context.Context, viewerIDs []string) (map[string]*model.Viewer, error)
 	UpsertViewer(ctx context.Context, viewer model.Viewer) (*model.Viewer, error)
+	GetViewerForDiscussion(ctx context.Context, discussionID, userID string) (*model.Viewer, error)
+	SetViewerLastPostViewed(ctx context.Context, viewerID, postID string, viewedTime time.Time) (*model.Viewer, error)
 	GetPostByID(ctx context.Context, postID string) (*model.Post, error)
 	PutActivity(ctx context.Context, tx *sql2.Tx, post *model.Post) error
 	PutMediaRecord(ctx context.Context, tx *sql2.Tx, media model.Media) error
@@ -461,6 +463,16 @@ func (d *delphisDB) initializeStatements(ctx context.Context) (err error) {
 	if d.prepStmts.incrDiscussionShuffleCount, err = d.pg.PrepareContext(ctx, incrDiscussionShuffleCount); err != nil {
 		logrus.WithError(err).Error("failed to prepare incrDiscussionShuffleCount")
 		return errors.Wrap(err, "failed to prepare incrDiscussionShuffleCount")
+	}
+
+	// Viewers
+	if d.prepStmts.getViewerForDiscussionIDUserID, err = d.pg.PrepareContext(ctx, getViewerForDiscussionIDUserID); err != nil {
+		logrus.WithError(err).Error("failed to prepare getViewerForDiscussionIDUserID")
+		return errors.Wrap(err, "failed to prepare getViewerForDiscussionIDUserID")
+	}
+	if d.prepStmts.updateViewerLastViewed, err = d.pg.PrepareContext(ctx, updateViewerLastViewed); err != nil {
+		logrus.WithError(err).Error("failed to prepare updateViewerLastViewed")
+		return errors.Wrap(err, "failed to prepare updateViewerLastViewed")
 	}
 
 	d.ready = true

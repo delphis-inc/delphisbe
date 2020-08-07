@@ -181,6 +181,16 @@ func (r *discussionResolver) MeCanJoinDiscussion(ctx context.Context, obj *model
 	return r.DAOManager.GetDiscussionJoinabilityForUser(ctx, authedUser.User, obj, meParticipant)
 }
 
+func (r *discussionResolver) MeViewer(ctx context.Context, obj *model.Discussion) (*model.Viewer, error) {
+	authedUser := auth.GetAuthedUser(ctx)
+	if authedUser == nil {
+		return nil, fmt.Errorf("need auth")
+	}
+
+	// TODO: Do we need to check if the user has access?
+	return r.DAOManager.GetViewerForDiscussion(ctx, obj.ID, authedUser.UserID, true)
+}
+
 func (r *discussionResolver) Tags(ctx context.Context, obj *model.Discussion) ([]*model.Tag, error) {
 	return r.DAOManager.GetDiscussionTags(ctx, obj.ID)
 }
