@@ -830,6 +830,10 @@ func (r *queryResolver) Discussion(ctx context.Context, id string) (*model.Discu
 	return r.resolveDiscussionByID(ctx, id)
 }
 
+func (r *queryResolver) DiscussionByLinkSlug(ctx context.Context, slug string) (*model.Discussion, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
 func (r *queryResolver) ListDiscussions(ctx context.Context, state model.DiscussionUserAccessState) ([]*model.Discussion, error) {
 	authedUser := auth.GetAuthedUser(ctx)
 	if authedUser == nil {

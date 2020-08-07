@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"math"
+	"strings"
 	"time"
 
 	"github.com/delphis-inc/delphisbe/graph/generated"
@@ -302,6 +303,10 @@ func (r *discussionResolver) SecondsUntilShuffle(ctx context.Context, obj *model
 
 func (r *discussionAccessLinkResolver) Discussion(ctx context.Context, obj *model.DiscussionAccessLink) (*model.Discussion, error) {
 	return r.DAOManager.GetDiscussionByID(ctx, obj.DiscussionID)
+}
+
+func (r *discussionAccessLinkResolver) URL(ctx context.Context, obj *model.DiscussionAccessLink) (string, error) {
+	return strings.Join([]string{model.InviteLinkHostname, obj.LinkSlug}, "/"), nil
 }
 
 func (r *discussionAccessLinkResolver) IsDeleted(ctx context.Context, obj *model.DiscussionAccessLink) (bool, error) {

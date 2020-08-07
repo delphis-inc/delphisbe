@@ -135,6 +135,7 @@ type ComplexityRoot struct {
 		Discussion func(childComplexity int) int
 		IsDeleted  func(childComplexity int) int
 		LinkSlug   func(childComplexity int) int
+		URL        func(childComplexity int) int
 		UpdatedAt  func(childComplexity int) int
 	}
 
@@ -365,6 +366,7 @@ type ComplexityRoot struct {
 
 	Query struct {
 		Discussion               func(childComplexity int, id string) int
+		DiscussionByLinkSlug     func(childComplexity int, slug string) int
 		FlairTemplates           func(childComplexity int, query *string) int
 		ListDiscussions          func(childComplexity int, state model.DiscussionUserAccessState) int
 		Me                       func(childComplexity int) int
@@ -489,6 +491,8 @@ type DiscussionResolver interface {
 type DiscussionAccessLinkResolver interface {
 	Discussion(ctx context.Context, obj *model.DiscussionAccessLink) (*model.Discussion, error)
 
+	URL(ctx context.Context, obj *model.DiscussionAccessLink) (string, error)
+
 	IsDeleted(ctx context.Context, obj *model.DiscussionAccessLink) (bool, error)
 }
 type DiscussionAccessRequestResolver interface {
@@ -605,6 +609,7 @@ type PostBookmarksConnectionResolver interface {
 }
 type QueryResolver interface {
 	Discussion(ctx context.Context, id string) (*model.Discussion, error)
+	DiscussionByLinkSlug(ctx context.Context, slug string) (*model.Discussion, error)
 	ListDiscussions(ctx context.Context, state model.DiscussionUserAccessState) ([]*model.Discussion, error)
 	FlairTemplates(ctx context.Context, query *string) ([]*model.FlairTemplate, error)
 	User(ctx context.Context, id string) (*model.User, error)
@@ -1019,6 +1024,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.DiscussionAccessLink.LinkSlug(childComplexity), true
+
+	case "DiscussionAccessLink.url":
+		if e.complexity.DiscussionAccessLink.URL == nil {
+			break
+		}
+
+		return e.complexity.DiscussionAccessLink.URL(childComplexity), true
 
 	case "DiscussionAccessLink.updatedAt":
 		if e.complexity.DiscussionAccessLink.UpdatedAt == nil {
@@ -2249,6 +2261,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Query.Discussion(childComplexity, args["id"].(string)), true
 
+	case "Query.discussionByLinkSlug":
+		if e.complexity.Query.DiscussionByLinkSlug == nil {
+			break
+		}
+
+		args, err := ec.field_Query_discussionByLinkSlug_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.DiscussionByLinkSlug(childComplexity, args["slug"].(string)), true
+
 	case "Query.flairTemplates":
 		if e.complexity.Query.FlairTemplates == nil {
 			break
@@ -2774,7 +2798,7 @@ var sources = []*ast.Source{
     accessRequests: [DiscussionAccessRequest!]
     discussionLinksAccess: DiscussionLinkAccess! @deprecated(reason: "user DiscussionAccessLink")
 
-    discussionAccessLink: DiscussionAccessLink!
+    discussionAccessLink: DiscussionAccessLink
 
     discussionJoinability: DiscussionJoinabilitySetting!
 
@@ -2843,6 +2867,7 @@ type DiscussionLinkAccess {
 type DiscussionAccessLink {
     discussion: Discussion!
     linkSlug: String!
+    url: String!
     createdAt: Time!
     updatedAt: Time!
     isDeleted: Boolean!
@@ -3153,6 +3178,7 @@ type PostBookmark {
 # The Query type represents all of the entry points into the API.
 type Query {
   discussion(id: ID!): Discussion
+  discussionByLinkSlug(slug: String!): Discussion
   listDiscussions(state: DiscussionUserAccessState! = ACTIVE): [Discussion!]
   flairTemplates(query: String): [FlairTemplate!]
   # Need to add verification that the caller is the user.
@@ -4218,6 +4244,20 @@ func (ec *executionContext) field_Query___type_args(ctx context.Context, rawArgs
 		}
 	}
 	args["name"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_discussionByLinkSlug_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 string
+	if tmp, ok := rawArgs["slug"]; ok {
+		arg0, err = ec.unmarshalNString2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["slug"] = arg0
 	return args, nil
 }
 
@@ -5767,14 +5807,11 @@ func (ec *executionContext) _Discussion_discussionAccessLink(ctx context.Context
 		return graphql.Null
 	}
 	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
 		return graphql.Null
 	}
 	res := resTmp.(*model.DiscussionAccessLink)
 	fc.Result = res
-	return ec.marshalNDiscussionAccessLink2ᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐDiscussionAccessLink(ctx, field.Selections, res)
+	return ec.marshalODiscussionAccessLink2ᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐDiscussionAccessLink(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Discussion_discussionJoinability(ctx context.Context, field graphql.CollectedField, obj *model.Discussion) (ret graphql.Marshaler) {
@@ -5962,6 +5999,40 @@ func (ec *executionContext) _DiscussionAccessLink_linkSlug(ctx context.Context, 
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
 		return obj.LinkSlug, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _DiscussionAccessLink_url(ctx context.Context, field graphql.CollectedField, obj *model.DiscussionAccessLink) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "DiscussionAccessLink",
+		Field:    field,
+		Args:     nil,
+		IsMethod: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.DiscussionAccessLink().URL(rctx, obj)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -11316,6 +11387,44 @@ func (ec *executionContext) _Query_discussion(ctx context.Context, field graphql
 	return ec.marshalODiscussion2ᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐDiscussion(ctx, field.Selections, res)
 }
 
+func (ec *executionContext) _Query_discussionByLinkSlug(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "Query",
+		Field:    field,
+		Args:     nil,
+		IsMethod: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Query_discussionByLinkSlug_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().DiscussionByLinkSlug(rctx, args["slug"].(string))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*model.Discussion)
+	fc.Result = res
+	return ec.marshalODiscussion2ᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐDiscussion(ctx, field.Selections, res)
+}
+
 func (ec *executionContext) _Query_listDiscussions(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -15020,9 +15129,6 @@ func (ec *executionContext) _Discussion(ctx context.Context, sel ast.SelectionSe
 					}
 				}()
 				res = ec._Discussion_discussionAccessLink(ctx, field, obj)
-				if res == graphql.Null {
-					atomic.AddUint32(&invalids, 1)
-				}
 				return res
 			})
 		case "discussionJoinability":
@@ -15101,6 +15207,20 @@ func (ec *executionContext) _DiscussionAccessLink(ctx context.Context, sel ast.S
 			if out.Values[i] == graphql.Null {
 				atomic.AddUint32(&invalids, 1)
 			}
+		case "url":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._DiscussionAccessLink_url(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
 		case "createdAt":
 			out.Values[i] = ec._DiscussionAccessLink_createdAt(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
@@ -16745,6 +16865,17 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 				res = ec._Query_discussion(ctx, field)
 				return res
 			})
+		case "discussionByLinkSlug":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_discussionByLinkSlug(ctx, field)
+				return res
+			})
 		case "listDiscussions":
 			field := field
 			out.Concurrently(i, func() (res graphql.Marshaler) {
@@ -17743,20 +17874,6 @@ func (ec *executionContext) marshalNDiscussion2ᚖgithubᚗcomᚋdelphisᚑinc�
 	return ec._Discussion(ctx, sel, v)
 }
 
-func (ec *executionContext) marshalNDiscussionAccessLink2githubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐDiscussionAccessLink(ctx context.Context, sel ast.SelectionSet, v model.DiscussionAccessLink) graphql.Marshaler {
-	return ec._DiscussionAccessLink(ctx, sel, &v)
-}
-
-func (ec *executionContext) marshalNDiscussionAccessLink2ᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐDiscussionAccessLink(ctx context.Context, sel ast.SelectionSet, v *model.DiscussionAccessLink) graphql.Marshaler {
-	if v == nil {
-		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	return ec._DiscussionAccessLink(ctx, sel, v)
-}
-
 func (ec *executionContext) marshalNDiscussionAccessRequest2githubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐDiscussionAccessRequest(ctx context.Context, sel ast.SelectionSet, v model.DiscussionAccessRequest) graphql.Marshaler {
 	return ec._DiscussionAccessRequest(ctx, sel, &v)
 }
@@ -18748,6 +18865,17 @@ func (ec *executionContext) marshalODiscussion2ᚖgithubᚗcomᚋdelphisᚑinc�
 		return graphql.Null
 	}
 	return ec._Discussion(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalODiscussionAccessLink2githubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐDiscussionAccessLink(ctx context.Context, sel ast.SelectionSet, v model.DiscussionAccessLink) graphql.Marshaler {
+	return ec._DiscussionAccessLink(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalODiscussionAccessLink2ᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐDiscussionAccessLink(ctx context.Context, sel ast.SelectionSet, v *model.DiscussionAccessLink) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._DiscussionAccessLink(ctx, sel, v)
 }
 
 func (ec *executionContext) marshalODiscussionAccessRequest2githubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐDiscussionAccessRequest(ctx context.Context, sel ast.SelectionSet, v model.DiscussionAccessRequest) graphql.Marshaler {
