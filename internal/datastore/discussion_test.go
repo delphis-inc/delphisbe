@@ -517,17 +517,17 @@ func TestDelphisDB_ListDiscussionsByUserID(t *testing.T) {
 			rs := sqlmock.NewRows([]string{"id", "created_at", "updated_at", "deleted_at", "title",
 				"anonymity_type", "moderator_id", "auto_post", "icon_url", "idle_minutes", "description",
 				"title_history", "description_history", "discussion_joinability", "last_post_id", "last_post_created_at",
-				"shuffle_count"}).
+				"shuffle_count", "lock_status"}).
 				AddRow(discObj.ID, discObj.CreatedAt, discObj.UpdatedAt, discObj.DeletedAt,
 					discObj.Title, discObj.AnonymityType, discObj.ModeratorID, discObj.AutoPost,
 					discObj.IconURL, discObj.IdleMinutes, discObj.Description, discObj.TitleHistory,
 					discObj.DescriptionHistory, discObj.DiscussionJoinability, discObj.LastPostID, discObj.LastPostCreatedAt,
-					discObj.ShuffleCount).
+					discObj.ShuffleCount, discObj.LockStatus).
 				AddRow(discObj.ID, discObj.CreatedAt, discObj.UpdatedAt, discObj.DeletedAt,
 					discObj.Title, discObj.AnonymityType, discObj.ModeratorID, discObj.AutoPost,
 					discObj.IconURL, discObj.IdleMinutes, discObj.Description, discObj.TitleHistory,
 					discObj.DescriptionHistory, discObj.DiscussionJoinability, discObj.LastPostID, discObj.LastPostCreatedAt,
-					discObj.ShuffleCount)
+					discObj.ShuffleCount, discObj.LockStatus)
 
 			mock.ExpectQuery(getDiscussionsByUserAccessString).WithArgs(userID, state).WillReturnRows(rs)
 
@@ -593,14 +593,14 @@ func TestDelphisDB_UpsertDiscussion(t *testing.T) {
 		defer db.Close()
 
 		expectedFindQueryStr := `SELECT * FROM "discussions" WHERE "discussions"."deleted_at" IS NULL AND (("discussions"."id" = $1)) ORDER BY "discussions"."id" ASC LIMIT 1`
-		createQueryStr := `INSERT INTO "discussions" ("id","created_at","updated_at","deleted_at","title","description","title_history","description_history","anonymity_type","moderator_id","auto_post","idle_minutes","icon_url","discussion_joinability","last_post_id","last_post_created_at","shuffle_count") VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17) RETURNING "discussions"."id"`
+		createQueryStr := `INSERT INTO "discussions" ("id","created_at","updated_at","deleted_at","title","description","title_history","description_history","anonymity_type","moderator_id","auto_post","idle_minutes","icon_url","discussion_joinability","last_post_id","last_post_created_at","shuffle_count","lock_status") VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18) RETURNING "discussions"."id"`
 
 		expectedNewObjectRow := sqlmock.NewRows([]string{"id", "created_at", "updated_at", "deleted_at", "title", "description", "title_history", "description_history", "anonymity_type", "moderator_id", "icon_url",
 			"auto_post", "idle_minutes", "discussion_joinability"}).
 			AddRow(discObj.ID, discObj.CreatedAt, discObj.UpdatedAt, discObj.DeletedAt, discObj.Title, discObj.Description, discObj.TitleHistory, discObj.DescriptionHistory, discObj.AnonymityType,
 				discObj.ModeratorID, discObj.IconURL, discObj.AutoPost, discObj.IdleMinutes, discObj.DiscussionJoinability)
 
-		expectedUpdateStr := `UPDATE "discussions" SET "anonymity_type" = $1, "auto_post" = $2, "description" = $3, "description_history" = $4, "discussion_joinability" = $5, "icon_url" = $6, "idle_minutes" = $7, "last_post_created_at" = $8, "last_post_id" = $9, "title" = $10, "title_history" = $11, "updated_at" = $12 WHERE "discussions"."deleted_at" IS NULL AND "discussions"."id" = $13`
+		expectedUpdateStr := `UPDATE "discussions" SET "anonymity_type" = $1, "auto_post" = $2, "description" = $3, "description_history" = $4, "discussion_joinability" = $5, "icon_url" = $6, "idle_minutes" = $7, "last_post_created_at" = $8, "last_post_id" = $9, "lock_status" = $10, "title" = $11, "title_history" = $12, "updated_at" = $13 WHERE "discussions"."deleted_at" IS NULL AND "discussions"."id" = $14`
 		expectedPostUpdateSelectStr := `SELECT * FROM "discussions" WHERE "discussions"."deleted_at" IS NULL AND "discussions"."id" = $1 ORDER BY "discussions"."id" ASC LIMIT 1`
 		expectedPostUpdateModSelectStr := `SELECT * FROM "moderators"  WHERE "moderators"."deleted_at" IS NULL AND (("id" IN ($1))) ORDER BY "moderators"."id" ASC`
 
@@ -627,7 +627,7 @@ func TestDelphisDB_UpsertDiscussion(t *testing.T) {
 					discObj.Description, discObj.TitleHistory, discObj.DescriptionHistory, discObj.AnonymityType,
 					discObj.ModeratorID, discObj.AutoPost, discObj.IdleMinutes, discObj.IconURL,
 					discObj.DiscussionJoinability, discObj.LastPostID, discObj.LastPostCreatedAt,
-					discObj.ShuffleCount,
+					discObj.ShuffleCount, discObj.LockStatus,
 				).WillReturnError(expectedError)
 
 				resp, err := mockDatastore.UpsertDiscussion(ctx, discObj)
@@ -645,7 +645,7 @@ func TestDelphisDB_UpsertDiscussion(t *testing.T) {
 					discObj.TitleHistory, discObj.DescriptionHistory, discObj.AnonymityType,
 					discObj.ModeratorID, discObj.AutoPost, discObj.IdleMinutes, discObj.IconURL,
 					discObj.DiscussionJoinability, discObj.LastPostID, discObj.LastPostCreatedAt,
-					discObj.ShuffleCount,
+					discObj.ShuffleCount, discObj.LockStatus,
 				).WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(discObj.ID))
 				mock.ExpectCommit()
 				mock.ExpectQuery(expectedFindQueryStr).WithArgs(discObj.ID).WillReturnRows(expectedNewObjectRow)
@@ -667,7 +667,7 @@ func TestDelphisDB_UpsertDiscussion(t *testing.T) {
 				mock.ExpectExec(expectedUpdateStr).WithArgs(
 					discObj.AnonymityType, discObj.AutoPost, discObj.Description, discObj.DescriptionHistory,
 					discObj.DiscussionJoinability, discObj.IconURL, discObj.IdleMinutes,
-					discObj.LastPostCreatedAt, discObj.LastPostID,
+					discObj.LastPostCreatedAt, discObj.LastPostID, discObj.LockStatus,
 					discObj.Title, discObj.TitleHistory, sqlmock.AnyArg(), discObj.ID,
 				).WillReturnError(expectedError)
 
@@ -685,7 +685,7 @@ func TestDelphisDB_UpsertDiscussion(t *testing.T) {
 				mock.ExpectExec(expectedUpdateStr).WithArgs(
 					discObj.AnonymityType, discObj.AutoPost, discObj.Description, discObj.DescriptionHistory,
 					discObj.DiscussionJoinability, discObj.IconURL, discObj.IdleMinutes,
-					discObj.LastPostCreatedAt, discObj.LastPostID,
+					discObj.LastPostCreatedAt, discObj.LastPostID, discObj.LockStatus,
 					discObj.Title, discObj.TitleHistory, sqlmock.AnyArg(), discObj.ID,
 				).WillReturnResult(sqlmock.NewResult(0, 1))
 				mock.ExpectCommit()
@@ -712,7 +712,7 @@ func TestDelphisDB_UpsertDiscussion(t *testing.T) {
 				mock.ExpectExec(expectedUpdateStr).WithArgs(
 					discObj.AnonymityType, discObj.AutoPost, discObj.Description, discObj.DescriptionHistory,
 					discObj.DiscussionJoinability, discObj.IconURL, discObj.IdleMinutes,
-					discObj.LastPostCreatedAt, discObj.LastPostID,
+					discObj.LastPostCreatedAt, discObj.LastPostID, discObj.LockStatus,
 					discObj.Title, discObj.TitleHistory, sqlmock.AnyArg(), discObj.ID,
 				).WillReturnResult(sqlmock.NewResult(0, 1))
 				mock.ExpectCommit()
@@ -1155,17 +1155,17 @@ func TestDelphisDB_DiscussionIterCollect(t *testing.T) {
 			rs := sqlmock.NewRows([]string{"id", "created_at", "updated_at", "deleted_at", "title",
 				"anonymity_type", "moderator_id", "auto_post", "icon_url", "idle_minutes", "description",
 				"title_history", "description_history", "discussion_joinability", "last_post_id", "last_post_created_at",
-				"shuffle_count"}).
+				"shuffle_count", "lock_status"}).
 				AddRow(discObj.ID, discObj.CreatedAt, discObj.UpdatedAt, discObj.DeletedAt,
 					discObj.Title, discObj.AnonymityType, discObj.ModeratorID, discObj.AutoPost,
 					discObj.IconURL, discObj.IdleMinutes, discObj.Description, discObj.TitleHistory,
 					discObj.DescriptionHistory, discObj.DiscussionJoinability, discObj.LastPostID, discObj.LastPostCreatedAt,
-					discObj.ShuffleCount).
+					discObj.ShuffleCount, discObj.LockStatus).
 				AddRow(discObj.ID, discObj.CreatedAt, discObj.UpdatedAt, discObj.DeletedAt,
 					discObj.Title, discObj.AnonymityType, discObj.ModeratorID, discObj.AutoPost,
 					discObj.IconURL, discObj.IdleMinutes, discObj.Description, discObj.TitleHistory,
 					discObj.DescriptionHistory, discObj.DiscussionJoinability, discObj.LastPostID, discObj.LastPostCreatedAt,
-					discObj.ShuffleCount)
+					discObj.ShuffleCount, discObj.LockStatus)
 
 			// Convert mocked rows to sql.Rows
 			mock.ExpectQuery("SELECT").WillReturnRows(rs)
@@ -1411,17 +1411,17 @@ func TestDiscussionIter_Next(t *testing.T) {
 			rs := sqlmock.NewRows([]string{"id", "created_at", "updated_at", "deleted_at", "title",
 				"anonymity_type", "moderator_id", "auto_post", "icon_url", "idle_minutes", "description",
 				"title_history", "description_history", "discussion_joinability", "last_post_id", "last_post_created_at",
-				"shuffle_count"}).
+				"shuffle_count", "lock_status"}).
 				AddRow(discObj.ID, discObj.CreatedAt, discObj.UpdatedAt, discObj.DeletedAt,
 					discObj.Title, discObj.AnonymityType, discObj.ModeratorID, discObj.AutoPost,
 					discObj.IconURL, discObj.IdleMinutes, discObj.Description, discObj.TitleHistory,
 					discObj.DescriptionHistory, discObj.DiscussionJoinability, discObj.LastPostID, discObj.LastPostCreatedAt,
-					discObj.ShuffleCount).
+					discObj.ShuffleCount, discObj.LockStatus).
 				AddRow(discObj.ID, discObj.CreatedAt, discObj.UpdatedAt, discObj.DeletedAt,
 					discObj.Title, discObj.AnonymityType, discObj.ModeratorID, discObj.AutoPost,
 					discObj.IconURL, discObj.IdleMinutes, discObj.Description, discObj.TitleHistory,
 					discObj.DescriptionHistory, discObj.DiscussionJoinability, discObj.LastPostID, discObj.LastPostCreatedAt,
-					discObj.ShuffleCount)
+					discObj.ShuffleCount, discObj.LockStatus)
 
 			// Convert mocked rows to sql.Rows
 			mock.ExpectQuery("SELECT").WillReturnRows(rs)

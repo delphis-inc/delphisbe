@@ -44,7 +44,7 @@ func (r *mutationResolver) AddPost(ctx context.Context, discussionID string, par
 
 	// Note: This is here mainly to ensure the discussion is not (soft) deleted
 	discussion, err := r.DAOManager.GetDiscussionByID(ctx, discussionID)
-	if discussion == nil || err != nil {
+	if discussion == nil || err != nil || discussion.LockStatus == true {
 		return nil, fmt.Errorf("Discussion with ID %s not found", discussionID)
 	}
 

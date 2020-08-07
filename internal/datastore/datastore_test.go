@@ -102,6 +102,10 @@ func TestDelphisDB_InitializeStatements(t *testing.T) {
 				Test: getModeratorByUserIDAndDiscussionIDString,
 			},
 			{
+				Name: "getModeratedDiscussionsByUserIDString",
+				Test: getModeratedDiscussionsByUserIDString,
+			},
+			{
 				Name: "getImportedContentByIDString",
 				Test: getImportedContentByIDString,
 			},

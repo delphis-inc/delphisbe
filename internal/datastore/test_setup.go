@@ -22,6 +22,7 @@ func mockPreparedStatements(mock sqlmock.Sqlmock) {
 	mock.ExpectPrepare(getDiscussionsForAutoPostString)
 	mock.ExpectPrepare(getModeratorByUserIDString)
 	mock.ExpectPrepare(getModeratorByUserIDAndDiscussionIDString)
+	mock.ExpectPrepare(getModeratedDiscussionsByUserIDString)
 	mock.ExpectPrepare(getImportedContentByIDString)
 	mock.ExpectPrepare(getImportedContentForDiscussionString)
 	mock.ExpectPrepare(getScheduledImportedContentByDiscussionIDString)
