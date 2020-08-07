@@ -413,6 +413,7 @@ func TestDelphisBackend_GetDiscussionJoinabilityForUser(t *testing.T) {
 				So(err, ShouldNotBeNil)
 			})
 		})
+		mockDB.On("GetDiscussionUserAccess", ctx, discussionObj.ID, userObj.ID).Return(nil, nil)
 		Convey("when getting social infos returns an error", func() {
 			mockDB.On("GetSocialInfosByUserProfileID", ctx, userObj.UserProfile.ID).Return(nil, fmt.Errorf("sth"))
 
