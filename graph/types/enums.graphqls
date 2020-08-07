@@ -70,3 +70,9 @@ enum DiscussionUserAccessState {
     ARCHIVED,
     DELETED
 }
+
+enum DiscussionUserNotificationSetting {
+    NONE,
+    MENTIONS,
+    EVERYTHING
+}

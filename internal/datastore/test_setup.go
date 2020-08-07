@@ -36,6 +36,8 @@ func mockPreparedStatements(mock sqlmock.Sqlmock) {
 	mock.ExpectPrepare(deleteDiscussionTagsString)
 	mock.ExpectPrepare(getDiscussionsByUserAccessString)
 	mock.ExpectPrepare(getDiscussionUserAccessString)
+	mock.ExpectPrepare(getDUAForEverythingNotificationsString)
+	mock.ExpectPrepare(getDUAForMentionNotificationsString)
 	mock.ExpectPrepare(upsertDiscussionUserAccessString)
 	mock.ExpectPrepare(deleteDiscussionUserAccessString)
 	mock.ExpectPrepare(getDiscussionInviteByIDString)

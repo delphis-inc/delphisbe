@@ -94,7 +94,7 @@ func (d *delphisBackend) postNextContent(ctx context.Context, discussionID strin
 	// Call post function
 	content := contents[0]
 	now := time.Now()
-	if _, err := d.PostImportedContent(ctx, resp.NonAnon.ID, discussionID, content.ID, &now, content.Tags, dripType); err != nil {
+	if _, err := d.PostImportedContent(ctx, model.ConciergeUser, resp.NonAnon.ID, discussionID, content.ID, &now, content.Tags, dripType); err != nil {
 		logrus.WithError(err).Error("failed to post imported content from autodrip")
 		return err
 	}

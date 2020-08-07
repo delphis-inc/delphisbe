@@ -9,10 +9,6 @@ import (
 	"time"
 )
 
-type DiscussionNotificationPreferences interface {
-	IsDiscussionNotificationPreferences()
-}
-
 type DiscussionSubscriptionEntity interface {
 	IsDiscussionSubscriptionEntity()
 }
@@ -64,6 +60,11 @@ type DiscussionSubscriptionEvent struct {
 	Entity    DiscussionSubscriptionEntity    `json:"entity"`
 }
 
+type DiscussionUserSettings struct {
+	State        *DiscussionUserAccessState         `json:"state"`
+	NotifSetting *DiscussionUserNotificationSetting `json:"notifSetting"`
+}
+
 type Media struct {
 	ID                string             `json:"id"`
 	CreatedAt         string             `json:"createdAt"`
@@ -79,12 +80,6 @@ type MediaSize struct {
 	Width  int     `json:"width"`
 	SizeKb float64 `json:"sizeKb"`
 }
-
-type ParticipantNotificationPreferences struct {
-	ID string `json:"id"`
-}
-
-func (ParticipantNotificationPreferences) IsDiscussionNotificationPreferences() {}
 
 type ParticipantProfile struct {
 	IsAnonymous   *bool          `json:"isAnonymous"`
@@ -144,12 +139,6 @@ type UpdateParticipantInput struct {
 	IsAnonymous     *bool          `json:"isAnonymous"`
 	HasJoined       *bool          `json:"hasJoined"`
 }
-
-type ViewerNotificationPreferences struct {
-	ID string `json:"id"`
-}
-
-func (ViewerNotificationPreferences) IsDiscussionNotificationPreferences() {}
 
 type AnonymityType string
 
@@ -365,6 +354,49 @@ func (e *DiscussionUserAccessState) UnmarshalGQL(v interface{}) error {
 }
 
 func (e DiscussionUserAccessState) MarshalGQL(w io.Writer) {
+	fmt.Fprint(w, strconv.Quote(e.String()))
+}
+
+type DiscussionUserNotificationSetting string
+
+const (
+	DiscussionUserNotificationSettingNone       DiscussionUserNotificationSetting = "NONE"
+	DiscussionUserNotificationSettingMentions   DiscussionUserNotificationSetting = "MENTIONS"
+	DiscussionUserNotificationSettingEverything DiscussionUserNotificationSetting = "EVERYTHING"
+)
+
+var AllDiscussionUserNotificationSetting = []DiscussionUserNotificationSetting{
+	DiscussionUserNotificationSettingNone,
+	DiscussionUserNotificationSettingMentions,
+	DiscussionUserNotificationSettingEverything,
+}
+
+func (e DiscussionUserNotificationSetting) IsValid() bool {
+	switch e {
+	case DiscussionUserNotificationSettingNone, DiscussionUserNotificationSettingMentions, DiscussionUserNotificationSettingEverything:
+		return true
+	}
+	return false
+}
+
+func (e DiscussionUserNotificationSetting) String() string {
+	return string(e)
+}
+
+func (e *DiscussionUserNotificationSetting) UnmarshalGQL(v interface{}) error {
+	str, ok := v.(string)
+	if !ok {
+		return fmt.Errorf("enums must be strings")
+	}
+
+	*e = DiscussionUserNotificationSetting(str)
+	if !e.IsValid() {
+		return fmt.Errorf("%s is not a valid DiscussionUserNotificationSetting", str)
+	}
+	return nil
+}
+
+func (e DiscussionUserNotificationSetting) MarshalGQL(w io.Writer) {
 	fmt.Fprint(w, strconv.Quote(e.String()))
 }
 

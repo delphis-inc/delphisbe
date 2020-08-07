@@ -22,7 +22,7 @@ const (
 	PutPostMaxRetry  = 3
 )
 
-func (d *delphisBackend) CreatePost(ctx context.Context, discussionID string, participantID string, input model.PostContentInput) (*model.Post, error) {
+func (d *delphisBackend) CreatePost(ctx context.Context, discussionID string, userID string, participantID string, input model.PostContentInput) (*model.Post, error) {
 	// Validate post params
 	if err := validatePostParams(ctx, input); err != nil {
 		logrus.WithError(err).Error("failed to validate post params")
@@ -113,7 +113,7 @@ func (d *delphisBackend) CreatePost(ctx context.Context, discussionID string, pa
 		if err != nil {
 			logrus.WithError(err).Debugf("Skipping notification to subscribers because of an error")
 		} else {
-			_, err := d.SendNotificationsToSubscribers(ctx, discussion, &post, input.Preview)
+			_, err := d.SendNotificationsToSubscribers(ctx, userID, discussion, &post, input.Preview)
 			if err != nil {
 				logrus.WithError(err).Warn("Failed to send push notifications on createPost")
 			}
@@ -153,11 +153,11 @@ func (d *delphisBackend) CreateAlertPost(ctx context.Context, discussionID strin
 		PostType: model.PostTypeAlert,
 	}
 
-	return d.CreatePost(ctx, discussionID, resp.NonAnon.ID, input)
+	return d.CreatePost(ctx, discussionID, model.ConciergeUser, resp.NonAnon.ID, input)
 }
 
 // PostImportedContent puts a record in the queue and posts the content
-func (d *delphisBackend) PostImportedContent(ctx context.Context, participantID, discussionID, contentID string, postedAt *time.Time, matchingTags []string, dripType model.DripPostType) (*model.Post, error) {
+func (d *delphisBackend) PostImportedContent(ctx context.Context, userID, participantID, discussionID, contentID string, postedAt *time.Time, matchingTags []string, dripType model.DripPostType) (*model.Post, error) {
 	// Fetch content from importedContents Table
 	// Do we want to block mods from posting the same article?
 	content, err := d.db.GetImportedContentByID(ctx, contentID)
@@ -174,7 +174,7 @@ func (d *delphisBackend) PostImportedContent(ctx context.Context, participantID,
 	}
 
 	// Call create post
-	postObj, err := d.CreatePost(ctx, discussionID, participantID, input)
+	postObj, err := d.CreatePost(ctx, discussionID, userID, participantID, input)
 	if err != nil {
 		logrus.WithError(err).Error("failed to put imported contents post")
 		return nil, err

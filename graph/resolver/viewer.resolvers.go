@@ -11,10 +11,6 @@ import (
 	"github.com/delphis-inc/delphisbe/graph/model"
 )
 
-func (r *viewerResolver) NotificationPreferences(ctx context.Context, obj *model.Viewer) (model.DiscussionNotificationPreferences, error) {
-	panic(fmt.Errorf("not implemented"))
-}
-
 func (r *viewerResolver) Discussion(ctx context.Context, obj *model.Viewer) (*model.Discussion, error) {
 	if obj.Discussion == nil && obj.DiscussionID != nil {
 		res, err := r.DAOManager.GetDiscussionByID(ctx, *obj.DiscussionID)

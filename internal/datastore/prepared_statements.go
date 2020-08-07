@@ -47,10 +47,12 @@ type dbPrepStmts struct {
 	deleteDiscussionTagsStmt   *sql2.Stmt
 
 	// Discussion Access
-	getDiscussionsByUserAccessStmt *sql2.Stmt
-	getDiscussionUserAccessStmt    *sql2.Stmt
-	upsertDiscussionUserAccessStmt *sql2.Stmt
-	deleteDiscussionUserAccessStmt *sql2.Stmt
+	getDiscussionsByUserAccessStmt       *sql2.Stmt
+	getDiscussionUserAccessStmt          *sql2.Stmt
+	getDUAForEverythingNotificationsStmt *sql2.Stmt
+	getDUAForMentionNotificationsStmt    *sql2.Stmt
+	upsertDiscussionUserAccessStmt       *sql2.Stmt
+	deleteDiscussionUserAccessStmt       *sql2.Stmt
 
 	// InvitesRequests
 	getDiscussionInviteByIDStmt                            *sql2.Stmt
@@ -499,6 +501,7 @@ const getDiscussionUserAccessString = `
 			user_id,
 			state,
 			request_id,
+			notif_setting,
 			created_at,
 			updated_at,
 			deleted_at
@@ -506,13 +509,45 @@ const getDiscussionUserAccessString = `
 		WHERE discussion_id = $1
 			AND user_id = $2;`
 
+const getDUAForEverythingNotificationsString = `
+		SELECT 	discussion_id,
+			user_id,
+			state,
+			request_id,
+			notif_setting,
+			created_at,
+			updated_at,
+			deleted_at
+		FROM discussion_user_access
+		WHERE discussion_id = $1
+			AND user_id != $2
+			AND state = 'ACTIVE'
+			AND notif_setting = 'EVERYTHING';`
+
+const getDUAForMentionNotificationsString = `
+		SELECT 	discussion_id,
+			user_id,
+			state,
+			request_id,
+			notif_setting,
+			created_at,
+			updated_at,
+			deleted_at
+		FROM discussion_user_access
+		WHERE discussion_id = $1
+			AND user_id != $2
+			AND user_id = ANY($3)
+			AND state = 'ACTIVE'
+			AND notif_setting = 'MENTIONS';` // We could also check if notif_setting != NONE if we wanted to treat these notifs differently
+
 const upsertDiscussionUserAccessString = `
 		INSERT INTO discussion_user_access (
 			discussion_id,
 			user_id,
 			state,
-			request_id
-		) VALUES ($1, $2, $3, $4)
+			request_id,
+			notif_setting
+		) VALUES ($1, $2, $3, $4, $5)
 		ON CONFLICT (discussion_id, user_id)
 		DO UPDATE SET state = $3,
 			request_id = $4
@@ -521,6 +556,7 @@ const upsertDiscussionUserAccessString = `
 			user_id,
 			state,
 			request_id,
+			notif_setting,
 			created_at,
 			updated_at,
 			deleted_at;`

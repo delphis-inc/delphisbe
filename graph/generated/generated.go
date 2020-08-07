@@ -113,6 +113,7 @@ type ComplexityRoot struct {
 		IdleMinutes             func(childComplexity int) int
 		MeAvailableParticipants func(childComplexity int) int
 		MeCanJoinDiscussion     func(childComplexity int) int
+		MeNotificationSettings  func(childComplexity int) int
 		MeParticipant           func(childComplexity int) int
 		MeViewer                func(childComplexity int) int
 		Moderator               func(childComplexity int) int
@@ -271,7 +272,7 @@ type ComplexityRoot struct {
 		UnassignFlair                        func(childComplexity int, participantID string) int
 		UnmuteParticipants                   func(childComplexity int, discussionID string, participantIDs []string) int
 		UpdateDiscussion                     func(childComplexity int, discussionID string, input model.DiscussionInput) int
-		UpdateDiscussionUserState            func(childComplexity int, discussionID string, state model.DiscussionUserAccessState) int
+		UpdateDiscussionUserSettings         func(childComplexity int, discussionID string, settings model.DiscussionUserSettings) int
 		UpdateParticipant                    func(childComplexity int, discussionID string, participantID string, updateInput model.UpdateParticipantInput) int
 		UpsertUserDevice                     func(childComplexity int, userID *string, platform model.Platform, deviceID string, token *string) int
 	}
@@ -283,25 +284,20 @@ type ComplexityRoot struct {
 	}
 
 	Participant struct {
-		AnonDisplayName                   func(childComplexity int) int
-		Discussion                        func(childComplexity int) int
-		DiscussionNotificationPreferences func(childComplexity int) int
-		Flair                             func(childComplexity int) int
-		GradientColor                     func(childComplexity int) int
-		HasJoined                         func(childComplexity int) int
-		ID                                func(childComplexity int) int
-		Inviter                           func(childComplexity int) int
-		IsAnonymous                       func(childComplexity int) int
-		IsBanned                          func(childComplexity int) int
-		MutedForSeconds                   func(childComplexity int) int
-		ParticipantID                     func(childComplexity int) int
-		Posts                             func(childComplexity int) int
-		UserProfile                       func(childComplexity int) int
-		Viewer                            func(childComplexity int) int
-	}
-
-	ParticipantNotificationPreferences struct {
-		ID func(childComplexity int) int
+		AnonDisplayName func(childComplexity int) int
+		Discussion      func(childComplexity int) int
+		Flair           func(childComplexity int) int
+		GradientColor   func(childComplexity int) int
+		HasJoined       func(childComplexity int) int
+		ID              func(childComplexity int) int
+		Inviter         func(childComplexity int) int
+		IsAnonymous     func(childComplexity int) int
+		IsBanned        func(childComplexity int) int
+		MutedForSeconds func(childComplexity int) int
+		ParticipantID   func(childComplexity int) int
+		Posts           func(childComplexity int) int
+		UserProfile     func(childComplexity int) int
+		Viewer          func(childComplexity int) int
 	}
 
 	ParticipantProfile struct {
@@ -435,16 +431,11 @@ type ComplexityRoot struct {
 	}
 
 	Viewer struct {
-		Bookmarks               func(childComplexity int) int
-		Discussion              func(childComplexity int) int
-		ID                      func(childComplexity int) int
-		LastViewed              func(childComplexity int) int
-		LastViewedPost          func(childComplexity int) int
-		NotificationPreferences func(childComplexity int) int
-	}
-
-	ViewerNotificationPreferences struct {
-		ID func(childComplexity int) int
+		Bookmarks      func(childComplexity int) int
+		Discussion     func(childComplexity int) int
+		ID             func(childComplexity int) int
+		LastViewed     func(childComplexity int) int
+		LastViewedPost func(childComplexity int) int
 	}
 
 	ViewersConnection struct {
@@ -481,6 +472,7 @@ type DiscussionResolver interface {
 	MeAvailableParticipants(ctx context.Context, obj *model.Discussion) ([]*model.Participant, error)
 	MeCanJoinDiscussion(ctx context.Context, obj *model.Discussion) (*model.CanJoinDiscussionResponse, error)
 	MeViewer(ctx context.Context, obj *model.Discussion) (*model.Viewer, error)
+	MeNotificationSettings(ctx context.Context, obj *model.Discussion) (*model.DiscussionUserNotificationSetting, error)
 
 	Tags(ctx context.Context, obj *model.Discussion) ([]*model.Tag, error)
 	UpcomingContent(ctx context.Context, obj *model.Discussion) ([]*model.ImportedContent, error)
@@ -553,7 +545,7 @@ type MutationResolver interface {
 	UpdateParticipant(ctx context.Context, discussionID string, participantID string, updateInput model.UpdateParticipantInput) (*model.Participant, error)
 	UpsertUserDevice(ctx context.Context, userID *string, platform model.Platform, deviceID string, token *string) (*model.UserDevice, error)
 	UpdateDiscussion(ctx context.Context, discussionID string, input model.DiscussionInput) (*model.Discussion, error)
-	UpdateDiscussionUserState(ctx context.Context, discussionID string, state model.DiscussionUserAccessState) (*model.DiscussionUserAccess, error)
+	UpdateDiscussionUserSettings(ctx context.Context, discussionID string, settings model.DiscussionUserSettings) (*model.DiscussionUserAccess, error)
 	AddDiscussionTags(ctx context.Context, discussionID string, tags []string) ([]*model.Tag, error)
 	DeleteDiscussionTags(ctx context.Context, discussionID string, tags []string) ([]*model.Tag, error)
 	ConciergeMutation(ctx context.Context, discussionID string, mutationID string, selectedOptions []string) (*model.Post, error)
@@ -575,7 +567,6 @@ type MutationResolver interface {
 type ParticipantResolver interface {
 	Discussion(ctx context.Context, obj *model.Participant) (*model.Discussion, error)
 	Viewer(ctx context.Context, obj *model.Participant) (*model.Viewer, error)
-	DiscussionNotificationPreferences(ctx context.Context, obj *model.Participant) (model.DiscussionNotificationPreferences, error)
 	Posts(ctx context.Context, obj *model.Participant) ([]*model.Post, error)
 
 	GradientColor(ctx context.Context, obj *model.Participant) (*model.GradientColor, error)
@@ -647,7 +638,6 @@ type UserProfileResolver interface {
 	AuthenticatedWithTwitter(ctx context.Context, obj *model.UserProfile) (bool, error)
 }
 type ViewerResolver interface {
-	NotificationPreferences(ctx context.Context, obj *model.Viewer) (model.DiscussionNotificationPreferences, error)
 	Discussion(ctx context.Context, obj *model.Viewer) (*model.Discussion, error)
 
 	LastViewedPost(ctx context.Context, obj *model.Viewer) (*model.Post, error)
@@ -888,6 +878,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Discussion.MeCanJoinDiscussion(childComplexity), true
+
+	case "Discussion.meNotificationSettings":
+		if e.complexity.Discussion.MeNotificationSettings == nil {
+			break
+		}
+
+		return e.complexity.Discussion.MeNotificationSettings(childComplexity), true
 
 	case "Discussion.meParticipant":
 		if e.complexity.Discussion.MeParticipant == nil {
@@ -1830,17 +1827,17 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Mutation.UpdateDiscussion(childComplexity, args["discussionID"].(string), args["input"].(model.DiscussionInput)), true
 
-	case "Mutation.updateDiscussionUserState":
-		if e.complexity.Mutation.UpdateDiscussionUserState == nil {
+	case "Mutation.updateDiscussionUserSettings":
+		if e.complexity.Mutation.UpdateDiscussionUserSettings == nil {
 			break
 		}
 
-		args, err := ec.field_Mutation_updateDiscussionUserState_args(context.TODO(), rawArgs)
+		args, err := ec.field_Mutation_updateDiscussionUserSettings_args(context.TODO(), rawArgs)
 		if err != nil {
 			return 0, false
 		}
 
-		return e.complexity.Mutation.UpdateDiscussionUserState(childComplexity, args["discussionID"].(string), args["state"].(model.DiscussionUserAccessState)), true
+		return e.complexity.Mutation.UpdateDiscussionUserSettings(childComplexity, args["discussionID"].(string), args["settings"].(model.DiscussionUserSettings)), true
 
 	case "Mutation.updateParticipant":
 		if e.complexity.Mutation.UpdateParticipant == nil {
@@ -1900,13 +1897,6 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Participant.Discussion(childComplexity), true
-
-	case "Participant.discussionNotificationPreferences":
-		if e.complexity.Participant.DiscussionNotificationPreferences == nil {
-			break
-		}
-
-		return e.complexity.Participant.DiscussionNotificationPreferences(childComplexity), true
 
 	case "Participant.flair":
 		if e.complexity.Participant.Flair == nil {
@@ -1991,13 +1981,6 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Participant.Viewer(childComplexity), true
-
-	case "ParticipantNotificationPreferences.id":
-		if e.complexity.ParticipantNotificationPreferences.ID == nil {
-			break
-		}
-
-		return e.complexity.ParticipantNotificationPreferences.ID(childComplexity), true
 
 	case "ParticipantProfile.flair":
 		if e.complexity.ParticipantProfile.Flair == nil {
@@ -2611,20 +2594,6 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Viewer.LastViewedPost(childComplexity), true
 
-	case "Viewer.notificationPreferences":
-		if e.complexity.Viewer.NotificationPreferences == nil {
-			break
-		}
-
-		return e.complexity.Viewer.NotificationPreferences(childComplexity), true
-
-	case "ViewerNotificationPreferences.id":
-		if e.complexity.ViewerNotificationPreferences.ID == nil {
-			break
-		}
-
-		return e.complexity.ViewerNotificationPreferences.ID(childComplexity), true
-
 	case "ViewersConnection.edges":
 		if e.complexity.ViewersConnection.Edges == nil {
 			break
@@ -2777,6 +2746,8 @@ var sources = []*ast.Source{
     meCanJoinDiscussion: CanJoinDiscussionResponse!
 
     meViewer: Viewer
+    # Notification setting for logged in user
+    meNotificationSettings: DiscussionUserNotificationSetting
 
     autoPost: Boolean!
     idleMinutes: Int!
@@ -2879,7 +2850,6 @@ type DiscussionUserAccess{
 #     node: Discussion
 # }
 `, BuiltIn: false},
-	&ast.Source{Name: "graph/types/discussion_notification_preferences.graphqls", Input: `union DiscussionNotificationPreferences = ViewerNotificationPreferences | ParticipantNotificationPreferences`, BuiltIn: false},
 	&ast.Source{Name: "graph/types/discussion_shuffle_time.graphqls", Input: ``, BuiltIn: false},
 	&ast.Source{Name: "graph/types/discussion_subscription.graphqls", Input: `interface DiscussionSubscriptionEntity {
     id: ID!
@@ -2973,6 +2943,12 @@ enum DiscussionUserAccessState {
     ACTIVE,
     ARCHIVED,
     DELETED
+}
+
+enum DiscussionUserNotificationSetting {
+    NONE,
+    MENTIONS,
+    EVERYTHING
 }`, BuiltIn: false},
 	&ast.Source{Name: "graph/types/flair.graphqls", Input: `type Flair {
     # The UUID for this flair
@@ -3054,8 +3030,6 @@ type MediaSize {
     discussion: Discussion
     # As a participant is also a viewer, this exposes the viewer settings
     viewer: Viewer!
-    # Preferences for notifications for this discussion
-    discussionNotificationPreferences: DiscussionNotificationPreferences!
     # Gets a list of all posts created by this participant in the given discussion.
     posts: [Post!]
     # Whether to include a link to their user profile
@@ -3081,9 +3055,6 @@ type MediaSize {
     mutedForSeconds: Int
 }
 `, BuiltIn: false},
-	&ast.Source{Name: "graph/types/participant_notification_preferences.graphqls", Input: `type ParticipantNotificationPreferences {
-    id: ID!
-}`, BuiltIn: false},
 	&ast.Source{Name: "graph/types/participant_profile.graphqls", Input: `type ParticipantProfile {
     isAnonymous: Boolean
     flair: Flair
@@ -3225,6 +3196,11 @@ input DiscussionCreationSettings {
   discussionJoinability: DiscussionJoinabilitySetting!
 }
 
+input DiscussionUserSettings {
+  state: DiscussionUserAccessState
+  notifSetting: DiscussionUserNotificationSetting
+}
+
 type Mutation {
   addDiscussionParticipant(discussionID: String!, userID: String!, discussionParticipantInput: AddDiscussionParticipantInput!): Participant!
   addPost(discussionID: ID!, participantID: ID!, postContent: PostContentInput!): Post!
@@ -3257,7 +3233,7 @@ type Mutation {
   upsertUserDevice(userID: ID, platform: Platform!, deviceID: String!, token: String): UserDevice!
 
   updateDiscussion(discussionID: ID!, input: DiscussionInput!): Discussion!
-  updateDiscussionUserState(discussionID: ID!, state: DiscussionUserAccessState!): DiscussionUserAccess!
+  updateDiscussionUserSettings(discussionID: ID!, settings: DiscussionUserSettings!): DiscussionUserAccess!
 
   addDiscussionTags(discussionID: ID!, tags:[String!]): [Tag!]
   deleteDiscussionTags(discussionID: ID!, tags:[String!]): [Tag!]
@@ -3378,8 +3354,6 @@ type User {
 	&ast.Source{Name: "graph/types/viewer.graphqls", Input: `type Viewer {
     # Fetchable as it does not reference a user.
     id: ID!
-    # Exposes notification preferences for this user.
-    notificationPreferences: DiscussionNotificationPreferences!
     # May be nil if the discussion is no longer available.
     discussion: Discussion
     # The last time the viewer viewed this discussion.
@@ -3388,9 +3362,6 @@ type User {
     lastViewedPost: Post
     # Bookmarked posts from this discussion.
     bookmarks: [PostBookmark!]
-}`, BuiltIn: false},
-	&ast.Source{Name: "graph/types/viewer_discussion_notification_preferences.graphqls", Input: `type ViewerNotificationPreferences {
-    id: ID!    
 }`, BuiltIn: false},
 	&ast.Source{Name: "graph/types/viewers_connection.graphqls", Input: `type ViewersConnection {
     totalCount: Int!
@@ -4102,7 +4073,7 @@ func (ec *executionContext) field_Mutation_unmuteParticipants_args(ctx context.C
 	return args, nil
 }
 
-func (ec *executionContext) field_Mutation_updateDiscussionUserState_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+func (ec *executionContext) field_Mutation_updateDiscussionUserSettings_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
 	var arg0 string
@@ -4113,14 +4084,14 @@ func (ec *executionContext) field_Mutation_updateDiscussionUserState_args(ctx co
 		}
 	}
 	args["discussionID"] = arg0
-	var arg1 model.DiscussionUserAccessState
-	if tmp, ok := rawArgs["state"]; ok {
-		arg1, err = ec.unmarshalNDiscussionUserAccessState2githubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐDiscussionUserAccessState(ctx, tmp)
+	var arg1 model.DiscussionUserSettings
+	if tmp, ok := rawArgs["settings"]; ok {
+		arg1, err = ec.unmarshalNDiscussionUserSettings2githubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐDiscussionUserSettings(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
 	}
-	args["state"] = arg1
+	args["settings"] = arg1
 	return args, nil
 }
 
@@ -5491,6 +5462,37 @@ func (ec *executionContext) _Discussion_meViewer(ctx context.Context, field grap
 	res := resTmp.(*model.Viewer)
 	fc.Result = res
 	return ec.marshalOViewer2ᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐViewer(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Discussion_meNotificationSettings(ctx context.Context, field graphql.CollectedField, obj *model.Discussion) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "Discussion",
+		Field:    field,
+		Args:     nil,
+		IsMethod: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Discussion().MeNotificationSettings(rctx, obj)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*model.DiscussionUserNotificationSetting)
+	fc.Result = res
+	return ec.marshalODiscussionUserNotificationSetting2ᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐDiscussionUserNotificationSetting(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Discussion_autoPost(ctx context.Context, field graphql.CollectedField, obj *model.Discussion) (ret graphql.Marshaler) {
@@ -8807,7 +8809,7 @@ func (ec *executionContext) _Mutation_updateDiscussion(ctx context.Context, fiel
 	return ec.marshalNDiscussion2ᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐDiscussion(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Mutation_updateDiscussionUserState(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+func (ec *executionContext) _Mutation_updateDiscussionUserSettings(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -8823,7 +8825,7 @@ func (ec *executionContext) _Mutation_updateDiscussionUserState(ctx context.Cont
 
 	ctx = graphql.WithFieldContext(ctx, fc)
 	rawArgs := field.ArgumentMap(ec.Variables)
-	args, err := ec.field_Mutation_updateDiscussionUserState_args(ctx, rawArgs)
+	args, err := ec.field_Mutation_updateDiscussionUserSettings_args(ctx, rawArgs)
 	if err != nil {
 		ec.Error(ctx, err)
 		return graphql.Null
@@ -8831,7 +8833,7 @@ func (ec *executionContext) _Mutation_updateDiscussionUserState(ctx context.Cont
 	fc.Args = args
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().UpdateDiscussionUserState(rctx, args["discussionID"].(string), args["state"].(model.DiscussionUserAccessState))
+		return ec.resolvers.Mutation().UpdateDiscussionUserSettings(rctx, args["discussionID"].(string), args["settings"].(model.DiscussionUserSettings))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -9765,40 +9767,6 @@ func (ec *executionContext) _Participant_viewer(ctx context.Context, field graph
 	return ec.marshalNViewer2ᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐViewer(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Participant_discussionNotificationPreferences(ctx context.Context, field graphql.CollectedField, obj *model.Participant) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:   "Participant",
-		Field:    field,
-		Args:     nil,
-		IsMethod: true,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Participant().DiscussionNotificationPreferences(rctx, obj)
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(model.DiscussionNotificationPreferences)
-	fc.Result = res
-	return ec.marshalNDiscussionNotificationPreferences2githubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐDiscussionNotificationPreferences(ctx, field.Selections, res)
-}
-
 func (ec *executionContext) _Participant_posts(ctx context.Context, field graphql.CollectedField, obj *model.Participant) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -10119,40 +10087,6 @@ func (ec *executionContext) _Participant_mutedForSeconds(ctx context.Context, fi
 	res := resTmp.(*int)
 	fc.Result = res
 	return ec.marshalOInt2ᚖint(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) _ParticipantNotificationPreferences_id(ctx context.Context, field graphql.CollectedField, obj *model.ParticipantNotificationPreferences) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:   "ParticipantNotificationPreferences",
-		Field:    field,
-		Args:     nil,
-		IsMethod: false,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.ID, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(string)
-	fc.Result = res
-	return ec.marshalNID2string(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _ParticipantProfile_isAnonymous(ctx context.Context, field graphql.CollectedField, obj *model.ParticipantProfile) (ret graphql.Marshaler) {
@@ -12823,40 +12757,6 @@ func (ec *executionContext) _Viewer_id(ctx context.Context, field graphql.Collec
 	return ec.marshalNID2string(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Viewer_notificationPreferences(ctx context.Context, field graphql.CollectedField, obj *model.Viewer) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:   "Viewer",
-		Field:    field,
-		Args:     nil,
-		IsMethod: true,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Viewer().NotificationPreferences(rctx, obj)
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(model.DiscussionNotificationPreferences)
-	fc.Result = res
-	return ec.marshalNDiscussionNotificationPreferences2githubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐDiscussionNotificationPreferences(ctx, field.Selections, res)
-}
-
 func (ec *executionContext) _Viewer_discussion(ctx context.Context, field graphql.CollectedField, obj *model.Viewer) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -12979,40 +12879,6 @@ func (ec *executionContext) _Viewer_bookmarks(ctx context.Context, field graphql
 	res := resTmp.([]*model.PostBookmark)
 	fc.Result = res
 	return ec.marshalOPostBookmark2ᚕᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐPostBookmarkᚄ(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) _ViewerNotificationPreferences_id(ctx context.Context, field graphql.CollectedField, obj *model.ViewerNotificationPreferences) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:   "ViewerNotificationPreferences",
-		Field:    field,
-		Args:     nil,
-		IsMethod: false,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.ID, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(string)
-	fc.Result = res
-	return ec.marshalNID2string(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _ViewersConnection_totalCount(ctx context.Context, field graphql.CollectedField, obj *model.ViewersConnection) (ret graphql.Marshaler) {
@@ -14348,6 +14214,30 @@ func (ec *executionContext) unmarshalInputDiscussionInput(ctx context.Context, o
 	return it, nil
 }
 
+func (ec *executionContext) unmarshalInputDiscussionUserSettings(ctx context.Context, obj interface{}) (model.DiscussionUserSettings, error) {
+	var it model.DiscussionUserSettings
+	var asMap = obj.(map[string]interface{})
+
+	for k, v := range asMap {
+		switch k {
+		case "state":
+			var err error
+			it.State, err = ec.unmarshalODiscussionUserAccessState2ᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐDiscussionUserAccessState(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "notifSetting":
+			var err error
+			it.NotifSetting, err = ec.unmarshalODiscussionUserNotificationSetting2ᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐDiscussionUserNotificationSetting(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		}
+	}
+
+	return it, nil
+}
+
 func (ec *executionContext) unmarshalInputPollInput(ctx context.Context, obj interface{}) (model.PollInput, error) {
 	var it model.PollInput
 	var asMap = obj.(map[string]interface{})
@@ -14525,29 +14415,6 @@ func (ec *executionContext) unmarshalInputUpdateParticipantInput(ctx context.Con
 // endregion **************************** input.gotpl *****************************
 
 // region    ************************** interface.gotpl ***************************
-
-func (ec *executionContext) _DiscussionNotificationPreferences(ctx context.Context, sel ast.SelectionSet, obj model.DiscussionNotificationPreferences) graphql.Marshaler {
-	switch obj := (obj).(type) {
-	case nil:
-		return graphql.Null
-	case model.ViewerNotificationPreferences:
-		return ec._ViewerNotificationPreferences(ctx, sel, &obj)
-	case *model.ViewerNotificationPreferences:
-		if obj == nil {
-			return graphql.Null
-		}
-		return ec._ViewerNotificationPreferences(ctx, sel, obj)
-	case model.ParticipantNotificationPreferences:
-		return ec._ParticipantNotificationPreferences(ctx, sel, &obj)
-	case *model.ParticipantNotificationPreferences:
-		if obj == nil {
-			return graphql.Null
-		}
-		return ec._ParticipantNotificationPreferences(ctx, sel, obj)
-	default:
-		panic(fmt.Errorf("unexpected type %T", obj))
-	}
-}
 
 func (ec *executionContext) _DiscussionSubscriptionEntity(ctx context.Context, sel ast.SelectionSet, obj model.DiscussionSubscriptionEntity) graphql.Marshaler {
 	switch obj := (obj).(type) {
@@ -14970,6 +14837,17 @@ func (ec *executionContext) _Discussion(ctx context.Context, sel ast.SelectionSe
 					}
 				}()
 				res = ec._Discussion_meViewer(ctx, field, obj)
+				return res
+			})
+		case "meNotificationSettings":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Discussion_meNotificationSettings(ctx, field, obj)
 				return res
 			})
 		case "autoPost":
@@ -16035,8 +15913,8 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
-		case "updateDiscussionUserState":
-			out.Values[i] = ec._Mutation_updateDiscussionUserState(ctx, field)
+		case "updateDiscussionUserSettings":
+			out.Values[i] = ec._Mutation_updateDiscussionUserSettings(ctx, field)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
@@ -16204,20 +16082,6 @@ func (ec *executionContext) _Participant(ctx context.Context, sel ast.SelectionS
 				}
 				return res
 			})
-		case "discussionNotificationPreferences":
-			field := field
-			out.Concurrently(i, func() (res graphql.Marshaler) {
-				defer func() {
-					if r := recover(); r != nil {
-						ec.Error(ctx, ec.Recover(ctx, r))
-					}
-				}()
-				res = ec._Participant_discussionNotificationPreferences(ctx, field, obj)
-				if res == graphql.Null {
-					atomic.AddUint32(&invalids, 1)
-				}
-				return res
-			})
 		case "posts":
 			field := field
 			out.Concurrently(i, func() (res graphql.Marshaler) {
@@ -16313,33 +16177,6 @@ func (ec *executionContext) _Participant(ctx context.Context, sel ast.SelectionS
 				res = ec._Participant_mutedForSeconds(ctx, field, obj)
 				return res
 			})
-		default:
-			panic("unknown field " + strconv.Quote(field.Name))
-		}
-	}
-	out.Dispatch()
-	if invalids > 0 {
-		return graphql.Null
-	}
-	return out
-}
-
-var participantNotificationPreferencesImplementors = []string{"ParticipantNotificationPreferences", "DiscussionNotificationPreferences"}
-
-func (ec *executionContext) _ParticipantNotificationPreferences(ctx context.Context, sel ast.SelectionSet, obj *model.ParticipantNotificationPreferences) graphql.Marshaler {
-	fields := graphql.CollectFields(ec.OperationContext, sel, participantNotificationPreferencesImplementors)
-
-	out := graphql.NewFieldSet(fields)
-	var invalids uint32
-	for i, field := range fields {
-		switch field.Name {
-		case "__typename":
-			out.Values[i] = graphql.MarshalString("ParticipantNotificationPreferences")
-		case "id":
-			out.Values[i] = ec._ParticipantNotificationPreferences_id(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -17351,20 +17188,6 @@ func (ec *executionContext) _Viewer(ctx context.Context, sel ast.SelectionSet, o
 			if out.Values[i] == graphql.Null {
 				atomic.AddUint32(&invalids, 1)
 			}
-		case "notificationPreferences":
-			field := field
-			out.Concurrently(i, func() (res graphql.Marshaler) {
-				defer func() {
-					if r := recover(); r != nil {
-						ec.Error(ctx, ec.Recover(ctx, r))
-					}
-				}()
-				res = ec._Viewer_notificationPreferences(ctx, field, obj)
-				if res == graphql.Null {
-					atomic.AddUint32(&invalids, 1)
-				}
-				return res
-			})
 		case "discussion":
 			field := field
 			out.Concurrently(i, func() (res graphql.Marshaler) {
@@ -17400,33 +17223,6 @@ func (ec *executionContext) _Viewer(ctx context.Context, sel ast.SelectionSet, o
 				res = ec._Viewer_bookmarks(ctx, field, obj)
 				return res
 			})
-		default:
-			panic("unknown field " + strconv.Quote(field.Name))
-		}
-	}
-	out.Dispatch()
-	if invalids > 0 {
-		return graphql.Null
-	}
-	return out
-}
-
-var viewerNotificationPreferencesImplementors = []string{"ViewerNotificationPreferences", "DiscussionNotificationPreferences"}
-
-func (ec *executionContext) _ViewerNotificationPreferences(ctx context.Context, sel ast.SelectionSet, obj *model.ViewerNotificationPreferences) graphql.Marshaler {
-	fields := graphql.CollectFields(ec.OperationContext, sel, viewerNotificationPreferencesImplementors)
-
-	out := graphql.NewFieldSet(fields)
-	var invalids uint32
-	for i, field := range fields {
-		switch field.Name {
-		case "__typename":
-			out.Values[i] = graphql.MarshalString("ViewerNotificationPreferences")
-		case "id":
-			out.Values[i] = ec._ViewerNotificationPreferences_id(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -17957,16 +17753,6 @@ func (ec *executionContext) marshalNDiscussionLinkAccess2ᚖgithubᚗcomᚋdelph
 	return ec._DiscussionLinkAccess(ctx, sel, v)
 }
 
-func (ec *executionContext) marshalNDiscussionNotificationPreferences2githubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐDiscussionNotificationPreferences(ctx context.Context, sel ast.SelectionSet, v model.DiscussionNotificationPreferences) graphql.Marshaler {
-	if v == nil {
-		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	return ec._DiscussionNotificationPreferences(ctx, sel, v)
-}
-
 func (ec *executionContext) marshalNDiscussionSubscriptionEntity2githubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐDiscussionSubscriptionEntity(ctx context.Context, sel ast.SelectionSet, v model.DiscussionSubscriptionEntity) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
@@ -18007,6 +17793,10 @@ func (ec *executionContext) unmarshalNDiscussionUserAccessState2githubᚗcomᚋd
 
 func (ec *executionContext) marshalNDiscussionUserAccessState2githubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐDiscussionUserAccessState(ctx context.Context, sel ast.SelectionSet, v model.DiscussionUserAccessState) graphql.Marshaler {
 	return v
+}
+
+func (ec *executionContext) unmarshalNDiscussionUserSettings2githubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐDiscussionUserSettings(ctx context.Context, v interface{}) (model.DiscussionUserSettings, error) {
+	return ec.unmarshalInputDiscussionUserSettings(ctx, v)
 }
 
 func (ec *executionContext) marshalNEntity2githubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐEntity(ctx context.Context, sel ast.SelectionSet, v model.Entity) graphql.Marshaler {
@@ -18975,6 +18765,54 @@ func (ec *executionContext) marshalODiscussionSubscriptionEvent2ᚖgithubᚗcom�
 		return graphql.Null
 	}
 	return ec._DiscussionSubscriptionEvent(ctx, sel, v)
+}
+
+func (ec *executionContext) unmarshalODiscussionUserAccessState2githubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐDiscussionUserAccessState(ctx context.Context, v interface{}) (model.DiscussionUserAccessState, error) {
+	var res model.DiscussionUserAccessState
+	return res, res.UnmarshalGQL(v)
+}
+
+func (ec *executionContext) marshalODiscussionUserAccessState2githubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐDiscussionUserAccessState(ctx context.Context, sel ast.SelectionSet, v model.DiscussionUserAccessState) graphql.Marshaler {
+	return v
+}
+
+func (ec *executionContext) unmarshalODiscussionUserAccessState2ᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐDiscussionUserAccessState(ctx context.Context, v interface{}) (*model.DiscussionUserAccessState, error) {
+	if v == nil {
+		return nil, nil
+	}
+	res, err := ec.unmarshalODiscussionUserAccessState2githubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐDiscussionUserAccessState(ctx, v)
+	return &res, err
+}
+
+func (ec *executionContext) marshalODiscussionUserAccessState2ᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐDiscussionUserAccessState(ctx context.Context, sel ast.SelectionSet, v *model.DiscussionUserAccessState) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return v
+}
+
+func (ec *executionContext) unmarshalODiscussionUserNotificationSetting2githubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐDiscussionUserNotificationSetting(ctx context.Context, v interface{}) (model.DiscussionUserNotificationSetting, error) {
+	var res model.DiscussionUserNotificationSetting
+	return res, res.UnmarshalGQL(v)
+}
+
+func (ec *executionContext) marshalODiscussionUserNotificationSetting2githubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐDiscussionUserNotificationSetting(ctx context.Context, sel ast.SelectionSet, v model.DiscussionUserNotificationSetting) graphql.Marshaler {
+	return v
+}
+
+func (ec *executionContext) unmarshalODiscussionUserNotificationSetting2ᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐDiscussionUserNotificationSetting(ctx context.Context, v interface{}) (*model.DiscussionUserNotificationSetting, error) {
+	if v == nil {
+		return nil, nil
+	}
+	res, err := ec.unmarshalODiscussionUserNotificationSetting2githubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐDiscussionUserNotificationSetting(ctx, v)
+	return &res, err
+}
+
+func (ec *executionContext) marshalODiscussionUserNotificationSetting2ᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐDiscussionUserNotificationSetting(ctx context.Context, sel ast.SelectionSet, v *model.DiscussionUserNotificationSetting) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return v
 }
 
 func (ec *executionContext) marshalOEntity2ᚕgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐEntityᚄ(ctx context.Context, sel ast.SelectionSet, v []model.Entity) graphql.Marshaler {

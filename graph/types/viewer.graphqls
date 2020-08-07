@@ -1,8 +1,6 @@
 type Viewer {
     # Fetchable as it does not reference a user.
     id: ID!
-    # Exposes notification preferences for this user.
-    notificationPreferences: DiscussionNotificationPreferences!
     # May be nil if the discussion is no longer available.
     discussion: Discussion
     # The last time the viewer viewed this discussion.

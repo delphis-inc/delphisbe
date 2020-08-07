@@ -105,7 +105,7 @@ func (r *userResolver) Discussions(ctx context.Context, obj *model.User, state m
 		return nil, fmt.Errorf("unauthorized")
 	}
 
-	return r.DAOManager.GetDiscussionAccessByUserID(ctx, authedUser.UserID, state)
+	return r.DAOManager.GetDiscussionAccessesByUserID(ctx, authedUser.UserID, state)
 }
 
 func (r *userResolver) DiscussionInvites(ctx context.Context, obj *model.User, status model.InviteRequestStatus) ([]*model.DiscussionInvite, error) {

@@ -328,6 +328,7 @@ func TestDiscussionUserAccess() model.DiscussionUserAccess {
 		DiscussionID: DiscussionID,
 		UserID:       UserID,
 		State:        model.DiscussionUserAccessStateActive,
+		NotifSetting: model.DiscussionUserNotificationSettingEverything,
 	}
 }
 

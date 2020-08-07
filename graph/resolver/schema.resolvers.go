@@ -65,7 +65,7 @@ func (r *mutationResolver) AddPost(ctx context.Context, discussionID string, par
 		return nil, fmt.Errorf("Unauthorized")
 	}
 
-	createdPost, err := r.DAOManager.CreatePost(ctx, discussionID, participant.ID, postContent)
+	createdPost, err := r.DAOManager.CreatePost(ctx, discussionID, authedUser.UserID, participant.ID, postContent)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to create post")
 	}
@@ -104,7 +104,7 @@ func (r *mutationResolver) PostImportedContent(ctx context.Context, discussionID
 	}
 
 	now := time.Now()
-	return r.DAOManager.PostImportedContent(ctx, participantID, discussionID, contentID, &now, nil, model.ManualDrip)
+	return r.DAOManager.PostImportedContent(ctx, authedUser.UserID, participantID, discussionID, contentID, &now, nil, model.ManualDrip)
 }
 
 func (r *mutationResolver) ScheduleImportedContent(ctx context.Context, discussionID string, contentID string) (*model.ContentQueueRecord, error) {
@@ -381,13 +381,13 @@ func (r *mutationResolver) UpdateDiscussion(ctx context.Context, discussionID st
 	return r.DAOManager.UpdateDiscussion(ctx, discussionID, input)
 }
 
-func (r *mutationResolver) UpdateDiscussionUserState(ctx context.Context, discussionID string, state model.DiscussionUserAccessState) (*model.DiscussionUserAccess, error) {
+func (r *mutationResolver) UpdateDiscussionUserSettings(ctx context.Context, discussionID string, settings model.DiscussionUserSettings) (*model.DiscussionUserAccess, error) {
 	authedUser := auth.GetAuthedUser(ctx)
 	if authedUser == nil {
 		return nil, fmt.Errorf("Need auth")
 	}
 
-	return r.DAOManager.UpsertUserDiscussionAccess(ctx, authedUser.UserID, discussionID, state)
+	return r.DAOManager.UpsertUserDiscussionAccess(ctx, authedUser.UserID, discussionID, settings)
 }
 
 func (r *mutationResolver) AddDiscussionTags(ctx context.Context, discussionID string, tags []string) ([]*model.Tag, error) {

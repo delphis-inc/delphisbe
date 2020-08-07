@@ -34,6 +34,8 @@ type Discussion implements Entity {
     meCanJoinDiscussion: CanJoinDiscussionResponse!
 
     meViewer: Viewer
+    # Notification setting for logged in user
+    meNotificationSettings: DiscussionUserNotificationSetting
 
     autoPost: Boolean!
     idleMinutes: Int!
