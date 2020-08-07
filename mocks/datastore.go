@@ -501,6 +501,29 @@ func (_m *Datastore) GetDiscussionByID(ctx context.Context, id string) (*model.D
 	return r0, r1
 }
 
+// GetDiscussionByLinkSlug provides a mock function with given fields: ctx, slug
+func (_m *Datastore) GetDiscussionByLinkSlug(ctx context.Context, slug string) (*model.Discussion, error) {
+	ret := _m.Called(ctx, slug)
+
+	var r0 *model.Discussion
+	if rf, ok := ret.Get(0).(func(context.Context, string) *model.Discussion); ok {
+		r0 = rf(ctx, slug)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*model.Discussion)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(context.Context, string) error); ok {
+		r1 = rf(ctx, slug)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // GetDiscussionByModeratorID provides a mock function with given fields: ctx, moderatorID
 func (_m *Datastore) GetDiscussionByModeratorID(ctx context.Context, moderatorID string) (*model.Discussion, error) {
 	ret := _m.Called(ctx, moderatorID)

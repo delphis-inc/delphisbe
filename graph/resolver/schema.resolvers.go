@@ -831,7 +831,12 @@ func (r *queryResolver) Discussion(ctx context.Context, id string) (*model.Discu
 }
 
 func (r *queryResolver) DiscussionByLinkSlug(ctx context.Context, slug string) (*model.Discussion, error) {
-	panic(fmt.Errorf("not implemented"))
+	authedUser := auth.GetAuthedUser(ctx)
+	if authedUser == nil {
+		return nil, fmt.Errorf("Need auth")
+	}
+
+	return r.DAOManager.GetDiscussionByLinkSlug(ctx, slug)
 }
 
 func (r *queryResolver) ListDiscussions(ctx context.Context, state model.DiscussionUserAccessState) ([]*model.Discussion, error) {

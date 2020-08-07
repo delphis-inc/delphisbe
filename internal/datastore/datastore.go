@@ -24,6 +24,7 @@ import (
 type Datastore interface {
 	GetDiscussionByID(ctx context.Context, id string) (*model.Discussion, error)
 	GetDiscussionsByIDs(ctx context.Context, ids []string) (map[string]*model.Discussion, error)
+	GetDiscussionByLinkSlug(ctx context.Context, slug string) (*model.Discussion, error)
 	GetDiscussionsAutoPost(ctx context.Context) AutoPostDiscussionIter
 	GetDiscussionByModeratorID(ctx context.Context, moderatorID string) (*model.Discussion, error)
 	CreateModerator(ctx context.Context, moderator model.Moderator) (*model.Moderator, error)
@@ -309,6 +310,10 @@ func (d *delphisDB) initializeStatements(ctx context.Context) (err error) {
 	if d.prepStmts.getDiscussionsForAutoPostStmt, err = d.pg.PrepareContext(ctx, getDiscussionsForAutoPostString); err != nil {
 		logrus.WithError(err).Error("failed to prepare getDiscussionsForAutoPostStmt")
 		return errors.Wrap(err, "failed to prepare getDiscussionsForAutoPostStmt")
+	}
+	if d.prepStmts.getDiscussionByLinkSlugStmt, err = d.pg.PrepareContext(ctx, getDiscussionByLinkSlugString); err != nil {
+		logrus.WithError(err).Error("failed to prepare getDiscussionByLinkSlugStmt")
+		return errors.Wrap(err, "failed to prepare getDiscussionByLinkSlugStmt")
 	}
 
 	// MODERATOR

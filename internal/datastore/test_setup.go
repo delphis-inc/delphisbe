@@ -20,6 +20,7 @@ func mockPreparedStatements(mock sqlmock.Sqlmock) {
 	mock.ExpectPrepare(putMediaRecordString)
 	mock.ExpectPrepare(getMediaRecordString)
 	mock.ExpectPrepare(getDiscussionsForAutoPostString)
+	mock.ExpectPrepare(getDiscussionByLinkSlugString)
 	mock.ExpectPrepare(getModeratorByUserIDString)
 	mock.ExpectPrepare(getModeratorByUserIDAndDiscussionIDString)
 	mock.ExpectPrepare(getModeratedDiscussionsByUserIDString)

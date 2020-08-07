@@ -25,6 +25,7 @@ type dbPrepStmts struct {
 
 	// Discussion
 	getDiscussionsForAutoPostStmt *sql2.Stmt
+	getDiscussionByLinkSlugStmt   *sql2.Stmt
 
 	// Moderator
 	getModeratorByUserIDStmt                *sql2.Stmt
@@ -261,6 +262,31 @@ const getDiscussionsForAutoPostString = `
 			idle_minutes
 		FROM discussions
 		WHERE auto_post = true`
+
+const getDiscussionByLinkSlugString = `
+		SELECT d.id,
+			d.created_at,
+			d.updated_at,
+			d.deleted_at,
+			d.title,
+			d.anonymity_type,
+			d.moderator_id,
+			d.auto_post,
+			d.icon_url,
+			d.idle_minutes,
+			d.description,
+			d.title_history,
+			d.description_history,
+			d.discussion_joinability,
+			d.last_post_id,
+			d.last_post_created_at,
+			d.shuffle_count,
+			d.lock_status
+		FROM discussion_access_link dal
+		INNER JOIN discussions d
+		ON dal.discussion_id = d.id
+		WHERE dal.link_slug = $1
+			AND d.lock_status = false;`
 
 // Currently only care if you are a mod, not checking on discussion mods
 const getModeratorByUserIDString = `

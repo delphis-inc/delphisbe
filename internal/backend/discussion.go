@@ -225,6 +225,10 @@ func (d *delphisBackend) getJoinabilityFromInviteStatus(ctx context.Context, dis
 	}
 }
 
+func (d *delphisBackend) GetDiscussionByLinkSlug(ctx context.Context, slug string) (*model.Discussion, error) {
+	return d.db.GetDiscussionByLinkSlug(ctx, slug)
+}
+
 func (d *delphisBackend) UpdateDiscussion(ctx context.Context, id string, input model.DiscussionInput) (*model.Discussion, error) {
 	discObj, err := d.db.GetDiscussionByID(ctx, id)
 	if err != nil {
