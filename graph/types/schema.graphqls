@@ -69,6 +69,11 @@ input DiscussionCreationSettings {
   discussionJoinability: DiscussionJoinabilitySetting!
 }
 
+input DiscussionUserSettings {
+  state: DiscussionUserAccessState
+  notifSetting: DiscussionUserNotificationSetting
+}
+
 type Mutation {
   addDiscussionParticipant(discussionID: String!, userID: String!, discussionParticipantInput: AddDiscussionParticipantInput!): Participant!
   addPost(discussionID: ID!, participantID: ID!, postContent: PostContentInput!): Post!
@@ -101,7 +106,7 @@ type Mutation {
   upsertUserDevice(userID: ID, platform: Platform!, deviceID: String!, token: String): UserDevice!
 
   updateDiscussion(discussionID: ID!, input: DiscussionInput!): Discussion!
-  updateDiscussionUserState(discussionID: ID!, state: DiscussionUserAccessState!): DiscussionUserAccess!
+  updateDiscussionUserSettings(discussionID: ID!, settings: DiscussionUserSettings!): DiscussionUserAccess!
 
   addDiscussionTags(discussionID: ID!, tags:[String!]): [Tag!]
   deleteDiscussionTags(discussionID: ID!, tags:[String!]): [Tag!]

@@ -191,6 +191,20 @@ func (r *discussionResolver) MeViewer(ctx context.Context, obj *model.Discussion
 	return r.DAOManager.GetViewerForDiscussion(ctx, obj.ID, authedUser.UserID, true)
 }
 
+func (r *discussionResolver) MeNotificationSettings(ctx context.Context, obj *model.Discussion) (*model.DiscussionUserNotificationSetting, error) {
+	authedUser := auth.GetAuthedUser(ctx)
+	if authedUser == nil {
+		return nil, nil
+	}
+
+	resp, err := r.DAOManager.GetDiscussionUserAccess(ctx, authedUser.UserID, obj.ID)
+	if err != nil {
+		return nil, fmt.Errorf("Error fetching user information")
+	}
+
+	return &resp.NotifSetting, nil
+}
+
 func (r *discussionResolver) Tags(ctx context.Context, obj *model.Discussion) ([]*model.Tag, error) {
 	return r.DAOManager.GetDiscussionTags(ctx, obj.ID)
 }

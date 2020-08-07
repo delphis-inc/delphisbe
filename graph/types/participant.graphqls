@@ -7,8 +7,6 @@ type Participant implements Entity & DiscussionSubscriptionEntity {
     discussion: Discussion
     # As a participant is also a viewer, this exposes the viewer settings
     viewer: Viewer!
-    # Preferences for notifications for this discussion
-    discussionNotificationPreferences: DiscussionNotificationPreferences!
     # Gets a list of all posts created by this participant in the given discussion.
     posts: [Post!]
     # Whether to include a link to their user profile

@@ -42,10 +42,6 @@ func (r *participantResolver) Viewer(ctx context.Context, obj *model.Participant
 	return obj.Viewer, nil
 }
 
-func (r *participantResolver) DiscussionNotificationPreferences(ctx context.Context, obj *model.Participant) (model.DiscussionNotificationPreferences, error) {
-	panic(fmt.Errorf("not implemented"))
-}
-
 func (r *participantResolver) Posts(ctx context.Context, obj *model.Participant) ([]*model.Post, error) {
 	if obj.IsBanned {
 		return nil, nil

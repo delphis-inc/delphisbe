@@ -171,6 +171,16 @@ func TestDelphisDB_InitializeStatements(t *testing.T) {
 				Test: upsertDiscussionUserAccessString,
 			},
 			{
+				Name: "getDUAForEverythingNotificationsString",
+
+				Test: getDUAForEverythingNotificationsString,
+			},
+			{
+				Name: "getDUAForMentionNotificationsString",
+
+				Test: getDUAForMentionNotificationsString,
+			},
+			{
 				Name: "deleteDiscussionUserAccessString",
 
 				Test: deleteDiscussionUserAccessString,

@@ -19,6 +19,9 @@ func (d *delphisDB) PutPost(ctx context.Context, tx *sql.Tx, post model.Post) (*
 		return nil, err
 	}
 
+	logrus.Infof("Post: %+v\n", post)
+	logrus.Infof("Participant: %+v\n", *post.ParticipantID)
+
 	err := tx.StmtContext(ctx, d.prepStmts.putPostStmt).QueryRowContext(
 		ctx,
 		post.ID,

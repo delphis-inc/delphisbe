@@ -101,9 +101,12 @@ type Datastore interface {
 	DiscussionIterCollect(ctx context.Context, iter DiscussionIter) ([]*model.Discussion, error)
 	DiscussionInviteIterCollect(ctx context.Context, iter DiscussionInviteIter) ([]*model.DiscussionInvite, error)
 	AccessRequestIterCollect(ctx context.Context, iter DiscussionAccessRequestIter) ([]*model.DiscussionAccessRequest, error)
+	DuaIterCollect(ctx context.Context, iter DiscussionUserAccessIter) ([]*model.DiscussionUserAccess, error)
 
 	GetDiscussionsByUserAccess(ctx context.Context, userID string, state model.DiscussionUserAccessState) DiscussionIter
 	GetDiscussionUserAccess(ctx context.Context, discussionID, userID string) (*model.DiscussionUserAccess, error)
+	GetDUAForEverythingNotifications(ctx context.Context, discussionID, userID string) DiscussionUserAccessIter
+	GetDUAForMentionNotifications(ctx context.Context, discussionID string, userID string, mentionedUserIDs []string) DiscussionUserAccessIter
 	UpsertDiscussionUserAccess(ctx context.Context, tx *sql2.Tx, dua model.DiscussionUserAccess) (*model.DiscussionUserAccess, error)
 	DeleteDiscussionUserAccess(ctx context.Context, tx *sql2.Tx, discussionID, userID string) (*model.DiscussionUserAccess, error)
 	GetDiscussionInviteByID(ctx context.Context, id string) (*model.DiscussionInvite, error)
@@ -174,6 +177,11 @@ type DiscussionInviteIter interface {
 
 type DiscussionAccessRequestIter interface {
 	Next(request *model.DiscussionAccessRequest) bool
+	Close() error
+}
+
+type DiscussionUserAccessIter interface {
+	Next(dua *model.DiscussionUserAccess) bool
 	Close() error
 }
 
@@ -372,6 +380,14 @@ func (d *delphisDB) initializeStatements(ctx context.Context) (err error) {
 	if d.prepStmts.getDiscussionUserAccessStmt, err = d.pg.PrepareContext(ctx, getDiscussionUserAccessString); err != nil {
 		logrus.WithError(err).Error("failed to prepare getDiscussionUserAccessStmt")
 		return errors.Wrap(err, "failed to prepare getDiscussionUserAccessStmt")
+	}
+	if d.prepStmts.getDUAForEverythingNotificationsStmt, err = d.pg.PrepareContext(ctx, getDUAForEverythingNotificationsString); err != nil {
+		logrus.WithError(err).Error("failed to prepare getDUAForEverythingNotificationsString")
+		return errors.Wrap(err, "failed to prepare getDUAForEverythingNotificationsString")
+	}
+	if d.prepStmts.getDUAForMentionNotificationsStmt, err = d.pg.PrepareContext(ctx, getDUAForMentionNotificationsString); err != nil {
+		logrus.WithError(err).Error("failed to prepare getDUAForMentionNotificationsString")
+		return errors.Wrap(err, "failed to prepare getDUAForMentionNotificationsString")
 	}
 	if d.prepStmts.upsertDiscussionUserAccessStmt, err = d.pg.PrepareContext(ctx, upsertDiscussionUserAccessString); err != nil {
 		logrus.WithError(err).Error("failed to prepare upsertDiscussionUserAccessStmt")

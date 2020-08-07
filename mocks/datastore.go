@@ -338,6 +338,29 @@ func (_m *Datastore) DiscussionIterCollect(ctx context.Context, iter datastore.D
 	return r0, r1
 }
 
+// DuaIterCollect provides a mock function with given fields: ctx, iter
+func (_m *Datastore) DuaIterCollect(ctx context.Context, iter datastore.DiscussionUserAccessIter) ([]*model.DiscussionUserAccess, error) {
+	ret := _m.Called(ctx, iter)
+
+	var r0 []*model.DiscussionUserAccess
+	if rf, ok := ret.Get(0).(func(context.Context, datastore.DiscussionUserAccessIter) []*model.DiscussionUserAccess); ok {
+		r0 = rf(ctx, iter)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]*model.DiscussionUserAccess)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(context.Context, datastore.DiscussionUserAccessIter) error); ok {
+		r1 = rf(ctx, iter)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // GetAccessLinkByDiscussionID provides a mock function with given fields: ctx, discussionID
 func (_m *Datastore) GetAccessLinkByDiscussionID(ctx context.Context, discussionID string) (*model.DiscussionAccessLink, error) {
 	ret := _m.Called(ctx, discussionID)
@@ -382,6 +405,38 @@ func (_m *Datastore) GetAccessLinkBySlug(ctx context.Context, slug string) (*mod
 	}
 
 	return r0, r1
+}
+
+// GetDUAForEverythingNotifications provides a mock function with given fields: ctx, discussionID, userID
+func (_m *Datastore) GetDUAForEverythingNotifications(ctx context.Context, discussionID string, userID string) datastore.DiscussionUserAccessIter {
+	ret := _m.Called(ctx, discussionID, userID)
+
+	var r0 datastore.DiscussionUserAccessIter
+	if rf, ok := ret.Get(0).(func(context.Context, string, string) datastore.DiscussionUserAccessIter); ok {
+		r0 = rf(ctx, discussionID, userID)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(datastore.DiscussionUserAccessIter)
+		}
+	}
+
+	return r0
+}
+
+// GetDUAForMentionNotifications provides a mock function with given fields: ctx, discussionID, userID, mentionedUserIDs
+func (_m *Datastore) GetDUAForMentionNotifications(ctx context.Context, discussionID string, userID string, mentionedUserIDs []string) datastore.DiscussionUserAccessIter {
+	ret := _m.Called(ctx, discussionID, userID, mentionedUserIDs)
+
+	var r0 datastore.DiscussionUserAccessIter
+	if rf, ok := ret.Get(0).(func(context.Context, string, string, []string) datastore.DiscussionUserAccessIter); ok {
+		r0 = rf(ctx, discussionID, userID, mentionedUserIDs)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(datastore.DiscussionUserAccessIter)
+		}
+	}
+
+	return r0
 }
 
 // GetDiscussionAccessRequestByDiscussionIDUserID provides a mock function with given fields: ctx, discussionID, userID

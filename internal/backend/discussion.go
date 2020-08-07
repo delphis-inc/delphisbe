@@ -231,6 +231,11 @@ func (d *delphisBackend) UpdateDiscussion(ctx context.Context, id string, input 
 		return nil, err
 	}
 
+	if discObj == nil {
+		logrus.Infof("No discussion to update")
+		return nil, nil
+	}
+
 	updateDiscussionObj(discObj, input)
 
 	return d.db.UpsertDiscussion(ctx, *discObj)
@@ -427,8 +432,15 @@ func (d *delphisBackend) grantAccessAndCreateParticipants(ctx context.Context, d
 
 	trueObj := true
 	for _, id := range userIDs {
+		state := model.DiscussionUserAccessStateActive
+		notifSettings := model.DiscussionUserNotificationSettingEverything
+		settings := model.DiscussionUserSettings{
+			State:        &state,
+			NotifSetting: &notifSettings,
+		}
+
 		// Grant access
-		if _, err := d.UpsertUserDiscussionAccess(ctx, id, discussionID, model.DiscussionUserAccessStateActive); err != nil {
+		if _, err := d.UpsertUserDiscussionAccess(ctx, id, discussionID, settings); err != nil {
 			logrus.WithError(err).Error("failed to grant access")
 			return err
 		}

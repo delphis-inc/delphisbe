@@ -169,7 +169,8 @@ func TestDelphisBackend_CreateNewDiscussion(t *testing.T) {
 			mockDB.On("PutActivity", ctx, mock.Anything, mock.Anything).Return(nil)
 			mockDB.On("CommitTx", ctx, mock.Anything).Return(nil)
 			mockDB.On("GetDiscussionByID", ctx, mock.Anything).Return(&discObj, nil)
-			mockDB.On("GetParticipantsByDiscussionID", ctx, mock.Anything, mock.Anything).Return([]model.Participant{parObj}, nil)
+			mockDB.On("GetDUAForEverythingNotifications", ctx, discussionID, mock.Anything).Return(nil)
+			mockDB.On("DuaIterCollect", ctx, mock.Anything).Return(nil, nil)
 			mockDB.On("GetUserDevicesByUserID", ctx, mock.Anything).Return(nil, nil)
 
 			mockDB.On("BeginTx", ctx).Return(tx, nil)
@@ -221,7 +222,8 @@ func TestDelphisBackend_CreateNewDiscussion(t *testing.T) {
 			mockDB.On("PutActivity", ctx, mock.Anything, mock.Anything).Return(nil)
 			mockDB.On("CommitTx", ctx, mock.Anything).Return(nil)
 			mockDB.On("GetDiscussionByID", ctx, mock.Anything).Return(&discObj, nil)
-			mockDB.On("GetParticipantsByDiscussionID", ctx, mock.Anything, mock.Anything).Return([]model.Participant{parObj}, nil)
+			mockDB.On("GetDUAForEverythingNotifications", ctx, discussionID, mock.Anything).Return(nil)
+			mockDB.On("DuaIterCollect", ctx, mock.Anything).Return(nil, nil)
 			mockDB.On("GetUserDevicesByUserID", ctx, mock.Anything).Return(nil, nil)
 
 			mockDB.On("BeginTx", ctx).Return(tx, nil)

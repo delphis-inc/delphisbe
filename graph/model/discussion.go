@@ -78,6 +78,7 @@ type DiscussionUserAccess struct {
 	DiscussionID string
 	UserID       string
 	State        DiscussionUserAccessState
+	NotifSetting DiscussionUserNotificationSetting
 	CreatedAt    time.Time
 	UpdatedAt    time.Time
 	DeletedAt    *time.Time
