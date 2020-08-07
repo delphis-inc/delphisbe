@@ -124,6 +124,10 @@ func (d *delphisBackend) BanParticipant(ctx context.Context, discussionID string
 		return nil, fmt.Errorf("Cannot ban yourself")
 	}
 
+	if *participantObj.UserID == model.ConciergeUser {
+		return nil, fmt.Errorf("Cannot ban the concierge")
+	}
+
 	if participantObj.IsBanned {
 		return participantObj, nil
 	}

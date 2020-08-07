@@ -801,6 +801,22 @@ func TestDelphisBackend_BanParticipant(t *testing.T) {
 
 		anonParObj.IsBanned = false
 
+		Convey("when participant is concierge", func() {
+			conciergeUserID := model.ConciergeUser
+			anonParObj.UserID = &conciergeUserID
+			expectedError := fmt.Errorf("unrelated error")
+			expected := anonParObj
+			expected.IsBanned = true
+			mockDB.On("UpsertParticipant", ctx, expected).Return(nil, expectedError)
+			resp, err := backendObj.BanParticipant(ctx, discussionID, participantID, requestingUserID)
+
+			So(err, ShouldNotBeNil)
+			So(err, ShouldNotEqual, expectedError)
+			So(resp, ShouldBeNil)
+		})
+
+		anonParObj.UserID = &participantUserID
+
 		Convey("when upsert fails", func() {
 			expected := anonParObj
 			expected.IsBanned = true
