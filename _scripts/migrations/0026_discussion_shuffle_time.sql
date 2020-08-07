@@ -1,6 +1,6 @@
 CREATE TABLE IF NOT EXISTS discussion_shuffle_time (
     discussion_id varchar(36) PRIMARY KEY,
-    shuffle_time timestamp with time zone
+    shuffle_time timestamp with time zone not null
 );
 
 ALTER TABLE discussion_shuffle_time
@@ -8,4 +8,4 @@ ALTER TABLE discussion_shuffle_time
 
 CREATE INDEX IF NOT EXISTS discussion_shuffle_time_idx on discussion_shuffle_time (shuffle_time);
 
-ALTER TABLE discussions ADD COLUMN shuffle_count int default 0;
+ALTER TABLE discussions ADD COLUMN shuffle_count int default 0 not null;
