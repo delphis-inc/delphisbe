@@ -473,10 +473,7 @@ type DiscussionResolver interface {
 	MeParticipant(ctx context.Context, obj *model.Discussion) (*model.Participant, error)
 	MeAvailableParticipants(ctx context.Context, obj *model.Discussion) ([]*model.Participant, error)
 	MeCanJoinDiscussion(ctx context.Context, obj *model.Discussion) (*model.CanJoinDiscussionResponse, error)
-<<<<<<< HEAD
 	MeViewer(ctx context.Context, obj *model.Discussion) (*model.Viewer, error)
-=======
->>>>>>> squash
 	MeNotificationSettings(ctx context.Context, obj *model.Discussion) (*model.DiscussionUserNotificationSetting, error)
 
 	Tags(ctx context.Context, obj *model.Discussion) ([]*model.Tag, error)
@@ -2765,10 +2762,7 @@ var sources = []*ast.Source{
 
     meCanJoinDiscussion: CanJoinDiscussionResponse!
 
-<<<<<<< HEAD
     meViewer: Viewer
-=======
->>>>>>> squash
     # Notification setting for logged in user
     meNotificationSettings: DiscussionUserNotificationSetting
 
@@ -5461,7 +5455,6 @@ func (ec *executionContext) _Discussion_meCanJoinDiscussion(ctx context.Context,
 	return ec.marshalNCanJoinDiscussionResponse2ᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐCanJoinDiscussionResponse(ctx, field.Selections, res)
 }
 
-<<<<<<< HEAD
 func (ec *executionContext) _Discussion_meViewer(ctx context.Context, field graphql.CollectedField, obj *model.Discussion) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -5493,8 +5486,6 @@ func (ec *executionContext) _Discussion_meViewer(ctx context.Context, field grap
 	return ec.marshalOViewer2ᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐViewer(ctx, field.Selections, res)
 }
 
-=======
->>>>>>> squash
 func (ec *executionContext) _Discussion_meNotificationSettings(ctx context.Context, field graphql.CollectedField, obj *model.Discussion) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -14340,30 +14331,6 @@ func (ec *executionContext) unmarshalInputDiscussionUserSettings(ctx context.Con
 	return it, nil
 }
 
-func (ec *executionContext) unmarshalInputDiscussionUserSettings(ctx context.Context, obj interface{}) (model.DiscussionUserSettings, error) {
-	var it model.DiscussionUserSettings
-	var asMap = obj.(map[string]interface{})
-
-	for k, v := range asMap {
-		switch k {
-		case "state":
-			var err error
-			it.State, err = ec.unmarshalODiscussionUserAccessState2ᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐDiscussionUserAccessState(ctx, v)
-			if err != nil {
-				return it, err
-			}
-		case "notifSetting":
-			var err error
-			it.NotifSetting, err = ec.unmarshalODiscussionUserNotificationSetting2ᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐDiscussionUserNotificationSetting(ctx, v)
-			if err != nil {
-				return it, err
-			}
-		}
-	}
-
-	return it, nil
-}
-
 func (ec *executionContext) unmarshalInputPollInput(ctx context.Context, obj interface{}) (model.PollInput, error) {
 	var it model.PollInput
 	var asMap = obj.(map[string]interface{})
@@ -14954,7 +14921,6 @@ func (ec *executionContext) _Discussion(ctx context.Context, sel ast.SelectionSe
 				}
 				return res
 			})
-<<<<<<< HEAD
 		case "meViewer":
 			field := field
 			out.Concurrently(i, func() (res graphql.Marshaler) {
@@ -14966,8 +14932,6 @@ func (ec *executionContext) _Discussion(ctx context.Context, sel ast.SelectionSe
 				res = ec._Discussion_meViewer(ctx, field, obj)
 				return res
 			})
-=======
->>>>>>> squash
 		case "meNotificationSettings":
 			field := field
 			out.Concurrently(i, func() (res graphql.Marshaler) {
@@ -17334,7 +17298,6 @@ func (ec *executionContext) _Viewer(ctx context.Context, sel ast.SelectionSet, o
 				atomic.AddUint32(&invalids, 1)
 			}
 		case "discussion":
-<<<<<<< HEAD
 			field := field
 			out.Concurrently(i, func() (res graphql.Marshaler) {
 				defer func() {
@@ -17348,8 +17311,6 @@ func (ec *executionContext) _Viewer(ctx context.Context, sel ast.SelectionSet, o
 		case "lastViewed":
 			out.Values[i] = ec._Viewer_lastViewed(ctx, field, obj)
 		case "lastViewedPost":
-=======
->>>>>>> squash
 			field := field
 			out.Concurrently(i, func() (res graphql.Marshaler) {
 				defer func() {
