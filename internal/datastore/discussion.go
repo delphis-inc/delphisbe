@@ -44,6 +44,53 @@ func (d *delphisDB) IncrementDiscussionShuffleCount(ctx context.Context, tx *sql
 	return &discussion.ShuffleCount, nil
 }
 
+func (d *delphisDB) GetDiscussionByLinkSlug(ctx context.Context, slug string) (*model.Discussion, error) {
+	logrus.Debug("GetDiscussionByLinkSlug::SQL Update")
+	if err := d.initializeStatements(ctx); err != nil {
+		logrus.WithError(err).Error("GetDiscussionByLinkSlug::failed to initialize statements")
+		return nil, err
+	}
+
+	discussion := model.Discussion{}
+	titleHistory := make([]byte, 0)
+	descriptionHistory := make([]byte, 0)
+
+	if err := d.prepStmts.getDiscussionByLinkSlugStmt.QueryRowContext(
+		ctx,
+		slug,
+	).Scan(
+		&discussion.ID,
+		&discussion.CreatedAt,
+		&discussion.UpdatedAt,
+		&discussion.DeletedAt,
+		&discussion.Title,
+		&discussion.AnonymityType,
+		&discussion.ModeratorID,
+		&discussion.AutoPost,
+		&discussion.IconURL,
+		&discussion.IdleMinutes,
+		&discussion.Description,
+		&titleHistory,
+		&descriptionHistory,
+		&discussion.DiscussionJoinability,
+		&discussion.LastPostID,
+		&discussion.LastPostCreatedAt,
+		&discussion.ShuffleCount,
+		&discussion.LockStatus,
+	); err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		logrus.WithError(err).Error("failed to execute getDiscussionByLinkSlugStmt")
+		return nil, err
+	}
+
+	discussion.TitleHistory.RawMessage = titleHistory
+	discussion.DescriptionHistory.RawMessage = descriptionHistory
+
+	return &discussion, nil
+}
+
 func (d *delphisDB) GetDiscussionsByIDs(ctx context.Context, ids []string) (map[string]*model.Discussion, error) {
 	logrus.Debug("GetDiscussionsByIDs::SQL Query")
 	discussions := []model.Discussion{}

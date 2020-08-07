@@ -26,6 +26,7 @@ type DelphisBackend interface {
 	GetDiscussionByID(ctx context.Context, id string) (*model.Discussion, error)
 	GetDiscussionsByIDs(ctx context.Context, ids []string) (map[string]*model.Discussion, error)
 	GetDiscussionsForAutoPost(ctx context.Context) ([]*model.DiscussionAutoPost, error)
+	GetDiscussionByLinkSlug(ctx context.Context, slug string) (*model.Discussion, error)
 	GetDiscussionByModeratorID(ctx context.Context, moderatorID string) (*model.Discussion, error)
 	GetDiscussionJoinabilityForUser(ctx context.Context, userObj *model.User, discussionObj *model.Discussion, meParticipant *model.Participant) (*model.CanJoinDiscussionResponse, error)
 	SubscribeToDiscussion(ctx context.Context, subscriberUserID string, postChannel chan *model.Post, discussionID string) error

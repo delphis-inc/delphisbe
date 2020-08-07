@@ -94,6 +94,11 @@ func TestDelphisDB_InitializeStatements(t *testing.T) {
 				Test: getDiscussionsForAutoPostString,
 			},
 			{
+				Name: "getDiscussionByLinkSlugString",
+
+				Test: getDiscussionByLinkSlugString,
+			},
+			{
 				Name: "getModeratorByUserIDString",
 				Test: getModeratorByUserIDString,
 			},
