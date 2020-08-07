@@ -1,6 +1,6 @@
 CREATE TABLE IF NOT EXISTS discussion_shuffle_time (
     discussion_id varchar(36) PRIMARY KEY,
-    shuffle_time timestamp with time zone
+    shuffle_time timestamp with time zone not null
 );
 
 ALTER TABLE discussion_shuffle_time
