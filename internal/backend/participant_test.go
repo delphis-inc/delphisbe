@@ -483,6 +483,21 @@ func TestDelphisBackend_MuteParticipants(t *testing.T) {
 			So(resp, ShouldBeNil)
 		})
 
+		Convey("when the participant is the concierge", func() {
+			userID := model.ConciergeUser
+			otherParticipant := parObj
+			otherParticipant.UserID = &userID
+			participants := []model.Participant{otherParticipant}
+			otherList := []*model.Participant{&otherParticipant}
+			mockDB.On("GetParticipantsByDiscussionID", ctx, discussionID).Return(participants, nil)
+			mockDB.On("SetParticipantsMutedUntil", ctx, otherList, mock.AnythingOfType("*time.Time")).Return(otherList, nil)
+
+			resp, err := backendObj.MuteParticipants(ctx, discussionID, parIDListObj, seconds)
+
+			So(err, ShouldNotBeNil)
+			So(resp, ShouldBeNil)
+		})
+
 		Convey("when the query returns successfully", func() {
 			participants := []model.Participant{parObj}
 			mockDB.On("GetParticipantsByDiscussionID", ctx, discussionID).Return(participants, nil)
@@ -555,6 +570,21 @@ func TestDelphisBackend_UnmuteParticipants(t *testing.T) {
 			participants := []model.Participant{otherParticipant}
 			mockDB.On("GetParticipantsByDiscussionID", ctx, discussionID).Return(participants, nil)
 			mockDB.On("SetParticipantsMutedUntil", ctx, parListObj, (*time.Time)(nil)).Return(parListObj, nil)
+
+			resp, err := backendObj.UnmuteParticipants(ctx, discussionID, parIDListObj)
+
+			So(err, ShouldNotBeNil)
+			So(resp, ShouldBeNil)
+		})
+
+		Convey("when the participant is the concierge", func() {
+			userID := model.ConciergeUser
+			otherParticipant := parObj
+			otherParticipant.UserID = &userID
+			participants := []model.Participant{otherParticipant}
+			otherList := []*model.Participant{&otherParticipant}
+			mockDB.On("GetParticipantsByDiscussionID", ctx, discussionID).Return(participants, nil)
+			mockDB.On("SetParticipantsMutedUntil", ctx, otherList, (*time.Time)(nil)).Return(otherList, nil)
 
 			resp, err := backendObj.UnmuteParticipants(ctx, discussionID, parIDListObj)
 

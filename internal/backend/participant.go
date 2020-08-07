@@ -235,6 +235,9 @@ func (d *delphisBackend) MuteParticipants(ctx context.Context, discussionID stri
 				if *participant.UserID == authedUser.UserID {
 					return nil, fmt.Errorf("You cannot mute yourself")
 				}
+				if *participant.UserID == model.ConciergeUser {
+					return nil, fmt.Errorf("You cannot mute the concierge")
+				}
 				found = true
 				p := participant
 				participantsToEdit = append(participantsToEdit, &p)
@@ -273,6 +276,9 @@ func (d *delphisBackend) UnmuteParticipants(ctx context.Context, discussionID st
 			if participant.ID == participantID {
 				if *participant.UserID == authedUser.UserID {
 					return nil, fmt.Errorf("You cannot mute yourself")
+				}
+				if *participant.UserID == model.ConciergeUser {
+					return nil, fmt.Errorf("You cannot unmute the concierge")
 				}
 				found = true
 				p := participant
