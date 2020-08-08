@@ -4,25 +4,10 @@ import (
 	"context"
 
 	"github.com/delphis-inc/delphisbe/graph/model"
-	"github.com/delphis-inc/delphisbe/internal/util"
 )
 
 func (d *delphisBackend) CreateViewerForDiscussion(ctx context.Context, discussionID string, userID string) (*model.Viewer, error) {
-	viewerObj := model.Viewer{
-		CreatedAt:    d.timeProvider.Now(),
-		UpdatedAt:    d.timeProvider.Now(),
-		ID:           util.UUIDv4(),
-		DiscussionID: &discussionID,
-		UserID:       &userID,
-	}
-
-	resp, err := d.db.UpsertViewer(ctx, viewerObj)
-
-	if err != nil {
-		return nil, err
-	}
-
-	return resp, err
+	return d.GetViewerForDiscussion(ctx, discussionID, userID, true)
 }
 
 func (d *delphisBackend) SetViewerLastPostViewed(ctx context.Context, viewerID, postID string) (*model.Viewer, error) {

@@ -51,7 +51,27 @@ func (r *mutationResolver) AddDiscussionParticipant(ctx context.Context, discuss
 	if err != nil || discussionObj == nil {
 		return nil, err
 	}
+
+	if authedUser.User == nil {
+		user, err := r.DAOManager.GetUserByID(ctx, authedUser.UserID)
+		if err != nil {
+			return nil, err
+		}
+		authedUser.User = user
+		if authedUser.User.UserProfile == nil {
+			userProfile, err := r.DAOManager.GetUserProfileByUserID(ctx, authedUser.User.ID)
+			if err != nil {
+				return nil, err
+			}
+			authedUser.User.UserProfile = userProfile
+		}
+	}
+
 	joinability, err := r.DAOManager.GetDiscussionJoinabilityForUser(ctx, authedUser.User, discussionObj, nil)
+	if err != nil {
+		logrus.Debugf("Got an error retrieving joinability: %+v", err)
+		return nil, err
+	}
 
 	if joinability.Response == model.DiscussionJoinabilityResponseApprovedNotJoined {
 		state := model.DiscussionUserAccessStateActive
