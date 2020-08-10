@@ -92,6 +92,7 @@ func TestDelphisBackend_CreateParticipantForDiscussion(t *testing.T) {
 			expectedError := fmt.Errorf("Some Error")
 			mockDB.On("GetUserByID", ctx, mock.Anything).Return(&userObj, nil)
 			mockDB.On("GetTotalParticipantCountByDiscussionID", ctx, discussionID).Return(count)
+			mockDB.On("GetViewerForDiscussion", ctx, discussionID, userObj.ID).Return(nil, nil)
 			mockDB.On("UpsertViewer", ctx, mock.Anything).Return(nil, expectedError)
 
 			resp, err := backendObj.CreateParticipantForDiscussion(ctx, discussionID, userID, inputObj)
@@ -105,6 +106,7 @@ func TestDelphisBackend_CreateParticipantForDiscussion(t *testing.T) {
 			mockDB.On("GetUserByID", ctx, mock.Anything).Return(&userObj, nil)
 			mockDB.On("GetTotalParticipantCountByDiscussionID", ctx, discussionID).Return(count)
 			mockDB.On("GetFlairsByUserID", ctx, userID).Return(&flairObj, nil)
+			mockDB.On("GetViewerForDiscussion", ctx, discussionID, userObj.ID).Return(nil, nil)
 			mockDB.On("UpsertViewer", ctx, mock.Anything).Return(&viewerObj, nil)
 			mockDB.On("UpsertParticipant", ctx, mock.Anything).Return(nil, expectedError)
 
@@ -118,6 +120,7 @@ func TestDelphisBackend_CreateParticipantForDiscussion(t *testing.T) {
 			expectedError := fmt.Errorf("Some Error")
 			mockDB.On("GetUserByID", ctx, mock.Anything).Return(&userObj, nil)
 			mockDB.On("GetTotalParticipantCountByDiscussionID", ctx, discussionID).Return(count)
+			mockDB.On("GetViewerForDiscussion", ctx, discussionID, userObj.ID).Return(nil, nil)
 			mockDB.On("UpsertViewer", ctx, mock.Anything).Return(&viewerObj, nil)
 			mockDB.On("UpsertParticipant", ctx, mock.Anything).Return(&parObj, nil)
 
@@ -134,6 +137,7 @@ func TestDelphisBackend_CreateParticipantForDiscussion(t *testing.T) {
 		Convey("when participant is created successfully", func() {
 			mockDB.On("GetUserByID", ctx, mock.Anything).Return(&userObj, nil)
 			mockDB.On("GetTotalParticipantCountByDiscussionID", ctx, discussionID).Return(count)
+			mockDB.On("GetViewerForDiscussion", ctx, discussionID, userObj.ID).Return(nil, nil)
 			mockDB.On("UpsertViewer", ctx, mock.Anything).Return(&viewerObj, nil)
 			mockDB.On("UpsertParticipant", ctx, mock.Anything).Return(&parObj, nil)
 
