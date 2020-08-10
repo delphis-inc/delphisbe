@@ -126,6 +126,21 @@ func (d *delphisBackend) GetDiscussionJoinabilityForUser(ctx context.Context, us
 	if userObj == nil || discussionObj == nil || userObj.UserProfile == nil {
 		return nil, fmt.Errorf("No user available")
 	}
+
+	discussionUserAccess, err := d.db.GetDiscussionUserAccess(ctx, discussionObj.ID, userObj.ID)
+	if err != nil {
+		return nil, err
+	}
+	if discussionUserAccess != nil && discussionUserAccess.DeletedAt == nil {
+		response := model.DiscussionJoinabilityResponseApprovedNotJoined
+		if meParticipant != nil {
+			response = model.DiscussionJoinabilityResponseAlreadyJoined
+		}
+		return &model.CanJoinDiscussionResponse{
+			Response: response,
+		}, nil
+	}
+
 	socialInfos, err := d.GetSocialInfosByUserProfileID(ctx, userObj.UserProfile.ID)
 	if err != nil {
 		return nil, fmt.Errorf("Error fetching user with ID (%s)", userObj.ID)

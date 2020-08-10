@@ -599,6 +599,7 @@ func TestDelphisBackend_RespondToInvitation(t *testing.T) {
 			mockDB.On("GetUserByID", ctx, mock.Anything).Return(&userObj, nil)
 			mockDB.On("GetTotalParticipantCountByDiscussionID", ctx, mock.Anything).Return(10)
 			mockDB.On("GetFlairsByUserID", ctx, mock.Anything).Return([]*model.Flair{&flairObj}, nil)
+			mockDB.On("GetViewerForDiscussion", ctx, discussionID, userObj.ID).Return(nil, nil)
 			mockDB.On("UpsertViewer", ctx, mock.Anything).Return(&viewerObj, nil)
 			mockDB.On("UpsertParticipant", ctx, mock.Anything).Return(&parObj, nil)
 			mockDB.On("GetParticipantsByDiscussionIDUserID", ctx, mock.Anything, mock.Anything).Return([]model.Participant{parObj}, nil)

@@ -395,6 +395,9 @@ func (r *discussionUserAccessResolver) IsDeleted(ctx context.Context, obj *model
 }
 
 func (r *discussionUserAccessResolver) Request(ctx context.Context, obj *model.DiscussionUserAccess) (*model.DiscussionAccessRequest, error) {
+	if obj.RequestID == nil {
+		return nil, nil
+	}
 	return r.DAOManager.GetDiscussionRequestAccessByID(ctx, *obj.RequestID)
 }
 
