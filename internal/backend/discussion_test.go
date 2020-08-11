@@ -642,6 +642,48 @@ func TestDelphisBackend_GetDiscussionJoinabilityForUser(t *testing.T) {
 	})
 }
 
+func TestDelphisBackend_GetDiscussionByLinkSlug(t *testing.T) {
+	ctx := context.Background()
+
+	slug := "slug"
+
+	discObj := test_utils.TestDiscussion()
+
+	Convey("GetDiscussionByLinkSlug", t, func() {
+		now := time.Now()
+		cacheObj := cache.NewInMemoryCache()
+		authObj := auth.NewDelphisAuth(nil)
+		mockDB := &mocks.Datastore{}
+		backendObj := &delphisBackend{
+			db:              mockDB,
+			auth:            authObj,
+			cache:           cacheObj,
+			discussionMutex: sync.Mutex{},
+			config:          config.Config{},
+			timeProvider:    &util.FrozenTime{NowTime: now},
+		}
+
+		Convey("when the query errors out", func() {
+			expectedError := fmt.Errorf("Some Error")
+			mockDB.On("GetDiscussionByLinkSlug", ctx, slug).Return(nil, expectedError)
+
+			resp, err := backendObj.GetDiscussionByLinkSlug(ctx, slug)
+
+			So(err, ShouldEqual, expectedError)
+			So(resp, ShouldBeNil)
+		})
+
+		Convey("when the query returns successfully", func() {
+			mockDB.On("GetDiscussionByLinkSlug", ctx, slug).Return(&discObj, nil)
+
+			resp, err := backendObj.GetDiscussionByLinkSlug(ctx, slug)
+
+			So(err, ShouldBeNil)
+			So(resp, ShouldResemble, &discObj)
+		})
+	})
+}
+
 func TestDelphisBackend_UpdateDiscussion(t *testing.T) {
 	ctx := context.Background()
 
