@@ -789,6 +789,22 @@ func TestDelphisBackend_UpdateDiscussion(t *testing.T) {
 			So(err, ShouldBeNil)
 			So(resp, ShouldNotBeNil)
 		})
+
+		Convey("when the discussion is locked, an entry in the archive table is upserted", func() {
+			mockDB.On("GetDiscussionByID", ctx, discussionID).Return(&discObj, nil)
+			updatedDiscussion := discObj
+			updatedDiscussion.LockStatus = true
+			trueVal := true
+
+			mockDB.On("UpsertDiscussion", ctx, updatedDiscussion).Return(&updatedDiscussion, nil)
+			updateInput := model.DiscussionInput{
+				LockStatus: &trueVal,
+			}
+			resp, err := backendObj.UpdateDiscussion(ctx, discussionID, updateInput)
+
+			So(err, ShouldBeNil)
+			So(resp, ShouldNotBeNil)
+		})
 	})
 }
 

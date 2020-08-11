@@ -570,7 +570,7 @@ func (d *delphisBackend) anonymizePostsForArchive(ctx context.Context, posts []*
 
 		// Generate anonymous participant name
 		if post.DiscussionID == nil || post.ParticipantID == nil {
-			logrus.Error("discussion, participant should not be null")
+			logrus.Warn("discussion, participant should not be null")
 			continue
 		}
 

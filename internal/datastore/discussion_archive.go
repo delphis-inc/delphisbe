@@ -47,8 +47,6 @@ func (d *delphisDB) UpsertDiscussionArchive(ctx context.Context, tx *sql.Tx, dis
 
 	archive := make([]byte, 0)
 
-	logrus.Infof("Here\n")
-
 	if err := tx.StmtContext(ctx, d.prepStmts.upsertDiscussionArchiveStmt).QueryRowContext(
 		ctx,
 		discArchive.DiscussionID,
@@ -59,16 +57,11 @@ func (d *delphisDB) UpsertDiscussionArchive(ctx context.Context, tx *sql.Tx, dis
 		&discArchive.CreatedAt,
 	); err != nil {
 		if err == sql.ErrNoRows {
-
-			logrus.Infof("In Here\n")
-
 			return nil, nil
 		}
 		logrus.WithError(err).Error("failed to execute upsertDiscussionUserAccess")
 		return nil, err
 	}
-
-	logrus.Infof("Out Here\n")
 
 	discArchive.Archive.RawMessage = archive
 
