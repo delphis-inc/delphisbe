@@ -28,12 +28,71 @@ func (r *mutationResolver) AddDiscussionParticipant(ctx context.Context, discuss
 		}
 	}
 
-	participantObj, err := r.DAOManager.CreateParticipantForDiscussion(ctx, discussionID, authedUser.UserID, discussionParticipantInput)
+	existingParticipants, err := r.DAOManager.GetParticipantsByDiscussionIDUserID(ctx, discussionID, userID)
 	if err != nil {
 		return nil, err
 	}
 
-	return participantObj, nil
+	if existingParticipants != nil && (existingParticipants.Anon != nil || existingParticipants.NonAnon != nil) {
+		if discussionParticipantInput.IsAnonymous && existingParticipants.Anon != nil {
+			return existingParticipants.Anon, nil
+		} else if discussionParticipantInput.IsAnonymous {
+			return r.DAOManager.CreateParticipantForDiscussion(ctx, discussionID, authedUser.UserID, discussionParticipantInput)
+		}
+
+		if !discussionParticipantInput.IsAnonymous && existingParticipants.NonAnon != nil {
+			return existingParticipants.NonAnon, nil
+		} else if !discussionParticipantInput.IsAnonymous {
+			return r.DAOManager.CreateParticipantForDiscussion(ctx, discussionID, authedUser.UserID, discussionParticipantInput)
+		}
+	}
+
+	discussionObj, err := r.DAOManager.GetDiscussionByID(ctx, discussionID)
+	if err != nil || discussionObj == nil {
+		return nil, err
+	}
+
+	if authedUser.User == nil {
+		user, err := r.DAOManager.GetUserByID(ctx, authedUser.UserID)
+		if err != nil {
+			return nil, err
+		}
+		authedUser.User = user
+		if authedUser.User.UserProfile == nil {
+			userProfile, err := r.DAOManager.GetUserProfileByUserID(ctx, authedUser.User.ID)
+			if err != nil {
+				return nil, err
+			}
+			authedUser.User.UserProfile = userProfile
+		}
+	}
+
+	joinability, err := r.DAOManager.GetDiscussionJoinabilityForUser(ctx, authedUser.User, discussionObj, nil)
+	if err != nil {
+		logrus.Debugf("Got an error retrieving joinability: %+v", err)
+		return nil, err
+	}
+
+	if joinability.Response == model.DiscussionJoinabilityResponseApprovedNotJoined {
+		state := model.DiscussionUserAccessStateActive
+		setting := model.DiscussionUserNotificationSettingEverything
+		_, err := r.DAOManager.UpsertUserDiscussionAccess(ctx, authedUser.UserID, discussionID, model.DiscussionUserSettings{
+			State:        &state,
+			NotifSetting: &setting,
+		})
+		if err != nil {
+			return nil, err
+		}
+		participantObj, err := r.DAOManager.CreateParticipantForDiscussion(ctx, discussionID, authedUser.UserID, discussionParticipantInput)
+		if err != nil {
+			// This is a weird case but we've added discussion user access so it's a fast
+			// retry.
+			return nil, err
+		}
+		return participantObj, nil
+	} else {
+		return nil, fmt.Errorf("Unauthorized")
+	}
 }
 
 func (r *mutationResolver) AddPost(ctx context.Context, discussionID string, participantID string, postContent model.PostContentInput) (*model.Post, error) {
@@ -44,7 +103,7 @@ func (r *mutationResolver) AddPost(ctx context.Context, discussionID string, par
 
 	// Note: This is here mainly to ensure the discussion is not (soft) deleted
 	discussion, err := r.DAOManager.GetDiscussionByID(ctx, discussionID)
-	if discussion == nil || err != nil {
+	if discussion == nil || err != nil || discussion.LockStatus == true {
 		return nil, fmt.Errorf("Discussion with ID %s not found", discussionID)
 	}
 
@@ -65,7 +124,7 @@ func (r *mutationResolver) AddPost(ctx context.Context, discussionID string, par
 		return nil, fmt.Errorf("Unauthorized")
 	}
 
-	createdPost, err := r.DAOManager.CreatePost(ctx, discussionID, participant.ID, postContent)
+	createdPost, err := r.DAOManager.CreatePost(ctx, discussionID, authedUser.UserID, participant.ID, postContent)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to create post")
 	}
@@ -104,7 +163,7 @@ func (r *mutationResolver) PostImportedContent(ctx context.Context, discussionID
 	}
 
 	now := time.Now()
-	return r.DAOManager.PostImportedContent(ctx, participantID, discussionID, contentID, &now, nil, model.ManualDrip)
+	return r.DAOManager.PostImportedContent(ctx, authedUser.UserID, participantID, discussionID, contentID, &now, nil, model.ManualDrip)
 }
 
 func (r *mutationResolver) ScheduleImportedContent(ctx context.Context, discussionID string, contentID string) (*model.ContentQueueRecord, error) {
@@ -381,13 +440,13 @@ func (r *mutationResolver) UpdateDiscussion(ctx context.Context, discussionID st
 	return r.DAOManager.UpdateDiscussion(ctx, discussionID, input)
 }
 
-func (r *mutationResolver) UpdateDiscussionUserState(ctx context.Context, discussionID string, state model.DiscussionUserAccessState) (*model.DiscussionUserAccess, error) {
+func (r *mutationResolver) UpdateDiscussionUserSettings(ctx context.Context, discussionID string, settings model.DiscussionUserSettings) (*model.DiscussionUserAccess, error) {
 	authedUser := auth.GetAuthedUser(ctx)
 	if authedUser == nil {
 		return nil, fmt.Errorf("Need auth")
 	}
 
-	return r.DAOManager.UpsertUserDiscussionAccess(ctx, authedUser.UserID, discussionID, state)
+	return r.DAOManager.UpsertUserDiscussionAccess(ctx, authedUser.UserID, discussionID, settings)
 }
 
 func (r *mutationResolver) AddDiscussionTags(ctx context.Context, discussionID string, tags []string) ([]*model.Tag, error) {
@@ -669,14 +728,38 @@ func (r *mutationResolver) ShuffleDiscussion(ctx context.Context, discussionID s
 	return r.DAOManager.GetDiscussionByID(ctx, discussionID)
 }
 
-func (r *mutationResolver) MuteParticipants(ctx context.Context, discussionID string, participantIDs []string, mutedForSeconds int) ([]*model.Participant, error) {
-	if mutedForSeconds < 0 || mutedForSeconds > 86400 {
-		return nil, fmt.Errorf("mutedForSeconds value is invalid")
-	}
-
+func (r *mutationResolver) SetLastPostViewed(ctx context.Context, viewerID string, postID string) (*model.Viewer, error) {
 	authedUser := auth.GetAuthedUser(ctx)
 	if authedUser == nil {
 		return nil, fmt.Errorf("Need auth")
+	}
+
+	viewer, err := r.DAOManager.GetViewerByID(ctx, viewerID)
+	if err != nil {
+		return nil, err
+	}
+
+	// TODO: Let's create a viewer. However this should be created earlier
+	// so something strange is going on. I'd rather not bandaid it here.
+	if viewer == nil || viewer.UserID == nil {
+		return nil, fmt.Errorf("Failed to find viewer")
+	}
+
+	if *viewer.UserID != authedUser.UserID {
+		return nil, fmt.Errorf("Unauthorized")
+	}
+
+	return r.DAOManager.SetViewerLastPostViewed(ctx, viewerID, postID)
+}
+
+func (r *mutationResolver) MuteParticipants(ctx context.Context, discussionID string, participantIDs []string, mutedForSeconds int) ([]*model.Participant, error) {
+	authedUser := auth.GetAuthedUser(ctx)
+	if authedUser == nil {
+		return nil, fmt.Errorf("Need auth")
+	}
+
+	if mutedForSeconds < 0 || mutedForSeconds > 86400 {
+		return nil, fmt.Errorf("mutedForSeconds value is invalid")
 	}
 
 	/* Only moderators can use this mutation */
@@ -705,6 +788,15 @@ func (r *mutationResolver) UnmuteParticipants(ctx context.Context, discussionID 
 
 func (r *queryResolver) Discussion(ctx context.Context, id string) (*model.Discussion, error) {
 	return r.resolveDiscussionByID(ctx, id)
+}
+
+func (r *queryResolver) DiscussionByLinkSlug(ctx context.Context, slug string) (*model.Discussion, error) {
+	authedUser := auth.GetAuthedUser(ctx)
+	if authedUser == nil {
+		return nil, fmt.Errorf("Need auth")
+	}
+
+	return r.DAOManager.GetDiscussionByLinkSlug(ctx, slug)
 }
 
 func (r *queryResolver) ListDiscussions(ctx context.Context, state model.DiscussionUserAccessState) ([]*model.Discussion, error) {

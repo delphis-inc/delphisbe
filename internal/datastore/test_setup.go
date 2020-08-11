@@ -20,8 +20,10 @@ func mockPreparedStatements(mock sqlmock.Sqlmock) {
 	mock.ExpectPrepare(putMediaRecordString)
 	mock.ExpectPrepare(getMediaRecordString)
 	mock.ExpectPrepare(getDiscussionsForAutoPostString)
+	mock.ExpectPrepare(getDiscussionByLinkSlugString)
 	mock.ExpectPrepare(getModeratorByUserIDString)
 	mock.ExpectPrepare(getModeratorByUserIDAndDiscussionIDString)
+	mock.ExpectPrepare(getModeratedDiscussionsByUserIDString)
 	mock.ExpectPrepare(getImportedContentByIDString)
 	mock.ExpectPrepare(getImportedContentForDiscussionString)
 	mock.ExpectPrepare(getScheduledImportedContentByDiscussionIDString)
@@ -36,6 +38,8 @@ func mockPreparedStatements(mock sqlmock.Sqlmock) {
 	mock.ExpectPrepare(deleteDiscussionTagsString)
 	mock.ExpectPrepare(getDiscussionsByUserAccessString)
 	mock.ExpectPrepare(getDiscussionUserAccessString)
+	mock.ExpectPrepare(getDUAForEverythingNotificationsString)
+	mock.ExpectPrepare(getDUAForMentionNotificationsString)
 	mock.ExpectPrepare(upsertDiscussionUserAccessString)
 	mock.ExpectPrepare(deleteDiscussionUserAccessString)
 	mock.ExpectPrepare(getDiscussionInviteByIDString)
@@ -57,6 +61,8 @@ func mockPreparedStatements(mock sqlmock.Sqlmock) {
 	mock.ExpectPrepare(putNextShuffleTimeForDiscussionIDString)
 	mock.ExpectPrepare(getDiscussionsToShuffle)
 	mock.ExpectPrepare(incrDiscussionShuffleCount)
+	mock.ExpectPrepare(getViewerForDiscussionIDUserID)
+	mock.ExpectPrepare(updateViewerLastViewed)
 }
 
 func mockPreparedStatementsWithError(mock sqlmock.Sqlmock) {

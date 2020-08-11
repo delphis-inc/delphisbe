@@ -94,12 +94,21 @@ func TestDelphisDB_InitializeStatements(t *testing.T) {
 				Test: getDiscussionsForAutoPostString,
 			},
 			{
+				Name: "getDiscussionByLinkSlugString",
+
+				Test: getDiscussionByLinkSlugString,
+			},
+			{
 				Name: "getModeratorByUserIDString",
 				Test: getModeratorByUserIDString,
 			},
 			{
 				Name: "getModeratorByUserIDAndDiscussionIDString",
 				Test: getModeratorByUserIDAndDiscussionIDString,
+			},
+			{
+				Name: "getModeratedDiscussionsByUserIDString",
+				Test: getModeratedDiscussionsByUserIDString,
 			},
 			{
 				Name: "getImportedContentByIDString",
@@ -169,6 +178,16 @@ func TestDelphisDB_InitializeStatements(t *testing.T) {
 				Name: "upsertDiscussionUserAccessString",
 
 				Test: upsertDiscussionUserAccessString,
+			},
+			{
+				Name: "getDUAForEverythingNotificationsString",
+
+				Test: getDUAForEverythingNotificationsString,
+			},
+			{
+				Name: "getDUAForMentionNotificationsString",
+
+				Test: getDUAForMentionNotificationsString,
 			},
 			{
 				Name: "deleteDiscussionUserAccessString",
@@ -259,6 +278,16 @@ func TestDelphisDB_InitializeStatements(t *testing.T) {
 				Name: "incrDiscussionShuffleCount",
 
 				Test: incrDiscussionShuffleCount,
+			},
+			{
+				Name: "getViewerForDiscussionIDUserID",
+
+				Test: getViewerForDiscussionIDUserID,
+			},
+			{
+				Name: "updateViewerLastViewed",
+
+				Test: updateViewerLastViewed,
 			},
 		}
 

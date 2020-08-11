@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"math"
+	"strings"
 	"time"
 
 	"github.com/delphis-inc/delphisbe/graph/generated"
@@ -181,6 +182,30 @@ func (r *discussionResolver) MeCanJoinDiscussion(ctx context.Context, obj *model
 	return r.DAOManager.GetDiscussionJoinabilityForUser(ctx, authedUser.User, obj, meParticipant)
 }
 
+func (r *discussionResolver) MeViewer(ctx context.Context, obj *model.Discussion) (*model.Viewer, error) {
+	authedUser := auth.GetAuthedUser(ctx)
+	if authedUser == nil {
+		return nil, fmt.Errorf("need auth")
+	}
+
+	// TODO: Do we need to check if the user has access?
+	return r.DAOManager.GetViewerForDiscussion(ctx, obj.ID, authedUser.UserID, true)
+}
+
+func (r *discussionResolver) MeNotificationSettings(ctx context.Context, obj *model.Discussion) (*model.DiscussionUserNotificationSetting, error) {
+	authedUser := auth.GetAuthedUser(ctx)
+	if authedUser == nil {
+		return nil, nil
+	}
+
+	resp, err := r.DAOManager.GetDiscussionUserAccess(ctx, authedUser.UserID, obj.ID)
+	if err != nil {
+		return nil, fmt.Errorf("Error fetching user information")
+	}
+
+	return &resp.NotifSetting, nil
+}
+
 func (r *discussionResolver) Tags(ctx context.Context, obj *model.Discussion) ([]*model.Tag, error) {
 	return r.DAOManager.GetDiscussionTags(ctx, obj.ID)
 }
@@ -280,6 +305,10 @@ func (r *discussionAccessLinkResolver) Discussion(ctx context.Context, obj *mode
 	return r.DAOManager.GetDiscussionByID(ctx, obj.DiscussionID)
 }
 
+func (r *discussionAccessLinkResolver) URL(ctx context.Context, obj *model.DiscussionAccessLink) (string, error) {
+	return strings.Join([]string{model.InviteLinkHostname, obj.LinkSlug}, "/"), nil
+}
+
 func (r *discussionAccessLinkResolver) IsDeleted(ctx context.Context, obj *model.DiscussionAccessLink) (bool, error) {
 	return obj.DeletedAt != nil, nil
 }
@@ -366,6 +395,9 @@ func (r *discussionUserAccessResolver) IsDeleted(ctx context.Context, obj *model
 }
 
 func (r *discussionUserAccessResolver) Request(ctx context.Context, obj *model.DiscussionUserAccess) (*model.DiscussionAccessRequest, error) {
+	if obj.RequestID == nil {
+		return nil, nil
+	}
 	return r.DAOManager.GetDiscussionRequestAccessByID(ctx, *obj.RequestID)
 }
 

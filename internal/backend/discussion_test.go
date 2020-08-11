@@ -145,6 +145,7 @@ func TestDelphisBackend_CreateNewDiscussion(t *testing.T) {
 			mockDB.On("GetUserByID", ctx, mock.Anything).Return(&userObj, nil)
 			mockDB.On("GetTotalParticipantCountByDiscussionID", ctx, mock.Anything).Return(10)
 			mockDB.On("GetFlairsByUserID", ctx, mock.Anything).Return([]*model.Flair{&flairObj}, nil)
+			mockDB.On("GetViewerForDiscussion", ctx, mock.Anything, mock.Anything).Return(nil, nil)
 			mockDB.On("UpsertViewer", ctx, mock.Anything).Return(&viewerObj, nil)
 			mockDB.On("UpsertParticipant", ctx, mock.Anything).Return(&parObj, nil)
 			mockDB.On("GetParticipantsByDiscussionIDUserID", ctx, mock.Anything, mock.Anything).Return([]model.Participant{parObj}, nil)
@@ -158,6 +159,7 @@ func TestDelphisBackend_CreateNewDiscussion(t *testing.T) {
 			mockDB.On("GetUserByID", ctx, mock.Anything).Return(&userObj, nil)
 			mockDB.On("GetTotalParticipantCountByDiscussionID", ctx, mock.Anything).Return(10)
 			mockDB.On("GetFlairsByUserID", ctx, mock.Anything).Return([]*model.Flair{&flairObj}, nil)
+			mockDB.On("GetViewerForDiscussion", ctx, mock.Anything, mock.Anything).Return(nil, nil)
 			mockDB.On("UpsertViewer", ctx, mock.Anything).Return(&viewerObj, nil)
 			mockDB.On("UpsertParticipant", ctx, mock.Anything).Return(&parObj, nil)
 			mockDB.On("GetParticipantsByDiscussionIDUserID", ctx, mock.Anything, mock.Anything).Return([]model.Participant{parObj}, nil)
@@ -169,7 +171,8 @@ func TestDelphisBackend_CreateNewDiscussion(t *testing.T) {
 			mockDB.On("PutActivity", ctx, mock.Anything, mock.Anything).Return(nil)
 			mockDB.On("CommitTx", ctx, mock.Anything).Return(nil)
 			mockDB.On("GetDiscussionByID", ctx, mock.Anything).Return(&discObj, nil)
-			mockDB.On("GetParticipantsByDiscussionID", ctx, mock.Anything, mock.Anything).Return([]model.Participant{parObj}, nil)
+			mockDB.On("GetDUAForEverythingNotifications", ctx, discussionID, mock.Anything).Return(nil)
+			mockDB.On("DuaIterCollect", ctx, mock.Anything).Return(nil, nil)
 			mockDB.On("GetUserDevicesByUserID", ctx, mock.Anything).Return(nil, nil)
 
 			mockDB.On("BeginTx", ctx).Return(tx, nil)
@@ -197,6 +200,7 @@ func TestDelphisBackend_CreateNewDiscussion(t *testing.T) {
 			mockDB.On("GetUserByID", ctx, mock.Anything).Return(&userObj, nil)
 			mockDB.On("GetTotalParticipantCountByDiscussionID", ctx, mock.Anything).Return(10)
 			mockDB.On("GetFlairsByUserID", ctx, mock.Anything).Return([]*model.Flair{&flairObj}, nil)
+			mockDB.On("GetViewerForDiscussion", ctx, mock.Anything, mock.Anything).Return(nil, nil)
 			mockDB.On("UpsertViewer", ctx, mock.Anything).Return(&viewerObj, nil)
 			mockDB.On("UpsertParticipant", ctx, mock.Anything).Return(&parObj, nil)
 			mockDB.On("GetParticipantsByDiscussionIDUserID", ctx, mock.Anything, mock.Anything).Return([]model.Participant{parObj}, nil)
@@ -210,6 +214,7 @@ func TestDelphisBackend_CreateNewDiscussion(t *testing.T) {
 			mockDB.On("GetUserByID", ctx, mock.Anything).Return(&userObj, nil)
 			mockDB.On("GetTotalParticipantCountByDiscussionID", ctx, mock.Anything).Return(10)
 			mockDB.On("GetFlairsByUserID", ctx, mock.Anything).Return([]*model.Flair{&flairObj}, nil)
+			mockDB.On("GetViewerForDiscussion", ctx, mock.Anything, mock.Anything).Return(nil, nil)
 			mockDB.On("UpsertViewer", ctx, mock.Anything).Return(&viewerObj, nil)
 			mockDB.On("UpsertParticipant", ctx, mock.Anything).Return(&parObj, nil)
 			mockDB.On("GetParticipantsByDiscussionIDUserID", ctx, mock.Anything, mock.Anything).Return([]model.Participant{parObj}, nil)
@@ -221,7 +226,8 @@ func TestDelphisBackend_CreateNewDiscussion(t *testing.T) {
 			mockDB.On("PutActivity", ctx, mock.Anything, mock.Anything).Return(nil)
 			mockDB.On("CommitTx", ctx, mock.Anything).Return(nil)
 			mockDB.On("GetDiscussionByID", ctx, mock.Anything).Return(&discObj, nil)
-			mockDB.On("GetParticipantsByDiscussionID", ctx, mock.Anything, mock.Anything).Return([]model.Participant{parObj}, nil)
+			mockDB.On("GetDUAForEverythingNotifications", ctx, discussionID, mock.Anything).Return(nil)
+			mockDB.On("DuaIterCollect", ctx, mock.Anything).Return(nil, nil)
 			mockDB.On("GetUserDevicesByUserID", ctx, mock.Anything).Return(nil, nil)
 
 			mockDB.On("BeginTx", ctx).Return(tx, nil)
@@ -411,6 +417,7 @@ func TestDelphisBackend_GetDiscussionJoinabilityForUser(t *testing.T) {
 				So(err, ShouldNotBeNil)
 			})
 		})
+		mockDB.On("GetDiscussionUserAccess", ctx, discussionObj.ID, userObj.ID).Return(nil, nil)
 		Convey("when getting social infos returns an error", func() {
 			mockDB.On("GetSocialInfosByUserProfileID", ctx, userObj.UserProfile.ID).Return(nil, fmt.Errorf("sth"))
 
@@ -636,6 +643,48 @@ func TestDelphisBackend_GetDiscussionJoinabilityForUser(t *testing.T) {
 					So(err, ShouldBeNil)
 				})
 			})
+		})
+	})
+}
+
+func TestDelphisBackend_GetDiscussionByLinkSlug(t *testing.T) {
+	ctx := context.Background()
+
+	slug := "slug"
+
+	discObj := test_utils.TestDiscussion()
+
+	Convey("GetDiscussionByLinkSlug", t, func() {
+		now := time.Now()
+		cacheObj := cache.NewInMemoryCache()
+		authObj := auth.NewDelphisAuth(nil)
+		mockDB := &mocks.Datastore{}
+		backendObj := &delphisBackend{
+			db:              mockDB,
+			auth:            authObj,
+			cache:           cacheObj,
+			discussionMutex: sync.Mutex{},
+			config:          config.Config{},
+			timeProvider:    &util.FrozenTime{NowTime: now},
+		}
+
+		Convey("when the query errors out", func() {
+			expectedError := fmt.Errorf("Some Error")
+			mockDB.On("GetDiscussionByLinkSlug", ctx, slug).Return(nil, expectedError)
+
+			resp, err := backendObj.GetDiscussionByLinkSlug(ctx, slug)
+
+			So(err, ShouldEqual, expectedError)
+			So(resp, ShouldBeNil)
+		})
+
+		Convey("when the query returns successfully", func() {
+			mockDB.On("GetDiscussionByLinkSlug", ctx, slug).Return(&discObj, nil)
+
+			resp, err := backendObj.GetDiscussionByLinkSlug(ctx, slug)
+
+			So(err, ShouldBeNil)
+			So(resp, ShouldResemble, &discObj)
 		})
 	})
 }

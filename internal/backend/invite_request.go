@@ -152,6 +152,7 @@ func (d *delphisBackend) RespondToInvitation(ctx context.Context, inviteID strin
 			DiscussionID: inviteObj.DiscussionID,
 			UserID:       inviteObj.UserID,
 			State:        model.DiscussionUserAccessStateActive,
+			NotifSetting: model.DiscussionUserNotificationSettingEverything,
 		}
 
 		if _, err := d.db.UpsertDiscussionUserAccess(ctx, tx, input); err != nil {
@@ -218,6 +219,7 @@ func (d *delphisBackend) RespondToRequestAccess(ctx context.Context, requestID s
 			DiscussionID: requestObj.DiscussionID,
 			UserID:       requestObj.UserID,
 			State:        model.DiscussionUserAccessStateActive,
+			NotifSetting: model.DiscussionUserNotificationSettingEverything,
 			RequestID:    &requestObj.ID,
 		}
 		if _, err := d.db.UpsertDiscussionUserAccess(ctx, tx, input); err != nil {

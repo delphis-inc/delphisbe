@@ -1,3 +1,0 @@
-type ParticipantNotificationPreferences {
-    id: ID!
-}

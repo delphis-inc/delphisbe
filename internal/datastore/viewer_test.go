@@ -2,12 +2,14 @@ package datastore
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"testing"
 	"time"
 
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/delphis-inc/delphisbe/graph/model"
+	"github.com/delphis-inc/delphisbe/internal/backend/test_utils"
 	"github.com/delphis-inc/delphisbe/internal/config"
 	"github.com/jinzhu/gorm"
 	. "github.com/smartystreets/goconvey/convey"
@@ -139,6 +141,151 @@ func TestDelphisDB_UpsertViewer(t *testing.T) {
 				So(resp, ShouldNotBeNil)
 				So(mock.ExpectationsWereMet(), ShouldBeNil)
 			})
+		})
+	})
+}
+
+func TestDelphisDB_SetViewerLastPostViewed(t *testing.T) {
+	ctx := context.Background()
+	viewerID := test_utils.ViewerID
+	postID := test_utils.PostID
+	now := time.Now()
+	testViewer := test_utils.TestViewer()
+
+	Convey("SetViewerLastPostViewed", t, func() {
+		db, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
+
+		assert.Nil(t, err, "Failed setting up sqlmock db")
+
+		gormDB, _ := gorm.Open("postgres", db)
+		mockDatastore := &delphisDB{
+			dbConfig:  config.TablesConfig{},
+			sql:       gormDB,
+			pg:        db,
+			prepStmts: &dbPrepStmts{},
+			dynamo:    nil,
+			encoder:   nil,
+		}
+		defer db.Close()
+
+		Convey("when preparing statements returns an error", func() {
+			mockPreparedStatementsWithError(mock)
+
+			resp, err := mockDatastore.SetViewerLastPostViewed(ctx, viewerID, postID, now)
+
+			So(err, ShouldNotBeNil)
+			So(resp, ShouldBeNil)
+			So(mock.ExpectationsWereMet(), ShouldBeNil)
+		})
+
+		Convey("when query execution returns an error", func() {
+			mockPreparedStatements(mock)
+			mock.ExpectQuery(updateViewerLastViewed).WithArgs(viewerID, now, postID).WillReturnError(fmt.Errorf("error"))
+
+			resp, err := mockDatastore.SetViewerLastPostViewed(ctx, viewerID, postID, now)
+
+			So(err, ShouldNotBeNil)
+			So(resp, ShouldBeNil)
+			So(mock.ExpectationsWereMet(), ShouldBeNil)
+		})
+
+		Convey("when query execution returns no rows", func() {
+			mockPreparedStatements(mock)
+			mock.ExpectQuery(updateViewerLastViewed).WithArgs(viewerID, now, postID).WillReturnError(sql.ErrNoRows)
+
+			resp, err := mockDatastore.SetViewerLastPostViewed(ctx, viewerID, postID, now)
+
+			So(err, ShouldBeNil)
+			So(resp, ShouldBeNil)
+			So(mock.ExpectationsWereMet(), ShouldBeNil)
+		})
+
+		Convey("when query execution succeeds and returns data", func() {
+			expected := testViewer
+			expected.LastViewed = &now
+			expected.LastViewedPostID = &postID
+			mockPreparedStatements(mock)
+			rs := sqlmock.NewRows([]string{"id", "created_at", "updated_at", "last_viewed", "last_viewed_post_id", "discussion_id", "user_id"}).
+				AddRow(testViewer.ID, testViewer.CreatedAt, testViewer.UpdatedAt, now, postID, testViewer.DiscussionID, testViewer.UserID)
+
+			mock.ExpectQuery(updateViewerLastViewed).WithArgs(viewerID, now, postID).WillReturnRows(rs)
+
+			resp, err := mockDatastore.SetViewerLastPostViewed(ctx, viewerID, postID, now)
+
+			So(err, ShouldBeNil)
+			So(resp, ShouldResemble, &expected)
+			So(mock.ExpectationsWereMet(), ShouldBeNil)
+		})
+	})
+}
+
+func TestDelphisDB_GetViewerForDiscussion(t *testing.T) {
+	ctx := context.Background()
+	discussionID := test_utils.DiscussionID
+	userID := test_utils.UserID
+	testViewer := test_utils.TestViewer()
+
+	Convey("GetViewerForDiscussion", t, func() {
+		db, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
+
+		assert.Nil(t, err, "Failed setting up sqlmock db")
+
+		gormDB, _ := gorm.Open("postgres", db)
+		mockDatastore := &delphisDB{
+			dbConfig:  config.TablesConfig{},
+			sql:       gormDB,
+			pg:        db,
+			prepStmts: &dbPrepStmts{},
+			dynamo:    nil,
+			encoder:   nil,
+		}
+		defer db.Close()
+
+		Convey("when preparing statements returns an error", func() {
+			mockPreparedStatementsWithError(mock)
+
+			resp, err := mockDatastore.GetViewerForDiscussion(ctx, discussionID, userID)
+
+			So(err, ShouldNotBeNil)
+			So(resp, ShouldBeNil)
+			So(mock.ExpectationsWereMet(), ShouldBeNil)
+		})
+
+		Convey("when query execution returns an error", func() {
+			mockPreparedStatements(mock)
+			mock.ExpectQuery(getViewerForDiscussionIDUserID).WithArgs(discussionID, userID).WillReturnError(fmt.Errorf("error"))
+
+			resp, err := mockDatastore.GetViewerForDiscussion(ctx, discussionID, userID)
+
+			So(err, ShouldNotBeNil)
+			So(resp, ShouldBeNil)
+			So(mock.ExpectationsWereMet(), ShouldBeNil)
+		})
+
+		Convey("when query execution returns no rows", func() {
+			mockPreparedStatements(mock)
+			mock.ExpectQuery(getViewerForDiscussionIDUserID).WithArgs(discussionID, userID).WillReturnError(sql.ErrNoRows)
+
+			resp, err := mockDatastore.GetViewerForDiscussion(ctx, discussionID, userID)
+
+			So(err, ShouldBeNil)
+			So(resp, ShouldBeNil)
+			So(mock.ExpectationsWereMet(), ShouldBeNil)
+		})
+
+		Convey("when query execution succeeds and returns data", func() {
+			expected := testViewer
+			mockPreparedStatements(mock)
+			rs := sqlmock.NewRows([]string{"id", "created_at", "updated_at", "last_viewed", "last_viewed_post_id", "discussion_id", "user_id"}).
+				AddRow(testViewer.ID, testViewer.CreatedAt, testViewer.UpdatedAt, testViewer.LastViewed, testViewer.LastViewedPostID, testViewer.DiscussionID, testViewer.UserID)
+
+			mock.ExpectQuery(getViewerForDiscussionIDUserID).WithArgs(discussionID, userID).WillReturnRows(rs)
+
+			resp, err := mockDatastore.GetViewerForDiscussion(ctx, discussionID, userID)
+
+			So(err, ShouldBeNil)
+			So(resp, ShouldResemble, &expected)
+			So(mock.ExpectationsWereMet(), ShouldBeNil)
 		})
 	})
 }

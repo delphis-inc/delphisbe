@@ -210,6 +210,7 @@ func TestDelphisBackend_CreatePost(t *testing.T) {
 	ctx := context.Background()
 
 	discussionID := test_utils.DiscussionID
+	userID := test_utils.UserID
 	participantID := test_utils.ParticipantID
 
 	postObj := test_utils.TestPost()
@@ -239,7 +240,7 @@ func TestDelphisBackend_CreatePost(t *testing.T) {
 		Convey("when the post type is not passed in", func() {
 			tempPostInputObj := postInputObj
 			tempPostInputObj.PostType = ""
-			resp, err := backendObj.CreatePost(ctx, discussionID, participantID, tempPostInputObj)
+			resp, err := backendObj.CreatePost(ctx, discussionID, userID, participantID, tempPostInputObj)
 
 			So(err, ShouldNotBeNil)
 			So(resp, ShouldBeNil)
@@ -249,7 +250,7 @@ func TestDelphisBackend_CreatePost(t *testing.T) {
 			expectedError := fmt.Errorf("Some Error")
 			mockDB.On("BeginTx", ctx).Return(nil, expectedError)
 
-			resp, err := backendObj.CreatePost(ctx, discussionID, participantID, postInputObj)
+			resp, err := backendObj.CreatePost(ctx, discussionID, userID, participantID, postInputObj)
 
 			So(err, ShouldEqual, expectedError)
 			So(resp, ShouldBeNil)
@@ -261,7 +262,7 @@ func TestDelphisBackend_CreatePost(t *testing.T) {
 			mockDB.On("PutPostContent", ctx, mock.Anything, mock.Anything).Return(expectedError)
 			mockDB.On("RollbackTx", ctx, mock.Anything).Return(expectedError)
 
-			resp, err := backendObj.CreatePost(ctx, discussionID, participantID, postInputObj)
+			resp, err := backendObj.CreatePost(ctx, discussionID, userID, participantID, postInputObj)
 
 			So(err, ShouldNotBeNil)
 			So(resp, ShouldBeNil)
@@ -273,7 +274,7 @@ func TestDelphisBackend_CreatePost(t *testing.T) {
 			mockDB.On("PutPostContent", ctx, mock.Anything, mock.Anything).Return(expectedError)
 			mockDB.On("RollbackTx", ctx, mock.Anything).Return(nil)
 
-			resp, err := backendObj.CreatePost(ctx, discussionID, participantID, postInputObj)
+			resp, err := backendObj.CreatePost(ctx, discussionID, userID, participantID, postInputObj)
 
 			So(err, ShouldEqual, expectedError)
 			So(resp, ShouldBeNil)
@@ -286,7 +287,7 @@ func TestDelphisBackend_CreatePost(t *testing.T) {
 			mockDB.On("PutPost", ctx, mock.Anything, mock.Anything).Return(nil, expectedError)
 			mockDB.On("RollbackTx", ctx, mock.Anything).Return(expectedError)
 
-			resp, err := backendObj.CreatePost(ctx, discussionID, participantID, postInputObj)
+			resp, err := backendObj.CreatePost(ctx, discussionID, userID, participantID, postInputObj)
 
 			So(err, ShouldNotBeNil)
 			So(resp, ShouldBeNil)
@@ -299,7 +300,7 @@ func TestDelphisBackend_CreatePost(t *testing.T) {
 			mockDB.On("PutPost", ctx, mock.Anything, mock.Anything).Return(nil, expectedError)
 			mockDB.On("RollbackTx", ctx, mock.Anything).Return(nil)
 
-			resp, err := backendObj.CreatePost(ctx, discussionID, participantID, postInputObj)
+			resp, err := backendObj.CreatePost(ctx, discussionID, userID, participantID, postInputObj)
 
 			So(err, ShouldEqual, expectedError)
 			So(resp, ShouldBeNil)
@@ -313,7 +314,7 @@ func TestDelphisBackend_CreatePost(t *testing.T) {
 			mockDB.On("PutActivity", ctx, mock.Anything, mock.Anything).Return(expectedError)
 			mockDB.On("CommitTx", ctx, mock.Anything).Return(expectedError)
 
-			resp, err := backendObj.CreatePost(ctx, discussionID, participantID, postInputObj)
+			resp, err := backendObj.CreatePost(ctx, discussionID, userID, participantID, postInputObj)
 
 			So(err, ShouldEqual, expectedError)
 			So(resp, ShouldBeNil)
@@ -328,7 +329,7 @@ func TestDelphisBackend_CreatePost(t *testing.T) {
 			mockDB.On("CommitTx", ctx, mock.Anything).Return(nil)
 			mockDB.On("GetDiscussionByID", ctx, discussionID).Return(nil, expectedError)
 
-			resp, err := backendObj.CreatePost(ctx, discussionID, participantID, postInputObj)
+			resp, err := backendObj.CreatePost(ctx, discussionID, userID, participantID, postInputObj)
 
 			So(err, ShouldBeNil)
 			So(resp, ShouldNotBeNil)
@@ -343,10 +344,11 @@ func TestDelphisBackend_CreatePost(t *testing.T) {
 			mockDB.On("CommitTx", ctx, mock.Anything).Return(nil)
 			mockDB.On("GetDiscussionByID", ctx, discussionID).Return(&discObj, nil)
 			mockDB.On("UpsertDiscussion", ctx, mock.Anything).Return(&discObj, nil)
-			mockDB.On("GetParticipantsByDiscussionID", ctx, discussionID).Return(nil, expectedError)
+			mockDB.On("GetDUAForEverythingNotifications", ctx, discussionID, userID).Return(nil)
+			mockDB.On("DuaIterCollect", ctx, mock.Anything).Return(nil, nil)
 			mockDB.On("GetUserDevicesByUserID", ctx, mock.Anything).Return(nil, expectedError)
 
-			resp, err := backendObj.CreatePost(ctx, discussionID, participantID, postInputObj)
+			resp, err := backendObj.CreatePost(ctx, discussionID, userID, participantID, postInputObj)
 
 			So(err, ShouldBeNil)
 			So(resp, ShouldNotBeNil)
@@ -360,10 +362,11 @@ func TestDelphisBackend_CreatePost(t *testing.T) {
 			mockDB.On("CommitTx", ctx, mock.Anything).Return(nil)
 			mockDB.On("GetDiscussionByID", ctx, discussionID).Return(&discObj, nil)
 			mockDB.On("UpsertDiscussion", ctx, mock.Anything).Return(&discObj, nil)
-			mockDB.On("GetParticipantsByDiscussionID", ctx, discussionID).Return(nil, nil)
+			mockDB.On("GetDUAForEverythingNotifications", ctx, discussionID, userID).Return(nil)
+			mockDB.On("DuaIterCollect", ctx, mock.Anything).Return(nil, nil)
 			mockDB.On("GetUserDevicesByUserID", ctx, mock.Anything).Return(nil, nil)
 
-			resp, err := backendObj.CreatePost(ctx, discussionID, participantID, postInputObj)
+			resp, err := backendObj.CreatePost(ctx, discussionID, userID, participantID, postInputObj)
 
 			So(err, ShouldBeNil)
 			So(resp, ShouldNotBeNil)
@@ -450,7 +453,8 @@ func TestDelphisBackend_CreateAlertPost(t *testing.T) {
 			mockDB.On("CommitTx", ctx, mock.Anything).Return(nil)
 			mockDB.On("GetDiscussionByID", ctx, discussionID).Return(&discObj, nil)
 			mockDB.On("UpsertDiscussion", ctx, mock.Anything).Return(&discObj, nil)
-			mockDB.On("GetParticipantsByDiscussionID", ctx, discussionID).Return(nil, nil)
+			mockDB.On("GetDUAForEverythingNotifications", ctx, discussionID, mock.Anything).Return(nil)
+			mockDB.On("DuaIterCollect", ctx, mock.Anything).Return(nil, nil)
 			mockDB.On("GetUserDevicesByUserID", ctx, mock.Anything).Return(nil, nil)
 
 			resp, err := backendObj.CreateAlertPost(ctx, discussionID, &userObj, false)
@@ -465,6 +469,7 @@ func TestDelphisBackend_PostImportedContent(t *testing.T) {
 	ctx := context.Background()
 
 	discussionID := test_utils.DiscussionID
+	userID := test_utils.UserID
 	participantID := test_utils.ParticipantID
 	contentID := test_utils.ContentID
 
@@ -500,7 +505,7 @@ func TestDelphisBackend_PostImportedContent(t *testing.T) {
 			expectedError := fmt.Errorf("Some error")
 			mockDB.On("GetImportedContentByID", ctx, contentID).Return(nil, expectedError)
 
-			resp, err := backendObj.PostImportedContent(ctx, participantID, discussionID, contentID, &now, tags, dripType)
+			resp, err := backendObj.PostImportedContent(ctx, userID, participantID, discussionID, contentID, &now, tags, dripType)
 
 			So(err, ShouldNotBeNil)
 			So(resp, ShouldBeNil)
@@ -511,7 +516,7 @@ func TestDelphisBackend_PostImportedContent(t *testing.T) {
 			mockDB.On("GetImportedContentByID", ctx, contentID).Return(&contentObj, nil)
 			mockDB.On("BeginTx", ctx).Return(nil, expectedError)
 
-			resp, err := backendObj.PostImportedContent(ctx, participantID, discussionID, contentID, &now, tags, dripType)
+			resp, err := backendObj.PostImportedContent(ctx, userID, participantID, discussionID, contentID, &now, tags, dripType)
 
 			So(err, ShouldNotBeNil)
 			So(resp, ShouldBeNil)
@@ -529,13 +534,14 @@ func TestDelphisBackend_PostImportedContent(t *testing.T) {
 			mockDB.On("CommitTx", ctx, mock.Anything).Return(nil)
 			mockDB.On("GetDiscussionByID", ctx, discussionID).Return(&discObj, nil)
 			mockDB.On("UpsertDiscussion", ctx, mock.Anything).Return(&discObj, nil)
-			mockDB.On("GetParticipantsByDiscussionID", ctx, discussionID).Return(nil, nil)
+			mockDB.On("GetDUAForEverythingNotifications", ctx, discussionID, userID).Return(nil)
+			mockDB.On("DuaIterCollect", ctx, mock.Anything).Return(nil, nil)
 			mockDB.On("GetUserDevicesByUserID", ctx, mock.Anything).Return(nil, nil)
 
 			// PutImportedContentQueue
 			mockDB.On("PutImportedContentDiscussionQueue", ctx, discussionID, contentID, mock.Anything, tags).Return(nil, expectedError)
 
-			resp, err := backendObj.PostImportedContent(ctx, participantID, discussionID, contentID, &now, tags, dripType)
+			resp, err := backendObj.PostImportedContent(ctx, userID, participantID, discussionID, contentID, &now, tags, dripType)
 
 			So(err, ShouldNotBeNil)
 			So(resp, ShouldBeNil)
@@ -552,13 +558,14 @@ func TestDelphisBackend_PostImportedContent(t *testing.T) {
 			mockDB.On("CommitTx", ctx, mock.Anything).Return(nil)
 			mockDB.On("GetDiscussionByID", ctx, discussionID).Return(&discObj, nil)
 			mockDB.On("UpsertDiscussion", ctx, mock.Anything).Return(&discObj, nil)
-			mockDB.On("GetParticipantsByDiscussionID", ctx, discussionID).Return(nil, nil)
+			mockDB.On("GetDUAForEverythingNotifications", ctx, discussionID, userID).Return(nil)
+			mockDB.On("DuaIterCollect", ctx, mock.Anything).Return(nil, nil)
 			mockDB.On("GetUserDevicesByUserID", ctx, mock.Anything).Return(nil, nil)
 
 			// PutImportedContentQueue
 			mockDB.On("PutImportedContentDiscussionQueue", ctx, discussionID, contentID, mock.Anything, tags).Return(&cqrObj, nil)
 
-			resp, err := backendObj.PostImportedContent(ctx, participantID, discussionID, contentID, &now, tags, dripType)
+			resp, err := backendObj.PostImportedContent(ctx, userID, participantID, discussionID, contentID, &now, tags, dripType)
 
 			So(err, ShouldBeNil)
 			So(resp, ShouldNotBeNil)
@@ -736,6 +743,81 @@ func TestDelphisBackend_GetPostsByDiscussionID(t *testing.T) {
 			So(resp, ShouldNotBeNil)
 		})
 	})
+}
+
+func TestDelphisBackend_GetPostByDiscussionPostID(t *testing.T) {
+	ctx := context.Background()
+	discussionID := test_utils.DiscussionID
+
+	postObject := test_utils.TestPost()
+
+	Convey("GetPostByDiscussionPostID", t, func() {
+		now := time.Now()
+		cacheObj := cache.NewInMemoryCache()
+		authObj := auth.NewDelphisAuth(nil)
+		mockDB := &mocks.Datastore{}
+		backendObj := &delphisBackend{
+			db:              mockDB,
+			auth:            authObj,
+			cache:           cacheObj,
+			discussionMutex: sync.Mutex{},
+			config:          config.Config{},
+			timeProvider:    &util.FrozenTime{NowTime: now},
+		}
+
+		Convey("when GetPostByID returns an error", func() {
+			mockDB.On("GetPostByID", ctx, postObject.ID).Return(nil, fmt.Errorf("sth"))
+
+			resp, err := backendObj.GetPostByDiscussionPostID(ctx, discussionID, postObject.ID)
+
+			So(err, ShouldNotBeNil)
+			So(resp, ShouldBeNil)
+		})
+
+		Convey("when response from GetPostID is nil", func() {
+			mockDB.On("GetPostByID", ctx, postObject.ID).Return(nil, nil)
+
+			resp, err := backendObj.GetPostByDiscussionPostID(ctx, discussionID, postObject.ID)
+
+			So(err, ShouldBeNil)
+			So(resp, ShouldBeNil)
+		})
+
+		Convey("when response from GetPostID has nil DiscussionID", func() {
+			returnedPost := postObject
+			returnedPost.DiscussionID = nil
+			mockDB.On("GetPostByID", ctx, postObject.ID).Return(&returnedPost, nil)
+
+			resp, err := backendObj.GetPostByDiscussionPostID(ctx, discussionID, postObject.ID)
+
+			So(err, ShouldBeNil)
+			So(resp, ShouldBeNil)
+		})
+
+		Convey("when response from GetPostID has different discussionID than requested", func() {
+			returnedPost := postObject
+			discID := "foo"
+			returnedPost.DiscussionID = &discID
+			mockDB.On("GetPostByID", ctx, postObject.ID).Return(&returnedPost, nil)
+
+			resp, err := backendObj.GetPostByDiscussionPostID(ctx, discussionID, postObject.ID)
+
+			So(err, ShouldBeNil)
+			So(resp, ShouldBeNil)
+		})
+
+		Convey("when response from GetPostID is set and matches the discussionID", func() {
+			returnedPost := postObject
+			returnedPost.DiscussionID = &discussionID
+			mockDB.On("GetPostByID", ctx, postObject.ID).Return(&returnedPost, nil)
+
+			resp, err := backendObj.GetPostByDiscussionPostID(ctx, discussionID, postObject.ID)
+
+			So(err, ShouldBeNil)
+			So(resp, ShouldResemble, &returnedPost)
+		})
+	})
+
 }
 
 func TestDelphisBackend_GetPostsConnectionByDiscussionID(t *testing.T) {

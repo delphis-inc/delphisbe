@@ -3,11 +3,10 @@ package model
 import "time"
 
 type Viewer struct {
-	ID        string     `json:"id" dynamodbav:"ViewerID" gorm:"type:varchar(36);"`
-	CreatedAt time.Time  `json:"createdAt" gorm:"not null;default:CURRENT_TIMESTAMP;"`
-	UpdatedAt time.Time  `json:"updatedAt" gorm:"not null;default:CURRENT_TIMESTAMP ONUPDATE CURRENT_TIMESTAMP;"`
-	DeletedAt *time.Time `json:"deletedAt"`
-	//NotificationPreferences ViewerNotificationPreferences `json:"notificationPreferences"`
+	ID               string      `json:"id" dynamodbav:"ViewerID" gorm:"type:varchar(36);"`
+	CreatedAt        time.Time   `json:"createdAt" gorm:"not null;default:CURRENT_TIMESTAMP;"`
+	UpdatedAt        time.Time   `json:"updatedAt" gorm:"not null;default:CURRENT_TIMESTAMP ONUPDATE CURRENT_TIMESTAMP;"`
+	DeletedAt        *time.Time  `json:"deletedAt"`
 	DiscussionID     *string     `json:"discussionID" dynamodbav:"DiscussionID" gorm:"type:varchar(36);"`
 	Discussion       *Discussion `json:"discussion" dynamodbav:"-" gorm:"-"` //gorm:"foreignkey:discussion_id;association_foreignkey:id;"`
 	LastViewed       *time.Time  `json:"lastViewed"`

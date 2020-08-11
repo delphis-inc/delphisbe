@@ -1,1 +1,0 @@
-union DiscussionNotificationPreferences = ViewerNotificationPreferences | ParticipantNotificationPreferences

@@ -25,10 +25,12 @@ type dbPrepStmts struct {
 
 	// Discussion
 	getDiscussionsForAutoPostStmt *sql2.Stmt
+	getDiscussionByLinkSlugStmt   *sql2.Stmt
 
 	// Moderator
 	getModeratorByUserIDStmt                *sql2.Stmt
 	getModeratorByUserIDAndDiscussionIDStmt *sql2.Stmt
+	getModeratedDiscussionsByUserIDStmt     *sql2.Stmt
 
 	// ImportedContent
 	getImportedContentByIDStmt                    *sql2.Stmt
@@ -47,10 +49,12 @@ type dbPrepStmts struct {
 	deleteDiscussionTagsStmt   *sql2.Stmt
 
 	// Discussion Access
-	getDiscussionsByUserAccessStmt *sql2.Stmt
-	getDiscussionUserAccessStmt    *sql2.Stmt
-	upsertDiscussionUserAccessStmt *sql2.Stmt
-	deleteDiscussionUserAccessStmt *sql2.Stmt
+	getDiscussionsByUserAccessStmt       *sql2.Stmt
+	getDiscussionUserAccessStmt          *sql2.Stmt
+	getDUAForEverythingNotificationsStmt *sql2.Stmt
+	getDUAForMentionNotificationsStmt    *sql2.Stmt
+	upsertDiscussionUserAccessStmt       *sql2.Stmt
+	deleteDiscussionUserAccessStmt       *sql2.Stmt
 
 	// InvitesRequests
 	getDiscussionInviteByIDStmt                            *sql2.Stmt
@@ -76,6 +80,10 @@ type dbPrepStmts struct {
 	putNextShuffleTimeForDiscussionIDString *sql2.Stmt
 	getDiscussionsToShuffle                 *sql2.Stmt
 	incrDiscussionShuffleCount              *sql2.Stmt
+
+	// Viewers
+	getViewerForDiscussionIDUserID *sql2.Stmt
+	updateViewerLastViewed         *sql2.Stmt
 }
 
 const getPostByIDString = `
@@ -255,6 +263,31 @@ const getDiscussionsForAutoPostString = `
 		FROM discussions
 		WHERE auto_post = true`
 
+const getDiscussionByLinkSlugString = `
+		SELECT d.id,
+			d.created_at,
+			d.updated_at,
+			d.deleted_at,
+			d.title,
+			d.anonymity_type,
+			d.moderator_id,
+			d.auto_post,
+			d.icon_url,
+			d.idle_minutes,
+			d.description,
+			d.title_history,
+			d.description_history,
+			d.discussion_joinability,
+			d.last_post_id,
+			d.last_post_created_at,
+			d.shuffle_count,
+			d.lock_status
+		FROM discussion_access_link dal
+		INNER JOIN discussions d
+		ON dal.discussion_id = d.id
+		WHERE dal.link_slug = $1
+			AND d.lock_status = false;`
+
 // Currently only care if you are a mod, not checking on discussion mods
 const getModeratorByUserIDString = `
 		SELECT m.id,
@@ -281,6 +314,33 @@ const getModeratorByUserIDAndDiscussionIDString = `
 		INNER JOIN discussions d
 		ON m.id = d.moderator_id
 		WHERE u.user_id = $1 and d.id = $2;`
+
+const getModeratedDiscussionsByUserIDString = `
+		SELECT d.id,
+			d.created_at,
+			d.updated_at,
+			d.deleted_at,
+			d.title,
+			d.anonymity_type,
+			d.moderator_id,
+			d.auto_post,
+			d.icon_url,
+			d.idle_minutes,
+			d.description,
+			d.title_history,
+			d.description_history,
+			d.discussion_joinability,
+			d.last_post_id,
+			d.last_post_created_at,
+			d.shuffle_count,
+			d.lock_status
+		FROM moderators m
+		INNER JOIN user_profiles u
+		ON m.user_profile_id = u.id
+		INNER JOIN discussions d
+		ON m.id = d.moderator_id
+		WHERE u.user_id = $1;
+`
 
 const getImportedContentByIDString = `
 		SELECT id,
@@ -481,12 +541,14 @@ const getDiscussionsByUserAccessString = `
 			d.discussion_joinability,
 			d.last_post_id,
 			d.last_post_created_at,
-			d.shuffle_count
+			d.shuffle_count,
+			d.lock_status
 		FROM discussion_user_access dua
 		INNER JOIN discussions d
 			ON dua.discussion_id = d.id
 		WHERE dua.user_id = $1
 			AND dua.state = $2
+			AND d.lock_status = false
 			AND d.deleted_at is null
 		ORDER BY d.last_post_created_at desc;`
 
@@ -495,6 +557,7 @@ const getDiscussionUserAccessString = `
 			user_id,
 			state,
 			request_id,
+			notif_setting,
 			created_at,
 			updated_at,
 			deleted_at
@@ -502,13 +565,45 @@ const getDiscussionUserAccessString = `
 		WHERE discussion_id = $1
 			AND user_id = $2;`
 
+const getDUAForEverythingNotificationsString = `
+		SELECT 	discussion_id,
+			user_id,
+			state,
+			request_id,
+			notif_setting,
+			created_at,
+			updated_at,
+			deleted_at
+		FROM discussion_user_access
+		WHERE discussion_id = $1
+			AND user_id != $2
+			AND state = 'ACTIVE'
+			AND notif_setting = 'EVERYTHING';`
+
+const getDUAForMentionNotificationsString = `
+		SELECT 	discussion_id,
+			user_id,
+			state,
+			request_id,
+			notif_setting,
+			created_at,
+			updated_at,
+			deleted_at
+		FROM discussion_user_access
+		WHERE discussion_id = $1
+			AND user_id != $2
+			AND user_id = ANY($3)
+			AND state = 'ACTIVE'
+			AND notif_setting = 'MENTIONS';` // We could also check if notif_setting != NONE if we wanted to treat these notifs differently
+
 const upsertDiscussionUserAccessString = `
 		INSERT INTO discussion_user_access (
 			discussion_id,
 			user_id,
 			state,
-			request_id
-		) VALUES ($1, $2, $3, $4)
+			request_id,
+			notif_setting
+		) VALUES ($1, $2, $3, $4, $5)
 		ON CONFLICT (discussion_id, user_id)
 		DO UPDATE SET state = $3,
 			request_id = $4
@@ -517,6 +612,7 @@ const upsertDiscussionUserAccessString = `
 			user_id,
 			state,
 			request_id,
+			notif_setting,
 			created_at,
 			updated_at,
 			deleted_at;`
@@ -735,8 +831,7 @@ const getDiscussionsToShuffle = `
 		FROM discussion_shuffle_time s
 		JOIN discussions d ON d.id = s.discussion_id
 		WHERE shuffle_time is not NULL 
-		AND shuffle_time <= $1;
-`
+		AND shuffle_time <= $1;`
 
 // This may cause multiple updates to happen to the same row but since
 // shuffling is sort of idempotent (no expected outcome) it's a good
@@ -746,5 +841,32 @@ const incrDiscussionShuffleCount = `
 		SET shuffle_count = shuffle_count + 1
 		WHERE id = $1
 		RETURNING
-			shuffle_count;
-`
+			shuffle_count;`
+
+const getViewerForDiscussionIDUserID = `
+		SELECT
+			id,
+			created_at,
+			updated_at,
+			last_viewed,
+			last_viewed_post_id,
+			discussion_id,
+			user_id
+		FROM viewers
+		WHERE 
+			discussion_id = $1 
+			AND user_id = $2
+			AND deleted_at is NULL;`
+
+const updateViewerLastViewed = `
+		UPDATE viewers
+		SET last_viewed = $2, last_viewed_post_id = $3
+		WHERE id = $1
+		RETURNING 
+			id,
+			created_at,
+			updated_at,
+			last_viewed,
+			last_viewed_post_id,
+			discussion_id,
+			user_id;`

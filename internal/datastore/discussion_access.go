@@ -5,6 +5,8 @@ import (
 	"database/sql"
 	"io"
 
+	"github.com/lib/pq"
+
 	"github.com/sirupsen/logrus"
 
 	"github.com/delphis-inc/delphisbe/graph/model"
@@ -50,6 +52,7 @@ func (d *delphisDB) GetDiscussionUserAccess(ctx context.Context, discussionID, u
 		&dua.UserID,
 		&dua.State,
 		&dua.RequestID,
+		&dua.NotifSetting,
 		&dua.CreatedAt,
 		&dua.UpdatedAt,
 		&dua.DeletedAt,
@@ -62,6 +65,53 @@ func (d *delphisDB) GetDiscussionUserAccess(ctx context.Context, discussionID, u
 	}
 
 	return &dua, nil
+}
+
+func (d *delphisDB) GetDUAForEverythingNotifications(ctx context.Context, discussionID, userID string) DiscussionUserAccessIter {
+	logrus.Debug("GetDUAForEverythingNotifications::SQL Query")
+	if err := d.initializeStatements(ctx); err != nil {
+		logrus.WithError(err).Error("GetDUAForEverythingNotifications::failed to initialize statements")
+		return &duaIter{err: err}
+	}
+
+	rows, err := d.prepStmts.getDUAForEverythingNotificationsStmt.QueryContext(
+		ctx,
+		discussionID,
+		userID,
+	)
+	if err != nil {
+		logrus.WithError(err).Error("failed to query getDUAForEverythingNotificationsString")
+		return &duaIter{err: err}
+	}
+
+	return &duaIter{
+		ctx:  ctx,
+		rows: rows,
+	}
+}
+
+func (d *delphisDB) GetDUAForMentionNotifications(ctx context.Context, discussionID string, userID string, mentionedUserIDs []string) DiscussionUserAccessIter {
+	logrus.Debug("GetDUAForMentionNotifications::SQL Query")
+	if err := d.initializeStatements(ctx); err != nil {
+		logrus.WithError(err).Error("GetDUAForMentionNotifications::failed to initialize statements")
+		return &duaIter{err: err}
+	}
+
+	rows, err := d.prepStmts.getDUAForMentionNotificationsStmt.QueryContext(
+		ctx,
+		discussionID,
+		userID,
+		pq.Array(mentionedUserIDs),
+	)
+	if err != nil {
+		logrus.WithError(err).Error("failed to query getDUAForMentionNotificationsString")
+		return &duaIter{err: err}
+	}
+
+	return &duaIter{
+		ctx:  ctx,
+		rows: rows,
+	}
 }
 
 func (d *delphisDB) UpsertDiscussionUserAccess(ctx context.Context, tx *sql.Tx, dua model.DiscussionUserAccess) (*model.DiscussionUserAccess, error) {
@@ -77,11 +127,13 @@ func (d *delphisDB) UpsertDiscussionUserAccess(ctx context.Context, tx *sql.Tx, 
 		dua.UserID,
 		dua.State,
 		dua.RequestID,
+		dua.NotifSetting,
 	).Scan(
 		&dua.DiscussionID,
 		&dua.UserID,
 		&dua.State,
 		&dua.RequestID,
+		&dua.NotifSetting,
 		&dua.CreatedAt,
 		&dua.UpdatedAt,
 		&dua.DeletedAt,
@@ -122,129 +174,16 @@ func (d *delphisDB) DeleteDiscussionUserAccess(ctx context.Context, tx *sql.Tx, 
 	return &dua, nil
 }
 
-type discussionIter struct {
-	err  error
-	ctx  context.Context
-	rows *sql.Rows
-}
-
-func (iter *discussionIter) Next(discussion *model.Discussion) bool {
-	if iter.err != nil {
-		logrus.WithError(iter.err).Error("iterator error")
-		return false
-	}
-
-	if iter.err = iter.ctx.Err(); iter.err != nil {
-		logrus.WithError(iter.err).Error("iterator context error")
-		return false
-	}
-
-	if !iter.rows.Next() {
-		return false
-	}
-
-	titleHistory := make([]byte, 0)
-	descriptionHistory := make([]byte, 0)
-
-	if iter.err = iter.rows.Scan(
-		&discussion.ID,
-		&discussion.CreatedAt,
-		&discussion.UpdatedAt,
-		&discussion.DeletedAt,
-		&discussion.Title,
-		&discussion.AnonymityType,
-		&discussion.ModeratorID,
-		&discussion.AutoPost,
-		&discussion.IconURL,
-		&discussion.IdleMinutes,
-		&discussion.Description,
-		&titleHistory,
-		&descriptionHistory,
-		&discussion.DiscussionJoinability,
-		&discussion.LastPostID,
-		&discussion.LastPostCreatedAt,
-		&discussion.ShuffleCount,
-	); iter.err != nil {
-		logrus.WithError(iter.err).Error("iterator failed to scan row")
-		return false
-	}
-
-	discussion.TitleHistory.RawMessage = titleHistory
-	discussion.DescriptionHistory.RawMessage = descriptionHistory
-
-	return true
-}
-
-func (iter *discussionIter) Close() error {
-	if err := iter.err; err != nil {
-		logrus.WithError(err).Error("iter error on close")
-		return err
-	}
-	if err := iter.rows.Close(); err != nil {
-		logrus.WithError(err).Error("iter rows close on close")
-		return err
-	}
-
-	return nil
-}
-
-type dfaIter struct {
-	err  error
-	ctx  context.Context
-	rows *sql.Rows
-}
-
-func (iter *dfaIter) Next(dfa *model.DiscussionFlairTemplateAccess) bool {
-	if iter.err != nil {
-		logrus.WithError(iter.err).Error("iterator error")
-		return false
-	}
-
-	if iter.err = iter.ctx.Err(); iter.err != nil {
-		logrus.WithError(iter.err).Error("iterator context error")
-		return false
-	}
-
-	if !iter.rows.Next() {
-		return false
-	}
-
-	if iter.err = iter.rows.Scan(
-		&dfa.DiscussionID,
-		&dfa.FlairTemplateID,
-		&dfa.CreatedAt,
-		&dfa.UpdatedAt,
-	); iter.err != nil {
-		logrus.WithError(iter.err).Error("iterator failed to scan row")
-		return false
-	}
-
-	return true
-}
-
-func (iter *dfaIter) Close() error {
-	if err := iter.err; err != nil {
-		logrus.WithError(err).Error("iter error on close")
-		return err
-	}
-	if err := iter.rows.Close(); err != nil {
-		logrus.WithError(err).Error("iter rows close on close")
-		return err
-	}
-
-	return nil
-}
-
-func (d *delphisDB) DiscussionIterCollect(ctx context.Context, iter DiscussionIter) ([]*model.Discussion, error) {
-	var discussions []*model.Discussion
-	disc := model.Discussion{}
+func (d *delphisDB) DuaIterCollect(ctx context.Context, iter DiscussionUserAccessIter) ([]*model.DiscussionUserAccess, error) {
+	var duaArr []*model.DiscussionUserAccess
+	dua := model.DiscussionUserAccess{}
 
 	defer iter.Close()
 
-	for iter.Next(&disc) {
-		tempDisc := disc
+	for iter.Next(&dua) {
+		tempDua := dua
 
-		discussions = append(discussions, &tempDisc)
+		duaArr = append(duaArr, &tempDua)
 	}
 
 	if err := iter.Close(); err != nil && err != io.EOF {
@@ -252,5 +191,56 @@ func (d *delphisDB) DiscussionIterCollect(ctx context.Context, iter DiscussionIt
 		return nil, err
 	}
 
-	return discussions, nil
+	return duaArr, nil
+}
+
+type duaIter struct {
+	err  error
+	ctx  context.Context
+	rows *sql.Rows
+}
+
+func (iter *duaIter) Next(dua *model.DiscussionUserAccess) bool {
+	if iter.err != nil {
+		logrus.WithError(iter.err).Error("iterator error")
+		return false
+	}
+
+	if iter.err = iter.ctx.Err(); iter.err != nil {
+		logrus.WithError(iter.err).Error("iterator context error")
+		return false
+	}
+
+	if !iter.rows.Next() {
+		return false
+	}
+
+	if iter.err = iter.rows.Scan(
+		&dua.DiscussionID,
+		&dua.UserID,
+		&dua.State,
+		&dua.RequestID,
+		&dua.NotifSetting,
+		&dua.CreatedAt,
+		&dua.UpdatedAt,
+		&dua.DeletedAt,
+	); iter.err != nil {
+		logrus.WithError(iter.err).Error("iterator failed to scan row")
+		return false
+	}
+
+	return true
+}
+
+func (iter *duaIter) Close() error {
+	if err := iter.err; err != nil {
+		logrus.WithError(err).Error("iter error on close")
+		return err
+	}
+	if err := iter.rows.Close(); err != nil {
+		logrus.WithError(err).Error("iter rows close on close")
+		return err
+	}
+
+	return nil
 }

@@ -8,7 +8,7 @@ import (
 	"go.uber.org/multierr"
 )
 
-func (d *delphisBackend) GetDiscussionAccessByUserID(ctx context.Context, userID string, state model.DiscussionUserAccessState) ([]*model.Discussion, error) {
+func (d *delphisBackend) GetDiscussionAccessesByUserID(ctx context.Context, userID string, state model.DiscussionUserAccessState) ([]*model.Discussion, error) {
 	// Get discussions the user was invited to
 	userDiscIter := d.db.GetDiscussionsByUserAccess(ctx, userID, state)
 	userDiscussions, err := d.db.DiscussionIterCollect(ctx, userDiscIter)
@@ -22,18 +22,58 @@ func (d *delphisBackend) GetDiscussionAccessByUserID(ctx context.Context, userID
 	return dedupedDiscs, nil
 }
 
-func (d *delphisBackend) UpsertUserDiscussionAccess(ctx context.Context, userID string, discussionID string, state model.DiscussionUserAccessState) (*model.DiscussionUserAccess, error) {
+func (d *delphisBackend) GetDiscussionUserAccess(ctx context.Context, userID, discussionID string) (*model.DiscussionUserAccess, error) {
+	return d.db.GetDiscussionUserAccess(ctx, discussionID, userID)
+}
+
+func (d *delphisBackend) UpsertUserDiscussionAccess(ctx context.Context, userID string, discussionID string, settings model.DiscussionUserSettings) (*model.DiscussionUserAccess, error) {
 	tx, err := d.db.BeginTx(ctx)
 	if err != nil {
 		logrus.WithError(err).Error("failed to begin tx")
 		return nil, err
 	}
 
+	// Create object for upsert
+	input, err := d.createDuaObject(ctx, userID, discussionID, settings)
+	if err != nil {
+		logrus.WithError(err).Error("failed to create dua object")
+		if txErr := d.db.RollbackTx(ctx, tx); txErr != nil {
+			logrus.WithError(txErr).Error("Failed to rollback tx")
+			return nil, multierr.Append(err, txErr)
+		}
+		return nil, err
+	}
+
+	access, err := d.db.UpsertDiscussionUserAccess(ctx, tx, *input)
+	if err != nil {
+		// Rollback tx
+		if txErr := d.db.RollbackTx(ctx, tx); txErr != nil {
+			logrus.WithError(txErr).Error("Failed to rollback tx")
+			return nil, multierr.Append(err, txErr)
+		}
+		return nil, err
+	}
+
+	if err := d.db.CommitTx(ctx, tx); err != nil {
+		logrus.WithError(err).Error("Failed to commit tx")
+		return nil, err
+	}
+
+	return access, nil
+}
+
+func (d *delphisBackend) createDuaObject(ctx context.Context, userID string, discussionID string, settings model.DiscussionUserSettings) (*model.DiscussionUserAccess, error) {
 	input := model.DiscussionUserAccess{
 		DiscussionID: discussionID,
 		UserID:       userID,
-		State:        state,
-		RequestID:    nil,
+	}
+
+	if settings.State != nil {
+		input.State = *settings.State
+	}
+
+	if settings.NotifSetting != nil {
+		input.NotifSetting = *settings.NotifSetting
 	}
 
 	dua, err := d.db.GetDiscussionUserAccess(ctx, discussionID, userID)
@@ -48,20 +88,5 @@ func (d *delphisBackend) UpsertUserDiscussionAccess(ctx context.Context, userID 
 		}
 	}
 
-	access, err := d.db.UpsertDiscussionUserAccess(ctx, tx, input)
-	if err != nil {
-		// Rollback tx.
-		if txErr := d.db.RollbackTx(ctx, tx); txErr != nil {
-			logrus.WithError(txErr).Error("Failed to rollback tx")
-			return nil, multierr.Append(err, txErr)
-		}
-		return nil, err
-	}
-
-	if err := d.db.CommitTx(ctx, tx); err != nil {
-		logrus.WithError(err).Error("Failed to commit tx")
-		return nil, err
-	}
-
-	return access, nil
+	return &input, nil
 }

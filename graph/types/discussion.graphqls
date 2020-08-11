@@ -33,6 +33,10 @@ type Discussion implements Entity {
 
     meCanJoinDiscussion: CanJoinDiscussionResponse!
 
+    meViewer: Viewer
+    # Notification setting for logged in user
+    meNotificationSettings: DiscussionUserNotificationSetting
+
     autoPost: Boolean!
     idleMinutes: Int!
     tags: [Tag!]
@@ -41,12 +45,14 @@ type Discussion implements Entity {
     accessRequests: [DiscussionAccessRequest!]
     discussionLinksAccess: DiscussionLinkAccess! @deprecated(reason: "user DiscussionAccessLink")
 
-    discussionAccessLink: DiscussionAccessLink!
+    discussionAccessLink: DiscussionAccessLink
 
     discussionJoinability: DiscussionJoinabilitySetting!
 
     shuffleCount: Int!
     secondsUntilShuffle: Int
+
+    lockStatus: Boolean!
 }
 
 type CanJoinDiscussionResponse {
@@ -108,6 +114,7 @@ type DiscussionLinkAccess {
 type DiscussionAccessLink {
     discussion: Discussion!
     linkSlug: String!
+    url: String!
     createdAt: Time!
     updatedAt: Time!
     isDeleted: Boolean!

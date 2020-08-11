@@ -1,0 +1,1 @@
+CREATE UNIQUE INDEX IF NOT EXISTS viewers_discussion_user_unique ON viewers (discussion_id, user_id);

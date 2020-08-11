@@ -67,6 +67,7 @@ func (d *delphisBackend) CreateNewDiscussion(ctx context.Context, creatingUser *
 		},
 		ModeratorID:           &moderatorObj.ID,
 		DiscussionJoinability: discussionSettings.DiscussionJoinability,
+		LockStatus:            false,
 	}
 
 	_, err = d.db.UpsertDiscussion(ctx, discussionObj)
@@ -125,6 +126,21 @@ func (d *delphisBackend) GetDiscussionJoinabilityForUser(ctx context.Context, us
 	if userObj == nil || discussionObj == nil || userObj.UserProfile == nil {
 		return nil, fmt.Errorf("No user available")
 	}
+
+	discussionUserAccess, err := d.db.GetDiscussionUserAccess(ctx, discussionObj.ID, userObj.ID)
+	if err != nil {
+		return nil, err
+	}
+	if discussionUserAccess != nil && discussionUserAccess.DeletedAt == nil {
+		response := model.DiscussionJoinabilityResponseApprovedNotJoined
+		if meParticipant != nil {
+			response = model.DiscussionJoinabilityResponseAlreadyJoined
+		}
+		return &model.CanJoinDiscussionResponse{
+			Response: response,
+		}, nil
+	}
+
 	socialInfos, err := d.GetSocialInfosByUserProfileID(ctx, userObj.UserProfile.ID)
 	if err != nil {
 		return nil, fmt.Errorf("Error fetching user with ID (%s)", userObj.ID)
@@ -224,11 +240,20 @@ func (d *delphisBackend) getJoinabilityFromInviteStatus(ctx context.Context, dis
 	}
 }
 
+func (d *delphisBackend) GetDiscussionByLinkSlug(ctx context.Context, slug string) (*model.Discussion, error) {
+	return d.db.GetDiscussionByLinkSlug(ctx, slug)
+}
+
 func (d *delphisBackend) UpdateDiscussion(ctx context.Context, id string, input model.DiscussionInput) (*model.Discussion, error) {
 	discObj, err := d.db.GetDiscussionByID(ctx, id)
 	if err != nil {
 		logrus.WithError(err).Error("failed to get discussion by ID")
 		return nil, err
+	}
+
+	if discObj == nil {
+		logrus.Infof("No discussion to update")
+		return nil, nil
 	}
 
 	updateDiscussionObj(discObj, input)
@@ -427,8 +452,15 @@ func (d *delphisBackend) grantAccessAndCreateParticipants(ctx context.Context, d
 
 	trueObj := true
 	for _, id := range userIDs {
+		state := model.DiscussionUserAccessStateActive
+		notifSettings := model.DiscussionUserNotificationSettingEverything
+		settings := model.DiscussionUserSettings{
+			State:        &state,
+			NotifSetting: &notifSettings,
+		}
+
 		// Grant access
-		if _, err := d.UpsertUserDiscussionAccess(ctx, id, discussionID, model.DiscussionUserAccessStateActive); err != nil {
+		if _, err := d.UpsertUserDiscussionAccess(ctx, id, discussionID, settings); err != nil {
 			logrus.WithError(err).Error("failed to grant access")
 			return err
 		}
@@ -472,6 +504,9 @@ func updateDiscussionObj(disc *model.Discussion, input model.DiscussionInput) {
 	}
 	if input.LastPostCreatedAt != nil {
 		disc.LastPostCreatedAt = input.LastPostCreatedAt
+	}
+	if input.LockStatus != nil {
+		disc.LockStatus = *input.LockStatus
 	}
 }
 

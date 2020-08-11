@@ -24,12 +24,14 @@ import (
 type Datastore interface {
 	GetDiscussionByID(ctx context.Context, id string) (*model.Discussion, error)
 	GetDiscussionsByIDs(ctx context.Context, ids []string) (map[string]*model.Discussion, error)
+	GetDiscussionByLinkSlug(ctx context.Context, slug string) (*model.Discussion, error)
 	GetDiscussionsAutoPost(ctx context.Context) AutoPostDiscussionIter
 	GetDiscussionByModeratorID(ctx context.Context, moderatorID string) (*model.Discussion, error)
 	CreateModerator(ctx context.Context, moderator model.Moderator) (*model.Moderator, error)
 	GetModeratorByID(ctx context.Context, id string) (*model.Moderator, error)
 	GetModeratorByUserID(ctx context.Context, id string) (*model.Moderator, error)
 	GetModeratorByUserIDAndDiscussionID(ctx context.Context, userID, discussionID string) (*model.Moderator, error)
+	GetModeratedDiscussionsByUserID(ctx context.Context, userID string) DiscussionIter
 	ListDiscussions(ctx context.Context) (*model.DiscussionsConnection, error)
 	ListDiscussionsByUserID(ctx context.Context, userID string, state model.DiscussionUserAccessState) (*model.DiscussionsConnection, error)
 	UpsertDiscussion(ctx context.Context, discussion model.Discussion) (*model.Discussion, error)
@@ -70,6 +72,8 @@ type Datastore interface {
 	UpsertUserDevice(ctx context.Context, userDevice model.UserDevice) (*model.UserDevice, error)
 	GetViewersByIDs(ctx context.Context, viewerIDs []string) (map[string]*model.Viewer, error)
 	UpsertViewer(ctx context.Context, viewer model.Viewer) (*model.Viewer, error)
+	GetViewerForDiscussion(ctx context.Context, discussionID, userID string) (*model.Viewer, error)
+	SetViewerLastPostViewed(ctx context.Context, viewerID, postID string, viewedTime time.Time) (*model.Viewer, error)
 	GetPostByID(ctx context.Context, postID string) (*model.Post, error)
 	PutActivity(ctx context.Context, tx *sql2.Tx, post *model.Post) error
 	PutMediaRecord(ctx context.Context, tx *sql2.Tx, media model.Media) error
@@ -99,9 +103,12 @@ type Datastore interface {
 	DiscussionIterCollect(ctx context.Context, iter DiscussionIter) ([]*model.Discussion, error)
 	DiscussionInviteIterCollect(ctx context.Context, iter DiscussionInviteIter) ([]*model.DiscussionInvite, error)
 	AccessRequestIterCollect(ctx context.Context, iter DiscussionAccessRequestIter) ([]*model.DiscussionAccessRequest, error)
+	DuaIterCollect(ctx context.Context, iter DiscussionUserAccessIter) ([]*model.DiscussionUserAccess, error)
 
 	GetDiscussionsByUserAccess(ctx context.Context, userID string, state model.DiscussionUserAccessState) DiscussionIter
 	GetDiscussionUserAccess(ctx context.Context, discussionID, userID string) (*model.DiscussionUserAccess, error)
+	GetDUAForEverythingNotifications(ctx context.Context, discussionID, userID string) DiscussionUserAccessIter
+	GetDUAForMentionNotifications(ctx context.Context, discussionID string, userID string, mentionedUserIDs []string) DiscussionUserAccessIter
 	UpsertDiscussionUserAccess(ctx context.Context, tx *sql2.Tx, dua model.DiscussionUserAccess) (*model.DiscussionUserAccess, error)
 	DeleteDiscussionUserAccess(ctx context.Context, tx *sql2.Tx, discussionID, userID string) (*model.DiscussionUserAccess, error)
 	GetDiscussionInviteByID(ctx context.Context, id string) (*model.DiscussionInvite, error)
@@ -172,6 +179,11 @@ type DiscussionInviteIter interface {
 
 type DiscussionAccessRequestIter interface {
 	Next(request *model.DiscussionAccessRequest) bool
+	Close() error
+}
+
+type DiscussionUserAccessIter interface {
+	Next(dua *model.DiscussionUserAccess) bool
 	Close() error
 }
 
@@ -299,6 +311,10 @@ func (d *delphisDB) initializeStatements(ctx context.Context) (err error) {
 		logrus.WithError(err).Error("failed to prepare getDiscussionsForAutoPostStmt")
 		return errors.Wrap(err, "failed to prepare getDiscussionsForAutoPostStmt")
 	}
+	if d.prepStmts.getDiscussionByLinkSlugStmt, err = d.pg.PrepareContext(ctx, getDiscussionByLinkSlugString); err != nil {
+		logrus.WithError(err).Error("failed to prepare getDiscussionByLinkSlugStmt")
+		return errors.Wrap(err, "failed to prepare getDiscussionByLinkSlugStmt")
+	}
 
 	// MODERATOR
 	if d.prepStmts.getModeratorByUserIDStmt, err = d.pg.PrepareContext(ctx, getModeratorByUserIDString); err != nil {
@@ -308,6 +324,10 @@ func (d *delphisDB) initializeStatements(ctx context.Context) (err error) {
 	if d.prepStmts.getModeratorByUserIDAndDiscussionIDStmt, err = d.pg.PrepareContext(ctx, getModeratorByUserIDAndDiscussionIDString); err != nil {
 		logrus.WithError(err).Error("failed to prepare getModeratorByUserIDAndDiscussionIDStmt")
 		return errors.Wrap(err, "failed to prepare getModeratorByUserIDAndDiscussionIDStmt")
+	}
+	if d.prepStmts.getModeratedDiscussionsByUserIDStmt, err = d.pg.PrepareContext(ctx, getModeratedDiscussionsByUserIDString); err != nil {
+		logrus.WithError(err).Error("failed to prepare getModeratedDiscussionsByUserIDStmt")
+		return errors.Wrap(err, "failed to prepare getModeratedDiscussionsByUserIDStmt")
 	}
 
 	// IMPORTED CONTENT
@@ -370,6 +390,14 @@ func (d *delphisDB) initializeStatements(ctx context.Context) (err error) {
 	if d.prepStmts.getDiscussionUserAccessStmt, err = d.pg.PrepareContext(ctx, getDiscussionUserAccessString); err != nil {
 		logrus.WithError(err).Error("failed to prepare getDiscussionUserAccessStmt")
 		return errors.Wrap(err, "failed to prepare getDiscussionUserAccessStmt")
+	}
+	if d.prepStmts.getDUAForEverythingNotificationsStmt, err = d.pg.PrepareContext(ctx, getDUAForEverythingNotificationsString); err != nil {
+		logrus.WithError(err).Error("failed to prepare getDUAForEverythingNotificationsString")
+		return errors.Wrap(err, "failed to prepare getDUAForEverythingNotificationsString")
+	}
+	if d.prepStmts.getDUAForMentionNotificationsStmt, err = d.pg.PrepareContext(ctx, getDUAForMentionNotificationsString); err != nil {
+		logrus.WithError(err).Error("failed to prepare getDUAForMentionNotificationsString")
+		return errors.Wrap(err, "failed to prepare getDUAForMentionNotificationsString")
 	}
 	if d.prepStmts.upsertDiscussionUserAccessStmt, err = d.pg.PrepareContext(ctx, upsertDiscussionUserAccessString); err != nil {
 		logrus.WithError(err).Error("failed to prepare upsertDiscussionUserAccessStmt")
@@ -461,6 +489,16 @@ func (d *delphisDB) initializeStatements(ctx context.Context) (err error) {
 	if d.prepStmts.incrDiscussionShuffleCount, err = d.pg.PrepareContext(ctx, incrDiscussionShuffleCount); err != nil {
 		logrus.WithError(err).Error("failed to prepare incrDiscussionShuffleCount")
 		return errors.Wrap(err, "failed to prepare incrDiscussionShuffleCount")
+	}
+
+	// Viewers
+	if d.prepStmts.getViewerForDiscussionIDUserID, err = d.pg.PrepareContext(ctx, getViewerForDiscussionIDUserID); err != nil {
+		logrus.WithError(err).Error("failed to prepare getViewerForDiscussionIDUserID")
+		return errors.Wrap(err, "failed to prepare getViewerForDiscussionIDUserID")
+	}
+	if d.prepStmts.updateViewerLastViewed, err = d.pg.PrepareContext(ctx, updateViewerLastViewed); err != nil {
+		logrus.WithError(err).Error("failed to prepare updateViewerLastViewed")
+		return errors.Wrap(err, "failed to prepare updateViewerLastViewed")
 	}
 
 	d.ready = true

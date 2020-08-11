@@ -338,6 +338,29 @@ func (_m *Datastore) DiscussionIterCollect(ctx context.Context, iter datastore.D
 	return r0, r1
 }
 
+// DuaIterCollect provides a mock function with given fields: ctx, iter
+func (_m *Datastore) DuaIterCollect(ctx context.Context, iter datastore.DiscussionUserAccessIter) ([]*model.DiscussionUserAccess, error) {
+	ret := _m.Called(ctx, iter)
+
+	var r0 []*model.DiscussionUserAccess
+	if rf, ok := ret.Get(0).(func(context.Context, datastore.DiscussionUserAccessIter) []*model.DiscussionUserAccess); ok {
+		r0 = rf(ctx, iter)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]*model.DiscussionUserAccess)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(context.Context, datastore.DiscussionUserAccessIter) error); ok {
+		r1 = rf(ctx, iter)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // GetAccessLinkByDiscussionID provides a mock function with given fields: ctx, discussionID
 func (_m *Datastore) GetAccessLinkByDiscussionID(ctx context.Context, discussionID string) (*model.DiscussionAccessLink, error) {
 	ret := _m.Called(ctx, discussionID)
@@ -382,6 +405,38 @@ func (_m *Datastore) GetAccessLinkBySlug(ctx context.Context, slug string) (*mod
 	}
 
 	return r0, r1
+}
+
+// GetDUAForEverythingNotifications provides a mock function with given fields: ctx, discussionID, userID
+func (_m *Datastore) GetDUAForEverythingNotifications(ctx context.Context, discussionID string, userID string) datastore.DiscussionUserAccessIter {
+	ret := _m.Called(ctx, discussionID, userID)
+
+	var r0 datastore.DiscussionUserAccessIter
+	if rf, ok := ret.Get(0).(func(context.Context, string, string) datastore.DiscussionUserAccessIter); ok {
+		r0 = rf(ctx, discussionID, userID)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(datastore.DiscussionUserAccessIter)
+		}
+	}
+
+	return r0
+}
+
+// GetDUAForMentionNotifications provides a mock function with given fields: ctx, discussionID, userID, mentionedUserIDs
+func (_m *Datastore) GetDUAForMentionNotifications(ctx context.Context, discussionID string, userID string, mentionedUserIDs []string) datastore.DiscussionUserAccessIter {
+	ret := _m.Called(ctx, discussionID, userID, mentionedUserIDs)
+
+	var r0 datastore.DiscussionUserAccessIter
+	if rf, ok := ret.Get(0).(func(context.Context, string, string, []string) datastore.DiscussionUserAccessIter); ok {
+		r0 = rf(ctx, discussionID, userID, mentionedUserIDs)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(datastore.DiscussionUserAccessIter)
+		}
+	}
+
+	return r0
 }
 
 // GetDiscussionAccessRequestByDiscussionIDUserID provides a mock function with given fields: ctx, discussionID, userID
@@ -439,6 +494,29 @@ func (_m *Datastore) GetDiscussionByID(ctx context.Context, id string) (*model.D
 	var r1 error
 	if rf, ok := ret.Get(1).(func(context.Context, string) error); ok {
 		r1 = rf(ctx, id)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// GetDiscussionByLinkSlug provides a mock function with given fields: ctx, slug
+func (_m *Datastore) GetDiscussionByLinkSlug(ctx context.Context, slug string) (*model.Discussion, error) {
+	ret := _m.Called(ctx, slug)
+
+	var r0 *model.Discussion
+	if rf, ok := ret.Get(0).(func(context.Context, string) *model.Discussion); ok {
+		r0 = rf(ctx, slug)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*model.Discussion)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(context.Context, string) error); ok {
+		r1 = rf(ctx, slug)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -862,6 +940,22 @@ func (_m *Datastore) GetMediaRecordByID(ctx context.Context, mediaID string) (*m
 	}
 
 	return r0, r1
+}
+
+// GetModeratedDiscussionsByUserID provides a mock function with given fields: ctx, userID
+func (_m *Datastore) GetModeratedDiscussionsByUserID(ctx context.Context, userID string) datastore.DiscussionIter {
+	ret := _m.Called(ctx, userID)
+
+	var r0 datastore.DiscussionIter
+	if rf, ok := ret.Get(0).(func(context.Context, string) datastore.DiscussionIter); ok {
+		r0 = rf(ctx, userID)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(datastore.DiscussionIter)
+		}
+	}
+
+	return r0
 }
 
 // GetModeratorByID provides a mock function with given fields: ctx, id
@@ -1349,6 +1443,29 @@ func (_m *Datastore) GetUserProfileByUserID(ctx context.Context, userID string) 
 	return r0, r1
 }
 
+// GetViewerForDiscussion provides a mock function with given fields: ctx, discussionID, userID
+func (_m *Datastore) GetViewerForDiscussion(ctx context.Context, discussionID string, userID string) (*model.Viewer, error) {
+	ret := _m.Called(ctx, discussionID, userID)
+
+	var r0 *model.Viewer
+	if rf, ok := ret.Get(0).(func(context.Context, string, string) *model.Viewer); ok {
+		r0 = rf(ctx, discussionID, userID)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*model.Viewer)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(context.Context, string, string) error); ok {
+		r1 = rf(ctx, discussionID, userID)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // GetViewersByIDs provides a mock function with given fields: ctx, viewerIDs
 func (_m *Datastore) GetViewersByIDs(ctx context.Context, viewerIDs []string) (map[string]*model.Viewer, error) {
 	ret := _m.Called(ctx, viewerIDs)
@@ -1812,6 +1929,29 @@ func (_m *Datastore) SetParticipantsMutedUntil(ctx context.Context, participants
 	var r1 error
 	if rf, ok := ret.Get(1).(func(context.Context, []*model.Participant, *time.Time) error); ok {
 		r1 = rf(ctx, participants, mutedUntil)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// SetViewerLastPostViewed provides a mock function with given fields: ctx, viewerID, postID, viewedTime
+func (_m *Datastore) SetViewerLastPostViewed(ctx context.Context, viewerID string, postID string, viewedTime time.Time) (*model.Viewer, error) {
+	ret := _m.Called(ctx, viewerID, postID, viewedTime)
+
+	var r0 *model.Viewer
+	if rf, ok := ret.Get(0).(func(context.Context, string, string, time.Time) *model.Viewer); ok {
+		r0 = rf(ctx, viewerID, postID, viewedTime)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*model.Viewer)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(context.Context, string, string, time.Time) error); ok {
+		r1 = rf(ctx, viewerID, postID, viewedTime)
 	} else {
 		r1 = ret.Error(1)
 	}

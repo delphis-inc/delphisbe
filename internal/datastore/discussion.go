@@ -44,6 +44,53 @@ func (d *delphisDB) IncrementDiscussionShuffleCount(ctx context.Context, tx *sql
 	return &discussion.ShuffleCount, nil
 }
 
+func (d *delphisDB) GetDiscussionByLinkSlug(ctx context.Context, slug string) (*model.Discussion, error) {
+	logrus.Debug("GetDiscussionByLinkSlug::SQL Update")
+	if err := d.initializeStatements(ctx); err != nil {
+		logrus.WithError(err).Error("GetDiscussionByLinkSlug::failed to initialize statements")
+		return nil, err
+	}
+
+	discussion := model.Discussion{}
+	titleHistory := make([]byte, 0)
+	descriptionHistory := make([]byte, 0)
+
+	if err := d.prepStmts.getDiscussionByLinkSlugStmt.QueryRowContext(
+		ctx,
+		slug,
+	).Scan(
+		&discussion.ID,
+		&discussion.CreatedAt,
+		&discussion.UpdatedAt,
+		&discussion.DeletedAt,
+		&discussion.Title,
+		&discussion.AnonymityType,
+		&discussion.ModeratorID,
+		&discussion.AutoPost,
+		&discussion.IconURL,
+		&discussion.IdleMinutes,
+		&discussion.Description,
+		&titleHistory,
+		&descriptionHistory,
+		&discussion.DiscussionJoinability,
+		&discussion.LastPostID,
+		&discussion.LastPostCreatedAt,
+		&discussion.ShuffleCount,
+		&discussion.LockStatus,
+	); err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		logrus.WithError(err).Error("failed to execute getDiscussionByLinkSlugStmt")
+		return nil, err
+	}
+
+	discussion.TitleHistory.RawMessage = titleHistory
+	discussion.DescriptionHistory.RawMessage = descriptionHistory
+
+	return &discussion, nil
+}
+
 func (d *delphisDB) GetDiscussionsByIDs(ctx context.Context, ids []string) (map[string]*model.Discussion, error) {
 	logrus.Debug("GetDiscussionsByIDs::SQL Query")
 	discussions := []model.Discussion{}
@@ -182,6 +229,7 @@ func (d *delphisDB) UpsertDiscussion(ctx context.Context, discussion model.Discu
 			"DiscussionJoinability": discussion.DiscussionJoinability,
 			"LastPostID":            discussion.LastPostID,
 			"LastPostCreatedAt":     discussion.LastPostCreatedAt,
+			"LockStatus":            discussion.LockStatus,
 		}).First(&found).Error; err != nil {
 			logrus.WithError(err).Errorf("UpsertDiscussion::Failed updating disucssion object")
 			return nil, err
@@ -262,6 +310,113 @@ func (d *delphisDB) DeleteDiscussionTags(ctx context.Context, tx *sql.Tx, tag mo
 	return &tag, nil
 }
 
+func (d *delphisDB) DiscussionIterCollect(ctx context.Context, iter DiscussionIter) ([]*model.Discussion, error) {
+	var discussions []*model.Discussion
+	disc := model.Discussion{}
+
+	defer iter.Close()
+
+	for iter.Next(&disc) {
+		tempDisc := disc
+
+		discussions = append(discussions, &tempDisc)
+	}
+
+	if err := iter.Close(); err != nil && err != io.EOF {
+		logrus.WithError(err).Error("failed to close iter")
+		return nil, err
+	}
+
+	return discussions, nil
+}
+
+func (d *delphisDB) DiscussionAutoPostIterCollect(ctx context.Context, iter AutoPostDiscussionIter) ([]*model.DiscussionAutoPost, error) {
+	var discs []*model.DiscussionAutoPost
+	disc := model.DiscussionAutoPost{}
+
+	defer iter.Close()
+
+	for iter.Next(&disc) {
+		tempDisc := disc
+
+		discs = append(discs, &tempDisc)
+	}
+
+	if err := iter.Close(); err != nil && err != io.EOF {
+		logrus.WithError(err).Error("failed to close iter")
+		return nil, err
+	}
+
+	return discs, nil
+}
+
+type discussionIter struct {
+	err  error
+	ctx  context.Context
+	rows *sql.Rows
+}
+
+func (iter *discussionIter) Next(discussion *model.Discussion) bool {
+	if iter.err != nil {
+		logrus.WithError(iter.err).Error("iterator error")
+		return false
+	}
+
+	if iter.err = iter.ctx.Err(); iter.err != nil {
+		logrus.WithError(iter.err).Error("iterator context error")
+		return false
+	}
+
+	if !iter.rows.Next() {
+		return false
+	}
+
+	titleHistory := make([]byte, 0)
+	descriptionHistory := make([]byte, 0)
+
+	if iter.err = iter.rows.Scan(
+		&discussion.ID,
+		&discussion.CreatedAt,
+		&discussion.UpdatedAt,
+		&discussion.DeletedAt,
+		&discussion.Title,
+		&discussion.AnonymityType,
+		&discussion.ModeratorID,
+		&discussion.AutoPost,
+		&discussion.IconURL,
+		&discussion.IdleMinutes,
+		&discussion.Description,
+		&titleHistory,
+		&descriptionHistory,
+		&discussion.DiscussionJoinability,
+		&discussion.LastPostID,
+		&discussion.LastPostCreatedAt,
+		&discussion.ShuffleCount,
+		&discussion.LockStatus,
+	); iter.err != nil {
+		logrus.WithError(iter.err).Error("iterator failed to scan row")
+		return false
+	}
+
+	discussion.TitleHistory.RawMessage = titleHistory
+	discussion.DescriptionHistory.RawMessage = descriptionHistory
+
+	return true
+}
+
+func (iter *discussionIter) Close() error {
+	if err := iter.err; err != nil {
+		logrus.WithError(err).Error("iter error on close")
+		return err
+	}
+	if err := iter.rows.Close(); err != nil {
+		logrus.WithError(err).Error("iter rows close on close")
+		return err
+	}
+
+	return nil
+}
+
 type autoPostDiscussionIter struct {
 	err  error
 	ctx  context.Context
@@ -305,24 +460,4 @@ func (iter *autoPostDiscussionIter) Close() error {
 	}
 
 	return nil
-}
-
-func (d *delphisDB) DiscussionAutoPostIterCollect(ctx context.Context, iter AutoPostDiscussionIter) ([]*model.DiscussionAutoPost, error) {
-	var discs []*model.DiscussionAutoPost
-	disc := model.DiscussionAutoPost{}
-
-	defer iter.Close()
-
-	for iter.Next(&disc) {
-		tempDisc := disc
-
-		discs = append(discs, &tempDisc)
-	}
-
-	if err := iter.Close(); err != nil && err != io.EOF {
-		logrus.WithError(err).Error("failed to close iter")
-		return nil, err
-	}
-
-	return discs, nil
 }

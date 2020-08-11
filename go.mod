@@ -16,7 +16,7 @@ require (
 	github.com/gorilla/websocket v1.4.0
 	github.com/jinzhu/gorm v1.9.13-0.20200305064831-7ea143b5484f
 	github.com/jinzhu/now v1.1.1 // indirect
-	github.com/lib/pq v1.3.0
+	github.com/lib/pq v1.8.0
 	github.com/mattn/go-sqlite3 v2.0.3+incompatible // indirect
 	github.com/patrickmn/go-cache v2.1.0+incompatible
 	github.com/pkg/errors v0.9.1

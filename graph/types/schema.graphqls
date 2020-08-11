@@ -7,6 +7,7 @@ schema {
 # The Query type represents all of the entry points into the API.
 type Query {
   discussion(id: ID!): Discussion
+  discussionByLinkSlug(slug: String!): Discussion
   listDiscussions(state: DiscussionUserAccessState! = ACTIVE): [Discussion!]
   flairTemplates(query: String): [FlairTemplate!]
   # Need to add verification that the caller is the user.
@@ -63,10 +64,16 @@ input DiscussionInput {
   publicAccess: Boolean
   iconURL: String
   discussionJoinability: DiscussionJoinabilitySetting
+  lockStatus: Boolean
 }
 
 input DiscussionCreationSettings {
   discussionJoinability: DiscussionJoinabilitySetting!
+}
+
+input DiscussionUserSettings {
+  state: DiscussionUserAccessState
+  notifSetting: DiscussionUserNotificationSetting
 }
 
 type Mutation {
@@ -101,7 +108,7 @@ type Mutation {
   upsertUserDevice(userID: ID, platform: Platform!, deviceID: String!, token: String): UserDevice!
 
   updateDiscussion(discussionID: ID!, input: DiscussionInput!): Discussion!
-  updateDiscussionUserState(discussionID: ID!, state: DiscussionUserAccessState!): DiscussionUserAccess!
+  updateDiscussionUserSettings(discussionID: ID!, settings: DiscussionUserSettings!): DiscussionUserAccess!
 
   addDiscussionTags(discussionID: ID!, tags:[String!]): [Tag!]
   deleteDiscussionTags(discussionID: ID!, tags:[String!]): [Tag!]
@@ -129,6 +136,10 @@ type Mutation {
 
   shuffleDiscussion(discussionID: ID!, inFutureSeconds: Int): Discussion!
 
+  # Viewer
+  setLastPostViewed(viewerID: ID!, postID: ID!): Viewer!
+
+  # Muting
   muteParticipants(discussionID: ID!, participantIDs: [ID!]!, mutedForSeconds: Int!): [Participant!]!
   unmuteParticipants(discussionID: ID!, participantIDs: [ID!]!): [Participant!]!
 }

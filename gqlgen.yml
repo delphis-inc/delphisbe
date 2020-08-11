@@ -66,6 +66,8 @@ models:
         resolver: true
       discussionJoinability:
         resolver: true
+      meNotificationSettings:
+        resolver: true
   Moderator:
     fields:
       discussion:
@@ -79,8 +81,6 @@ models:
       flair:
         resolver: true
       viewer:
-        resolver: true
-      discussionNotificationPreferences:
         resolver: true
       posts:
         resolver: true
@@ -114,13 +114,13 @@ models:
         resolver: true
   Viewer:
     fields:
-      notificationPreferences:
-        resolver: true
       discussion:
         resolver: true
       lastPostViewed:
         resolver: true
       bookmarks:
+        resolver: true
+      lastViewedPost:
         resolver: true
   DiscussionLinkAccess:
     fields:
