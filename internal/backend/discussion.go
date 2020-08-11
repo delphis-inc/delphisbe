@@ -258,8 +258,6 @@ func (d *delphisBackend) UpdateDiscussion(ctx context.Context, id string, input 
 
 	updateDiscussionObj(discObj, input)
 
-	d.CreateDiscussionArchive(ctx, id)
-
 	if input.LockStatus != nil && *input.LockStatus == true {
 		if err := d.CreateDiscussionArchive(ctx, id); err != nil {
 			logrus.WithError(err).Error("failed to make discussion archive")
