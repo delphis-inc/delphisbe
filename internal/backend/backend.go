@@ -59,8 +59,8 @@ type DelphisBackend interface {
 	GetTotalParticipantCountByDiscussionID(ctx context.Context, discussionID string) int
 	BanParticipant(ctx context.Context, discussionID string, participantID string, requestingUserID string) (*model.Participant, error)
 	UpdateParticipant(ctx context.Context, participants UserDiscussionParticipants, currentParticipantID string, input model.UpdateParticipantInput) (*model.Participant, error)
-	MuteParticipants(ctx context.Context, participants []*model.Participant, muteForSeconds int) ([]*model.Participant, error)
-	UnmuteParticipants(ctx context.Context, participants []*model.Participant) ([]*model.Participant, error)
+	MuteParticipants(ctx context.Context, discussionID string, participantIDs []string, muteForSeconds int) ([]*model.Participant, error)
+	UnmuteParticipants(ctx context.Context, discussionID string, participantIDs []string) ([]*model.Participant, error)
 	CreatePost(ctx context.Context, discussionID string, userID string, participantID string, input model.PostContentInput) (*model.Post, error)
 	CreateAlertPost(ctx context.Context, discussionID string, userObj *model.User, isAnonymous bool) (*model.Post, error)
 	PostImportedContent(ctx context.Context, userID, participantID, discussionID, contentID string, postedAt *time.Time, matchingTags []string, dripType model.DripPostType) (*model.Post, error)

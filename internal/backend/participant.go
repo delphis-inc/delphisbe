@@ -9,6 +9,7 @@ import (
 	"github.com/sirupsen/logrus"
 
 	"github.com/delphis-inc/delphisbe/graph/model"
+	"github.com/delphis-inc/delphisbe/internal/auth"
 	"github.com/delphis-inc/delphisbe/internal/util"
 )
 
@@ -123,6 +124,10 @@ func (d *delphisBackend) BanParticipant(ctx context.Context, discussionID string
 		return nil, fmt.Errorf("Cannot ban yourself")
 	}
 
+	if *participantObj.UserID == model.ConciergeUser {
+		return nil, fmt.Errorf("Cannot ban the concierge")
+	}
+
 	if participantObj.IsBanned {
 		return participantObj, nil
 	}
@@ -209,13 +214,87 @@ func (d *delphisBackend) UnassignFlair(ctx context.Context, participant model.Pa
 	return d.db.AssignFlair(ctx, participant, nil)
 }
 
-func (d *delphisBackend) MuteParticipants(ctx context.Context, participants []*model.Participant, muteForSeconds int) ([]*model.Participant, error) {
+func (d *delphisBackend) MuteParticipants(ctx context.Context, discussionID string, participantIDs []string, muteForSeconds int) ([]*model.Participant, error) {
+	authedUser := auth.GetAuthedUser(ctx)
+	if authedUser == nil {
+		return nil, fmt.Errorf("Need auth")
+	}
+
+	/* Get discussion participants */
+	participants, err := d.GetParticipantsByDiscussionID(ctx, discussionID)
+	if err != nil {
+		return nil, err
+	} else if participants == nil {
+		return nil, fmt.Errorf("Error fetching participants with discussionID (%s)", discussionID)
+	} else if len(participants) == 0 {
+		return []*model.Participant{}, nil
+	}
+
+	/* Check participants validity and retrieve the ones we need to modify */
+	var participantsToEdit []*model.Participant
+	for _, participantID := range participantIDs {
+		found := false
+		for _, participant := range participants {
+			if participant.ID == participantID {
+				if *participant.UserID == authedUser.UserID {
+					return nil, fmt.Errorf("You cannot mute yourself")
+				}
+				if *participant.UserID == model.ConciergeUser {
+					return nil, fmt.Errorf("You cannot mute the concierge")
+				}
+				found = true
+				p := participant
+				participantsToEdit = append(participantsToEdit, &p)
+				break
+			}
+		}
+		if !found {
+			return nil, fmt.Errorf("Participant with ID (%s) is not associated with discussionID (%s)", participantID, discussionID)
+		}
+	}
 	newTime := time.Now().Add(time.Duration(muteForSeconds) * time.Second)
-	return d.db.SetParticipantsMutedUntil(ctx, participants, &newTime)
+	return d.db.SetParticipantsMutedUntil(ctx, participantsToEdit, &newTime)
 }
 
-func (d *delphisBackend) UnmuteParticipants(ctx context.Context, participants []*model.Participant) ([]*model.Participant, error) {
-	return d.db.SetParticipantsMutedUntil(ctx, participants, nil)
+func (d *delphisBackend) UnmuteParticipants(ctx context.Context, discussionID string, participantIDs []string) ([]*model.Participant, error) {
+	authedUser := auth.GetAuthedUser(ctx)
+	if authedUser == nil {
+		return nil, fmt.Errorf("Need auth")
+	}
+
+	/* Get discussion participants */
+	participants, err := d.GetParticipantsByDiscussionID(ctx, discussionID)
+	if err != nil {
+		return nil, err
+	} else if participants == nil {
+		return nil, fmt.Errorf("Error fetching participants with discussionID (%s)", discussionID)
+	} else if len(participants) == 0 {
+		return []*model.Participant{}, nil
+	}
+
+	/* Check participants validity and retrieve the ones we need to modify */
+	var participantsToEdit []*model.Participant
+	for _, participantID := range participantIDs {
+		found := false
+		for _, participant := range participants {
+			if participant.ID == participantID {
+				if *participant.UserID == authedUser.UserID {
+					return nil, fmt.Errorf("You cannot mute yourself")
+				}
+				if *participant.UserID == model.ConciergeUser {
+					return nil, fmt.Errorf("You cannot unmute the concierge")
+				}
+				found = true
+				p := participant
+				participantsToEdit = append(participantsToEdit, &p)
+				break
+			}
+		}
+		if !found {
+			return nil, fmt.Errorf("Participant with ID (%s) is not associated with discussionID (%s)", participantID, discussionID)
+		}
+	}
+	return d.db.SetParticipantsMutedUntil(ctx, participantsToEdit, nil)
 }
 
 func (d *delphisBackend) GetTotalParticipantCountByDiscussionID(ctx context.Context, discussionID string) int {
