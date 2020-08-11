@@ -42,6 +42,7 @@ type ResolverRoot interface {
 	Discussion() DiscussionResolver
 	DiscussionAccessLink() DiscussionAccessLinkResolver
 	DiscussionAccessRequest() DiscussionAccessRequestResolver
+	DiscussionArchive() DiscussionArchiveResolver
 	DiscussionFlairTemplateAccess() DiscussionFlairTemplateAccessResolver
 	DiscussionInvite() DiscussionInviteResolver
 	DiscussionLinkAccess() DiscussionLinkAccessResolver
@@ -100,6 +101,7 @@ type ComplexityRoot struct {
 	Discussion struct {
 		AccessRequests          func(childComplexity int) int
 		AnonymityType           func(childComplexity int) int
+		Archive                 func(childComplexity int) int
 		AutoPost                func(childComplexity int) int
 		CreatedAt               func(childComplexity int) int
 		Description             func(childComplexity int) int
@@ -148,6 +150,11 @@ type ComplexityRoot struct {
 		Status     func(childComplexity int) int
 		UpdatedAt  func(childComplexity int) int
 		User       func(childComplexity int) int
+	}
+
+	DiscussionArchive struct {
+		Archive   func(childComplexity int) int
+		CreatedAt func(childComplexity int) int
 	}
 
 	DiscussionFlairTemplateAccess struct {
@@ -489,6 +496,8 @@ type DiscussionResolver interface {
 	DiscussionJoinability(ctx context.Context, obj *model.Discussion) (model.DiscussionJoinabilitySetting, error)
 
 	SecondsUntilShuffle(ctx context.Context, obj *model.Discussion) (*int, error)
+
+	Archive(ctx context.Context, obj *model.Discussion) (*model.DiscussionArchive, error)
 }
 type DiscussionAccessLinkResolver interface {
 	Discussion(ctx context.Context, obj *model.DiscussionAccessLink) (*model.Discussion, error)
@@ -500,6 +509,9 @@ type DiscussionAccessLinkResolver interface {
 type DiscussionAccessRequestResolver interface {
 	User(ctx context.Context, obj *model.DiscussionAccessRequest) (*model.User, error)
 	Discussion(ctx context.Context, obj *model.DiscussionAccessRequest) (*model.Discussion, error)
+}
+type DiscussionArchiveResolver interface {
+	Archive(ctx context.Context, obj *model.DiscussionArchive) (string, error)
 }
 type DiscussionFlairTemplateAccessResolver interface {
 	ID(ctx context.Context, obj *model.DiscussionFlairTemplateAccess) (string, error)
@@ -797,6 +809,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Discussion.AnonymityType(childComplexity), true
+
+	case "Discussion.archive":
+		if e.complexity.Discussion.Archive == nil {
+			break
+		}
+
+		return e.complexity.Discussion.Archive(childComplexity), true
 
 	case "Discussion.autoPost":
 		if e.complexity.Discussion.AutoPost == nil {
@@ -1096,6 +1115,20 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.DiscussionAccessRequest.User(childComplexity), true
+
+	case "DiscussionArchive.archive":
+		if e.complexity.DiscussionArchive.Archive == nil {
+			break
+		}
+
+		return e.complexity.DiscussionArchive.Archive(childComplexity), true
+
+	case "DiscussionArchive.createdAt":
+		if e.complexity.DiscussionArchive.CreatedAt == nil {
+			break
+		}
+
+		return e.complexity.DiscussionArchive.CreatedAt(childComplexity), true
 
 	case "DiscussionFlairTemplateAccess.createdAt":
 		if e.complexity.DiscussionFlairTemplateAccess.CreatedAt == nil {
@@ -2816,6 +2849,8 @@ var sources = []*ast.Source{
     secondsUntilShuffle: Int
 
     lockStatus: Boolean!
+
+    archive: DiscussionArchive
 }
 
 type CanJoinDiscussionResponse {
@@ -2826,6 +2861,11 @@ type CanJoinDiscussionResponse {
 
 type HistoricalString {
     value: String!
+    createdAt: Time!
+}
+
+type DiscussionArchive {
+    archive: String!
     createdAt: Time!
 }
 
@@ -5988,6 +6028,37 @@ func (ec *executionContext) _Discussion_lockStatus(ctx context.Context, field gr
 	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
 }
 
+func (ec *executionContext) _Discussion_archive(ctx context.Context, field graphql.CollectedField, obj *model.Discussion) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "Discussion",
+		Field:    field,
+		Args:     nil,
+		IsMethod: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Discussion().Archive(rctx, obj)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*model.DiscussionArchive)
+	fc.Result = res
+	return ec.marshalODiscussionArchive2ᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐDiscussionArchive(ctx, field.Selections, res)
+}
+
 func (ec *executionContext) _DiscussionAccessLink_discussion(ctx context.Context, field graphql.CollectedField, obj *model.DiscussionAccessLink) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -6428,6 +6499,74 @@ func (ec *executionContext) _DiscussionAccessRequest_status(ctx context.Context,
 	res := resTmp.(model.InviteRequestStatus)
 	fc.Result = res
 	return ec.marshalNInviteRequestStatus2githubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐInviteRequestStatus(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _DiscussionArchive_archive(ctx context.Context, field graphql.CollectedField, obj *model.DiscussionArchive) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "DiscussionArchive",
+		Field:    field,
+		Args:     nil,
+		IsMethod: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.DiscussionArchive().Archive(rctx, obj)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _DiscussionArchive_createdAt(ctx context.Context, field graphql.CollectedField, obj *model.DiscussionArchive) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "DiscussionArchive",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.CreatedAt, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(time.Time)
+	fc.Result = res
+	return ec.marshalNTime2timeᚐTime(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _DiscussionFlairTemplateAccess_id(ctx context.Context, field graphql.CollectedField, obj *model.DiscussionFlairTemplateAccess) (ret graphql.Marshaler) {
@@ -15218,6 +15357,17 @@ func (ec *executionContext) _Discussion(ctx context.Context, sel ast.SelectionSe
 			if out.Values[i] == graphql.Null {
 				atomic.AddUint32(&invalids, 1)
 			}
+		case "archive":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Discussion_archive(ctx, field, obj)
+				return res
+			})
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -15369,6 +15519,47 @@ func (ec *executionContext) _DiscussionAccessRequest(ctx context.Context, sel as
 			}
 		case "status":
 			out.Values[i] = ec._DiscussionAccessRequest_status(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&invalids, 1)
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
+var discussionArchiveImplementors = []string{"DiscussionArchive"}
+
+func (ec *executionContext) _DiscussionArchive(ctx context.Context, sel ast.SelectionSet, obj *model.DiscussionArchive) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, discussionArchiveImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("DiscussionArchive")
+		case "archive":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._DiscussionArchive_archive(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
+		case "createdAt":
+			out.Values[i] = ec._DiscussionArchive_createdAt(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				atomic.AddUint32(&invalids, 1)
 			}
@@ -18979,6 +19170,17 @@ func (ec *executionContext) marshalODiscussionAccessRequest2ᚖgithubᚗcomᚋde
 		return graphql.Null
 	}
 	return ec._DiscussionAccessRequest(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalODiscussionArchive2githubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐDiscussionArchive(ctx context.Context, sel ast.SelectionSet, v model.DiscussionArchive) graphql.Marshaler {
+	return ec._DiscussionArchive(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalODiscussionArchive2ᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐDiscussionArchive(ctx context.Context, sel ast.SelectionSet, v *model.DiscussionArchive) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._DiscussionArchive(ctx, sel, v)
 }
 
 func (ec *executionContext) marshalODiscussionInvite2ᚕᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐDiscussionInviteᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.DiscussionInvite) graphql.Marshaler {

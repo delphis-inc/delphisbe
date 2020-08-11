@@ -727,7 +727,7 @@ func TestDelphisBackend_GetPostsByDiscussionID(t *testing.T) {
 			mockDB.On("GetPostsByDiscussionIDIter", ctx, discussionID).Return(&mockPostIter{})
 			mockDB.On("PostIterCollect", ctx, mock.Anything).Return(nil, expectedError)
 
-			resp, err := backendObj.GetPostsByDiscussionID(ctx, userID, discussionID)
+			resp, err := backendObj.GetPostsByDiscussionID(ctx, userID)
 
 			So(err, ShouldEqual, expectedError)
 			So(resp, ShouldBeNil)
@@ -737,7 +737,7 @@ func TestDelphisBackend_GetPostsByDiscussionID(t *testing.T) {
 			mockDB.On("GetPostsByDiscussionIDIter", ctx, discussionID).Return(&mockPostIter{})
 			mockDB.On("PostIterCollect", ctx, mock.Anything).Return([]*model.Post{&postObject}, nil)
 
-			resp, err := backendObj.GetPostsByDiscussionID(ctx, userID, discussionID)
+			resp, err := backendObj.GetPostsByDiscussionID(ctx, userID)
 
 			So(err, ShouldBeNil)
 			So(resp, ShouldNotBeNil)

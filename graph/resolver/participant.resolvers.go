@@ -50,7 +50,7 @@ func (r *participantResolver) Posts(ctx context.Context, obj *model.Participant)
 	if obj.DiscussionID == nil {
 		return nil, nil
 	}
-	posts, err := r.DAOManager.GetPostsByDiscussionID(ctx, *obj.UserID, *obj.DiscussionID)
+	posts, err := r.DAOManager.GetPostsByDiscussionID(ctx, *obj.DiscussionID)
 	if err != nil {
 		return nil, err
 	}

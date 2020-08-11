@@ -99,6 +99,16 @@ func TestDelphisDB_InitializeStatements(t *testing.T) {
 				Test: getDiscussionByLinkSlugString,
 			},
 			{
+				Name: "getDiscussionArchiveByDiscussionIDString",
+
+				Test: getDiscussionArchiveByDiscussionIDString,
+			},
+			{
+				Name: "upsertDiscussionArchiveString",
+
+				Test: upsertDiscussionArchiveString,
+			},
+			{
 				Name: "getModeratorByUserIDString",
 				Test: getModeratorByUserIDString,
 			},

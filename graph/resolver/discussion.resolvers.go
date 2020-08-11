@@ -34,7 +34,7 @@ func (r *discussionResolver) Posts(ctx context.Context, obj *model.Discussion) (
 		return nil, fmt.Errorf("Need auth")
 	}
 
-	posts, err := r.DAOManager.GetPostsByDiscussionID(ctx, authedUser.UserID, obj.ID)
+	posts, err := r.DAOManager.GetPostsByDiscussionID(ctx, obj.ID)
 
 	if err != nil {
 		return nil, err
@@ -315,6 +315,10 @@ func (r *discussionResolver) SecondsUntilShuffle(ctx context.Context, obj *model
 	return &seconds, nil
 }
 
+func (r *discussionResolver) Archive(ctx context.Context, obj *model.Discussion) (*model.DiscussionArchive, error) {
+	return r.DAOManager.GetDiscussionArchiveByDiscussionID(ctx, obj.ID)
+}
+
 func (r *discussionAccessLinkResolver) Discussion(ctx context.Context, obj *model.DiscussionAccessLink) (*model.Discussion, error) {
 	return r.DAOManager.GetDiscussionByID(ctx, obj.DiscussionID)
 }
@@ -346,6 +350,10 @@ func (r *discussionAccessRequestResolver) User(ctx context.Context, obj *model.D
 
 func (r *discussionAccessRequestResolver) Discussion(ctx context.Context, obj *model.DiscussionAccessRequest) (*model.Discussion, error) {
 	return r.DAOManager.GetDiscussionByID(ctx, obj.DiscussionID)
+}
+
+func (r *discussionArchiveResolver) Archive(ctx context.Context, obj *model.DiscussionArchive) (string, error) {
+	return string(obj.Archive.RawMessage), nil
 }
 
 func (r *discussionFlairTemplateAccessResolver) ID(ctx context.Context, obj *model.DiscussionFlairTemplateAccess) (string, error) {
@@ -436,6 +444,11 @@ func (r *Resolver) DiscussionAccessRequest() generated.DiscussionAccessRequestRe
 	return &discussionAccessRequestResolver{r}
 }
 
+// DiscussionArchive returns generated.DiscussionArchiveResolver implementation.
+func (r *Resolver) DiscussionArchive() generated.DiscussionArchiveResolver {
+	return &discussionArchiveResolver{r}
+}
+
 // DiscussionFlairTemplateAccess returns generated.DiscussionFlairTemplateAccessResolver implementation.
 func (r *Resolver) DiscussionFlairTemplateAccess() generated.DiscussionFlairTemplateAccessResolver {
 	return &discussionFlairTemplateAccessResolver{r}
@@ -462,6 +475,7 @@ func (r *Resolver) Tag() generated.TagResolver { return &tagResolver{r} }
 type discussionResolver struct{ *Resolver }
 type discussionAccessLinkResolver struct{ *Resolver }
 type discussionAccessRequestResolver struct{ *Resolver }
+type discussionArchiveResolver struct{ *Resolver }
 type discussionFlairTemplateAccessResolver struct{ *Resolver }
 type discussionInviteResolver struct{ *Resolver }
 type discussionLinkAccessResolver struct{ *Resolver }

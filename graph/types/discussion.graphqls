@@ -54,6 +54,8 @@ type Discussion implements Entity {
     secondsUntilShuffle: Int
 
     lockStatus: Boolean!
+
+    archive: DiscussionArchive
 }
 
 type CanJoinDiscussionResponse {
@@ -64,6 +66,11 @@ type CanJoinDiscussionResponse {
 
 type HistoricalString {
     value: String!
+    createdAt: Time!
+}
+
+type DiscussionArchive {
+    archive: String!
     createdAt: Time!
 }
 

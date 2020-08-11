@@ -76,7 +76,7 @@ func (d *delphisBackend) CreatePost(ctx context.Context, discussionID string, us
 			if isPqError && retryAttempts < PutPostMaxRetry && pqError.Code == "23505" {
 				retryAttempts++
 				logrus.WithError(err).Error("failed to PutPost, retrying with attempt #" + strconv.Itoa(retryAttempts))
-				// Note for the future: hould we backoff a little?
+				// Note for the future: should we backoff a little?
 				continue
 			} else {
 				logrus.WithError(err).Error("failed to PutPost")
@@ -291,7 +291,7 @@ func (d *delphisBackend) NotifySubscribersOfBannedParticipant(ctx context.Contex
 	return d.notifySubscribersOfEvent(ctx, event, discussionID)
 }
 
-func (d *delphisBackend) GetPostsByDiscussionID(ctx context.Context, userID string, discussionID string) ([]*model.Post, error) {
+func (d *delphisBackend) GetPostsByDiscussionID(ctx context.Context, discussionID string) ([]*model.Post, error) {
 	iter := d.db.GetPostsByDiscussionIDIter(ctx, discussionID)
 
 	posts, err := d.db.PostIterCollect(ctx, iter)
