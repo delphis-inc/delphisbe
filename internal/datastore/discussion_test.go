@@ -7,6 +7,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/delphis-inc/delphisbe/internal/backend/test_utils"
+
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/delphis-inc/delphisbe/internal/config"
 	"github.com/jinzhu/gorm"
@@ -227,7 +229,6 @@ func TestDelphisDB_GetDiscussionsByIDs(t *testing.T) {
 
 }
 
-// GORM!!!
 func TestDelphisDB_GetDiscussionByModeratorID(t *testing.T) {
 	ctx := context.Background()
 	now := time.Now()
@@ -292,6 +293,90 @@ func TestDelphisDB_GetDiscussionByModeratorID(t *testing.T) {
 			mock.ExpectQuery(expectedQueryString).WithArgs(discObj.ModeratorID).WillReturnRows(rs)
 
 			resp, err := mockDatastore.GetDiscussionByModeratorID(ctx, *discObj.ModeratorID)
+
+			So(err, ShouldBeNil)
+			So(resp, ShouldNotBeNil)
+			So(resp, ShouldResemble, &discObj)
+			So(mock.ExpectationsWereMet(), ShouldBeNil)
+		})
+	})
+}
+
+func TestDelphisDB_GetDiscussionByLinkSlug(t *testing.T) {
+	ctx := context.Background()
+
+	slug := "slug"
+
+	discObj := test_utils.TestDiscussion()
+
+	Convey("GetDiscussionByLinkSlug", t, func() {
+		db, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
+
+		assert.Nil(t, err, "Failed setting up sqlmock db")
+
+		gormDB, _ := gorm.Open("postgres", db)
+		mockDatastore := &delphisDB{
+			dbConfig:  config.TablesConfig{},
+			sql:       gormDB,
+			pg:        db,
+			prepStmts: &dbPrepStmts{},
+			dynamo:    nil,
+			encoder:   nil,
+		}
+		defer db.Close()
+
+		Convey("when preparing statements returns an error", func() {
+			mockPreparedStatementsWithError(mock)
+
+			resp, err := mockDatastore.GetDiscussionByLinkSlug(ctx, slug)
+
+			So(err, ShouldNotBeNil)
+			So(resp, ShouldBeNil)
+			So(mock.ExpectationsWereMet(), ShouldBeNil)
+		})
+
+		Convey("when query execution returns an error", func() {
+			mockPreparedStatements(mock)
+			mock.ExpectQuery(getDiscussionByLinkSlugString).WithArgs(slug).WillReturnError(fmt.Errorf("error"))
+
+			resp, err := mockDatastore.GetDiscussionByLinkSlug(ctx, slug)
+
+			So(err, ShouldNotBeNil)
+			So(resp, ShouldBeNil)
+			So(mock.ExpectationsWereMet(), ShouldBeNil)
+		})
+
+		Convey("when query execution succeeds and and no entry was found", func() {
+			mockPreparedStatements(mock)
+			rs := sqlmock.NewRows([]string{"id", "created_at", "updated_at", "deleted_at", "title",
+				"anonymity_type", "moderator_id", "auto_post", "icon_url", "idle_minutes", "description",
+				"title_history", "description_history", "discussion_joinability", "last_post_id", "last_post_created_at",
+				"shuffle_count", "lock_status"})
+
+			mock.ExpectQuery(getDiscussionByLinkSlugString).WithArgs(slug).WillReturnRows(rs)
+
+			resp, err := mockDatastore.GetDiscussionByLinkSlug(ctx, slug)
+
+			So(err, ShouldBeNil)
+			So(resp, ShouldBeNil)
+			So(mock.ExpectationsWereMet(), ShouldBeNil)
+		})
+
+		Convey("when query execution succeeds and returns a post", func() {
+			mockPreparedStatements(mock)
+			rs := sqlmock.NewRows([]string{"id", "created_at", "updated_at", "deleted_at", "title",
+				"anonymity_type", "moderator_id", "auto_post", "icon_url", "idle_minutes", "description",
+				"title_history", "description_history", "discussion_joinability", "last_post_id", "last_post_created_at",
+				"shuffle_count", "lock_status"}).
+				AddRow(discObj.ID, discObj.CreatedAt, discObj.UpdatedAt, discObj.DeletedAt,
+					discObj.Title, discObj.AnonymityType, discObj.ModeratorID, discObj.AutoPost,
+					discObj.IconURL, discObj.IdleMinutes, discObj.Description, discObj.TitleHistory,
+					discObj.DescriptionHistory, discObj.DiscussionJoinability, discObj.LastPostID, discObj.LastPostCreatedAt,
+					discObj.ShuffleCount, discObj.LockStatus)
+
+			mock.ExpectQuery(getDiscussionByLinkSlugString).WithArgs(slug).WillReturnRows(rs)
+
+			resp, err := mockDatastore.GetDiscussionByLinkSlug(ctx, slug)
 
 			So(err, ShouldBeNil)
 			So(resp, ShouldNotBeNil)
