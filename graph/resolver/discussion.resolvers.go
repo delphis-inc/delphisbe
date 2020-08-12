@@ -202,6 +202,9 @@ func (r *discussionResolver) MeNotificationSettings(ctx context.Context, obj *mo
 	if err != nil {
 		return nil, fmt.Errorf("Error fetching user information")
 	}
+	if resp == nil {
+		return nil, nil
+	}
 
 	return &resp.NotifSetting, nil
 }
