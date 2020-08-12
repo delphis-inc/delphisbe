@@ -36,6 +36,7 @@ type Discussion implements Entity {
     meViewer: Viewer
     # Notification setting for logged in user
     meNotificationSettings: DiscussionUserNotificationSetting
+    meDiscussionStatus: DiscussionUserAccessState
 
     autoPost: Boolean!
     idleMinutes: Int!
