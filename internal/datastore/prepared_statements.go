@@ -605,8 +605,9 @@ const upsertDiscussionUserAccessString = `
 			notif_setting
 		) VALUES ($1, $2, $3, $4, $5)
 		ON CONFLICT (discussion_id, user_id)
-		DO UPDATE SET state = $3,
-			request_id = $4
+		DO UPDATE SET state = COALESCE($3, EXCLUDED.state),
+			request_id = COALESCE($4, EXCLUDED.request_id),
+			notif_setting = COALESCE($5, EXCLUDED.notif_setting)
 		RETURNING
 			discussion_id,
 			user_id,
