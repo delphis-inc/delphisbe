@@ -206,6 +206,20 @@ func (r *discussionResolver) MeNotificationSettings(ctx context.Context, obj *mo
 	return &resp.NotifSetting, nil
 }
 
+func (r *discussionResolver) MeDiscussionStatus(ctx context.Context, obj *model.Discussion) (*model.DiscussionUserAccessState, error) {
+	authedUser := auth.GetAuthedUser(ctx)
+	if authedUser == nil {
+		return nil, nil
+	}
+
+	resp, err := r.DAOManager.GetDiscussionUserAccess(ctx, authedUser.UserID, obj.ID)
+	if err != nil {
+		return nil, fmt.Errorf("Error fetching user information")
+	}
+
+	return &resp.State, nil
+}
+
 func (r *discussionResolver) Tags(ctx context.Context, obj *model.Discussion) ([]*model.Tag, error) {
 	return r.DAOManager.GetDiscussionTags(ctx, obj.ID)
 }

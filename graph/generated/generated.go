@@ -114,6 +114,7 @@ type ComplexityRoot struct {
 		LockStatus              func(childComplexity int) int
 		MeAvailableParticipants func(childComplexity int) int
 		MeCanJoinDiscussion     func(childComplexity int) int
+		MeDiscussionStatus      func(childComplexity int) int
 		MeNotificationSettings  func(childComplexity int) int
 		MeParticipant           func(childComplexity int) int
 		MeViewer                func(childComplexity int) int
@@ -477,6 +478,7 @@ type DiscussionResolver interface {
 	MeCanJoinDiscussion(ctx context.Context, obj *model.Discussion) (*model.CanJoinDiscussionResponse, error)
 	MeViewer(ctx context.Context, obj *model.Discussion) (*model.Viewer, error)
 	MeNotificationSettings(ctx context.Context, obj *model.Discussion) (*model.DiscussionUserNotificationSetting, error)
+	MeDiscussionStatus(ctx context.Context, obj *model.Discussion) (*model.DiscussionUserAccessState, error)
 
 	Tags(ctx context.Context, obj *model.Discussion) ([]*model.Tag, error)
 	UpcomingContent(ctx context.Context, obj *model.Discussion) ([]*model.ImportedContent, error)
@@ -893,6 +895,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Discussion.MeCanJoinDiscussion(childComplexity), true
+
+	case "Discussion.meDiscussionStatus":
+		if e.complexity.Discussion.MeDiscussionStatus == nil {
+			break
+		}
+
+		return e.complexity.Discussion.MeDiscussionStatus(childComplexity), true
 
 	case "Discussion.meNotificationSettings":
 		if e.complexity.Discussion.MeNotificationSettings == nil {
@@ -2789,6 +2798,7 @@ var sources = []*ast.Source{
     meViewer: Viewer
     # Notification setting for logged in user
     meNotificationSettings: DiscussionUserNotificationSetting
+    meDiscussionStatus: DiscussionUserAccessState
 
     autoPost: Boolean!
     idleMinutes: Int!
@@ -5555,6 +5565,37 @@ func (ec *executionContext) _Discussion_meNotificationSettings(ctx context.Conte
 	res := resTmp.(*model.DiscussionUserNotificationSetting)
 	fc.Result = res
 	return ec.marshalODiscussionUserNotificationSetting2ᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐDiscussionUserNotificationSetting(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Discussion_meDiscussionStatus(ctx context.Context, field graphql.CollectedField, obj *model.Discussion) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "Discussion",
+		Field:    field,
+		Args:     nil,
+		IsMethod: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Discussion().MeDiscussionStatus(rctx, obj)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*model.DiscussionUserAccessState)
+	fc.Result = res
+	return ec.marshalODiscussionUserAccessState2ᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐDiscussionUserAccessState(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Discussion_autoPost(ctx context.Context, field graphql.CollectedField, obj *model.Discussion) (ret graphql.Marshaler) {
@@ -15050,6 +15091,17 @@ func (ec *executionContext) _Discussion(ctx context.Context, sel ast.SelectionSe
 					}
 				}()
 				res = ec._Discussion_meNotificationSettings(ctx, field, obj)
+				return res
+			})
+		case "meDiscussionStatus":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Discussion_meDiscussionStatus(ctx, field, obj)
 				return res
 			})
 		case "autoPost":
