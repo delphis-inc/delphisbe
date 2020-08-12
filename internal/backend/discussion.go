@@ -258,7 +258,85 @@ func (d *delphisBackend) UpdateDiscussion(ctx context.Context, id string, input 
 
 	updateDiscussionObj(discObj, input)
 
+	if input.LockStatus != nil && *input.LockStatus == true {
+		if _, err := d.CreateDiscussionArchive(ctx, id, discObj.ShuffleCount); err != nil {
+			logrus.WithError(err).Error("failed to make discussion archive")
+			return nil, err
+		}
+
+	}
+
 	return d.db.UpsertDiscussion(ctx, *discObj)
+}
+
+// May need to add paging
+func (d *delphisBackend) GetDiscussionArchiveByDiscussionID(ctx context.Context, discussionID string) (*model.DiscussionArchive, error) {
+	return d.db.GetDiscussionArchiveByDiscussionID(ctx, discussionID)
+}
+
+func (d *delphisBackend) CreateDiscussionArchive(ctx context.Context, discussionID string, shuffleCount int) (*model.DiscussionArchive, error) {
+	// Get discssion's posts
+	posts, err := d.GetPostsByDiscussionID(ctx, discussionID)
+	if err != nil {
+		logrus.WithError(err).Error("failed to get posts by discussionID")
+		return nil, err
+	}
+
+	archivedPosts, err := anonymizePostsForArchive(ctx, posts, shuffleCount)
+	if err != nil {
+		logrus.WithError(err).Error("failed to anonymize posts for archive")
+		return nil, err
+	}
+
+	postsBytes, err := json.Marshal(archivedPosts)
+	if err != nil {
+		logrus.WithError(err).Error("failed to marshal posts")
+		return nil, err
+	}
+
+	// Update archive table within transaction
+	tx, err := d.db.BeginTx(ctx)
+	if err != nil {
+		logrus.WithError(err).Error("failed to being tx")
+		return nil, err
+	}
+
+	// Create archive object
+	discArchive := model.DiscussionArchive{
+		DiscussionID: discussionID,
+		Archive:      postgres.Jsonb{postsBytes},
+	}
+
+	archiveObj, err := d.db.UpsertDiscussionArchive(ctx, tx, discArchive)
+	if err != nil {
+		logrus.WithError(err).Error("failed to upsert discussion archive")
+		// Rollback on errors
+		if txErr := d.db.RollbackTx(ctx, tx); txErr != nil {
+			logrus.WithError(txErr).Error("failed to rollback tx")
+			return nil, multierr.Append(err, txErr)
+		}
+
+		return nil, err
+	}
+
+	if _, err := d.IncrementDiscussionShuffleCount(ctx, tx, discussionID); err != nil {
+		logrus.WithError(err).Error("failed to increment shuffle count")
+		// Rollback on errors
+		if txErr := d.db.RollbackTx(ctx, tx); txErr != nil {
+			logrus.WithError(txErr).Error("failed to rollback tx")
+			return nil, multierr.Append(err, txErr)
+		}
+
+		return nil, err
+	}
+
+	// Commit transaction
+	if err := d.db.CommitTx(ctx, tx); err != nil {
+		logrus.WithError(err).Error("failed to commit post tx")
+		return nil, err
+	}
+
+	return archiveObj, nil
 }
 
 func (d *delphisBackend) GetDiscussionByID(ctx context.Context, id string) (*model.Discussion, error) {
@@ -473,6 +551,56 @@ func (d *delphisBackend) grantAccessAndCreateParticipants(ctx context.Context, d
 	}
 
 	return nil
+}
+
+func anonymizePostsForArchive(ctx context.Context, posts []*model.Post, shuffleCount int) ([]*model.ArchivedPost, error) {
+	archivedPosts := make([]*model.ArchivedPost, 0)
+
+	for _, post := range posts {
+		// Skip deleted posts for archive
+		if post.DeletedAt != nil {
+			continue
+		}
+
+		// Generate anonymous participant name
+		if post.DiscussionID == nil || post.ParticipantID == nil {
+			logrus.Warn("discussion, participant should not be null")
+			continue
+		}
+
+		hashAsInt64 := util.GenerateParticipantSeed(*post.DiscussionID, *post.ParticipantID, shuffleCount)
+		fullDisplayName := util.GenerateFullDisplayName(hashAsInt64)
+
+		entities := make([]string, 0)
+		if post.PostContent.MentionedEntities != nil {
+			for _, entityID := range post.PostContent.MentionedEntities {
+				entity, err := util.ReturnParsedEntityID(entityID)
+				if err != nil {
+					logrus.WithError(err).Error("failed to parse entity")
+					return nil, err
+				}
+				if entity.Type == model.ParticipantPrefix {
+					hashAsInt64 := util.GenerateParticipantSeed(*post.DiscussionID, entity.ID, shuffleCount)
+					entities = append(entities, util.GenerateFullDisplayName(hashAsInt64))
+				} else if entity.Type == model.DiscussionPrefix {
+					entities = append(entities, "redacted_discussion")
+				}
+			}
+		}
+
+		archivePost := model.ArchivedPost{
+			PostType:          post.PostType,
+			CreatedAt:         post.CreatedAt,
+			ParticipantName:   fullDisplayName,
+			Content:           post.PostContent.Content,
+			MentionedEntities: entities,
+			MediaID:           post.MediaID,
+		}
+
+		archivedPosts = append(archivedPosts, &archivePost)
+	}
+
+	return archivedPosts, nil
 }
 
 func updateDiscussionObj(disc *model.Discussion, input model.DiscussionInput) {

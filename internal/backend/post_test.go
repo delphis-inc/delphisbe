@@ -701,7 +701,6 @@ func TestDelphisBackend_PutImportedContentQueue(t *testing.T) {
 
 func TestDelphisBackend_GetPostsByDiscussionID(t *testing.T) {
 	ctx := context.Background()
-	userID := test_utils.UserID
 	discussionID := test_utils.DiscussionID
 
 	postObject := test_utils.TestPost()
@@ -727,7 +726,7 @@ func TestDelphisBackend_GetPostsByDiscussionID(t *testing.T) {
 			mockDB.On("GetPostsByDiscussionIDIter", ctx, discussionID).Return(&mockPostIter{})
 			mockDB.On("PostIterCollect", ctx, mock.Anything).Return(nil, expectedError)
 
-			resp, err := backendObj.GetPostsByDiscussionID(ctx, userID, discussionID)
+			resp, err := backendObj.GetPostsByDiscussionID(ctx, discussionID)
 
 			So(err, ShouldEqual, expectedError)
 			So(resp, ShouldBeNil)
@@ -737,7 +736,7 @@ func TestDelphisBackend_GetPostsByDiscussionID(t *testing.T) {
 			mockDB.On("GetPostsByDiscussionIDIter", ctx, discussionID).Return(&mockPostIter{})
 			mockDB.On("PostIterCollect", ctx, mock.Anything).Return([]*model.Post{&postObject}, nil)
 
-			resp, err := backendObj.GetPostsByDiscussionID(ctx, userID, discussionID)
+			resp, err := backendObj.GetPostsByDiscussionID(ctx, discussionID)
 
 			So(err, ShouldBeNil)
 			So(resp, ShouldNotBeNil)

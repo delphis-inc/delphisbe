@@ -126,6 +126,8 @@ type Datastore interface {
 	GetAccessLinkBySlug(ctx context.Context, slug string) (*model.DiscussionAccessLink, error)
 	GetAccessLinkByDiscussionID(ctx context.Context, discussionID string) (*model.DiscussionAccessLink, error)
 	PutAccessLinkForDiscussion(ctx context.Context, tx *sql.Tx, input model.DiscussionAccessLink) (*model.DiscussionAccessLink, error)
+	GetDiscussionArchiveByDiscussionID(ctx context.Context, discussionID string) (*model.DiscussionArchive, error)
+	UpsertDiscussionArchive(ctx context.Context, tx *sql.Tx, discArchive model.DiscussionArchive) (*model.DiscussionArchive, error)
 
 	// TXN
 	BeginTx(ctx context.Context) (*sql2.Tx, error)
@@ -314,6 +316,16 @@ func (d *delphisDB) initializeStatements(ctx context.Context) (err error) {
 	if d.prepStmts.getDiscussionByLinkSlugStmt, err = d.pg.PrepareContext(ctx, getDiscussionByLinkSlugString); err != nil {
 		logrus.WithError(err).Error("failed to prepare getDiscussionByLinkSlugStmt")
 		return errors.Wrap(err, "failed to prepare getDiscussionByLinkSlugStmt")
+	}
+
+	// DISCUSSION ARCHIVE
+	if d.prepStmts.getDiscussionArchiveByDiscussionIDStmt, err = d.pg.PrepareContext(ctx, getDiscussionArchiveByDiscussionIDString); err != nil {
+		logrus.WithError(err).Error("failed to prepare getDiscussionArchiveByDiscussionIDStmt")
+		return errors.Wrap(err, "failed to prepare getDiscussionArchiveByDiscussionIDStmt")
+	}
+	if d.prepStmts.upsertDiscussionArchiveStmt, err = d.pg.PrepareContext(ctx, upsertDiscussionArchiveString); err != nil {
+		logrus.WithError(err).Error("failed to prepare upsertDiscussionArchiveStmt")
+		return errors.Wrap(err, "failed to prepare upsertDiscussionArchiveStmt")
 	}
 
 	// MODERATOR

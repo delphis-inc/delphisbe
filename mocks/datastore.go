@@ -478,6 +478,29 @@ func (_m *Datastore) GetDiscussionAccessRequestsByDiscussionID(ctx context.Conte
 	return r0
 }
 
+// GetDiscussionArchiveByDiscussionID provides a mock function with given fields: ctx, discussionID
+func (_m *Datastore) GetDiscussionArchiveByDiscussionID(ctx context.Context, discussionID string) (*model.DiscussionArchive, error) {
+	ret := _m.Called(ctx, discussionID)
+
+	var r0 *model.DiscussionArchive
+	if rf, ok := ret.Get(0).(func(context.Context, string) *model.DiscussionArchive); ok {
+		r0 = rf(ctx, discussionID)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*model.DiscussionArchive)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(context.Context, string) error); ok {
+		r1 = rf(ctx, discussionID)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // GetDiscussionByID provides a mock function with given fields: ctx, id
 func (_m *Datastore) GetDiscussionByID(ctx context.Context, id string) (*model.Discussion, error) {
 	ret := _m.Called(ctx, id)
@@ -2067,6 +2090,29 @@ func (_m *Datastore) UpsertDiscussion(ctx context.Context, discussion model.Disc
 	var r1 error
 	if rf, ok := ret.Get(1).(func(context.Context, model.Discussion) error); ok {
 		r1 = rf(ctx, discussion)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// UpsertDiscussionArchive provides a mock function with given fields: ctx, tx, discArchive
+func (_m *Datastore) UpsertDiscussionArchive(ctx context.Context, tx *sql.Tx, discArchive model.DiscussionArchive) (*model.DiscussionArchive, error) {
+	ret := _m.Called(ctx, tx, discArchive)
+
+	var r0 *model.DiscussionArchive
+	if rf, ok := ret.Get(0).(func(context.Context, *sql.Tx, model.DiscussionArchive) *model.DiscussionArchive); ok {
+		r0 = rf(ctx, tx, discArchive)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*model.DiscussionArchive)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(context.Context, *sql.Tx, model.DiscussionArchive) error); ok {
+		r1 = rf(ctx, tx, discArchive)
 	} else {
 		r1 = ret.Error(1)
 	}
