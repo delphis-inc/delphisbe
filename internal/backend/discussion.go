@@ -259,7 +259,7 @@ func (d *delphisBackend) UpdateDiscussion(ctx context.Context, id string, input 
 	updateDiscussionObj(discObj, input)
 
 	if input.LockStatus != nil && *input.LockStatus == true {
-		if err := d.CreateDiscussionArchive(ctx, id); err != nil {
+		if _, err := d.CreateDiscussionArchive(ctx, id, discObj.ShuffleCount); err != nil {
 			logrus.WithError(err).Error("failed to make discussion archive")
 			return nil, err
 		}
@@ -274,38 +274,31 @@ func (d *delphisBackend) GetDiscussionArchiveByDiscussionID(ctx context.Context,
 	return d.db.GetDiscussionArchiveByDiscussionID(ctx, discussionID)
 }
 
-func (d *delphisBackend) CreateDiscussionArchive(ctx context.Context, discussionID string) error {
+func (d *delphisBackend) CreateDiscussionArchive(ctx context.Context, discussionID string, shuffleCount int) (*model.DiscussionArchive, error) {
 	// Get discssion's posts
 	posts, err := d.GetPostsByDiscussionID(ctx, discussionID)
 	if err != nil {
 		logrus.WithError(err).Error("failed to get posts by discussionID")
-		return err
+		return nil, err
 	}
 
-	// Get Discussion shuffle count to create anonymized participant names
-	discObj, err := d.GetDiscussionByID(ctx, discussionID)
-	if err != nil {
-		logrus.WithError(err).Error("failed to get discussion by id")
-		return err
-	}
-
-	archivedPosts, err := d.anonymizePostsForArchive(ctx, posts, discObj.ShuffleCount)
+	archivedPosts, err := d.anonymizePostsForArchive(ctx, posts, shuffleCount)
 	if err != nil {
 		logrus.WithError(err).Error("failed to anonymize posts for archive")
-		return err
+		return nil, err
 	}
 
 	postsBytes, err := json.Marshal(archivedPosts)
 	if err != nil {
 		logrus.WithError(err).Error("failed to marshal posts")
-		return err
+		return nil, err
 	}
 
 	// Update archive table within transaction
 	tx, err := d.db.BeginTx(ctx)
 	if err != nil {
 		logrus.WithError(err).Error("failed to being tx")
-		return err
+		return nil, err
 	}
 
 	// Create archive object
@@ -314,15 +307,16 @@ func (d *delphisBackend) CreateDiscussionArchive(ctx context.Context, discussion
 		Archive:      postgres.Jsonb{postsBytes},
 	}
 
-	if _, err := d.db.UpsertDiscussionArchive(ctx, tx, discArchive); err != nil {
+	archiveObj, err := d.db.UpsertDiscussionArchive(ctx, tx, discArchive)
+	if err != nil {
 		logrus.WithError(err).Error("failed to upsert discussion archive")
 		// Rollback on errors
 		if txErr := d.db.RollbackTx(ctx, tx); txErr != nil {
 			logrus.WithError(txErr).Error("failed to rollback tx")
-			return multierr.Append(err, txErr)
+			return nil, multierr.Append(err, txErr)
 		}
 
-		return err
+		return nil, err
 	}
 
 	if _, err := d.IncrementDiscussionShuffleCount(ctx, tx, discussionID); err != nil {
@@ -330,19 +324,19 @@ func (d *delphisBackend) CreateDiscussionArchive(ctx context.Context, discussion
 		// Rollback on errors
 		if txErr := d.db.RollbackTx(ctx, tx); txErr != nil {
 			logrus.WithError(txErr).Error("failed to rollback tx")
-			return multierr.Append(err, txErr)
+			return nil, multierr.Append(err, txErr)
 		}
 
-		return err
+		return nil, err
 	}
 
 	// Commit transaction
 	if err := d.db.CommitTx(ctx, tx); err != nil {
 		logrus.WithError(err).Error("failed to commit post tx")
-		return err
+		return nil, err
 	}
 
-	return nil
+	return archiveObj, nil
 }
 
 func (d *delphisBackend) GetDiscussionByID(ctx context.Context, id string) (*model.Discussion, error) {

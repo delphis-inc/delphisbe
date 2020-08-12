@@ -693,9 +693,17 @@ func TestDelphisBackend_UpdateDiscussion(t *testing.T) {
 	ctx := context.Background()
 
 	discussionID := test_utils.DiscussionID
+	newShuffleCount := 1
 
 	discInput := test_utils.TestDiscussionInput()
 	discObj := test_utils.TestDiscussion()
+	postObj := test_utils.TestPost()
+	contentObj := test_utils.TestPostContent()
+	archiveObj := test_utils.TestDiscussionArchive()
+
+	postObj.PostContent = &contentObj
+
+	tx := sql.Tx{}
 
 	Convey("UpdateDiscussion", t, func() {
 		now := time.Now()
@@ -792,6 +800,12 @@ func TestDelphisBackend_UpdateDiscussion(t *testing.T) {
 
 		Convey("when the discussion is locked, an entry in the archive table is upserted", func() {
 			mockDB.On("GetDiscussionByID", ctx, discussionID).Return(&discObj, nil)
+			mockDB.On("GetPostsByDiscussionIDIter", ctx, discussionID).Return(&mockPostIter{})
+			mockDB.On("PostIterCollect", ctx, mock.Anything).Return([]*model.Post{&postObj}, nil)
+			mockDB.On("BeginTx", ctx).Return(&tx, nil)
+			mockDB.On("UpsertDiscussionArchive", ctx, mock.Anything, mock.Anything).Return(&archiveObj, nil)
+			mockDB.On("IncrementDiscussionShuffleCount", ctx, mock.Anything, discObj.ID).Return(&newShuffleCount, nil)
+			mockDB.On("CommitTx", ctx, mock.Anything).Return(nil)
 			updatedDiscussion := discObj
 			updatedDiscussion.LockStatus = true
 			trueVal := true
@@ -805,6 +819,190 @@ func TestDelphisBackend_UpdateDiscussion(t *testing.T) {
 			So(err, ShouldBeNil)
 			So(resp, ShouldNotBeNil)
 		})
+	})
+}
+
+func TestDelphisBackend_GetDiscussionArchiveByDiscussionID(t *testing.T) {
+	ctx := context.Background()
+
+	discussionID := test_utils.DiscussionID
+
+	archiveObj := test_utils.TestDiscussionArchive()
+
+	Convey("GetDiscussionArchiveByDiscussionID", t, func() {
+		now := time.Now()
+		cacheObj := cache.NewInMemoryCache()
+		authObj := auth.NewDelphisAuth(nil)
+		mockDB := &mocks.Datastore{}
+		backendObj := &delphisBackend{
+			db:              mockDB,
+			auth:            authObj,
+			cache:           cacheObj,
+			discussionMutex: sync.Mutex{},
+			config:          config.Config{},
+			timeProvider:    &util.FrozenTime{NowTime: now},
+		}
+
+		Convey("when the query errors out", func() {
+			expectedError := fmt.Errorf("Some Error")
+			mockDB.On("GetDiscussionArchiveByDiscussionID", ctx, discussionID).Return(nil, expectedError)
+
+			resp, err := backendObj.GetDiscussionArchiveByDiscussionID(ctx, discussionID)
+
+			So(err, ShouldEqual, expectedError)
+			So(resp, ShouldBeNil)
+		})
+
+		Convey("when the query returns successfully", func() {
+			mockDB.On("GetDiscussionArchiveByDiscussionID", ctx, discussionID).Return(&archiveObj, nil)
+
+			resp, err := backendObj.GetDiscussionArchiveByDiscussionID(ctx, discussionID)
+
+			So(err, ShouldBeNil)
+			So(resp, ShouldResemble, &archiveObj)
+		})
+	})
+}
+
+func TestDelphisBackend_CreateDiscussionArchive(t *testing.T) {
+	ctx := context.Background()
+
+	discussionID := test_utils.DiscussionID
+	shuffleCount := 1
+	newShuffleCount := shuffleCount + 1
+	postObj := test_utils.TestPost()
+	contentObj := test_utils.TestPostContent()
+	discObj := test_utils.TestDiscussion()
+	archiveObj := test_utils.TestDiscussionArchive()
+
+	postObj.PostContent = &contentObj
+
+	tx := sql.Tx{}
+
+	Convey("CreateDiscussionArchive", t, func() {
+		now := time.Now()
+		cacheObj := cache.NewInMemoryCache()
+		authObj := auth.NewDelphisAuth(nil)
+		mockDB := &mocks.Datastore{}
+		backendObj := &delphisBackend{
+			db:              mockDB,
+			auth:            authObj,
+			cache:           cacheObj,
+			discussionMutex: sync.Mutex{},
+			config:          config.Config{},
+			timeProvider:    &util.FrozenTime{NowTime: now},
+		}
+
+		Convey("when get posts by discussion id errors out", func() {
+			expectedError := fmt.Errorf("Some Error")
+			mockDB.On("GetPostsByDiscussionIDIter", ctx, discussionID).Return(&mockPostIter{})
+			mockDB.On("PostIterCollect", ctx, mock.Anything).Return(nil, expectedError)
+
+			resp, err := backendObj.CreateDiscussionArchive(ctx, discussionID, shuffleCount)
+
+			So(err, ShouldEqual, expectedError)
+			So(resp, ShouldBeNil)
+		})
+
+		Convey("when begin tx errors out", func() {
+			expectedError := fmt.Errorf("Some Error")
+			mockDB.On("GetPostsByDiscussionIDIter", ctx, discussionID).Return(&mockPostIter{})
+			mockDB.On("PostIterCollect", ctx, mock.Anything).Return([]*model.Post{&postObj}, nil)
+			mockDB.On("BeginTx", ctx).Return(nil, expectedError)
+
+			resp, err := backendObj.CreateDiscussionArchive(ctx, discussionID, shuffleCount)
+
+			So(err, ShouldEqual, expectedError)
+			So(resp, ShouldBeNil)
+		})
+
+		Convey("when upsert discussion archive errors out and rollback fails", func() {
+			expectedError := fmt.Errorf("Some Error")
+			mockDB.On("GetPostsByDiscussionIDIter", ctx, discussionID).Return(&mockPostIter{})
+			mockDB.On("PostIterCollect", ctx, mock.Anything).Return([]*model.Post{&postObj}, nil)
+			mockDB.On("BeginTx", ctx).Return(&tx, nil)
+			mockDB.On("UpsertDiscussionArchive", ctx, mock.Anything, mock.Anything).Return(nil, expectedError)
+			mockDB.On("RollbackTx", ctx, mock.Anything).Return(expectedError)
+
+			resp, err := backendObj.CreateDiscussionArchive(ctx, discussionID, shuffleCount)
+
+			So(err, ShouldNotBeNil)
+			So(resp, ShouldBeNil)
+		})
+
+		Convey("when upsert discussion archive errors out and rollback succeeds", func() {
+			expectedError := fmt.Errorf("Some Error")
+			mockDB.On("GetPostsByDiscussionIDIter", ctx, discussionID).Return(&mockPostIter{})
+			mockDB.On("PostIterCollect", ctx, mock.Anything).Return([]*model.Post{&postObj}, nil)
+			mockDB.On("BeginTx", ctx).Return(&tx, nil)
+			mockDB.On("UpsertDiscussionArchive", ctx, mock.Anything, mock.Anything).Return(nil, expectedError)
+			mockDB.On("RollbackTx", ctx, mock.Anything).Return(nil)
+
+			resp, err := backendObj.CreateDiscussionArchive(ctx, discussionID, shuffleCount)
+
+			So(err, ShouldEqual, expectedError)
+			So(resp, ShouldBeNil)
+		})
+
+		Convey("when increment discussion shuffle count errors out and rollback fails", func() {
+			expectedError := fmt.Errorf("Some Error")
+			mockDB.On("GetPostsByDiscussionIDIter", ctx, discussionID).Return(&mockPostIter{})
+			mockDB.On("PostIterCollect", ctx, mock.Anything).Return([]*model.Post{&postObj}, nil)
+			mockDB.On("BeginTx", ctx).Return(&tx, nil)
+			mockDB.On("UpsertDiscussionArchive", ctx, mock.Anything, mock.Anything).Return(&archiveObj, nil)
+			mockDB.On("IncrementDiscussionShuffleCount", ctx, mock.Anything, discObj.ID).Return(nil, expectedError)
+			mockDB.On("RollbackTx", ctx, mock.Anything).Return(expectedError)
+
+			resp, err := backendObj.CreateDiscussionArchive(ctx, discussionID, shuffleCount)
+
+			So(err, ShouldNotBeNil)
+			So(resp, ShouldBeNil)
+		})
+
+		Convey("when increment discussion shuffle count errors out and rollback succeeds", func() {
+			expectedError := fmt.Errorf("Some Error")
+			mockDB.On("GetPostsByDiscussionIDIter", ctx, discussionID).Return(&mockPostIter{})
+			mockDB.On("PostIterCollect", ctx, mock.Anything).Return([]*model.Post{&postObj}, nil)
+			mockDB.On("BeginTx", ctx).Return(&tx, nil)
+			mockDB.On("UpsertDiscussionArchive", ctx, mock.Anything, mock.Anything).Return(&archiveObj, nil)
+			mockDB.On("IncrementDiscussionShuffleCount", ctx, mock.Anything, discObj.ID).Return(nil, expectedError)
+			mockDB.On("RollbackTx", ctx, mock.Anything).Return(nil)
+
+			resp, err := backendObj.CreateDiscussionArchive(ctx, discussionID, shuffleCount)
+
+			So(err, ShouldEqual, expectedError)
+			So(resp, ShouldBeNil)
+		})
+
+		Convey("when CreateDiscussion succeeds but commitTx fails", func() {
+			expectedError := fmt.Errorf("Some Error")
+			mockDB.On("GetPostsByDiscussionIDIter", ctx, discussionID).Return(&mockPostIter{})
+			mockDB.On("PostIterCollect", ctx, mock.Anything).Return([]*model.Post{&postObj}, nil)
+			mockDB.On("BeginTx", ctx).Return(&tx, nil)
+			mockDB.On("UpsertDiscussionArchive", ctx, mock.Anything, mock.Anything).Return(&archiveObj, nil)
+			mockDB.On("IncrementDiscussionShuffleCount", ctx, mock.Anything, discObj.ID).Return(&newShuffleCount, nil)
+			mockDB.On("CommitTx", ctx, mock.Anything).Return(expectedError)
+
+			resp, err := backendObj.CreateDiscussionArchive(ctx, discussionID, shuffleCount)
+
+			So(err, ShouldEqual, expectedError)
+			So(resp, ShouldBeNil)
+		})
+
+		Convey("when CreateDiscussion succeeds but commitTx fails", func() {
+			mockDB.On("GetPostsByDiscussionIDIter", ctx, discussionID).Return(&mockPostIter{})
+			mockDB.On("PostIterCollect", ctx, mock.Anything).Return([]*model.Post{&postObj}, nil)
+			mockDB.On("BeginTx", ctx).Return(&tx, nil)
+			mockDB.On("UpsertDiscussionArchive", ctx, mock.Anything, mock.Anything).Return(&archiveObj, nil)
+			mockDB.On("IncrementDiscussionShuffleCount", ctx, mock.Anything, discObj.ID).Return(&newShuffleCount, nil)
+			mockDB.On("CommitTx", ctx, mock.Anything).Return(nil)
+
+			resp, err := backendObj.CreateDiscussionArchive(ctx, discussionID, shuffleCount)
+
+			So(err, ShouldBeNil)
+			So(resp, ShouldEqual, &archiveObj)
+		})
+
 	})
 }
 
