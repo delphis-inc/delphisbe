@@ -606,7 +606,8 @@ const upsertDiscussionUserAccessString = `
 		) VALUES ($1, $2, $3, $4, $5)
 		ON CONFLICT (discussion_id, user_id)
 		DO UPDATE SET state = $3,
-			request_id = $4
+			request_id = $4,
+			notif_setting = $5
 		RETURNING
 			discussion_id,
 			user_id,

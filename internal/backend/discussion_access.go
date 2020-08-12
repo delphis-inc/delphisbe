@@ -82,9 +82,18 @@ func (d *delphisBackend) createDuaObject(ctx context.Context, userID string, dis
 		return nil, err
 	}
 
+	// Merge existing DUA with new input for non-entered fields for updates
 	if dua != nil {
 		if dua.RequestID != nil {
 			input.RequestID = dua.RequestID
+		}
+
+		if input.NotifSetting == "" {
+			input.NotifSetting = dua.NotifSetting
+		}
+
+		if input.State == "" {
+			input.State = dua.State
 		}
 	}
 
