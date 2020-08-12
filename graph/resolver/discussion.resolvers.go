@@ -203,6 +203,10 @@ func (r *discussionResolver) MeNotificationSettings(ctx context.Context, obj *mo
 		return nil, fmt.Errorf("Error fetching user information")
 	}
 
+	if resp == nil {
+		return nil, nil
+	}
+
 	return &resp.NotifSetting, nil
 }
 
@@ -215,6 +219,10 @@ func (r *discussionResolver) MeDiscussionStatus(ctx context.Context, obj *model.
 	resp, err := r.DAOManager.GetDiscussionUserAccess(ctx, authedUser.UserID, obj.ID)
 	if err != nil {
 		return nil, fmt.Errorf("Error fetching user information")
+	}
+
+	if resp == nil {
+		return nil, nil
 	}
 
 	return &resp.State, nil
