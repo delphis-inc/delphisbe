@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -989,7 +990,7 @@ func TestDelphisBackend_CreateDiscussionArchive(t *testing.T) {
 			So(resp, ShouldBeNil)
 		})
 
-		Convey("when CreateDiscussion succeeds but commitTx fails", func() {
+		Convey("when CreateDiscussion succeeds", func() {
 			mockDB.On("GetPostsByDiscussionIDIter", ctx, discussionID).Return(&mockPostIter{})
 			mockDB.On("PostIterCollect", ctx, mock.Anything).Return([]*model.Post{&postObj}, nil)
 			mockDB.On("BeginTx", ctx).Return(&tx, nil)
@@ -1479,6 +1480,83 @@ func TestDelphisBackend_DeleteDiscussionTags(t *testing.T) {
 			So(err, ShouldBeNil)
 			So(resp, ShouldResemble, []*model.Tag{&tagObj})
 		})
+	})
+}
+
+func TestDelphisBackend_anonymizePostsForArchive(t *testing.T) {
+	ctx := context.Background()
+
+	shuffleCount := 1
+
+	postObj := test_utils.TestPost()
+	contentObj := test_utils.TestPostContent()
+	postObj.PostContent = &contentObj
+
+	participantHash := util.GenerateParticipantSeed(*postObj.DiscussionID, *postObj.ParticipantID, shuffleCount)
+	participantName := util.GenerateFullDisplayName(participantHash)
+
+	expectedResult := model.ArchivedPost{
+		PostType:          postObj.PostType,
+		ParticipantName:   participantName,
+		Content:           postObj.PostContent.Content,
+		MentionedEntities: []string{},
+	}
+
+	Convey("anonymizePostsForArchive", t, func() {
+		now := time.Now()
+
+		Convey("when there are no posts to archive", func() {
+			resp, err := anonymizePostsForArchive(ctx, nil, shuffleCount)
+
+			So(err, ShouldBeNil)
+			So(resp, ShouldResemble, []*model.ArchivedPost{})
+		})
+
+		Convey("when there are only deleted posts to archive", func() {
+			tempPost := postObj
+			tempPost.DeletedAt = &now
+			tempPosts := []*model.Post{&tempPost}
+			resp, err := anonymizePostsForArchive(ctx, tempPosts, shuffleCount)
+
+			So(err, ShouldBeNil)
+			So(resp, ShouldResemble, []*model.ArchivedPost{})
+		})
+
+		Convey("when we successfully anonymize the post", func() {
+			tempPosts := []*model.Post{&postObj}
+
+			resp, err := anonymizePostsForArchive(ctx, tempPosts, shuffleCount)
+
+			So(err, ShouldBeNil)
+			So(resp, ShouldNotBeNil)
+			So(resp, ShouldResemble, []*model.ArchivedPost{&expectedResult})
+		})
+
+		Convey("when there are mentioned entities", func() {
+			mentionedParticipantID := "12345"
+			mentionedParticipant := strings.Join([]string{model.ParticipantPrefix, mentionedParticipantID}, ":")
+
+			mentionedParticipantHash := util.GenerateParticipantSeed(*postObj.DiscussionID, mentionedParticipantID, shuffleCount)
+			mentionedParticipantName := util.GenerateFullDisplayName(mentionedParticipantHash)
+
+			tempContent := contentObj
+			tempContent.MentionedEntities = []string{mentionedParticipant, "discussion:1234"}
+
+			tempPost := postObj
+			tempPost.PostContent = &tempContent
+			tempPosts := []*model.Post{&tempPost}
+
+			// Expected result
+			testResult := expectedResult
+			testResult.MentionedEntities = []string{mentionedParticipantName, "redacted_discussion"}
+
+			resp, err := anonymizePostsForArchive(ctx, tempPosts, shuffleCount)
+
+			So(err, ShouldBeNil)
+			So(resp, ShouldNotBeNil)
+			So(resp, ShouldResemble, []*model.ArchivedPost{&testResult})
+		})
+
 	})
 }
 

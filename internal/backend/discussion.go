@@ -282,7 +282,7 @@ func (d *delphisBackend) CreateDiscussionArchive(ctx context.Context, discussion
 		return nil, err
 	}
 
-	archivedPosts, err := d.anonymizePostsForArchive(ctx, posts, shuffleCount)
+	archivedPosts, err := anonymizePostsForArchive(ctx, posts, shuffleCount)
 	if err != nil {
 		logrus.WithError(err).Error("failed to anonymize posts for archive")
 		return nil, err
@@ -553,7 +553,7 @@ func (d *delphisBackend) grantAccessAndCreateParticipants(ctx context.Context, d
 	return nil
 }
 
-func (d *delphisBackend) anonymizePostsForArchive(ctx context.Context, posts []*model.Post, shuffleCount int) ([]*model.ArchivedPost, error) {
+func anonymizePostsForArchive(ctx context.Context, posts []*model.Post, shuffleCount int) ([]*model.ArchivedPost, error) {
 	archivedPosts := make([]*model.ArchivedPost, 0)
 
 	for _, post := range posts {
