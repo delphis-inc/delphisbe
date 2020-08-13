@@ -27,6 +27,10 @@ type dbPrepStmts struct {
 	getDiscussionsForAutoPostStmt *sql2.Stmt
 	getDiscussionByLinkSlugStmt   *sql2.Stmt
 
+	// Discussion Archives
+	getDiscussionArchiveByDiscussionIDStmt *sql2.Stmt
+	upsertDiscussionArchiveStmt            *sql2.Stmt
+
 	// Moderator
 	getModeratorByUserIDStmt                *sql2.Stmt
 	getModeratorByUserIDAndDiscussionIDStmt *sql2.Stmt
@@ -287,6 +291,28 @@ const getDiscussionByLinkSlugString = `
 		ON dal.discussion_id = d.id
 		WHERE dal.link_slug = $1
 			AND d.lock_status = false;`
+
+// Discussion Archive
+const getDiscussionArchiveByDiscussionIDString = `
+		SELECT discussion_id,
+			archived,
+			created_at
+		FROM discussion_archives
+		WHERE discussion_id = $1;
+`
+
+const upsertDiscussionArchiveString = `
+		INSERT INTO discussion_archives (
+			discussion_id,
+			archived
+		) VALUES ($1, $2)
+		ON CONFLICT (discussion_id)
+		DO UPDATE SET created_at = now(),
+			archived =$2
+		RETURNING
+			discussion_id,
+			archived,
+			created_at;`
 
 // Currently only care if you are a mod, not checking on discussion mods
 const getModeratorByUserIDString = `

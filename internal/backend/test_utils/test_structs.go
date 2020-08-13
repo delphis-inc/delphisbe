@@ -1,7 +1,10 @@
 package test_utils
 
 import (
+	"encoding/json"
 	"time"
+
+	"github.com/jinzhu/gorm/dialects/postgres"
 
 	"github.com/delphis-inc/delphisbe/graph/model"
 	"github.com/delphis-inc/delphisbe/internal/auth"
@@ -117,6 +120,17 @@ func TestPost() model.Post {
 		DiscussionID:  &discussionID,
 		ParticipantID: &participantID,
 		PostContentID: &postContentID,
+	}
+}
+
+func TestDiscussionArchive() model.DiscussionArchive {
+	post := TestPost()
+
+	postBytes, _ := json.Marshal([]*model.Post{&post})
+
+	return model.DiscussionArchive{
+		DiscussionID: DiscussionID,
+		Archive:      postgres.Jsonb{postBytes},
 	}
 }
 

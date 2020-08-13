@@ -23,6 +23,8 @@ import (
 type DelphisBackend interface {
 	CreateNewDiscussion(ctx context.Context, creatingUser *model.User, anonymityType model.AnonymityType, title string, description string, publicAccess bool, discussionSettings model.DiscussionCreationSettings) (*model.Discussion, error)
 	UpdateDiscussion(ctx context.Context, id string, input model.DiscussionInput) (*model.Discussion, error)
+	GetDiscussionArchiveByDiscussionID(ctx context.Context, discussionID string) (*model.DiscussionArchive, error)
+	CreateDiscussionArchive(ctx context.Context, discussionID string, shuffleCount int) (*model.DiscussionArchive, error)
 	GetDiscussionByID(ctx context.Context, id string) (*model.Discussion, error)
 	GetDiscussionsByIDs(ctx context.Context, ids []string) (map[string]*model.Discussion, error)
 	GetDiscussionsForAutoPost(ctx context.Context) ([]*model.DiscussionAutoPost, error)
@@ -70,7 +72,7 @@ type DelphisBackend interface {
 	NotifySubscribersOfBannedParticipant(ctx context.Context, participant *model.Participant, discussionID string) error
 	GetPostByDiscussionPostID(ctx context.Context, discussionID, postID string) (*model.Post, error)
 	GetPostsConnectionByDiscussionID(ctx context.Context, discussionID string, cursor string, limit int) (*model.PostsConnection, error)
-	GetPostsByDiscussionID(ctx context.Context, userID string, discussionID string) ([]*model.Post, error)
+	GetPostsByDiscussionID(ctx context.Context, discussionID string) ([]*model.Post, error)
 	GetLastPostByDiscussionID(ctx context.Context, discussionID string) (*model.Post, error)
 	GetPostContentByID(ctx context.Context, id string) (*model.PostContent, error)
 	DeletePostByID(ctx context.Context, discussionID string, postID string, requestingUserID string) (*model.Post, error)

@@ -47,6 +47,15 @@ type Post struct {
 	ConciergeContent  *ConciergeContent
 }
 
+type ArchivedPost struct {
+	PostType          PostType  `json:"postType"`
+	CreatedAt         time.Time `json:"createdAt" gorm:"not null;default:CURRENT_TIMESTAMP;"`
+	ParticipantName   string    `json:"participantName"`
+	Content           string    `json:"content"`
+	MentionedEntities []string  `json:"mentioned_entities"`
+	MediaID           *string   `json:"mediaID"`
+}
+
 type PostsEdge struct {
 	Cursor string `json:"cursor"`
 	Node   *Post  `json:"node"`
