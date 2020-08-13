@@ -641,7 +641,7 @@ func (r *mutationResolver) RespondToRequestAccess(ctx context.Context, requestID
 	// Have moderator's non-anon participant approve the request access
 	var nonAnonUserID string
 	if participantResponse.NonAnon == nil {
-		nonAnonUserID = *participantResponse.NonAnon.UserID
+		nonAnonUserID = *participantResponse.NonAnon.ID
 	}
 
 	return r.DAOManager.RespondToRequestAccess(ctx, requestID, response, nonAnonUserID)
