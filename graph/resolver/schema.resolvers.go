@@ -639,12 +639,12 @@ func (r *mutationResolver) RespondToRequestAccess(ctx context.Context, requestID
 	}
 
 	// Have moderator's non-anon participant approve the request access
-	var nonAnonUserID string
+	var nonAnonParticipantID string
 	if participantResponse.NonAnon == nil {
-		nonAnonUserID = *participantResponse.NonAnon.UserID
+		nonAnonParticipantID = participantResponse.NonAnon.ID
 	}
 
-	return r.DAOManager.RespondToRequestAccess(ctx, requestID, response, nonAnonUserID)
+	return r.DAOManager.RespondToRequestAccess(ctx, requestID, response, nonAnonParticipantID)
 }
 
 func (r *mutationResolver) JoinDiscussionWithVIPToken(ctx context.Context, discussionID string, vipToken string) (*model.Discussion, error) {
