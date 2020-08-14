@@ -102,7 +102,7 @@ type DiscussionInvite {
 
 type DiscussionAccessRequest {
     id: ID!
-    user: User!
+    userProfile: UserProfile
     discussion: Discussion!
     createdAt: String!
     updatedAt: String!

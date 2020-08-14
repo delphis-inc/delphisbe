@@ -635,7 +635,6 @@ func TestDelphisBackend_RespondToRequestAccess(t *testing.T) {
 	response := model.InviteRequestStatusAccepted
 
 	requestObj := test_utils.TestDiscussionAccessRequest(model.InviteRequestStatusAccepted)
-	inviteObj := test_utils.TestDiscussionInvite(model.InviteRequestStatusAccepted)
 	duaObj := test_utils.TestDiscussionUserAccess()
 
 	duaObj.RequestID = &requestObj.ID
@@ -715,40 +714,11 @@ func TestDelphisBackend_RespondToRequestAccess(t *testing.T) {
 			So(resp, ShouldBeNil)
 		})
 
-		Convey("when PutDiscussionInviteRecord errors out and Rollback fails", func() {
-			expectedError := fmt.Errorf("Some Error")
-			mockDB.On("BeginTx", ctx).Return(&tx, nil)
-			mockDB.On("UpdateDiscussionAccessRequestRecord", ctx, mock.Anything, mock.Anything).Return(&requestObj, nil)
-			mockDB.On("UpsertDiscussionUserAccess", ctx, mock.Anything, duaObj).Return(&duaObj, nil)
-			mockDB.On("PutDiscussionInviteRecord", ctx, mock.Anything, mock.Anything).Return(nil, expectedError)
-			mockDB.On("RollbackTx", ctx, mock.Anything).Return(expectedError)
-
-			resp, err := backendObj.RespondToRequestAccess(ctx, requestID, response, participantID)
-
-			So(err, ShouldNotBeNil)
-			So(resp, ShouldBeNil)
-		})
-
-		Convey("when PutDiscussionInviteRecord errors out", func() {
-			expectedError := fmt.Errorf("Some Error")
-			mockDB.On("BeginTx", ctx).Return(&tx, nil)
-			mockDB.On("UpdateDiscussionAccessRequestRecord", ctx, mock.Anything, mock.Anything).Return(&requestObj, nil)
-			mockDB.On("UpsertDiscussionUserAccess", ctx, mock.Anything, duaObj).Return(&duaObj, nil)
-			mockDB.On("PutDiscussionInviteRecord", ctx, mock.Anything, mock.Anything).Return(nil, expectedError)
-			mockDB.On("RollbackTx", ctx, mock.Anything).Return(nil)
-
-			resp, err := backendObj.RespondToRequestAccess(ctx, requestID, response, participantID)
-
-			So(err, ShouldNotBeNil)
-			So(resp, ShouldBeNil)
-		})
-
 		Convey("when CommitTx errors out", func() {
 			expectedError := fmt.Errorf("Some Error")
 			mockDB.On("BeginTx", ctx).Return(&tx, nil)
 			mockDB.On("UpdateDiscussionAccessRequestRecord", ctx, mock.Anything, mock.Anything).Return(&requestObj, nil)
 			mockDB.On("UpsertDiscussionUserAccess", ctx, mock.Anything, duaObj).Return(&duaObj, nil)
-			mockDB.On("PutDiscussionInviteRecord", ctx, mock.Anything, mock.Anything).Return(&inviteObj, nil)
 
 			mockDB.On("CommitTx", ctx, mock.Anything).Return(expectedError)
 
@@ -762,7 +732,6 @@ func TestDelphisBackend_RespondToRequestAccess(t *testing.T) {
 			mockDB.On("BeginTx", ctx).Return(&tx, nil)
 			mockDB.On("UpdateDiscussionAccessRequestRecord", ctx, mock.Anything, mock.Anything).Return(&requestObj, nil)
 			mockDB.On("UpsertDiscussionUserAccess", ctx, mock.Anything, duaObj).Return(&duaObj, nil)
-			mockDB.On("PutDiscussionInviteRecord", ctx, mock.Anything, mock.Anything).Return(&inviteObj, nil)
 
 			mockDB.On("CommitTx", ctx, mock.Anything).Return(nil)
 

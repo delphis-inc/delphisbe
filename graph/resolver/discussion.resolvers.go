@@ -334,21 +334,20 @@ func (r *discussionAccessLinkResolver) IsDeleted(ctx context.Context, obj *model
 	return obj.DeletedAt != nil, nil
 }
 
-func (r *discussionAccessRequestResolver) User(ctx context.Context, obj *model.DiscussionAccessRequest) (*model.User, error) {
+func (r *discussionAccessRequestResolver) UserProfile(ctx context.Context, obj *model.DiscussionAccessRequest) (*model.UserProfile, error) {
 	authedUser := auth.GetAuthedUser(ctx)
 	if authedUser == nil {
-		return nil, fmt.Errorf("Need auth")
+		return nil, fmt.Errorf("Need auth for acccess request")
 	}
 
 	if authedUser.UserID != obj.UserID {
 		// Only allow the mod to view access requests
-		modCheck, err := r.DAOManager.CheckIfModeratorForDiscussion(ctx, authedUser.UserID, obj.ID)
+		modCheck, err := r.DAOManager.CheckIfModeratorForDiscussion(ctx, authedUser.UserID, obj.DiscussionID)
 		if err != nil || !modCheck {
 			return nil, fmt.Errorf("unauthorized")
 		}
 	}
-
-	return r.DAOManager.GetUserByID(ctx, obj.UserID)
+	return r.DAOManager.GetUserProfileByUserID(ctx, obj.UserID)
 }
 
 func (r *discussionAccessRequestResolver) Discussion(ctx context.Context, obj *model.DiscussionAccessRequest) (*model.Discussion, error) {

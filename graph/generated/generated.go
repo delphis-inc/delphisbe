@@ -143,13 +143,13 @@ type ComplexityRoot struct {
 	}
 
 	DiscussionAccessRequest struct {
-		CreatedAt  func(childComplexity int) int
-		Discussion func(childComplexity int) int
-		ID         func(childComplexity int) int
-		IsDeleted  func(childComplexity int) int
-		Status     func(childComplexity int) int
-		UpdatedAt  func(childComplexity int) int
-		User       func(childComplexity int) int
+		CreatedAt   func(childComplexity int) int
+		Discussion  func(childComplexity int) int
+		ID          func(childComplexity int) int
+		IsDeleted   func(childComplexity int) int
+		Status      func(childComplexity int) int
+		UpdatedAt   func(childComplexity int) int
+		UserProfile func(childComplexity int) int
 	}
 
 	DiscussionArchive struct {
@@ -507,7 +507,7 @@ type DiscussionAccessLinkResolver interface {
 	IsDeleted(ctx context.Context, obj *model.DiscussionAccessLink) (bool, error)
 }
 type DiscussionAccessRequestResolver interface {
-	User(ctx context.Context, obj *model.DiscussionAccessRequest) (*model.User, error)
+	UserProfile(ctx context.Context, obj *model.DiscussionAccessRequest) (*model.UserProfile, error)
 	Discussion(ctx context.Context, obj *model.DiscussionAccessRequest) (*model.Discussion, error)
 }
 type DiscussionArchiveResolver interface {
@@ -1109,12 +1109,12 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.DiscussionAccessRequest.UpdatedAt(childComplexity), true
 
-	case "DiscussionAccessRequest.user":
-		if e.complexity.DiscussionAccessRequest.User == nil {
+	case "DiscussionAccessRequest.userProfile":
+		if e.complexity.DiscussionAccessRequest.UserProfile == nil {
 			break
 		}
 
-		return e.complexity.DiscussionAccessRequest.User(childComplexity), true
+		return e.complexity.DiscussionAccessRequest.UserProfile(childComplexity), true
 
 	case "DiscussionArchive.archive":
 		if e.complexity.DiscussionArchive.Archive == nil {
@@ -2897,7 +2897,7 @@ type DiscussionInvite {
 
 type DiscussionAccessRequest {
     id: ID!
-    user: User!
+    userProfile: UserProfile
     discussion: Discussion!
     createdAt: String!
     updatedAt: String!
@@ -6297,7 +6297,7 @@ func (ec *executionContext) _DiscussionAccessRequest_id(ctx context.Context, fie
 	return ec.marshalNID2string(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _DiscussionAccessRequest_user(ctx context.Context, field graphql.CollectedField, obj *model.DiscussionAccessRequest) (ret graphql.Marshaler) {
+func (ec *executionContext) _DiscussionAccessRequest_userProfile(ctx context.Context, field graphql.CollectedField, obj *model.DiscussionAccessRequest) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -6314,21 +6314,18 @@ func (ec *executionContext) _DiscussionAccessRequest_user(ctx context.Context, f
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.DiscussionAccessRequest().User(rctx, obj)
+		return ec.resolvers.DiscussionAccessRequest().UserProfile(rctx, obj)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
 		return graphql.Null
 	}
 	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
 		return graphql.Null
 	}
-	res := resTmp.(*model.User)
+	res := resTmp.(*model.UserProfile)
 	fc.Result = res
-	return ec.marshalNUser2ᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐUser(ctx, field.Selections, res)
+	return ec.marshalOUserProfile2ᚖgithubᚗcomᚋdelphisᚑincᚋdelphisbeᚋgraphᚋmodelᚐUserProfile(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _DiscussionAccessRequest_discussion(ctx context.Context, field graphql.CollectedField, obj *model.DiscussionAccessRequest) (ret graphql.Marshaler) {
@@ -15474,7 +15471,7 @@ func (ec *executionContext) _DiscussionAccessRequest(ctx context.Context, sel as
 			if out.Values[i] == graphql.Null {
 				atomic.AddUint32(&invalids, 1)
 			}
-		case "user":
+		case "userProfile":
 			field := field
 			out.Concurrently(i, func() (res graphql.Marshaler) {
 				defer func() {
@@ -15482,10 +15479,7 @@ func (ec *executionContext) _DiscussionAccessRequest(ctx context.Context, sel as
 						ec.Error(ctx, ec.Recover(ctx, r))
 					}
 				}()
-				res = ec._DiscussionAccessRequest_user(ctx, field, obj)
-				if res == graphql.Null {
-					atomic.AddUint32(&invalids, 1)
-				}
+				res = ec._DiscussionAccessRequest_userProfile(ctx, field, obj)
 				return res
 			})
 		case "discussion":
