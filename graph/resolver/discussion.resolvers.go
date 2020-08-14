@@ -219,7 +219,9 @@ func (r *discussionResolver) MeDiscussionStatus(ctx context.Context, obj *model.
 	if err != nil {
 		return nil, fmt.Errorf("Error fetching user information")
 	}
-
+	if resp == nil {
+		return nil, nil
+	}
 	return &resp.State, nil
 }
 
