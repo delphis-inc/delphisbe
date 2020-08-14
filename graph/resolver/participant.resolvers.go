@@ -88,45 +88,6 @@ func (r *participantResolver) GradientColor(ctx context.Context, obj *model.Part
 	return &gradientColor, nil
 }
 
-func (r *participantResolver) Flair(ctx context.Context, obj *model.Participant) (*model.Flair, error) {
-	if obj.IsBanned {
-		return nil, nil
-	}
-
-	if obj.Flair == nil && obj.FlairID != nil {
-		return r.DAOManager.GetFlairByID(ctx, *obj.FlairID)
-	}
-	return obj.Flair, nil
-}
-
-func (r *participantResolver) Inviter(ctx context.Context, obj *model.Participant) (*model.Participant, error) {
-	if obj.InviterID == nil {
-		// By default the inviter is the moderator
-		inviter, err := r.DAOManager.GetModeratorParticipantsByDiscussionID(ctx, *obj.DiscussionID)
-		if err != nil {
-			return nil, err
-		}
-		if inviter == nil {
-			return nil, fmt.Errorf("Could not retrieve discussion's moderator")
-		}
-
-		if inviter.NonAnon != nil {
-			return inviter.NonAnon, nil
-		} else if inviter.Anon != nil {
-			return inviter.Anon, nil
-		}
-
-		// We have a problem here
-		return nil, nil
-	}
-
-	inviter, err := r.DAOManager.GetParticipantByID(ctx, *obj.InviterID)
-	if err != nil {
-		return nil, err
-	}
-	return inviter, nil
-}
-
 func (r *participantResolver) UserProfile(ctx context.Context, obj *model.Participant) (*model.UserProfile, error) {
 	if obj.IsBanned {
 		return nil, nil

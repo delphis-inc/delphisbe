@@ -69,7 +69,7 @@ func TestDelphisDB_PutPost(t *testing.T) {
 			mock.ExpectBegin()
 			mockPreparedStatements(mock)
 			mock.ExpectPrepare(putPostString)
-			mock.ExpectQuery(putPostString).WithArgs(postObject.ID, postObject.DiscussionID, postObject.ParticipantID, postObject.PostContent.ID, postObject.QuotedPostID, postObject.MediaID, postObject.ImportedContentID, postObject.PostType).WillReturnError(fmt.Errorf("error"))
+			mock.ExpectQuery(putPostString).WithArgs(postObject.ID, postObject.DiscussionID, postObject.ParticipantID, postObject.PostContent.ID, postObject.QuotedPostID, postObject.MediaID, postObject.PostType).WillReturnError(fmt.Errorf("error"))
 
 			tx, err := mockDatastore.BeginTx(ctx)
 			resp, err := mockDatastore.PutPost(ctx, tx, postObject)
@@ -80,13 +80,13 @@ func TestDelphisDB_PutPost(t *testing.T) {
 		})
 
 		Convey("when put post succeeds and returns an object", func() {
-			rs := sqlmock.NewRows([]string{"id", "created_at", "updated_at", "discussion_id", "participant_id", "post_content_id", "quoted_post_id", "media_id", "imported_content_id", "post_type"}).
-				AddRow(postObject.ID, postObject.CreatedAt, postObject.UpdatedAt, postObject.DiscussionID, postObject.ParticipantID, postObject.PostContentID, postObject.QuotedPostID, postObject.MediaID, postObject.ImportedContentID, postObject.PostType)
+			rs := sqlmock.NewRows([]string{"id", "created_at", "updated_at", "discussion_id", "participant_id", "post_content_id", "quoted_post_id", "media_id", "post_type"}).
+				AddRow(postObject.ID, postObject.CreatedAt, postObject.UpdatedAt, postObject.DiscussionID, postObject.ParticipantID, postObject.PostContentID, postObject.QuotedPostID, postObject.MediaID, postObject.PostType)
 
 			mock.ExpectBegin()
 			mockPreparedStatements(mock)
 			mock.ExpectPrepare(putPostString)
-			mock.ExpectQuery(putPostString).WithArgs(postObject.ID, postObject.DiscussionID, postObject.ParticipantID, postObject.PostContent.ID, postObject.QuotedPostID, postObject.MediaID, postObject.ImportedContentID, postObject.PostType).WillReturnRows(rs)
+			mock.ExpectQuery(putPostString).WithArgs(postObject.ID, postObject.DiscussionID, postObject.ParticipantID, postObject.PostContent.ID, postObject.QuotedPostID, postObject.MediaID, postObject.PostType).WillReturnRows(rs)
 
 			tx, err := mockDatastore.BeginTx(ctx)
 			resp, err := mockDatastore.PutPost(ctx, tx, postObject)
@@ -161,11 +161,11 @@ func TestDelphisDB_GetPostsByDiscussionIDIter(t *testing.T) {
 		Convey("when query execution succeeds and returns posts", func() {
 			mockPreparedStatements(mock)
 			rs := sqlmock.NewRows([]string{"p.id", "p.created_at", "p.updated_at", "p.deleted_at", "p.deleted_reason_code", "p.discussion_id", "p.participant_id",
-				"p.quoted_post_id", "p.media_id", "p.imported_content_id", "p.post_type", "pc.id", "pc.content", "pc.mentioned_entities"}).
+				"p.quoted_post_id", "p.media_id", "p.post_type", "pc.id", "pc.content", "pc.mentioned_entities"}).
 				AddRow(postObject.ID, postObject.CreatedAt, postObject.UpdatedAt, postObject.DeletedAt, postObject.DeletedReasonCode, postObject.DiscussionID,
-					postObject.ParticipantID, postObject.QuotedPostID, postObject.MediaID, postObject.ImportedContentID, postObject.PostType, postObject.PostContent.ID, postObject.PostContent.Content, pq.Array(postObject.PostContent.MentionedEntities)).
+					postObject.ParticipantID, postObject.QuotedPostID, postObject.MediaID, postObject.PostType, postObject.PostContent.ID, postObject.PostContent.Content, pq.Array(postObject.PostContent.MentionedEntities)).
 				AddRow(postObject.ID, postObject.CreatedAt, postObject.UpdatedAt, postObject.DeletedAt, postObject.DeletedReasonCode, postObject.DiscussionID,
-					postObject.ParticipantID, postObject.QuotedPostID, postObject.MediaID, postObject.ImportedContentID, postObject.PostType, postObject.PostContent.ID, postObject.PostContent.Content, pq.Array(postObject.PostContent.MentionedEntities))
+					postObject.ParticipantID, postObject.QuotedPostID, postObject.MediaID, postObject.PostType, postObject.PostContent.ID, postObject.PostContent.Content, pq.Array(postObject.PostContent.MentionedEntities))
 
 			mock.ExpectQuery(getPostsByDiscussionIDString).WithArgs(discussionID).WillReturnRows(rs)
 
@@ -242,11 +242,11 @@ func TestDelphisDB_GetPostsByDiscussionIDFromCursorIter(t *testing.T) {
 		Convey("when query execution succeeds and returns posts", func() {
 			mockPreparedStatements(mock)
 			rs := sqlmock.NewRows([]string{"p.id", "p.created_at", "p.updated_at", "p.deleted_at", "p.deleted_reason_code", "p.discussion_id", "p.participant_id",
-				"p.quoted_post_id", "p.media_id", "p.imported_content_id", "p.post_type", "pc.id", "pc.content", "pc.mentioned_entities"}).
+				"p.quoted_post_id", "p.media_id", "p.post_type", "pc.id", "pc.content", "pc.mentioned_entities"}).
 				AddRow(postObject.ID, postObject.CreatedAt, postObject.UpdatedAt, postObject.DeletedAt, postObject.DeletedReasonCode, postObject.DiscussionID,
-					postObject.ParticipantID, postObject.QuotedPostID, postObject.MediaID, postObject.ImportedContentID, postObject.PostType, postObject.PostContent.ID, postObject.PostContent.Content, pq.Array(postObject.PostContent.MentionedEntities)).
+					postObject.ParticipantID, postObject.QuotedPostID, postObject.MediaID, postObject.PostType, postObject.PostContent.ID, postObject.PostContent.Content, pq.Array(postObject.PostContent.MentionedEntities)).
 				AddRow(postObject.ID, postObject.CreatedAt, postObject.UpdatedAt, postObject.DeletedAt, postObject.DeletedReasonCode, postObject.DiscussionID,
-					postObject.ParticipantID, postObject.QuotedPostID, postObject.MediaID, postObject.ImportedContentID, postObject.PostType, postObject.PostContent.ID, postObject.PostContent.Content, pq.Array(postObject.PostContent.MentionedEntities))
+					postObject.ParticipantID, postObject.QuotedPostID, postObject.MediaID, postObject.PostType, postObject.PostContent.ID, postObject.PostContent.Content, pq.Array(postObject.PostContent.MentionedEntities))
 
 			mock.ExpectQuery(getPostsByDiscussionIDFromCursorString).WithArgs(discussionID, cursor, limit).WillReturnRows(rs)
 
@@ -329,7 +329,7 @@ func Test_GetPostsConnectionByDiscussionID(t *testing.T) {
 		Convey("whenthere are no records for the query", func() {
 			mockPreparedStatements(mock)
 			rs := sqlmock.NewRows([]string{"p.id", "p.created_at", "p.updated_at", "p.deleted_at", "p.deleted_reason_code", "p.discussion_id", "p.participant_id",
-				"p.quoted_post_id", "p.media_id", "p.imported_content_id", "p.post_type", "pc.id", "pc.content", "pc.mentioned_entities"})
+				"p.quoted_post_id", "p.media_id", "p.post_type", "pc.id", "pc.content", "pc.mentioned_entities"})
 
 			mock.ExpectQuery(getPostsByDiscussionIDFromCursorString).WithArgs(discussionID, cursor, limit+1).WillReturnRows(rs)
 
@@ -353,13 +353,13 @@ func Test_GetPostsConnectionByDiscussionID(t *testing.T) {
 		Convey("when query execution succeeds and returns postConnections", func() {
 			mockPreparedStatements(mock)
 			rs := sqlmock.NewRows([]string{"p.id", "p.created_at", "p.updated_at", "p.deleted_at", "p.deleted_reason_code", "p.discussion_id", "p.participant_id",
-				"p.quoted_post_id", "p.media_id", "p.imported_content_id", "p.post_type", "pc.id", "pc.content", "pc.mentioned_entities"}).
+				"p.quoted_post_id", "p.media_id", "p.post_type", "pc.id", "pc.content", "pc.mentioned_entities"}).
 				AddRow(postObject.ID, postObject.CreatedAt, postObject.UpdatedAt, postObject.DeletedAt, postObject.DeletedReasonCode, postObject.DiscussionID,
-					postObject.ParticipantID, postObject.QuotedPostID, postObject.MediaID, postObject.ImportedContentID, postObject.PostType, postObject.PostContent.ID, postObject.PostContent.Content, pq.Array(postObject.PostContent.MentionedEntities)).
+					postObject.ParticipantID, postObject.QuotedPostID, postObject.MediaID, postObject.PostType, postObject.PostContent.ID, postObject.PostContent.Content, pq.Array(postObject.PostContent.MentionedEntities)).
 				AddRow(postObject.ID, postObject.CreatedAt, postObject.UpdatedAt, postObject.DeletedAt, postObject.DeletedReasonCode, postObject.DiscussionID,
-					postObject.ParticipantID, postObject.QuotedPostID, postObject.MediaID, postObject.ImportedContentID, postObject.PostType, postObject.PostContent.ID, postObject.PostContent.Content, pq.Array(postObject.PostContent.MentionedEntities)).
+					postObject.ParticipantID, postObject.QuotedPostID, postObject.MediaID, postObject.PostType, postObject.PostContent.ID, postObject.PostContent.Content, pq.Array(postObject.PostContent.MentionedEntities)).
 				AddRow(postObject.ID, postObject.CreatedAt, postObject.UpdatedAt, postObject.DeletedAt, postObject.DeletedReasonCode, postObject.DiscussionID,
-					postObject.ParticipantID, postObject.QuotedPostID, postObject.MediaID, postObject.ImportedContentID, postObject.PostType, postObject.PostContent.ID, postObject.PostContent.Content, pq.Array(postObject.PostContent.MentionedEntities))
+					postObject.ParticipantID, postObject.QuotedPostID, postObject.MediaID, postObject.PostType, postObject.PostContent.ID, postObject.PostContent.Content, pq.Array(postObject.PostContent.MentionedEntities))
 
 			mock.ExpectQuery(getPostsByDiscussionIDFromCursorString).WithArgs(discussionID, cursor, limit+1).WillReturnRows(rs)
 
@@ -463,9 +463,9 @@ func TestDelphisDB_GetLastPostByDiscussionID(t *testing.T) {
 		Convey("when query execution succeeds and returns a post", func() {
 			mockPreparedStatements(mock)
 			rs := sqlmock.NewRows([]string{"p.id", "p.created_at", "p.updated_at", "p.deleted_at", "p.deleted_reason_code", "p.discussion_id", "p.participant_id",
-				"p.quoted_post_id", "p.media_id", "p.imported_content_id", "p.post_type", "pc.id", "pc.content", "pc.mentioned_entities"}).
+				"p.quoted_post_id", "p.media_id", "p.post_type", "pc.id", "pc.content", "pc.mentioned_entities"}).
 				AddRow(postObject.ID, postObject.CreatedAt, postObject.UpdatedAt, postObject.DeletedAt, postObject.DeletedReasonCode, postObject.DiscussionID,
-					postObject.ParticipantID, postObject.QuotedPostID, postObject.MediaID, postObject.ImportedContentID, postObject.PostType, postObject.PostContent.ID, postObject.PostContent.Content, pq.Array(postObject.PostContent.MentionedEntities))
+					postObject.ParticipantID, postObject.QuotedPostID, postObject.MediaID, postObject.PostType, postObject.PostContent.ID, postObject.PostContent.Content, pq.Array(postObject.PostContent.MentionedEntities))
 
 			mock.ExpectQuery(getLastPostByDiscussionIDStmt).WithArgs(discussionID).WillReturnRows(rs)
 
@@ -673,9 +673,9 @@ func TestDelphisDB_GetPostByID(t *testing.T) {
 		Convey("when query execution succeeds and returns a post", func() {
 			mockPreparedStatements(mock)
 			rs := sqlmock.NewRows([]string{"p.id", "p.created_at", "p.updated_at", "p.deleted_at", "p.deleted_reason_code", "p.discussion_id", "p.participant_id",
-				"p.quoted_post_id", "p.media_id", "p.imported_content_id", "p.post_type", "pc.id", "pc.content", "pc.mentioned_entities"}).
+				"p.quoted_post_id", "p.media_id", "p.post_type", "pc.id", "pc.content", "pc.mentioned_entities"}).
 				AddRow(postObject.ID, postObject.CreatedAt, postObject.UpdatedAt, postObject.DeletedAt, postObject.DeletedReasonCode, postObject.DiscussionID,
-					postObject.ParticipantID, postObject.QuotedPostID, postObject.MediaID, postObject.ImportedContentID, postObject.PostType, postObject.PostContent.ID, postObject.PostContent.Content, pq.Array(postObject.PostContent.MentionedEntities))
+					postObject.ParticipantID, postObject.QuotedPostID, postObject.MediaID, postObject.PostType, postObject.PostContent.ID, postObject.PostContent.Content, pq.Array(postObject.PostContent.MentionedEntities))
 
 			mock.ExpectQuery(getPostByIDString).WithArgs(postID).WillReturnRows(rs)
 
@@ -742,7 +742,7 @@ func TestPostIter_Next(t *testing.T) {
 
 		Convey("when the iterator has no more rows to iterate over", func() {
 			rs := sqlmock.NewRows([]string{"p.id", "p.created_at", "p.updated_at", "p.deleted_at", "p.deleted_reason_code", "p.discussion_id", "p.participant_id",
-				"p.quoted_post_id", "p.media_id", "p.imported_content_id", "p.post_type", "pc.id", "pc.content", "pc.mentioned_entities"})
+				"p.quoted_post_id", "p.media_id", "p.post_type", "pc.id", "pc.content", "pc.mentioned_entities"})
 
 			// Convert mocked rows to sql.Rows
 			mock.ExpectQuery("SELECT").WillReturnRows(rs)
@@ -760,9 +760,9 @@ func TestPostIter_Next(t *testing.T) {
 
 		Convey("when the iterator errors on scan", func() {
 			rs := sqlmock.NewRows([]string{"p.id", "p.created_at", "p.updated_at", "p.deleted_at", "p.deleted_reason_code", "p.discussion_id", "p.participant_id",
-				"p.quoted_post_id", "p.media_id", "p.imported_content_id", "p.post_type", "pc.id", "pc.content"}).
+				"p.quoted_post_id", "p.media_id", "p.post_type", "pc.id", "pc.content"}).
 				AddRow(postObject.ID, postObject.CreatedAt, postObject.UpdatedAt, postObject.DeletedAt, postObject.DeletedReasonCode, postObject.DiscussionID,
-					postObject.ParticipantID, postObject.QuotedPostID, postObject.MediaID, postObject.ImportedContentID, postObject.PostType, postObject.PostContent.ID, postObject.PostContent.Content)
+					postObject.ParticipantID, postObject.QuotedPostID, postObject.MediaID, postObject.PostType, postObject.PostContent.ID, postObject.PostContent.Content)
 
 			// Convert mocked rows to sql.Rows
 			mock.ExpectQuery("SELECT").WillReturnRows(rs)
@@ -780,11 +780,11 @@ func TestPostIter_Next(t *testing.T) {
 
 		Convey("when the iterator has rows to iterate over", func() {
 			rs := sqlmock.NewRows([]string{"p.id", "p.created_at", "p.updated_at", "p.deleted_at", "p.deleted_reason_code", "p.discussion_id", "p.participant_id",
-				"p.quoted_post_id", "p.media_id", "p.imported_content_id", "p.post_type", "pc.id", "pc.content", "pc.mentioned_entities"}).
+				"p.quoted_post_id", "p.media_id", "p.post_type", "pc.id", "pc.content", "pc.mentioned_entities"}).
 				AddRow(postObject.ID, postObject.CreatedAt, postObject.UpdatedAt, postObject.DeletedAt, postObject.DeletedReasonCode, postObject.DiscussionID,
-					postObject.ParticipantID, postObject.QuotedPostID, postObject.MediaID, postObject.ImportedContentID, postObject.PostType, postObject.PostContent.ID, postObject.PostContent.Content, pq.Array(postObject.PostContent.MentionedEntities)).
+					postObject.ParticipantID, postObject.QuotedPostID, postObject.MediaID, postObject.PostType, postObject.PostContent.ID, postObject.PostContent.Content, pq.Array(postObject.PostContent.MentionedEntities)).
 				AddRow(postObject.ID, postObject.CreatedAt, postObject.UpdatedAt, postObject.DeletedAt, postObject.DeletedReasonCode, postObject.DiscussionID,
-					postObject.ParticipantID, postObject.QuotedPostID, postObject.MediaID, postObject.ImportedContentID, postObject.PostType, postObject.PostContent.ID, postObject.PostContent.Content, pq.Array(postObject.PostContent.MentionedEntities))
+					postObject.ParticipantID, postObject.QuotedPostID, postObject.MediaID, postObject.PostType, postObject.PostContent.ID, postObject.PostContent.Content, pq.Array(postObject.PostContent.MentionedEntities))
 
 			// Convert mocked rows to sql.Rows
 			mock.ExpectQuery("SELECT").WillReturnRows(rs)
@@ -822,7 +822,7 @@ func TestPostIter_Close(t *testing.T) {
 
 		Convey("when the iterator errors on rows.Close", func() {
 			rs := mock.NewRows([]string{"p.id", "p.created_at", "p.updated_at", "p.deleted_at", "p.deleted_reason_code", "p.discussion_id", "p.participant_id",
-				"p.quoted_post_id", "p.media_id", "p.imported_content_id", "p.post_type", "pc.id", "pc.content", "pc.mentioned_entities"}).CloseError(fmt.Errorf("error"))
+				"p.quoted_post_id", "p.media_id", "p.post_type", "pc.id", "pc.content", "pc.mentioned_entities"}).CloseError(fmt.Errorf("error"))
 
 			// Convert mocked rows to sql.Rows
 			mock.ExpectQuery("SELECT").WillReturnRows(rs)
@@ -906,9 +906,9 @@ func TestDelphisDB_PostIterCollect(t *testing.T) {
 			basePost.QuotedPost = &quotePostObject
 
 			rs := sqlmock.NewRows([]string{"p.id", "p.created_at", "p.updated_at", "p.deleted_at", "p.deleted_reason_code", "p.discussion_id", "p.participant_id",
-				"p.quoted_post_id", "p.media_id", "p.imported_content_id", "p.post_type", "pc.id", "pc.content", "pc.mentioned_entities"}).
+				"p.quoted_post_id", "p.media_id", "p.post_type", "pc.id", "pc.content", "pc.mentioned_entities"}).
 				AddRow(basePost.ID, basePost.CreatedAt, basePost.UpdatedAt, basePost.DeletedAt, basePost.DeletedReasonCode, basePost.DiscussionID,
-					basePost.ParticipantID, basePost.QuotedPostID, basePost.MediaID, basePost.ImportedContentID, basePost.PostType, basePost.PostContent.ID, basePost.PostContent.Content, pq.Array(basePost.PostContent.MentionedEntities))
+					basePost.ParticipantID, basePost.QuotedPostID, basePost.MediaID, basePost.PostType, basePost.PostContent.ID, basePost.PostContent.Content, pq.Array(basePost.PostContent.MentionedEntities))
 
 			// Convert mocked rows to sql.Rows
 			mock.ExpectQuery("SELECT").WillReturnRows(rs)
@@ -931,11 +931,11 @@ func TestDelphisDB_PostIterCollect(t *testing.T) {
 
 		Convey("when the iterator has results and returns slice of Posts", func() {
 			rs := sqlmock.NewRows([]string{"p.id", "p.created_at", "p.updated_at", "p.deleted_at", "p.deleted_reason_code", "p.discussion_id", "p.participant_id",
-				"p.quoted_post_id", "p.media_id", "p.imported_content_id", "p.post_type", "pc.id", "pc.content", "pc.mentioned_entities"}).
+				"p.quoted_post_id", "p.media_id", "p.post_type", "pc.id", "pc.content", "pc.mentioned_entities"}).
 				AddRow(postObject.ID, postObject.CreatedAt, postObject.UpdatedAt, postObject.DeletedAt, postObject.DeletedReasonCode, postObject.DiscussionID,
-					postObject.ParticipantID, postObject.QuotedPostID, postObject.MediaID, postObject.ImportedContentID, postObject.PostType, postObject.PostContent.ID, postObject.PostContent.Content, pq.Array(postObject.PostContent.MentionedEntities)).
+					postObject.ParticipantID, postObject.QuotedPostID, postObject.MediaID, postObject.PostType, postObject.PostContent.ID, postObject.PostContent.Content, pq.Array(postObject.PostContent.MentionedEntities)).
 				AddRow(postObject.ID, postObject.CreatedAt, postObject.UpdatedAt, postObject.DeletedAt, postObject.DeletedReasonCode, postObject.DiscussionID,
-					postObject.ParticipantID, postObject.QuotedPostID, postObject.MediaID, postObject.ImportedContentID, postObject.PostType, postObject.PostContent.ID, postObject.PostContent.Content, pq.Array(postObject.PostContent.MentionedEntities))
+					postObject.ParticipantID, postObject.QuotedPostID, postObject.MediaID, postObject.PostType, postObject.PostContent.ID, postObject.PostContent.Content, pq.Array(postObject.PostContent.MentionedEntities))
 
 			// Convert mocked rows to sql.Rows
 			mock.ExpectQuery("SELECT").WillReturnRows(rs)
@@ -961,14 +961,14 @@ func TestDelphisDB_PostIterCollect(t *testing.T) {
 			basePost.QuotedPost = &quotePostObject
 
 			rs := sqlmock.NewRows([]string{"p.id", "p.created_at", "p.updated_at", "p.deleted_at", "p.deleted_reason_code", "p.discussion_id", "p.participant_id",
-				"p.quoted_post_id", "p.media_id", "p.imported_content_id", "p.post_type", "pc.id", "pc.content", "pc.mentioned_entities"}).
+				"p.quoted_post_id", "p.media_id", "p.post_type", "pc.id", "pc.content", "pc.mentioned_entities"}).
 				AddRow(basePost.ID, basePost.CreatedAt, basePost.UpdatedAt, basePost.DeletedAt, basePost.DeletedReasonCode, basePost.DiscussionID,
-					basePost.ParticipantID, basePost.QuotedPostID, basePost.MediaID, basePost.ImportedContentID, basePost.PostType, basePost.PostContent.ID, basePost.PostContent.Content, pq.Array(basePost.PostContent.MentionedEntities))
+					basePost.ParticipantID, basePost.QuotedPostID, basePost.MediaID, basePost.PostType, basePost.PostContent.ID, basePost.PostContent.Content, pq.Array(basePost.PostContent.MentionedEntities))
 
 			quoteRow := sqlmock.NewRows([]string{"p.id", "p.created_at", "p.updated_at", "p.deleted_at", "p.deleted_reason_code", "p.discussion_id", "p.participant_id",
-				"p.quoted_post_id", "p.media_id", "p.imported_content_id", "p.post_type", "pc.id", "pc.content", "pc.mentioned_entities"}).
+				"p.quoted_post_id", "p.media_id", "p.post_type", "pc.id", "pc.content", "pc.mentioned_entities"}).
 				AddRow(quotePostObject.ID, quotePostObject.CreatedAt, quotePostObject.UpdatedAt, quotePostObject.DeletedAt, quotePostObject.DeletedReasonCode, quotePostObject.DiscussionID,
-					quotePostObject.ParticipantID, quotePostObject.QuotedPostID, quotePostObject.MediaID, quotePostObject.ImportedContentID, quotePostObject.PostType, quotePostObject.PostContent.ID, quotePostObject.PostContent.Content, pq.Array(quotePostObject.PostContent.MentionedEntities))
+					quotePostObject.ParticipantID, quotePostObject.QuotedPostID, quotePostObject.MediaID, quotePostObject.PostType, quotePostObject.PostContent.ID, quotePostObject.PostContent.Content, pq.Array(quotePostObject.PostContent.MentionedEntities))
 
 			// Convert mocked rows to sql.Rows
 			mock.ExpectQuery("SELECT").WillReturnRows(rs)

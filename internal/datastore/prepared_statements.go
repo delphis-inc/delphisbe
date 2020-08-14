@@ -24,8 +24,7 @@ type dbPrepStmts struct {
 	getMediaRecordStmt *sql2.Stmt
 
 	// Discussion
-	getDiscussionsForAutoPostStmt *sql2.Stmt
-	getDiscussionByLinkSlugStmt   *sql2.Stmt
+	getDiscussionByLinkSlugStmt *sql2.Stmt
 
 	// Discussion Archives
 	getDiscussionArchiveByDiscussionIDStmt *sql2.Stmt
@@ -36,22 +35,6 @@ type dbPrepStmts struct {
 	getModeratorByUserIDAndDiscussionIDStmt *sql2.Stmt
 	getModeratedDiscussionsByUserIDStmt     *sql2.Stmt
 
-	// ImportedContent
-	getImportedContentByIDStmt                    *sql2.Stmt
-	getImportedContentForDiscussionStmt           *sql2.Stmt
-	getScheduledImportedContentByDiscussionIDStmt *sql2.Stmt
-	putImportedContentStmt                        *sql2.Stmt
-	putImportedContentDiscussionQueueStmt         *sql2.Stmt
-	updateImportedContentDiscussionQueueStmt      *sql2.Stmt
-
-	// Tags
-	getImportedContentTagsStmt *sql2.Stmt
-	getDiscussionTagsStmt      *sql2.Stmt
-	getMatchingTagsStmt        *sql2.Stmt
-	putImportedContentTagsStmt *sql2.Stmt
-	putDiscussionTagsStmt      *sql2.Stmt
-	deleteDiscussionTagsStmt   *sql2.Stmt
-
 	// Discussion Access
 	getDiscussionsByUserAccessStmt       *sql2.Stmt
 	getDiscussionUserAccessStmt          *sql2.Stmt
@@ -60,19 +43,13 @@ type dbPrepStmts struct {
 	upsertDiscussionUserAccessStmt       *sql2.Stmt
 	deleteDiscussionUserAccessStmt       *sql2.Stmt
 
-	// InvitesRequests
-	getDiscussionInviteByIDStmt                            *sql2.Stmt
-	getDiscussionRequestAccessByIDStmt                     *sql2.Stmt
-	getDiscussionInvitesForUserStmt                        *sql2.Stmt
-	getSentDiscussionInvitesForUserStmt                    *sql2.Stmt
-	getDiscussionAccessRequestsStmt                        *sql2.Stmt
-	getDiscussionAccessRequestByUserIDStmt                 *sql2.Stmt
-	getSentDiscussionAccessRequestsForUserStmt             *sql2.Stmt
-	putDiscussionInviteRecordStmt                          *sql2.Stmt
-	putDiscussionAccessRequestStmt                         *sql2.Stmt
-	updateDiscussionInviteRecordStmt                       *sql2.Stmt
-	updateDiscussionAccessRequestStmt                      *sql2.Stmt
-	getInvitedTwitterHandlesByDiscussionIDAndInviterIDStmt *sql2.Stmt
+	// Requests
+	getDiscussionRequestAccessByIDStmt         *sql2.Stmt
+	getDiscussionAccessRequestsStmt            *sql2.Stmt
+	getDiscussionAccessRequestByUserIDStmt     *sql2.Stmt
+	getSentDiscussionAccessRequestsForUserStmt *sql2.Stmt
+	putDiscussionAccessRequestStmt             *sql2.Stmt
+	updateDiscussionAccessRequestStmt          *sql2.Stmt
 
 	// AccessLinks
 	getAccessLinkBySlugStmt           *sql2.Stmt
@@ -100,7 +77,6 @@ const getPostByIDString = `
 			p.participant_id,
 			p.quoted_post_id,
 			p.media_id,
-			p.imported_content_id,
 			p.post_type,
 			pc.id,
 			pc.content,
@@ -120,7 +96,6 @@ const getPostsByDiscussionIDString = `
 			p.participant_id,
 			p.quoted_post_id,
 			p.media_id,
-			p.imported_content_id,
 			p.post_type,
 			pc.id,
 			pc.content,
@@ -140,7 +115,6 @@ const getPostsByDiscussionIDFromCursorString = `
 			p.participant_id,
 			p.quoted_post_id,
 			p.media_id,
-			p.imported_content_id,
 			p.post_type,
 			pc.id,
 			pc.content,
@@ -158,8 +132,7 @@ const deletePostByIDString = `
 		SET deleted_at = now(),
 			deleted_reason_code = $2,
 			quoted_post_id = null,
-			media_id = null,
-			imported_content_id = null
+			media_id = null
 		WHERE id = $1
 		RETURNING 
 			id,
@@ -177,8 +150,7 @@ const deletePostByParticipantIDDiscussionIDString = `
 		SET deleted_at = now(),
 			deleted_reason_code = $3,
 			quoted_post_id = null,
-			media_id = null,
-			imported_content_id = null
+			media_id = null
 		WHERE discussion_id = $1 AND
 			participant_id = $2
 		RETURNING id;
@@ -194,7 +166,6 @@ const getLastPostByDiscussionIDStmt = `
 			p.participant_id,
 			p.quoted_post_id,
 			p.media_id,
-			p.imported_content_id,
 			p.post_type,
 			pc.id,
 			pc.content,
@@ -214,9 +185,8 @@ const putPostString = `
 			post_content_id,
 			quoted_post_id,
 			media_id,
-			imported_content_id,
 			post_type
-		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+		) VALUES ($1, $2, $3, $4, $5, $6, $7)
 		RETURNING
 			id,
 			created_at,
@@ -226,7 +196,6 @@ const putPostString = `
 			post_content_id,
 			quoted_post_id,
 			media_id,
-			imported_content_id,
 			post_type;`
 
 const putPostContentsString = `
@@ -261,12 +230,6 @@ const getMediaRecordString = `
 		FROM media
 		WHERE id = $1;`
 
-const getDiscussionsForAutoPostString = `
-		SELECT id,
-			idle_minutes
-		FROM discussions
-		WHERE auto_post = true`
-
 const getDiscussionByLinkSlugString = `
 		SELECT d.id,
 			d.created_at,
@@ -275,9 +238,7 @@ const getDiscussionByLinkSlugString = `
 			d.title,
 			d.anonymity_type,
 			d.moderator_id,
-			d.auto_post,
 			d.icon_url,
-			d.idle_minutes,
 			d.description,
 			d.title_history,
 			d.description_history,
@@ -349,9 +310,7 @@ const getModeratedDiscussionsByUserIDString = `
 			d.title,
 			d.anonymity_type,
 			d.moderator_id,
-			d.auto_post,
 			d.icon_url,
-			d.idle_minutes,
 			d.description,
 			d.title_history,
 			d.description_history,
@@ -368,187 +327,6 @@ const getModeratedDiscussionsByUserIDString = `
 		WHERE u.user_id = $1;
 `
 
-const getImportedContentByIDString = `
-		SELECT id,
-			created_at,
-			content_name,
-			content_type,
-			link,
-			overview,
-			source
-		FROM imported_contents
-		WHERE id = $1;`
-
-// TODO: We may just want to write these records into the DB or cache with a TTL.
-// Subquery gets the imported_contents that matches up with a discussions tag.
-// It then checks the results against the imported_ic_queue table to see what has
-// been posted or is scheduled.
-// Finally, we join with imported_contents to retrieve the data.
-const getImportedContentForDiscussionString = `
-		SELECT i.id,
-			i.created_at,
-			i.content_name,
-			i.content_type,
-			i.link,
-			i.overview,
-			i.source,
-			d.matching_tags
-		FROM (
-			SELECT d.discussion_id,
-				i.imported_content_id,
-				array_agg(i.tag) matching_tags
-			FROM discussion_tags d
-			INNER JOIN imported_content_tags i
-			ON d.tag = i.tag
-			WHERE d.discussion_id = $1
-				AND NOT EXISTS (
-					SELECT
-					FROM discussion_ic_queue q
-					WHERE d.discussion_id = q.discussion_id
-						AND i.imported_content_id = q.imported_content_id
-			)
-			GROUP BY d.discussion_id, i.imported_content_id
-		) d
-		INNER JOIN imported_contents i
-		ON i.id = d.imported_content_id
-		ORDER BY i.created_at desc
-		LIMIT $2;`
-
-// TODO: Do we want to limit this to schedule articles in the past 24 or 48 hours so we don't post old stories?
-// TODO: What do we want to order by? When the article was posted? When the article was added to the queue?
-// Subquery gets the unposted imported contents for a discussion as these are scheduled
-// Then, we get the imported contents data from the table
-const getScheduledImportedContentByDiscussionIDString = `
-		SELECT i.id,
-			i.created_at,
-			i.content_name,
-			i.content_type,
-			i.link,
-			i.overview,
-			i.source,
-			q.matching_tags
-		FROM (
-			SELECT imported_content_id,
-			matching_tags,
-			updated_at
-			FROM discussion_ic_queue
-			WHERE discussion_id = $1
-				AND posted_at is null
-				AND updated_at > now() - interval '48 hours'
-		) q
-		INNER JOIN imported_contents i
-		ON i.id = q.imported_content_id
-		ORDER BY q.updated_at desc;`
-
-const putImportedContentString = `
-		INSERT INTO imported_contents (
-			id,
-			content_name,
-			content_type,
-			link,
-			overview,
-			source
-		) VALUES ($1, $2, $3, $4, $5, $6)
-		RETURNING
-			id,
-			created_at,
-			content_name,
-			content_type,
-			link,
-			overview,
-			source;`
-
-const putImportedContentDiscussionQueueString = `
-		INSERT INTO discussion_ic_queue (
-			discussion_id,
-			imported_content_id,
-			posted_at,
-			matching_tags
-		) VALUES ($1, $2, $3, $4)
-		RETURNING
-			discussion_id,
-			imported_content_id,
-			created_at,
-			updated_at,
-			deleted_at,
-			posted_at,
-			matching_tags;`
-
-const updateImportedContentDiscussionQueueString = `
-		UPDATE discussion_ic_queue
-		SET posted_at = $3
-		WHERE discussion_id = $1
-			AND imported_content_id = $2
-			AND posted_at is null
-		RETURNING
-			discussion_id,
-			imported_content_id,
-			created_at,
-			updated_at,
-			deleted_at,
-			posted_at,
-			matching_tags;`
-
-const getImportedContentTagsString = `
-		SELECT imported_content_id
-			tag,
-			created_at
-		FROM imported_content_tags
-		WHERE imported_content_id = $1
-			AND deleted_at is null
-		ORDER BY created_at desc;`
-
-const getDiscussionTagsString = `
-		SELECT discussion_id,
-			tag,
-			created_at
-		FROM discussion_tags
-		WHERE discussion_id = $1
-			AND deleted_at is null
-		ORDER BY created_at desc;`
-
-const getMatchingTagsString = `
-		SELECT array_agg(i.tag) matching_tags
-		FROM discussion_tags d
-		INNER JOIN imported_content_tags i
-			ON i.tag = d.tag
-		WHERE discussion_id = $1
-			AND imported_content_id = $2
-		GROUP BY discussion_id, imported_content_id;`
-
-const putImportedContentTagsString = `
-		INSERT INTO imported_content_tags (
-			imported_content_id,
-			tag
-		) VALUES ($1, $2)
-		RETURNING
-			imported_content_id,
-			tag,
-			created_at;`
-
-const putDiscussionTagsString = `
-		INSERT INTO discussion_tags (
-			discussion_id,
-			tag
-		) VALUES ($1, $2)
-		ON CONFLICT (discussion_id, tag)
-		DO UPDATE SET deleted_at = null
-		RETURNING
-			discussion_id,
-			tag,
-			created_at;`
-
-const deleteDiscussionTagsString = `
-		UPDATE discussion_tags
-		SET deleted_at = now()
-		WHERE discussion_id = $1
-			AND tag = $2
-		RETURNING
-			discussion_id,
-			tag,
-			created_at,
-			deleted_at;`
-
 // Discussion Access
 const getDiscussionsByUserAccessString = `
 		SELECT d.id,
@@ -558,9 +336,7 @@ const getDiscussionsByUserAccessString = `
 			d.title,
 			d.anonymity_type,
 			d.moderator_id,
-			d.auto_post,
 			d.icon_url,
-			d.idle_minutes,
 			d.description,
 			d.title_history,
 			d.description_history,
@@ -656,19 +432,6 @@ const deleteDiscussionUserAccessString = `
 			updated_at,
 			deleted_at;`
 
-// Invites and Requests
-const getDiscussionInviteByIDString = `
-		SELECT id,
-			user_id,
-			discussion_id,
-			invite_from_participant_id,
-			created_at,
-			updated_at,
-			status,
-			invite_type
-		FROM discussion_user_invitations
-		WHERE id = $1;`
-
 const getDiscussionRequestAccessByIDString = `
 		SELECT id,
 			user_id,
@@ -678,33 +441,6 @@ const getDiscussionRequestAccessByIDString = `
 			status
 		FROM discussion_user_requests
 		WHERE id = $1;`
-
-const getDiscussionInvitesForUserString = `
-		SELECT id,
-			user_id,
-			discussion_id,
-			invite_from_participant_id,
-			created_at,
-			updated_at,
-			status,
-			invite_type
-		FROM discussion_user_invitations
-		WHERE user_id = $1
-			AND deleted_at is null
-			AND status = $2;`
-
-const getSentDiscussionInvitesForUserString = `
-		SELECT id,
-			user_id,
-			discussion_id,
-			invite_from_participant_id,
-			created_at,
-			updated_at,
-			status,
-			invite_type
-		FROM discussion_user_invitations
-		WHERE invite_from_participant_id = $1
-			AND deleted_at is null;`
 
 const getDiscussionAccessRequestsString = `
 		SELECT id,
@@ -740,24 +476,6 @@ const getSentDiscussionAccessRequestsForUserString = `
 		WHERE user_id = $1
 			AND deleted_at is null;`
 
-const putDiscussionInviteRecordString = `
-		INSERT INTO discussion_user_invitations (
-			id,
-			user_id,
-			discussion_id,
-			invite_from_participant_id,
-			status,
-			invite_type
-		) VALUES ($1, $2, $3, $4, $5, $6)
-		RETURNING id,
-			user_id,
-			discussion_id,
-			invite_from_participant_id,
-			created_at,
-			updated_at,
-			status,
-			invite_type;`
-
 const putDiscussionAccessRequestString = `
 		INSERT INTO discussion_user_requests (
 			id,
@@ -772,19 +490,6 @@ const putDiscussionAccessRequestString = `
 			updated_at,
 			status;`
 
-const updateDiscussionInviteRecordString = `
-		UPDATE discussion_user_invitations
-		SET status = $2
-		WHERE id = $1
-		RETURNING id,
-			user_id,
-			discussion_id,
-			invite_from_participant_id,
-			created_at,
-			updated_at,
-			status,
-			invite_type;`
-
 const updateDiscussionAccessRequestString = `
 		UPDATE discussion_user_requests
 		SET status = $2
@@ -795,13 +500,6 @@ const updateDiscussionAccessRequestString = `
 			created_at,
 			updated_at,
 			status;`
-
-const getInvitedTwitterHandlesByDiscussionIDAndInviterIDString = `
-		SELECT up.twitter_handle
-		FROM discussion_user_invitations dui
-			LEFT JOIN users u ON u.id = dui.user_id
-			LEFT JOIN user_profiles up ON up.user_id = u.id
-		WHERE dui.discussion_id=$1 AND dui.invite_from_participant_id=$2;`
 
 // AccessLinks
 const getAccessLinkBySlugString = `

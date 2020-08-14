@@ -96,7 +96,6 @@ func (d *delphisDB) UpsertParticipant(ctx context.Context, participant model.Par
 		}
 	} else {
 		if err := d.sql.Model(&participant).Updates(model.Participant{
-			FlairID:       participant.FlairID,
 			IsAnonymous:   participant.IsAnonymous,
 			UpdatedAt:     time.Now(),
 			GradientColor: participant.GradientColor,

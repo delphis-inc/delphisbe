@@ -31,11 +31,9 @@ func TestDelphisBackend_CreateParticipantForDiscussion(t *testing.T) {
 	modObj := test_utils.TestModerator()
 	profile := test_utils.TestUserProfile()
 	discObj := test_utils.TestDiscussion()
-	flairObj := test_utils.TestFlair()
 	viewerObj := test_utils.TestViewer()
 	parObj := test_utils.TestParticipant()
 
-	userObj.Flairs = []*model.Flair{&flairObj}
 	userObj.UserProfile = &profile
 	modObj.UserProfile = &profile
 
@@ -74,20 +72,6 @@ func TestDelphisBackend_CreateParticipantForDiscussion(t *testing.T) {
 			So(resp, ShouldBeNil)
 		})
 
-		Convey("when GetFlairsByUserID errors out", func() {
-			tempUserObj := userObj
-			tempUserObj.Flairs = nil
-			expectedError := fmt.Errorf("Some Error")
-			mockDB.On("GetUserByID", ctx, mock.Anything).Return(&tempUserObj, nil)
-			mockDB.On("GetTotalParticipantCountByDiscussionID", ctx, discussionID).Return(count)
-			mockDB.On("GetFlairsByUserID", ctx, userID).Return(nil, expectedError)
-
-			resp, err := backendObj.CreateParticipantForDiscussion(ctx, discussionID, userID, inputObj)
-
-			So(err, ShouldEqual, expectedError)
-			So(resp, ShouldBeNil)
-		})
-
 		Convey("when UpsertViewer errors out", func() {
 			expectedError := fmt.Errorf("Some Error")
 			mockDB.On("GetUserByID", ctx, mock.Anything).Return(&userObj, nil)
@@ -105,7 +89,6 @@ func TestDelphisBackend_CreateParticipantForDiscussion(t *testing.T) {
 			expectedError := fmt.Errorf("Some Error")
 			mockDB.On("GetUserByID", ctx, mock.Anything).Return(&userObj, nil)
 			mockDB.On("GetTotalParticipantCountByDiscussionID", ctx, discussionID).Return(count)
-			mockDB.On("GetFlairsByUserID", ctx, userID).Return(&flairObj, nil)
 			mockDB.On("GetViewerForDiscussion", ctx, discussionID, userObj.ID).Return(nil, nil)
 			mockDB.On("UpsertViewer", ctx, mock.Anything).Return(&viewerObj, nil)
 			mockDB.On("UpsertParticipant", ctx, mock.Anything).Return(nil, expectedError)
@@ -379,48 +362,6 @@ func TestDelphisBackend_GetParticipantsByIDs(t *testing.T) {
 	})
 }
 
-func TestDelphisBackend_AssignFlair(t *testing.T) {
-	ctx := context.Background()
-	now := time.Now()
-
-	flairID := test_utils.FlairID
-
-	parObj := test_utils.TestParticipant()
-
-	Convey("AssignFlair", t, func() {
-		cacheObj := cache.NewInMemoryCache()
-		authObj := auth.NewDelphisAuth(nil)
-		mockDB := &mocks.Datastore{}
-		backendObj := &delphisBackend{
-			db:              mockDB,
-			auth:            authObj,
-			cache:           cacheObj,
-			discussionMutex: sync.Mutex{},
-			config:          config.Config{},
-			timeProvider:    &util.FrozenTime{NowTime: now},
-		}
-
-		Convey("when the query errors out", func() {
-			expectedError := fmt.Errorf("Some Error")
-			mockDB.On("AssignFlair", ctx, parObj, &flairID).Return(nil, expectedError)
-
-			resp, err := backendObj.AssignFlair(ctx, parObj, flairID)
-
-			So(err, ShouldEqual, expectedError)
-			So(resp, ShouldBeNil)
-		})
-
-		Convey("when the query returns successfully", func() {
-			mockDB.On("AssignFlair", ctx, parObj, &flairID).Return(&parObj, nil)
-
-			resp, err := backendObj.AssignFlair(ctx, parObj, flairID)
-
-			So(err, ShouldBeNil)
-			So(resp, ShouldResemble, &parObj)
-		})
-	})
-}
-
 func TestDelphisBackend_MuteParticipants(t *testing.T) {
 	ctx := context.Background()
 	now := time.Now()
@@ -606,46 +547,6 @@ func TestDelphisBackend_UnmuteParticipants(t *testing.T) {
 
 			So(err, ShouldBeNil)
 			So(resp, ShouldResemble, parListObj)
-		})
-	})
-}
-
-func TestDelphisBackend_UnassignFlair(t *testing.T) {
-	ctx := context.Background()
-	now := time.Now()
-
-	parObj := test_utils.TestParticipant()
-
-	Convey("UnassignFlair", t, func() {
-		cacheObj := cache.NewInMemoryCache()
-		authObj := auth.NewDelphisAuth(nil)
-		mockDB := &mocks.Datastore{}
-		backendObj := &delphisBackend{
-			db:              mockDB,
-			auth:            authObj,
-			cache:           cacheObj,
-			discussionMutex: sync.Mutex{},
-			config:          config.Config{},
-			timeProvider:    &util.FrozenTime{NowTime: now},
-		}
-
-		Convey("when the query errors out", func() {
-			expectedError := fmt.Errorf("Some Error")
-			mockDB.On("AssignFlair", ctx, parObj, mock.Anything).Return(nil, expectedError)
-
-			resp, err := backendObj.UnassignFlair(ctx, parObj)
-
-			So(err, ShouldEqual, expectedError)
-			So(resp, ShouldBeNil)
-		})
-
-		Convey("when the query returns successfully", func() {
-			mockDB.On("AssignFlair", ctx, parObj, mock.Anything).Return(&parObj, nil)
-
-			resp, err := backendObj.UnassignFlair(ctx, parObj)
-
-			So(err, ShouldBeNil)
-			So(resp, ShouldResemble, &parObj)
 		})
 	})
 }

@@ -14,19 +14,13 @@ type User {
     # participant, they are also a viewer.
     viewers: [Viewer!]
 
-    bookmarks: [PostBookmark!]
-
     profile: UserProfile!
 
-    # The user's available flairs
-    flairs: [Flair!]
     # The user's devices.
     devices: [UserDevice!]
 
     moderatedDiscussions: [Discussion!]
 
     discussions(state: DiscussionUserAccessState! = ACTIVE): [Discussion!]
-    discussionInvites(status: InviteRequestStatus!): [DiscussionInvite!]
-    sentDiscussionInvites: [DiscussionInvite!]
     sentDiscussionAccessRequests: [DiscussionAccessRequest!]
 }

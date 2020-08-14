@@ -25,7 +25,6 @@ type Datastore interface {
 	GetDiscussionByID(ctx context.Context, id string) (*model.Discussion, error)
 	GetDiscussionsByIDs(ctx context.Context, ids []string) (map[string]*model.Discussion, error)
 	GetDiscussionByLinkSlug(ctx context.Context, slug string) (*model.Discussion, error)
-	GetDiscussionsAutoPost(ctx context.Context) AutoPostDiscussionIter
 	GetDiscussionByModeratorID(ctx context.Context, moderatorID string) (*model.Discussion, error)
 	CreateModerator(ctx context.Context, moderator model.Moderator) (*model.Moderator, error)
 	GetModeratorByID(ctx context.Context, id string) (*model.Moderator, error)
@@ -36,14 +35,6 @@ type Datastore interface {
 	ListDiscussionsByUserID(ctx context.Context, userID string, state model.DiscussionUserAccessState) (*model.DiscussionsConnection, error)
 	UpsertDiscussion(ctx context.Context, discussion model.Discussion) (*model.Discussion, error)
 	AssignFlair(ctx context.Context, participant model.Participant, flairID *string) (*model.Participant, error)
-	GetFlairByID(ctx context.Context, id string) (*model.Flair, error)
-	GetFlairsByUserID(ctx context.Context, userID string) ([]*model.Flair, error)
-	RemoveFlair(ctx context.Context, flair model.Flair) (*model.Flair, error)
-	UpsertFlair(ctx context.Context, flair model.Flair) (*model.Flair, error)
-	ListFlairTemplates(ctx context.Context, query *string) ([]*model.FlairTemplate, error)
-	GetFlairTemplateByID(ctx context.Context, id string) (*model.FlairTemplate, error)
-	UpsertFlairTemplate(ctx context.Context, flairTemplate model.FlairTemplate) (*model.FlairTemplate, error)
-	RemoveFlairTemplate(ctx context.Context, flairTemplate model.FlairTemplate) (*model.FlairTemplate, error)
 	GetTotalParticipantCountByDiscussionID(ctx context.Context, discussionID string) int
 	GetParticipantByID(ctx context.Context, participantID string) (*model.Participant, error)
 	GetParticipantsByIDs(ctx context.Context, ids []string) (map[string]*model.Participant, error)
@@ -78,18 +69,6 @@ type Datastore interface {
 	PutActivity(ctx context.Context, tx *sql2.Tx, post *model.Post) error
 	PutMediaRecord(ctx context.Context, tx *sql2.Tx, media model.Media) error
 	GetMediaRecordByID(ctx context.Context, mediaID string) (*model.Media, error)
-	GetImportedContentByID(ctx context.Context, id string) (*model.ImportedContent, error)
-	GetImportedContentTags(ctx context.Context, id string) TagIter
-	GetDiscussionTags(ctx context.Context, id string) TagIter
-	GetMatchingTags(ctx context.Context, discussionID, importedContentID string) ([]string, error)
-	PutImportedContent(ctx context.Context, tx *sql2.Tx, ic model.ImportedContent) (*model.ImportedContent, error)
-	PutImportedContentTags(ctx context.Context, tx *sql2.Tx, tag model.Tag) (*model.Tag, error)
-	PutDiscussionTags(ctx context.Context, tx *sql2.Tx, tag model.Tag) (*model.Tag, error)
-	DeleteDiscussionTags(ctx context.Context, tx *sql2.Tx, tag model.Tag) (*model.Tag, error)
-	GetImportedContentByDiscussionID(ctx context.Context, discussionID string, limit int) ContentIter
-	GetScheduledImportedContentByDiscussionID(ctx context.Context, discussionID string) ContentIter
-	PutImportedContentDiscussionQueue(ctx context.Context, discussionID, contentID string, postedAt *time.Time, matchingTags []string) (*model.ContentQueueRecord, error)
-	UpdateImportedContentDiscussionQueue(ctx context.Context, discussionID, contentID string, postedAt *time.Time) (*model.ContentQueueRecord, error)
 	GetNextShuffleTimeForDiscussionID(ctx context.Context, id string) (*model.DiscussionShuffleTime, error)
 	PutNextShuffleTimeForDiscussionID(ctx context.Context, tx *sql2.Tx, id string, shuffleTime *time.Time) (*model.DiscussionShuffleTime, error)
 	IncrementDiscussionShuffleCount(ctx context.Context, tx *sql.Tx, id string) (*int, error)
@@ -97,11 +76,7 @@ type Datastore interface {
 
 	// Helper functions
 	PostIterCollect(ctx context.Context, iter PostIter) ([]*model.Post, error)
-	DiscussionAutoPostIterCollect(ctx context.Context, iter AutoPostDiscussionIter) ([]*model.DiscussionAutoPost, error)
-	TagIterCollect(ctx context.Context, iter TagIter) ([]*model.Tag, error)
-	ContentIterCollect(ctx context.Context, iter ContentIter) ([]*model.ImportedContent, error)
 	DiscussionIterCollect(ctx context.Context, iter DiscussionIter) ([]*model.Discussion, error)
-	DiscussionInviteIterCollect(ctx context.Context, iter DiscussionInviteIter) ([]*model.DiscussionInvite, error)
 	AccessRequestIterCollect(ctx context.Context, iter DiscussionAccessRequestIter) ([]*model.DiscussionAccessRequest, error)
 	DuaIterCollect(ctx context.Context, iter DiscussionUserAccessIter) ([]*model.DiscussionUserAccess, error)
 
@@ -111,17 +86,11 @@ type Datastore interface {
 	GetDUAForMentionNotifications(ctx context.Context, discussionID string, userID string, mentionedUserIDs []string) DiscussionUserAccessIter
 	UpsertDiscussionUserAccess(ctx context.Context, tx *sql2.Tx, dua model.DiscussionUserAccess) (*model.DiscussionUserAccess, error)
 	DeleteDiscussionUserAccess(ctx context.Context, tx *sql2.Tx, discussionID, userID string) (*model.DiscussionUserAccess, error)
-	GetDiscussionInviteByID(ctx context.Context, id string) (*model.DiscussionInvite, error)
 	GetDiscussionRequestAccessByID(ctx context.Context, id string) (*model.DiscussionAccessRequest, error)
-	GetDiscussionInvitesByUserIDAndStatus(ctx context.Context, userID string, status model.InviteRequestStatus) DiscussionInviteIter
-	GetSentDiscussionInvitesByUserID(ctx context.Context, userID string) DiscussionInviteIter
 	GetDiscussionAccessRequestsByDiscussionID(ctx context.Context, discussionID string) DiscussionAccessRequestIter
 	GetDiscussionAccessRequestByDiscussionIDUserID(ctx context.Context, discussionID string, userID string) (*model.DiscussionAccessRequest, error)
 	GetSentDiscussionAccessRequestsByUserID(ctx context.Context, userID string) DiscussionAccessRequestIter
-	GetInvitedTwitterHandlesByDiscussionIDAndInviterID(ctx context.Context, discussionID string, invitingParticipantID string) ([]*string, error)
-	PutDiscussionInviteRecord(ctx context.Context, tx *sql2.Tx, invite model.DiscussionInvite) (*model.DiscussionInvite, error)
 	PutDiscussionAccessRequestRecord(ctx context.Context, tx *sql2.Tx, request model.DiscussionAccessRequest) (*model.DiscussionAccessRequest, error)
-	UpdateDiscussionInviteRecord(ctx context.Context, tx *sql2.Tx, invite model.DiscussionInvite) (*model.DiscussionInvite, error)
 	UpdateDiscussionAccessRequestRecord(ctx context.Context, tx *sql2.Tx, request model.DiscussionAccessRequest) (*model.DiscussionAccessRequest, error)
 	GetAccessLinkBySlug(ctx context.Context, slug string) (*model.DiscussionAccessLink, error)
 	GetAccessLinkByDiscussionID(ctx context.Context, discussionID string) (*model.DiscussionAccessLink, error)
@@ -154,28 +123,8 @@ type PostIter interface {
 	Close() error
 }
 
-type TagIter interface {
-	Next(tag *model.Tag) bool
-	Close() error
-}
-
-type ContentIter interface {
-	Next(content *model.ImportedContent) bool
-	Close() error
-}
-
-type AutoPostDiscussionIter interface {
-	Next(discussion *model.DiscussionAutoPost) bool
-	Close() error
-}
-
 type DiscussionIter interface {
 	Next(discussion *model.Discussion) bool
-	Close() error
-}
-
-type DiscussionInviteIter interface {
-	Next(invite *model.DiscussionInvite) bool
 	Close() error
 }
 
@@ -308,11 +257,6 @@ func (d *delphisDB) initializeStatements(ctx context.Context) (err error) {
 		return errors.Wrap(err, "failed to prepare getMediaRecordStmt")
 	}
 
-	// DISCUSSION
-	if d.prepStmts.getDiscussionsForAutoPostStmt, err = d.pg.PrepareContext(ctx, getDiscussionsForAutoPostString); err != nil {
-		logrus.WithError(err).Error("failed to prepare getDiscussionsForAutoPostStmt")
-		return errors.Wrap(err, "failed to prepare getDiscussionsForAutoPostStmt")
-	}
 	if d.prepStmts.getDiscussionByLinkSlugStmt, err = d.pg.PrepareContext(ctx, getDiscussionByLinkSlugString); err != nil {
 		logrus.WithError(err).Error("failed to prepare getDiscussionByLinkSlugStmt")
 		return errors.Wrap(err, "failed to prepare getDiscussionByLinkSlugStmt")
@@ -342,58 +286,6 @@ func (d *delphisDB) initializeStatements(ctx context.Context) (err error) {
 		return errors.Wrap(err, "failed to prepare getModeratedDiscussionsByUserIDStmt")
 	}
 
-	// IMPORTED CONTENT
-	if d.prepStmts.getImportedContentByIDStmt, err = d.pg.PrepareContext(ctx, getImportedContentByIDString); err != nil {
-		logrus.WithError(err).Error("failed to prepare getImportedContentByIDStmt")
-		return errors.Wrap(err, "failed to prepare getImportedContentByIDStmt")
-	}
-	if d.prepStmts.getImportedContentForDiscussionStmt, err = d.pg.PrepareContext(ctx, getImportedContentForDiscussionString); err != nil {
-		logrus.WithError(err).Error("failed to prepare getImportedContentorDiscussionStmt")
-		return errors.Wrap(err, "failed to prepare getImportedContentForDiscussionStmt")
-	}
-	if d.prepStmts.getScheduledImportedContentByDiscussionIDStmt, err = d.pg.PrepareContext(ctx, getScheduledImportedContentByDiscussionIDString); err != nil {
-		logrus.WithError(err).Error("failed to prepare getScheduledImportedContentByDiscussionIDStmt")
-		return errors.Wrap(err, "failed to prepare getScheduledImportedContentByDiscussionIDStmt")
-	}
-	if d.prepStmts.putImportedContentStmt, err = d.pg.PrepareContext(ctx, putImportedContentString); err != nil {
-		logrus.WithError(err).Error("failed to prepare putImportedContentStmt")
-		return errors.Wrap(err, "failed to prepare putImportedContentStmt")
-	}
-	if d.prepStmts.putImportedContentDiscussionQueueStmt, err = d.pg.PrepareContext(ctx, putImportedContentDiscussionQueueString); err != nil {
-		logrus.WithError(err).Error("failed to prepare putImportedContentDiscussionQueueStmt")
-		return errors.Wrap(err, "failed to prepare putImportedContentDiscussionQueueStmt")
-	}
-	if d.prepStmts.updateImportedContentDiscussionQueueStmt, err = d.pg.PrepareContext(ctx, updateImportedContentDiscussionQueueString); err != nil {
-		logrus.WithError(err).Error("failed to prepare updateImportedContentDiscussionQueueStmt")
-		return errors.Wrap(err, "failed to prepare updateImportedContentDiscussionQueueStmt")
-	}
-
-	// TAGS
-	if d.prepStmts.getImportedContentTagsStmt, err = d.pg.PrepareContext(ctx, getImportedContentTagsString); err != nil {
-		logrus.WithError(err).Error("failed to prepare getImportedContentTagsStmt")
-		return errors.Wrap(err, "failed to prepare getImportedContentTagsStmt")
-	}
-	if d.prepStmts.getDiscussionTagsStmt, err = d.pg.PrepareContext(ctx, getDiscussionTagsString); err != nil {
-		logrus.WithError(err).Error("failed to prepare getDiscussionTagsStmt")
-		return errors.Wrap(err, "failed to prepare getDiscussionTagsStmt")
-	}
-	if d.prepStmts.getMatchingTagsStmt, err = d.pg.PrepareContext(ctx, getMatchingTagsString); err != nil {
-		logrus.WithError(err).Error("failed to prepare getMatchingTagsStmt")
-		return errors.Wrap(err, "failed to prepare getMatchingTagsStmt")
-	}
-	if d.prepStmts.putImportedContentTagsStmt, err = d.pg.PrepareContext(ctx, putImportedContentTagsString); err != nil {
-		logrus.WithError(err).Error("failed to prepare putImportedContentTagsStmt")
-		return errors.Wrap(err, "failed to prepare putImportedContentTagsStmt")
-	}
-	if d.prepStmts.putDiscussionTagsStmt, err = d.pg.PrepareContext(ctx, putDiscussionTagsString); err != nil {
-		logrus.WithError(err).Error("failed to prepare putDiscussionTagsStmt")
-		return errors.Wrap(err, "failed to prepare putDiscussionTagsStmt")
-	}
-	if d.prepStmts.deleteDiscussionTagsStmt, err = d.pg.PrepareContext(ctx, deleteDiscussionTagsString); err != nil {
-		logrus.WithError(err).Error("failed to prepare deleteDiscussionTagsStmt")
-		return errors.Wrap(err, "failed to prepare deleteDiscussionTagsStmt")
-	}
-
 	// DISCUSSION ACCESS
 	if d.prepStmts.getDiscussionsByUserAccessStmt, err = d.pg.PrepareContext(ctx, getDiscussionsByUserAccessString); err != nil {
 		logrus.WithError(err).Error("failed to prepare getDiscussionsByUserAccessStmt")
@@ -420,22 +312,10 @@ func (d *delphisDB) initializeStatements(ctx context.Context) (err error) {
 		return errors.Wrap(err, "failed to prepare deleteDiscussionUserAccessStmt")
 	}
 
-	// INVITES AND REQUESTS
-	if d.prepStmts.getDiscussionInviteByIDStmt, err = d.pg.PrepareContext(ctx, getDiscussionInviteByIDString); err != nil {
-		logrus.WithError(err).Error("failed to prepare getDiscussionInviteByIDStmt")
-		return errors.Wrap(err, "failed to prepare getDiscussionInviteByIDStmt")
-	}
+	// REQUESTS
 	if d.prepStmts.getDiscussionRequestAccessByIDStmt, err = d.pg.PrepareContext(ctx, getDiscussionRequestAccessByIDString); err != nil {
 		logrus.WithError(err).Error("failed to prepare getDiscussionRequestAccessByIDStmt")
 		return errors.Wrap(err, "failed to prepare getDiscussionRequestAccessByIDStmt")
-	}
-	if d.prepStmts.getDiscussionInvitesForUserStmt, err = d.pg.PrepareContext(ctx, getDiscussionInvitesForUserString); err != nil {
-		logrus.WithError(err).Error("failed to prepare getDiscussionInvitesForUserStmt")
-		return errors.Wrap(err, "failed to prepare getDiscussionInvitesForUserStmt")
-	}
-	if d.prepStmts.getSentDiscussionInvitesForUserStmt, err = d.pg.PrepareContext(ctx, getSentDiscussionInvitesForUserString); err != nil {
-		logrus.WithError(err).Error("failed to prepare getSentDiscussionInvitesForUserStmt")
-		return errors.Wrap(err, "failed to prepare getSentDiscussionInvitesForUserStmt")
 	}
 	if d.prepStmts.getDiscussionAccessRequestsStmt, err = d.pg.PrepareContext(ctx, getDiscussionAccessRequestsString); err != nil {
 		logrus.WithError(err).Error("failed to prepare getDiscussionAccessRequestsStmt")
@@ -449,26 +329,13 @@ func (d *delphisDB) initializeStatements(ctx context.Context) (err error) {
 		logrus.WithError(err).Error("failed to prepare getSentDiscussionAccessRequestsForUserStmt")
 		return errors.Wrap(err, "failed to prepare getSentDiscussionAccessRequestsForUserStmt")
 	}
-	if d.prepStmts.putDiscussionInviteRecordStmt, err = d.pg.PrepareContext(ctx, putDiscussionInviteRecordString); err != nil {
-		logrus.WithError(err).Error("failed to prepare putDiscussionInviteRecordStmt")
-		return errors.Wrap(err, "failed to prepare putDiscussionInviteRecordStmt")
-	}
 	if d.prepStmts.putDiscussionAccessRequestStmt, err = d.pg.PrepareContext(ctx, putDiscussionAccessRequestString); err != nil {
 		logrus.WithError(err).Error("failed to prepare putDiscussionAccessRequestStmt")
 		return errors.Wrap(err, "failed to prepare putDiscussionAccessRequestStmt")
 	}
-	if d.prepStmts.updateDiscussionInviteRecordStmt, err = d.pg.PrepareContext(ctx, updateDiscussionInviteRecordString); err != nil {
-		logrus.WithError(err).Error("failed to prepare updateDiscussionInviteRecordStmt")
-		return errors.Wrap(err, "failed to prepare updateDiscussionInviteRecordStmt")
-	}
 	if d.prepStmts.updateDiscussionAccessRequestStmt, err = d.pg.PrepareContext(ctx, updateDiscussionAccessRequestString); err != nil {
 		logrus.WithError(err).Error("failed to prepare updateDiscussionAccessRequestStmt")
 		return errors.Wrap(err, "failed to prepare updateDiscussionAccessRequestStmt")
-	}
-
-	if d.prepStmts.getInvitedTwitterHandlesByDiscussionIDAndInviterIDStmt, err = d.pg.PrepareContext(ctx, getInvitedTwitterHandlesByDiscussionIDAndInviterIDString); err != nil {
-		logrus.WithError(err).Error("failed to prepare getInvitedTwitterHandlesByDiscussionIDAndInviterIDStmt")
-		return errors.Wrap(err, "failed to prepare getInvitedTwitterHandlesByDiscussionIDAndInviterIDStmt")
 	}
 
 	// AccessLinks

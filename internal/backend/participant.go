@@ -51,22 +51,6 @@ func (d *delphisBackend) CreateParticipantForDiscussion(ctx context.Context, dis
 		participantObj.GradientColor = &gradientColor
 	}
 
-	if discussionParticipantInput.FlairID != nil {
-		if userObj.Flairs == nil {
-			userObj.Flairs, err = d.GetFlairsByUserID(ctx, userID)
-			if err != nil {
-				return nil, err
-			}
-		}
-		if len(userObj.Flairs) > 0 {
-			for _, elem := range userObj.Flairs {
-				if elem != nil && elem.ID == *discussionParticipantInput.FlairID {
-					participantObj.FlairID = discussionParticipantInput.FlairID
-				}
-			}
-		}
-	}
-
 	participantObj.HasJoined = discussionParticipantInput.HasJoined != nil && *discussionParticipantInput.HasJoined
 	participantObj.IsAnonymous = discussionParticipantInput.IsAnonymous
 
@@ -206,14 +190,6 @@ func (d *delphisBackend) GetParticipantsByIDs(ctx context.Context, ids []string)
 	return d.db.GetParticipantsByIDs(ctx, ids)
 }
 
-func (d *delphisBackend) AssignFlair(ctx context.Context, participant model.Participant, flairID string) (*model.Participant, error) {
-	return d.db.AssignFlair(ctx, participant, &flairID)
-}
-
-func (d *delphisBackend) UnassignFlair(ctx context.Context, participant model.Participant) (*model.Participant, error) {
-	return d.db.AssignFlair(ctx, participant, nil)
-}
-
 func (d *delphisBackend) MuteParticipants(ctx context.Context, discussionID string, participantIDs []string, muteForSeconds int) ([]*model.Participant, error) {
 	authedUser := auth.GetAuthedUser(ctx)
 	if authedUser == nil {
@@ -336,9 +312,6 @@ func (d *delphisBackend) UpdateParticipant(ctx context.Context, participants Use
 	}
 	if input.GradientColor != nil || (input.IsUnsetGradient != nil && *input.IsUnsetGradient) {
 		currentParticipantObj.GradientColor = input.GradientColor
-	}
-	if input.FlairID != nil || (input.IsUnsetFlairID != nil && *input.IsUnsetFlairID) {
-		currentParticipantObj.FlairID = input.FlairID
 	}
 	if input.HasJoined != nil {
 		// Cannot unjoin a conversation.

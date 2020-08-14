@@ -12,7 +12,6 @@ type Viewer struct {
 	LastViewed       *time.Time  `json:"lastViewed"`
 	LastViewedPostID *string     `json:"lastViewedPostID" gorm:"type:varchar(36);"`
 	LastViewedPost   *Post       `json:"lastViewedPost" dynamodbav:"-" gorm:"foreignKey:LastViewedPostID;"` //gorm:"foreignkey:last_post_viewed_id;association_foreignkey:id;"`
-	//Bookmarks               *PostsConnection              `json:"bookmarks" dynamodbav:"-"`
 
 	// NOTE: This is not exposed currently but keeping it here for
 	// testing purposes. We will try out exposing user information one of the tests.

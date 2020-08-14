@@ -1,4 +1,0 @@
-type PostBookmarksEdge {
-    cursor: ID!
-    node: PostBookmark
-}

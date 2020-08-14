@@ -351,11 +351,6 @@ func (d *delphisBackend) GetDiscussionByModeratorID(ctx context.Context, moderat
 	return d.db.GetDiscussionByModeratorID(ctx, moderatorID)
 }
 
-func (d *delphisBackend) GetDiscussionsForAutoPost(ctx context.Context) ([]*model.DiscussionAutoPost, error) {
-	iter := d.db.GetDiscussionsAutoPost(ctx)
-	return d.db.DiscussionAutoPostIterCollect(ctx, iter)
-}
-
 func (d *delphisBackend) ListDiscussions(ctx context.Context) (*model.DiscussionsConnection, error) {
 	return d.db.ListDiscussions(ctx)
 }
@@ -434,95 +429,6 @@ func (d *delphisBackend) UnSubscribeFromDiscussionEvent(ctx context.Context, sub
 	delete(currentSubs, subscriberUserID)
 	d.cache.Set(cacheKey, currentSubs, time.Hour)
 	return nil
-}
-
-func (d *delphisBackend) GetDiscussionTags(ctx context.Context, id string) ([]*model.Tag, error) {
-	iter := d.db.GetDiscussionTags(ctx, id)
-	return d.db.TagIterCollect(ctx, iter)
-}
-
-func (d *delphisBackend) PutDiscussionTags(ctx context.Context, discussionID string, tags []string) ([]*model.Tag, error) {
-	if len(tags) == 0 {
-		return nil, fmt.Errorf("no tags to add")
-	}
-
-	var addedTags []*model.Tag
-
-	// Begin tx
-	tx, err := d.db.BeginTx(ctx)
-	if err != nil {
-		logrus.WithError(err).Error("failed to begin tx")
-		return nil, err
-	}
-
-	tagObj := model.Tag{
-		ID: discussionID,
-	}
-	for _, tag := range tags {
-		tagObj.Tag = tag
-		tagResp, err := d.db.PutDiscussionTags(ctx, tx, tagObj)
-		if err != nil {
-			logrus.WithError(err).Error("failed to PutDiscussionTags")
-
-			// Rollback on errors
-			if txErr := d.db.RollbackTx(ctx, tx); txErr != nil {
-				logrus.WithError(txErr).Error("failed to rollback tx")
-				return nil, multierr.Append(err, txErr)
-			}
-			return nil, err
-		}
-		addedTags = append(addedTags, tagResp)
-	}
-
-	// Commit transaction
-	if err := d.db.CommitTx(ctx, tx); err != nil {
-		logrus.WithError(err).Error("failed to commit post tx")
-		return nil, err
-	}
-
-	return addedTags, nil
-}
-
-func (d *delphisBackend) DeleteDiscussionTags(ctx context.Context, discussionID string, tags []string) ([]*model.Tag, error) {
-	if len(tags) == 0 {
-		return nil, fmt.Errorf("no tags to delete")
-	}
-
-	var deletedTags []*model.Tag
-
-	// Begin tx
-	tx, err := d.db.BeginTx(ctx)
-	if err != nil {
-		logrus.WithError(err).Error("failed to begin tx")
-		return nil, err
-	}
-
-	tagObj := model.Tag{
-		ID: discussionID,
-	}
-	for _, tag := range tags {
-		tagObj.Tag = tag
-		tagResp, err := d.db.DeleteDiscussionTags(ctx, tx, tagObj)
-		if err != nil {
-			logrus.WithError(err).Error("failed to PutDiscussionTags")
-
-			// Rollback on errors
-			if txErr := d.db.RollbackTx(ctx, tx); txErr != nil {
-				logrus.WithError(txErr).Error("failed to rollback tx")
-				return nil, multierr.Append(err, txErr)
-			}
-			return nil, err
-		}
-		deletedTags = append(deletedTags, tagResp)
-	}
-
-	// Commit transaction
-	if err := d.db.CommitTx(ctx, tx); err != nil {
-		logrus.WithError(err).Error("failed to commit post tx")
-		return nil, err
-	}
-
-	return deletedTags, nil
 }
 
 func (d *delphisBackend) grantAccessAndCreateParticipants(ctx context.Context, discussionID, userID string) error {
@@ -617,12 +523,6 @@ func updateDiscussionObj(disc *model.Discussion, input model.DiscussionInput) {
 	}
 	if input.DiscussionJoinability != nil {
 		disc.DiscussionJoinability = *input.DiscussionJoinability
-	}
-	if input.AutoPost != nil {
-		disc.AutoPost = *input.AutoPost
-	}
-	if input.IdleMinutes != nil {
-		disc.IdleMinutes = *input.IdleMinutes
 	}
 	if input.IconURL != nil {
 		disc.IconURL = input.IconURL

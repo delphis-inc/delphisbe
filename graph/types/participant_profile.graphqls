@@ -1,5 +1,4 @@
 type ParticipantProfile {
     isAnonymous: Boolean
-    flair: Flair
     gradientColor: GradientColor
 }

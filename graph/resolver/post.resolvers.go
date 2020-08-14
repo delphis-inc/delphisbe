@@ -103,18 +103,6 @@ func (r *postResolver) Media(ctx context.Context, obj *model.Post) (*model.Media
 	return nil, nil
 }
 
-func (r *postResolver) ImportedContent(ctx context.Context, obj *model.Post) (*model.ImportedContent, error) {
-	if obj.DeletedAt != nil {
-		return nil, nil
-	}
-
-	if obj.ImportedContentID != nil {
-		return r.DAOManager.GetImportedContentByID(ctx, *obj.ImportedContentID)
-	}
-
-	return nil, nil
-}
-
 // Post returns generated.PostResolver implementation.
 func (r *Resolver) Post() generated.PostResolver { return &postResolver{r} }
 

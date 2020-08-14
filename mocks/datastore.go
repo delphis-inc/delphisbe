@@ -103,29 +103,6 @@ func (_m *Datastore) CommitTx(ctx context.Context, tx *sql.Tx) error {
 	return r0
 }
 
-// ContentIterCollect provides a mock function with given fields: ctx, iter
-func (_m *Datastore) ContentIterCollect(ctx context.Context, iter datastore.ContentIter) ([]*model.ImportedContent, error) {
-	ret := _m.Called(ctx, iter)
-
-	var r0 []*model.ImportedContent
-	if rf, ok := ret.Get(0).(func(context.Context, datastore.ContentIter) []*model.ImportedContent); ok {
-		r0 = rf(ctx, iter)
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).([]*model.ImportedContent)
-		}
-	}
-
-	var r1 error
-	if rf, ok := ret.Get(1).(func(context.Context, datastore.ContentIter) error); ok {
-		r1 = rf(ctx, iter)
-	} else {
-		r1 = ret.Error(1)
-	}
-
-	return r0, r1
-}
-
 // CreateModerator provides a mock function with given fields: ctx, moderator
 func (_m *Datastore) CreateModerator(ctx context.Context, moderator model.Moderator) (*model.Moderator, error) {
 	ret := _m.Called(ctx, moderator)
@@ -200,29 +177,6 @@ func (_m *Datastore) DeleteAllParticipantPosts(ctx context.Context, discussionID
 	return r0, r1
 }
 
-// DeleteDiscussionTags provides a mock function with given fields: ctx, tx, tag
-func (_m *Datastore) DeleteDiscussionTags(ctx context.Context, tx *sql.Tx, tag model.Tag) (*model.Tag, error) {
-	ret := _m.Called(ctx, tx, tag)
-
-	var r0 *model.Tag
-	if rf, ok := ret.Get(0).(func(context.Context, *sql.Tx, model.Tag) *model.Tag); ok {
-		r0 = rf(ctx, tx, tag)
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*model.Tag)
-		}
-	}
-
-	var r1 error
-	if rf, ok := ret.Get(1).(func(context.Context, *sql.Tx, model.Tag) error); ok {
-		r1 = rf(ctx, tx, tag)
-	} else {
-		r1 = ret.Error(1)
-	}
-
-	return r0, r1
-}
-
 // DeleteDiscussionUserAccess provides a mock function with given fields: ctx, tx, discussionID, userID
 func (_m *Datastore) DeleteDiscussionUserAccess(ctx context.Context, tx *sql.Tx, discussionID string, userID string) (*model.DiscussionUserAccess, error) {
 	ret := _m.Called(ctx, tx, discussionID, userID)
@@ -262,52 +216,6 @@ func (_m *Datastore) DeletePostByID(ctx context.Context, postID string, deletedR
 	var r1 error
 	if rf, ok := ret.Get(1).(func(context.Context, string, model.PostDeletedReason) error); ok {
 		r1 = rf(ctx, postID, deletedReasonCode)
-	} else {
-		r1 = ret.Error(1)
-	}
-
-	return r0, r1
-}
-
-// DiscussionAutoPostIterCollect provides a mock function with given fields: ctx, iter
-func (_m *Datastore) DiscussionAutoPostIterCollect(ctx context.Context, iter datastore.AutoPostDiscussionIter) ([]*model.DiscussionAutoPost, error) {
-	ret := _m.Called(ctx, iter)
-
-	var r0 []*model.DiscussionAutoPost
-	if rf, ok := ret.Get(0).(func(context.Context, datastore.AutoPostDiscussionIter) []*model.DiscussionAutoPost); ok {
-		r0 = rf(ctx, iter)
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).([]*model.DiscussionAutoPost)
-		}
-	}
-
-	var r1 error
-	if rf, ok := ret.Get(1).(func(context.Context, datastore.AutoPostDiscussionIter) error); ok {
-		r1 = rf(ctx, iter)
-	} else {
-		r1 = ret.Error(1)
-	}
-
-	return r0, r1
-}
-
-// DiscussionInviteIterCollect provides a mock function with given fields: ctx, iter
-func (_m *Datastore) DiscussionInviteIterCollect(ctx context.Context, iter datastore.DiscussionInviteIter) ([]*model.DiscussionInvite, error) {
-	ret := _m.Called(ctx, iter)
-
-	var r0 []*model.DiscussionInvite
-	if rf, ok := ret.Get(0).(func(context.Context, datastore.DiscussionInviteIter) []*model.DiscussionInvite); ok {
-		r0 = rf(ctx, iter)
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).([]*model.DiscussionInvite)
-		}
-	}
-
-	var r1 error
-	if rf, ok := ret.Get(1).(func(context.Context, datastore.DiscussionInviteIter) error); ok {
-		r1 = rf(ctx, iter)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -570,45 +478,6 @@ func (_m *Datastore) GetDiscussionByModeratorID(ctx context.Context, moderatorID
 	return r0, r1
 }
 
-// GetDiscussionInviteByID provides a mock function with given fields: ctx, id
-func (_m *Datastore) GetDiscussionInviteByID(ctx context.Context, id string) (*model.DiscussionInvite, error) {
-	ret := _m.Called(ctx, id)
-
-	var r0 *model.DiscussionInvite
-	if rf, ok := ret.Get(0).(func(context.Context, string) *model.DiscussionInvite); ok {
-		r0 = rf(ctx, id)
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*model.DiscussionInvite)
-		}
-	}
-
-	var r1 error
-	if rf, ok := ret.Get(1).(func(context.Context, string) error); ok {
-		r1 = rf(ctx, id)
-	} else {
-		r1 = ret.Error(1)
-	}
-
-	return r0, r1
-}
-
-// GetDiscussionInvitesByUserIDAndStatus provides a mock function with given fields: ctx, userID, status
-func (_m *Datastore) GetDiscussionInvitesByUserIDAndStatus(ctx context.Context, userID string, status model.InviteRequestStatus) datastore.DiscussionInviteIter {
-	ret := _m.Called(ctx, userID, status)
-
-	var r0 datastore.DiscussionInviteIter
-	if rf, ok := ret.Get(0).(func(context.Context, string, model.InviteRequestStatus) datastore.DiscussionInviteIter); ok {
-		r0 = rf(ctx, userID, status)
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(datastore.DiscussionInviteIter)
-		}
-	}
-
-	return r0
-}
-
 // GetDiscussionRequestAccessByID provides a mock function with given fields: ctx, id
 func (_m *Datastore) GetDiscussionRequestAccessByID(ctx context.Context, id string) (*model.DiscussionAccessRequest, error) {
 	ret := _m.Called(ctx, id)
@@ -632,22 +501,6 @@ func (_m *Datastore) GetDiscussionRequestAccessByID(ctx context.Context, id stri
 	return r0, r1
 }
 
-// GetDiscussionTags provides a mock function with given fields: ctx, id
-func (_m *Datastore) GetDiscussionTags(ctx context.Context, id string) datastore.TagIter {
-	ret := _m.Called(ctx, id)
-
-	var r0 datastore.TagIter
-	if rf, ok := ret.Get(0).(func(context.Context, string) datastore.TagIter); ok {
-		r0 = rf(ctx, id)
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(datastore.TagIter)
-		}
-	}
-
-	return r0
-}
-
 // GetDiscussionUserAccess provides a mock function with given fields: ctx, discussionID, userID
 func (_m *Datastore) GetDiscussionUserAccess(ctx context.Context, discussionID string, userID string) (*model.DiscussionUserAccess, error) {
 	ret := _m.Called(ctx, discussionID, userID)
@@ -669,22 +522,6 @@ func (_m *Datastore) GetDiscussionUserAccess(ctx context.Context, discussionID s
 	}
 
 	return r0, r1
-}
-
-// GetDiscussionsAutoPost provides a mock function with given fields: ctx
-func (_m *Datastore) GetDiscussionsAutoPost(ctx context.Context) datastore.AutoPostDiscussionIter {
-	ret := _m.Called(ctx)
-
-	var r0 datastore.AutoPostDiscussionIter
-	if rf, ok := ret.Get(0).(func(context.Context) datastore.AutoPostDiscussionIter); ok {
-		r0 = rf(ctx)
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(datastore.AutoPostDiscussionIter)
-		}
-	}
-
-	return r0
 }
 
 // GetDiscussionsByIDs provides a mock function with given fields: ctx, ids
@@ -749,153 +586,6 @@ func (_m *Datastore) GetDiscussionsToBeShuffledBeforeTime(ctx context.Context, t
 	return r0, r1
 }
 
-// GetFlairByID provides a mock function with given fields: ctx, id
-func (_m *Datastore) GetFlairByID(ctx context.Context, id string) (*model.Flair, error) {
-	ret := _m.Called(ctx, id)
-
-	var r0 *model.Flair
-	if rf, ok := ret.Get(0).(func(context.Context, string) *model.Flair); ok {
-		r0 = rf(ctx, id)
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*model.Flair)
-		}
-	}
-
-	var r1 error
-	if rf, ok := ret.Get(1).(func(context.Context, string) error); ok {
-		r1 = rf(ctx, id)
-	} else {
-		r1 = ret.Error(1)
-	}
-
-	return r0, r1
-}
-
-// GetFlairTemplateByID provides a mock function with given fields: ctx, id
-func (_m *Datastore) GetFlairTemplateByID(ctx context.Context, id string) (*model.FlairTemplate, error) {
-	ret := _m.Called(ctx, id)
-
-	var r0 *model.FlairTemplate
-	if rf, ok := ret.Get(0).(func(context.Context, string) *model.FlairTemplate); ok {
-		r0 = rf(ctx, id)
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*model.FlairTemplate)
-		}
-	}
-
-	var r1 error
-	if rf, ok := ret.Get(1).(func(context.Context, string) error); ok {
-		r1 = rf(ctx, id)
-	} else {
-		r1 = ret.Error(1)
-	}
-
-	return r0, r1
-}
-
-// GetFlairsByUserID provides a mock function with given fields: ctx, userID
-func (_m *Datastore) GetFlairsByUserID(ctx context.Context, userID string) ([]*model.Flair, error) {
-	ret := _m.Called(ctx, userID)
-
-	var r0 []*model.Flair
-	if rf, ok := ret.Get(0).(func(context.Context, string) []*model.Flair); ok {
-		r0 = rf(ctx, userID)
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).([]*model.Flair)
-		}
-	}
-
-	var r1 error
-	if rf, ok := ret.Get(1).(func(context.Context, string) error); ok {
-		r1 = rf(ctx, userID)
-	} else {
-		r1 = ret.Error(1)
-	}
-
-	return r0, r1
-}
-
-// GetImportedContentByDiscussionID provides a mock function with given fields: ctx, discussionID, limit
-func (_m *Datastore) GetImportedContentByDiscussionID(ctx context.Context, discussionID string, limit int) datastore.ContentIter {
-	ret := _m.Called(ctx, discussionID, limit)
-
-	var r0 datastore.ContentIter
-	if rf, ok := ret.Get(0).(func(context.Context, string, int) datastore.ContentIter); ok {
-		r0 = rf(ctx, discussionID, limit)
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(datastore.ContentIter)
-		}
-	}
-
-	return r0
-}
-
-// GetImportedContentByID provides a mock function with given fields: ctx, id
-func (_m *Datastore) GetImportedContentByID(ctx context.Context, id string) (*model.ImportedContent, error) {
-	ret := _m.Called(ctx, id)
-
-	var r0 *model.ImportedContent
-	if rf, ok := ret.Get(0).(func(context.Context, string) *model.ImportedContent); ok {
-		r0 = rf(ctx, id)
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*model.ImportedContent)
-		}
-	}
-
-	var r1 error
-	if rf, ok := ret.Get(1).(func(context.Context, string) error); ok {
-		r1 = rf(ctx, id)
-	} else {
-		r1 = ret.Error(1)
-	}
-
-	return r0, r1
-}
-
-// GetImportedContentTags provides a mock function with given fields: ctx, id
-func (_m *Datastore) GetImportedContentTags(ctx context.Context, id string) datastore.TagIter {
-	ret := _m.Called(ctx, id)
-
-	var r0 datastore.TagIter
-	if rf, ok := ret.Get(0).(func(context.Context, string) datastore.TagIter); ok {
-		r0 = rf(ctx, id)
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(datastore.TagIter)
-		}
-	}
-
-	return r0
-}
-
-// GetInvitedTwitterHandlesByDiscussionIDAndInviterID provides a mock function with given fields: ctx, discussionID, invitingParticipantID
-func (_m *Datastore) GetInvitedTwitterHandlesByDiscussionIDAndInviterID(ctx context.Context, discussionID string, invitingParticipantID string) ([]*string, error) {
-	ret := _m.Called(ctx, discussionID, invitingParticipantID)
-
-	var r0 []*string
-	if rf, ok := ret.Get(0).(func(context.Context, string, string) []*string); ok {
-		r0 = rf(ctx, discussionID, invitingParticipantID)
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).([]*string)
-		}
-	}
-
-	var r1 error
-	if rf, ok := ret.Get(1).(func(context.Context, string, string) error); ok {
-		r1 = rf(ctx, discussionID, invitingParticipantID)
-	} else {
-		r1 = ret.Error(1)
-	}
-
-	return r0, r1
-}
-
 // GetLastPostByDiscussionID provides a mock function with given fields: ctx, discussionID
 func (_m *Datastore) GetLastPostByDiscussionID(ctx context.Context, discussionID string) (*model.Post, error) {
 	ret := _m.Called(ctx, discussionID)
@@ -912,29 +602,6 @@ func (_m *Datastore) GetLastPostByDiscussionID(ctx context.Context, discussionID
 	var r1 error
 	if rf, ok := ret.Get(1).(func(context.Context, string) error); ok {
 		r1 = rf(ctx, discussionID)
-	} else {
-		r1 = ret.Error(1)
-	}
-
-	return r0, r1
-}
-
-// GetMatchingTags provides a mock function with given fields: ctx, discussionID, importedContentID
-func (_m *Datastore) GetMatchingTags(ctx context.Context, discussionID string, importedContentID string) ([]string, error) {
-	ret := _m.Called(ctx, discussionID, importedContentID)
-
-	var r0 []string
-	if rf, ok := ret.Get(0).(func(context.Context, string, string) []string); ok {
-		r0 = rf(ctx, discussionID, importedContentID)
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).([]string)
-		}
-	}
-
-	var r1 error
-	if rf, ok := ret.Get(1).(func(context.Context, string, string) error); ok {
-		r1 = rf(ctx, discussionID, importedContentID)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -1289,22 +956,6 @@ func (_m *Datastore) GetPostsConnectionByDiscussionID(ctx context.Context, discu
 	return r0, r1
 }
 
-// GetScheduledImportedContentByDiscussionID provides a mock function with given fields: ctx, discussionID
-func (_m *Datastore) GetScheduledImportedContentByDiscussionID(ctx context.Context, discussionID string) datastore.ContentIter {
-	ret := _m.Called(ctx, discussionID)
-
-	var r0 datastore.ContentIter
-	if rf, ok := ret.Get(0).(func(context.Context, string) datastore.ContentIter); ok {
-		r0 = rf(ctx, discussionID)
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(datastore.ContentIter)
-		}
-	}
-
-	return r0
-}
-
 // GetSentDiscussionAccessRequestsByUserID provides a mock function with given fields: ctx, userID
 func (_m *Datastore) GetSentDiscussionAccessRequestsByUserID(ctx context.Context, userID string) datastore.DiscussionAccessRequestIter {
 	ret := _m.Called(ctx, userID)
@@ -1315,22 +966,6 @@ func (_m *Datastore) GetSentDiscussionAccessRequestsByUserID(ctx context.Context
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(datastore.DiscussionAccessRequestIter)
-		}
-	}
-
-	return r0
-}
-
-// GetSentDiscussionInvitesByUserID provides a mock function with given fields: ctx, userID
-func (_m *Datastore) GetSentDiscussionInvitesByUserID(ctx context.Context, userID string) datastore.DiscussionInviteIter {
-	ret := _m.Called(ctx, userID)
-
-	var r0 datastore.DiscussionInviteIter
-	if rf, ok := ret.Get(0).(func(context.Context, string) datastore.DiscussionInviteIter); ok {
-		r0 = rf(ctx, userID)
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(datastore.DiscussionInviteIter)
 		}
 	}
 
@@ -1581,29 +1216,6 @@ func (_m *Datastore) ListDiscussionsByUserID(ctx context.Context, userID string,
 	return r0, r1
 }
 
-// ListFlairTemplates provides a mock function with given fields: ctx, query
-func (_m *Datastore) ListFlairTemplates(ctx context.Context, query *string) ([]*model.FlairTemplate, error) {
-	ret := _m.Called(ctx, query)
-
-	var r0 []*model.FlairTemplate
-	if rf, ok := ret.Get(0).(func(context.Context, *string) []*model.FlairTemplate); ok {
-		r0 = rf(ctx, query)
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).([]*model.FlairTemplate)
-		}
-	}
-
-	var r1 error
-	if rf, ok := ret.Get(1).(func(context.Context, *string) error); ok {
-		r1 = rf(ctx, query)
-	} else {
-		r1 = ret.Error(1)
-	}
-
-	return r0, r1
-}
-
 // PostIterCollect provides a mock function with given fields: ctx, iter
 func (_m *Datastore) PostIterCollect(ctx context.Context, iter datastore.PostIter) ([]*model.Post, error) {
 	ret := _m.Called(ctx, iter)
@@ -1687,121 +1299,6 @@ func (_m *Datastore) PutDiscussionAccessRequestRecord(ctx context.Context, tx *s
 	return r0, r1
 }
 
-// PutDiscussionInviteRecord provides a mock function with given fields: ctx, tx, invite
-func (_m *Datastore) PutDiscussionInviteRecord(ctx context.Context, tx *sql.Tx, invite model.DiscussionInvite) (*model.DiscussionInvite, error) {
-	ret := _m.Called(ctx, tx, invite)
-
-	var r0 *model.DiscussionInvite
-	if rf, ok := ret.Get(0).(func(context.Context, *sql.Tx, model.DiscussionInvite) *model.DiscussionInvite); ok {
-		r0 = rf(ctx, tx, invite)
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*model.DiscussionInvite)
-		}
-	}
-
-	var r1 error
-	if rf, ok := ret.Get(1).(func(context.Context, *sql.Tx, model.DiscussionInvite) error); ok {
-		r1 = rf(ctx, tx, invite)
-	} else {
-		r1 = ret.Error(1)
-	}
-
-	return r0, r1
-}
-
-// PutDiscussionTags provides a mock function with given fields: ctx, tx, tag
-func (_m *Datastore) PutDiscussionTags(ctx context.Context, tx *sql.Tx, tag model.Tag) (*model.Tag, error) {
-	ret := _m.Called(ctx, tx, tag)
-
-	var r0 *model.Tag
-	if rf, ok := ret.Get(0).(func(context.Context, *sql.Tx, model.Tag) *model.Tag); ok {
-		r0 = rf(ctx, tx, tag)
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*model.Tag)
-		}
-	}
-
-	var r1 error
-	if rf, ok := ret.Get(1).(func(context.Context, *sql.Tx, model.Tag) error); ok {
-		r1 = rf(ctx, tx, tag)
-	} else {
-		r1 = ret.Error(1)
-	}
-
-	return r0, r1
-}
-
-// PutImportedContent provides a mock function with given fields: ctx, tx, ic
-func (_m *Datastore) PutImportedContent(ctx context.Context, tx *sql.Tx, ic model.ImportedContent) (*model.ImportedContent, error) {
-	ret := _m.Called(ctx, tx, ic)
-
-	var r0 *model.ImportedContent
-	if rf, ok := ret.Get(0).(func(context.Context, *sql.Tx, model.ImportedContent) *model.ImportedContent); ok {
-		r0 = rf(ctx, tx, ic)
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*model.ImportedContent)
-		}
-	}
-
-	var r1 error
-	if rf, ok := ret.Get(1).(func(context.Context, *sql.Tx, model.ImportedContent) error); ok {
-		r1 = rf(ctx, tx, ic)
-	} else {
-		r1 = ret.Error(1)
-	}
-
-	return r0, r1
-}
-
-// PutImportedContentDiscussionQueue provides a mock function with given fields: ctx, discussionID, contentID, postedAt, matchingTags
-func (_m *Datastore) PutImportedContentDiscussionQueue(ctx context.Context, discussionID string, contentID string, postedAt *time.Time, matchingTags []string) (*model.ContentQueueRecord, error) {
-	ret := _m.Called(ctx, discussionID, contentID, postedAt, matchingTags)
-
-	var r0 *model.ContentQueueRecord
-	if rf, ok := ret.Get(0).(func(context.Context, string, string, *time.Time, []string) *model.ContentQueueRecord); ok {
-		r0 = rf(ctx, discussionID, contentID, postedAt, matchingTags)
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*model.ContentQueueRecord)
-		}
-	}
-
-	var r1 error
-	if rf, ok := ret.Get(1).(func(context.Context, string, string, *time.Time, []string) error); ok {
-		r1 = rf(ctx, discussionID, contentID, postedAt, matchingTags)
-	} else {
-		r1 = ret.Error(1)
-	}
-
-	return r0, r1
-}
-
-// PutImportedContentTags provides a mock function with given fields: ctx, tx, tag
-func (_m *Datastore) PutImportedContentTags(ctx context.Context, tx *sql.Tx, tag model.Tag) (*model.Tag, error) {
-	ret := _m.Called(ctx, tx, tag)
-
-	var r0 *model.Tag
-	if rf, ok := ret.Get(0).(func(context.Context, *sql.Tx, model.Tag) *model.Tag); ok {
-		r0 = rf(ctx, tx, tag)
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*model.Tag)
-		}
-	}
-
-	var r1 error
-	if rf, ok := ret.Get(1).(func(context.Context, *sql.Tx, model.Tag) error); ok {
-		r1 = rf(ctx, tx, tag)
-	} else {
-		r1 = ret.Error(1)
-	}
-
-	return r0, r1
-}
-
 // PutMediaRecord provides a mock function with given fields: ctx, tx, media
 func (_m *Datastore) PutMediaRecord(ctx context.Context, tx *sql.Tx, media model.Media) error {
 	ret := _m.Called(ctx, tx, media)
@@ -1876,52 +1373,6 @@ func (_m *Datastore) PutPostContent(ctx context.Context, tx *sql.Tx, postContent
 	return r0
 }
 
-// RemoveFlair provides a mock function with given fields: ctx, flair
-func (_m *Datastore) RemoveFlair(ctx context.Context, flair model.Flair) (*model.Flair, error) {
-	ret := _m.Called(ctx, flair)
-
-	var r0 *model.Flair
-	if rf, ok := ret.Get(0).(func(context.Context, model.Flair) *model.Flair); ok {
-		r0 = rf(ctx, flair)
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*model.Flair)
-		}
-	}
-
-	var r1 error
-	if rf, ok := ret.Get(1).(func(context.Context, model.Flair) error); ok {
-		r1 = rf(ctx, flair)
-	} else {
-		r1 = ret.Error(1)
-	}
-
-	return r0, r1
-}
-
-// RemoveFlairTemplate provides a mock function with given fields: ctx, flairTemplate
-func (_m *Datastore) RemoveFlairTemplate(ctx context.Context, flairTemplate model.FlairTemplate) (*model.FlairTemplate, error) {
-	ret := _m.Called(ctx, flairTemplate)
-
-	var r0 *model.FlairTemplate
-	if rf, ok := ret.Get(0).(func(context.Context, model.FlairTemplate) *model.FlairTemplate); ok {
-		r0 = rf(ctx, flairTemplate)
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*model.FlairTemplate)
-		}
-	}
-
-	var r1 error
-	if rf, ok := ret.Get(1).(func(context.Context, model.FlairTemplate) error); ok {
-		r1 = rf(ctx, flairTemplate)
-	} else {
-		r1 = ret.Error(1)
-	}
-
-	return r0, r1
-}
-
 // RollbackTx provides a mock function with given fields: ctx, tx
 func (_m *Datastore) RollbackTx(ctx context.Context, tx *sql.Tx) error {
 	ret := _m.Called(ctx, tx)
@@ -1982,29 +1433,6 @@ func (_m *Datastore) SetViewerLastPostViewed(ctx context.Context, viewerID strin
 	return r0, r1
 }
 
-// TagIterCollect provides a mock function with given fields: ctx, iter
-func (_m *Datastore) TagIterCollect(ctx context.Context, iter datastore.TagIter) ([]*model.Tag, error) {
-	ret := _m.Called(ctx, iter)
-
-	var r0 []*model.Tag
-	if rf, ok := ret.Get(0).(func(context.Context, datastore.TagIter) []*model.Tag); ok {
-		r0 = rf(ctx, iter)
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).([]*model.Tag)
-		}
-	}
-
-	var r1 error
-	if rf, ok := ret.Get(1).(func(context.Context, datastore.TagIter) error); ok {
-		r1 = rf(ctx, iter)
-	} else {
-		r1 = ret.Error(1)
-	}
-
-	return r0, r1
-}
-
 // UpdateDiscussionAccessRequestRecord provides a mock function with given fields: ctx, tx, request
 func (_m *Datastore) UpdateDiscussionAccessRequestRecord(ctx context.Context, tx *sql.Tx, request model.DiscussionAccessRequest) (*model.DiscussionAccessRequest, error) {
 	ret := _m.Called(ctx, tx, request)
@@ -2021,52 +1449,6 @@ func (_m *Datastore) UpdateDiscussionAccessRequestRecord(ctx context.Context, tx
 	var r1 error
 	if rf, ok := ret.Get(1).(func(context.Context, *sql.Tx, model.DiscussionAccessRequest) error); ok {
 		r1 = rf(ctx, tx, request)
-	} else {
-		r1 = ret.Error(1)
-	}
-
-	return r0, r1
-}
-
-// UpdateDiscussionInviteRecord provides a mock function with given fields: ctx, tx, invite
-func (_m *Datastore) UpdateDiscussionInviteRecord(ctx context.Context, tx *sql.Tx, invite model.DiscussionInvite) (*model.DiscussionInvite, error) {
-	ret := _m.Called(ctx, tx, invite)
-
-	var r0 *model.DiscussionInvite
-	if rf, ok := ret.Get(0).(func(context.Context, *sql.Tx, model.DiscussionInvite) *model.DiscussionInvite); ok {
-		r0 = rf(ctx, tx, invite)
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*model.DiscussionInvite)
-		}
-	}
-
-	var r1 error
-	if rf, ok := ret.Get(1).(func(context.Context, *sql.Tx, model.DiscussionInvite) error); ok {
-		r1 = rf(ctx, tx, invite)
-	} else {
-		r1 = ret.Error(1)
-	}
-
-	return r0, r1
-}
-
-// UpdateImportedContentDiscussionQueue provides a mock function with given fields: ctx, discussionID, contentID, postedAt
-func (_m *Datastore) UpdateImportedContentDiscussionQueue(ctx context.Context, discussionID string, contentID string, postedAt *time.Time) (*model.ContentQueueRecord, error) {
-	ret := _m.Called(ctx, discussionID, contentID, postedAt)
-
-	var r0 *model.ContentQueueRecord
-	if rf, ok := ret.Get(0).(func(context.Context, string, string, *time.Time) *model.ContentQueueRecord); ok {
-		r0 = rf(ctx, discussionID, contentID, postedAt)
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*model.ContentQueueRecord)
-		}
-	}
-
-	var r1 error
-	if rf, ok := ret.Get(1).(func(context.Context, string, string, *time.Time) error); ok {
-		r1 = rf(ctx, discussionID, contentID, postedAt)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -2136,52 +1518,6 @@ func (_m *Datastore) UpsertDiscussionUserAccess(ctx context.Context, tx *sql.Tx,
 	var r1 error
 	if rf, ok := ret.Get(1).(func(context.Context, *sql.Tx, model.DiscussionUserAccess) error); ok {
 		r1 = rf(ctx, tx, dua)
-	} else {
-		r1 = ret.Error(1)
-	}
-
-	return r0, r1
-}
-
-// UpsertFlair provides a mock function with given fields: ctx, flair
-func (_m *Datastore) UpsertFlair(ctx context.Context, flair model.Flair) (*model.Flair, error) {
-	ret := _m.Called(ctx, flair)
-
-	var r0 *model.Flair
-	if rf, ok := ret.Get(0).(func(context.Context, model.Flair) *model.Flair); ok {
-		r0 = rf(ctx, flair)
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*model.Flair)
-		}
-	}
-
-	var r1 error
-	if rf, ok := ret.Get(1).(func(context.Context, model.Flair) error); ok {
-		r1 = rf(ctx, flair)
-	} else {
-		r1 = ret.Error(1)
-	}
-
-	return r0, r1
-}
-
-// UpsertFlairTemplate provides a mock function with given fields: ctx, flairTemplate
-func (_m *Datastore) UpsertFlairTemplate(ctx context.Context, flairTemplate model.FlairTemplate) (*model.FlairTemplate, error) {
-	ret := _m.Called(ctx, flairTemplate)
-
-	var r0 *model.FlairTemplate
-	if rf, ok := ret.Get(0).(func(context.Context, model.FlairTemplate) *model.FlairTemplate); ok {
-		r0 = rf(ctx, flairTemplate)
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*model.FlairTemplate)
-		}
-	}
-
-	var r1 error
-	if rf, ok := ret.Get(1).(func(context.Context, model.FlairTemplate) error); ok {
-		r1 = rf(ctx, flairTemplate)
 	} else {
 		r1 = ret.Error(1)
 	}

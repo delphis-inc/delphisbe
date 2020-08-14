@@ -23,16 +23,6 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 )
 
-type mockDiscAutoPostIter struct{}
-
-func (m *mockDiscAutoPostIter) Next(discussion *model.DiscussionAutoPost) bool { return true }
-func (m *mockDiscAutoPostIter) Close() error                                   { return fmt.Errorf("error") }
-
-type mockTagIter struct{}
-
-func (m *mockTagIter) Next(tag *model.Tag) bool { return true }
-func (m *mockTagIter) Close() error             { return fmt.Errorf("error") }
-
 func TestDelphisBackend_CreateNewDiscussion(t *testing.T) {
 	ctx := context.Background()
 
@@ -46,7 +36,6 @@ func TestDelphisBackend_CreateNewDiscussion(t *testing.T) {
 	modObj := test_utils.TestModerator()
 	profile := test_utils.TestUserProfile()
 	discObj := test_utils.TestDiscussion()
-	flairObj := test_utils.TestFlair()
 	discussionSettings := test_utils.TestDiscussionCreationSettings()
 	discussionUserAccess := test_utils.TestDiscussionUserAccess()
 
@@ -145,7 +134,6 @@ func TestDelphisBackend_CreateNewDiscussion(t *testing.T) {
 			// Create participant functions
 			mockDB.On("GetUserByID", ctx, mock.Anything).Return(&userObj, nil)
 			mockDB.On("GetTotalParticipantCountByDiscussionID", ctx, mock.Anything).Return(10)
-			mockDB.On("GetFlairsByUserID", ctx, mock.Anything).Return([]*model.Flair{&flairObj}, nil)
 			mockDB.On("GetViewerForDiscussion", ctx, mock.Anything, mock.Anything).Return(nil, nil)
 			mockDB.On("UpsertViewer", ctx, mock.Anything).Return(&viewerObj, nil)
 			mockDB.On("UpsertParticipant", ctx, mock.Anything).Return(&parObj, nil)
@@ -159,7 +147,6 @@ func TestDelphisBackend_CreateNewDiscussion(t *testing.T) {
 			// Create participant functions
 			mockDB.On("GetUserByID", ctx, mock.Anything).Return(&userObj, nil)
 			mockDB.On("GetTotalParticipantCountByDiscussionID", ctx, mock.Anything).Return(10)
-			mockDB.On("GetFlairsByUserID", ctx, mock.Anything).Return([]*model.Flair{&flairObj}, nil)
 			mockDB.On("GetViewerForDiscussion", ctx, mock.Anything, mock.Anything).Return(nil, nil)
 			mockDB.On("UpsertViewer", ctx, mock.Anything).Return(&viewerObj, nil)
 			mockDB.On("UpsertParticipant", ctx, mock.Anything).Return(&parObj, nil)
@@ -200,7 +187,6 @@ func TestDelphisBackend_CreateNewDiscussion(t *testing.T) {
 			// Create participant functions
 			mockDB.On("GetUserByID", ctx, mock.Anything).Return(&userObj, nil)
 			mockDB.On("GetTotalParticipantCountByDiscussionID", ctx, mock.Anything).Return(10)
-			mockDB.On("GetFlairsByUserID", ctx, mock.Anything).Return([]*model.Flair{&flairObj}, nil)
 			mockDB.On("GetViewerForDiscussion", ctx, mock.Anything, mock.Anything).Return(nil, nil)
 			mockDB.On("UpsertViewer", ctx, mock.Anything).Return(&viewerObj, nil)
 			mockDB.On("UpsertParticipant", ctx, mock.Anything).Return(&parObj, nil)
@@ -214,7 +200,6 @@ func TestDelphisBackend_CreateNewDiscussion(t *testing.T) {
 			// Create participant functions
 			mockDB.On("GetUserByID", ctx, mock.Anything).Return(&userObj, nil)
 			mockDB.On("GetTotalParticipantCountByDiscussionID", ctx, mock.Anything).Return(10)
-			mockDB.On("GetFlairsByUserID", ctx, mock.Anything).Return([]*model.Flair{&flairObj}, nil)
 			mockDB.On("GetViewerForDiscussion", ctx, mock.Anything, mock.Anything).Return(nil, nil)
 			mockDB.On("UpsertViewer", ctx, mock.Anything).Return(&viewerObj, nil)
 			mockDB.On("UpsertParticipant", ctx, mock.Anything).Return(&parObj, nil)
@@ -1136,48 +1121,6 @@ func TestDelphisBackend_GetDiscussionByModeratorID(t *testing.T) {
 	})
 }
 
-func TestDelphisBackend_GetDiscussionsForAutoPost(t *testing.T) {
-	ctx := context.Background()
-
-	apObj := test_utils.TestDiscussionAutoPost()
-
-	Convey("GetDiscussionsForAutoPost", t, func() {
-		now := time.Now()
-		cacheObj := cache.NewInMemoryCache()
-		authObj := auth.NewDelphisAuth(nil)
-		mockDB := &mocks.Datastore{}
-		backendObj := &delphisBackend{
-			db:              mockDB,
-			auth:            authObj,
-			cache:           cacheObj,
-			discussionMutex: sync.Mutex{},
-			config:          config.Config{},
-			timeProvider:    &util.FrozenTime{NowTime: now},
-		}
-
-		Convey("when the query errors out", func() {
-			expectedError := fmt.Errorf("Some Error")
-			mockDB.On("GetDiscussionsAutoPost", ctx).Return(&mockDiscAutoPostIter{})
-			mockDB.On("DiscussionAutoPostIterCollect", ctx, mock.Anything).Return(nil, expectedError)
-
-			resp, err := backendObj.GetDiscussionsForAutoPost(ctx)
-
-			So(err, ShouldEqual, expectedError)
-			So(resp, ShouldBeNil)
-		})
-
-		Convey("when the query returns successfully", func() {
-			mockDB.On("GetDiscussionsAutoPost", ctx).Return(&mockDiscAutoPostIter{})
-			mockDB.On("DiscussionAutoPostIterCollect", ctx, mock.Anything).Return([]*model.DiscussionAutoPost{&apObj}, nil)
-
-			resp, err := backendObj.GetDiscussionsForAutoPost(ctx)
-
-			So(err, ShouldBeNil)
-			So(resp, ShouldResemble, []*model.DiscussionAutoPost{&apObj})
-		})
-	})
-}
-
 func TestDelphisBackend_ListDiscussions(t *testing.T) {
 	ctx := context.Background()
 
@@ -1256,229 +1199,6 @@ func TestDelphisBackend_ListDiscussionsByUserID(t *testing.T) {
 
 			So(err, ShouldBeNil)
 			So(resp, ShouldResemble, &dcObj)
-		})
-	})
-}
-
-func TestDelphisBackend_GetDiscussionTags(t *testing.T) {
-	ctx := context.Background()
-
-	discussionID := test_utils.DiscussionID
-
-	tagObj := test_utils.TestDiscussionTag()
-
-	Convey("GetDiscussionTags", t, func() {
-		now := time.Now()
-		cacheObj := cache.NewInMemoryCache()
-		authObj := auth.NewDelphisAuth(nil)
-		mockDB := &mocks.Datastore{}
-		backendObj := &delphisBackend{
-			db:              mockDB,
-			auth:            authObj,
-			cache:           cacheObj,
-			discussionMutex: sync.Mutex{},
-			config:          config.Config{},
-			timeProvider:    &util.FrozenTime{NowTime: now},
-		}
-
-		Convey("when the query errors out", func() {
-			expectedError := fmt.Errorf("Some Error")
-			mockDB.On("GetDiscussionTags", ctx, discussionID).Return(&mockTagIter{})
-			mockDB.On("TagIterCollect", ctx, mock.Anything).Return(nil, expectedError)
-
-			resp, err := backendObj.GetDiscussionTags(ctx, discussionID)
-
-			So(err, ShouldEqual, expectedError)
-			So(resp, ShouldBeNil)
-		})
-
-		Convey("when the query returns successfully", func() {
-			mockDB.On("GetDiscussionTags", ctx, discussionID).Return(&mockTagIter{})
-			mockDB.On("TagIterCollect", ctx, mock.Anything).Return([]*model.Tag{&tagObj}, nil)
-
-			resp, err := backendObj.GetDiscussionTags(ctx, discussionID)
-
-			So(err, ShouldBeNil)
-			So(resp, ShouldResemble, []*model.Tag{&tagObj})
-		})
-	})
-}
-
-func TestDelphisBackend_PutDiscussionTags(t *testing.T) {
-	ctx := context.Background()
-
-	discussionID := test_utils.DiscussionID
-
-	tagObj := test_utils.TestDiscussionTag()
-
-	tags := []string{tagObj.Tag}
-	tx := sql.Tx{}
-
-	Convey("PutDiscussionTags", t, func() {
-		now := time.Now()
-		cacheObj := cache.NewInMemoryCache()
-		authObj := auth.NewDelphisAuth(nil)
-		mockDB := &mocks.Datastore{}
-		backendObj := &delphisBackend{
-			db:              mockDB,
-			auth:            authObj,
-			cache:           cacheObj,
-			discussionMutex: sync.Mutex{},
-			config:          config.Config{},
-			timeProvider:    &util.FrozenTime{NowTime: now},
-		}
-
-		Convey("when no tags are passed in", func() {
-			resp, err := backendObj.PutDiscussionTags(ctx, discussionID, nil)
-
-			So(err, ShouldNotBeNil)
-			So(resp, ShouldBeNil)
-		})
-
-		Convey("when BeginTx errors out", func() {
-			expectedError := fmt.Errorf("Some Error")
-			mockDB.On("BeginTx", ctx).Return(nil, expectedError)
-
-			resp, err := backendObj.PutDiscussionTags(ctx, discussionID, tags)
-
-			So(err, ShouldEqual, expectedError)
-			So(resp, ShouldBeNil)
-		})
-
-		Convey("when PutDiscussionTags errors out", func() {
-			expectedError := fmt.Errorf("Some Error")
-			mockDB.On("BeginTx", ctx).Return(&tx, nil)
-			mockDB.On("PutDiscussionTags", ctx, mock.Anything, tagObj).Return(nil, expectedError)
-			mockDB.On("RollbackTx", ctx, mock.Anything).Return(nil)
-
-			resp, err := backendObj.PutDiscussionTags(ctx, discussionID, tags)
-
-			So(err, ShouldEqual, expectedError)
-			So(resp, ShouldBeNil)
-		})
-
-		Convey("when PutDiscussionTags and rollback errors out", func() {
-			expectedError := fmt.Errorf("Some Error")
-			mockDB.On("BeginTx", ctx).Return(&tx, nil)
-			mockDB.On("PutDiscussionTags", ctx, mock.Anything, tagObj).Return(nil, expectedError)
-			mockDB.On("RollbackTx", ctx, mock.Anything).Return(expectedError)
-
-			resp, err := backendObj.PutDiscussionTags(ctx, discussionID, tags)
-
-			So(err, ShouldNotBeNil)
-			So(resp, ShouldBeNil)
-		})
-
-		Convey("when PutDiscussionTags succeeds and CommitTx errors out", func() {
-			expectedError := fmt.Errorf("Some Error")
-			mockDB.On("BeginTx", ctx).Return(&tx, nil)
-			mockDB.On("PutDiscussionTags", ctx, mock.Anything, tagObj).Return(&tagObj, nil)
-			mockDB.On("CommitTx", ctx, mock.Anything).Return(expectedError)
-
-			resp, err := backendObj.PutDiscussionTags(ctx, discussionID, tags)
-
-			So(err, ShouldEqual, expectedError)
-			So(resp, ShouldBeNil)
-		})
-
-		Convey("when PutDiscussionTags succeeds", func() {
-			mockDB.On("BeginTx", ctx).Return(&tx, nil)
-			mockDB.On("PutDiscussionTags", ctx, mock.Anything, tagObj).Return(&tagObj, nil)
-			mockDB.On("CommitTx", ctx, mock.Anything).Return(nil)
-
-			resp, err := backendObj.PutDiscussionTags(ctx, discussionID, tags)
-
-			So(err, ShouldBeNil)
-			So(resp, ShouldResemble, []*model.Tag{&tagObj})
-		})
-	})
-}
-
-func TestDelphisBackend_DeleteDiscussionTags(t *testing.T) {
-	ctx := context.Background()
-
-	discussionID := test_utils.DiscussionID
-	tagObj := test_utils.TestDiscussionTag()
-
-	tags := []string{tagObj.Tag}
-	tx := sql.Tx{}
-
-	Convey("DeleteDiscussionTags", t, func() {
-		now := time.Now()
-		cacheObj := cache.NewInMemoryCache()
-		authObj := auth.NewDelphisAuth(nil)
-		mockDB := &mocks.Datastore{}
-		backendObj := &delphisBackend{
-			db:              mockDB,
-			auth:            authObj,
-			cache:           cacheObj,
-			discussionMutex: sync.Mutex{},
-			config:          config.Config{},
-			timeProvider:    &util.FrozenTime{NowTime: now},
-		}
-
-		Convey("when no tags are passed in", func() {
-			resp, err := backendObj.DeleteDiscussionTags(ctx, discussionID, nil)
-
-			So(err, ShouldNotBeNil)
-			So(resp, ShouldBeNil)
-		})
-
-		Convey("when BeginTx errors out", func() {
-			expectedError := fmt.Errorf("Some Error")
-			mockDB.On("BeginTx", ctx).Return(nil, expectedError)
-
-			resp, err := backendObj.DeleteDiscussionTags(ctx, discussionID, tags)
-
-			So(err, ShouldEqual, expectedError)
-			So(resp, ShouldBeNil)
-		})
-
-		Convey("when PutDiscussionTags errors out", func() {
-			expectedError := fmt.Errorf("Some Error")
-			mockDB.On("BeginTx", ctx).Return(&tx, nil)
-			mockDB.On("DeleteDiscussionTags", ctx, mock.Anything, tagObj).Return(nil, expectedError)
-			mockDB.On("RollbackTx", ctx, mock.Anything).Return(nil)
-
-			resp, err := backendObj.DeleteDiscussionTags(ctx, discussionID, tags)
-
-			So(err, ShouldEqual, expectedError)
-			So(resp, ShouldBeNil)
-		})
-
-		Convey("when PutDiscussionTags and rollback errors out", func() {
-			expectedError := fmt.Errorf("Some Error")
-			mockDB.On("BeginTx", ctx).Return(&tx, nil)
-			mockDB.On("DeleteDiscussionTags", ctx, mock.Anything, tagObj).Return(nil, expectedError)
-			mockDB.On("RollbackTx", ctx, mock.Anything).Return(expectedError)
-
-			resp, err := backendObj.DeleteDiscussionTags(ctx, discussionID, tags)
-
-			So(err, ShouldNotBeNil)
-			So(resp, ShouldBeNil)
-		})
-
-		Convey("when PutDiscussionTags succeeds and CommitTx errors out", func() {
-			expectedError := fmt.Errorf("Some Error")
-			mockDB.On("BeginTx", ctx).Return(&tx, nil)
-			mockDB.On("DeleteDiscussionTags", ctx, mock.Anything, tagObj).Return(&tagObj, nil)
-			mockDB.On("CommitTx", ctx, mock.Anything).Return(expectedError)
-
-			resp, err := backendObj.DeleteDiscussionTags(ctx, discussionID, tags)
-
-			So(err, ShouldEqual, expectedError)
-			So(resp, ShouldBeNil)
-		})
-
-		Convey("when PutDiscussionTags succeeds", func() {
-			mockDB.On("BeginTx", ctx).Return(&tx, nil)
-			mockDB.On("DeleteDiscussionTags", ctx, mock.Anything, tagObj).Return(&tagObj, nil)
-			mockDB.On("CommitTx", ctx, mock.Anything).Return(nil)
-
-			resp, err := backendObj.DeleteDiscussionTags(ctx, discussionID, tags)
-
-			So(err, ShouldBeNil)
-			So(resp, ShouldResemble, []*model.Tag{&tagObj})
 		})
 	})
 }
@@ -1571,8 +1291,6 @@ func TestDelphisBackend_UpdateDiscussionObj(t *testing.T) {
 
 			So(disc.AnonymityType, ShouldResemble, *discInput.AnonymityType)
 			So(disc.Title, ShouldResemble, *discInput.Title)
-			So(disc.AutoPost, ShouldResemble, *discInput.AutoPost)
-			So(disc.IdleMinutes, ShouldResemble, *discInput.IdleMinutes)
 			So(*disc.IconURL, ShouldResemble, *discInput.IconURL)
 
 		})

@@ -92,12 +92,6 @@ models:
         resolver: true
       participant:
         resolver: true
-  PostBookmark:
-    fields:
-      discussion:
-        resolver: true
-      post:
-        resolver: true
   User:
     fields:
       participants:

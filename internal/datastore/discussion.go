@@ -66,9 +66,7 @@ func (d *delphisDB) GetDiscussionByLinkSlug(ctx context.Context, slug string) (*
 		&discussion.Title,
 		&discussion.AnonymityType,
 		&discussion.ModeratorID,
-		&discussion.AutoPost,
 		&discussion.IconURL,
-		&discussion.IdleMinutes,
 		&discussion.Description,
 		&titleHistory,
 		&descriptionHistory,
@@ -125,27 +123,6 @@ func (d *delphisDB) GetDiscussionByModeratorID(ctx context.Context, moderatorID 
 	}
 
 	return &discussion, nil
-}
-
-func (d *delphisDB) GetDiscussionsAutoPost(ctx context.Context) AutoPostDiscussionIter {
-	logrus.Debug("GetDiscussionsAutoPost::SQL Query")
-	if err := d.initializeStatements(ctx); err != nil {
-		logrus.WithError(err).Error("GetDiscussionsAutoPost::failed to initialize statements")
-		return &autoPostDiscussionIter{err: err}
-	}
-
-	rows, err := d.prepStmts.getDiscussionsForAutoPostStmt.QueryContext(
-		ctx,
-	)
-	if err != nil {
-		logrus.WithError(err).Error("failed to query GetDiscussionsAutoPost")
-		return &autoPostDiscussionIter{err: err}
-	}
-
-	return &autoPostDiscussionIter{
-		ctx:  ctx,
-		rows: rows,
-	}
 }
 
 func (d *delphisDB) ListDiscussions(ctx context.Context) (*model.DiscussionsConnection, error) {
@@ -221,8 +198,6 @@ func (d *delphisDB) UpsertDiscussion(ctx context.Context, discussion model.Discu
 			"Title":                 discussion.Title,
 			"Description":           discussion.Description,
 			"AnonymityType":         discussion.AnonymityType,
-			"AutoPost":              discussion.AutoPost,
-			"IdleMinutes":           discussion.IdleMinutes,
 			"IconURL":               discussion.IconURL,
 			"TitleHistory":          discussion.TitleHistory,
 			"DescriptionHistory":    discussion.DescriptionHistory,
@@ -236,78 +211,6 @@ func (d *delphisDB) UpsertDiscussion(ctx context.Context, discussion model.Discu
 		}
 	}
 	return &found, nil
-}
-
-func (d *delphisDB) GetDiscussionTags(ctx context.Context, id string) TagIter {
-	logrus.Debug("GetDiscussionTags::SQL Query")
-	if err := d.initializeStatements(ctx); err != nil {
-		logrus.WithError(err).Error("GetDiscussionTags::failed to initialize statements")
-		return &tagIter{err: err}
-	}
-
-	rows, err := d.prepStmts.getDiscussionTagsStmt.QueryContext(
-		ctx,
-		id,
-	)
-	if err != nil {
-		logrus.WithError(err).Error("failed to query GetDiscussionTagsStmt")
-		return &tagIter{err: err}
-	}
-
-	return &tagIter{
-		ctx:  ctx,
-		rows: rows,
-	}
-}
-
-func (d *delphisDB) PutDiscussionTags(ctx context.Context, tx *sql.Tx, tag model.Tag) (*model.Tag, error) {
-	logrus.Debug("PutDiscussionTags::SQL Create")
-	if err := d.initializeStatements(ctx); err != nil {
-		logrus.WithError(err).Error("PutDiscussionTags::failed to initialize statements")
-		return nil, err
-	}
-
-	if err := tx.StmtContext(ctx, d.prepStmts.putDiscussionTagsStmt).QueryRowContext(
-		ctx,
-		tag.ID,
-		tag.Tag,
-	).Scan(
-		&tag.ID,
-		&tag.Tag,
-		&tag.CreatedAt,
-	); err != nil {
-		if err == sql.ErrNoRows {
-			return &model.Tag{}, nil
-		}
-		logrus.WithError(err).Error("failed to execute putDiscussionTagsStmt")
-		return nil, err
-	}
-
-	return &tag, nil
-}
-
-func (d *delphisDB) DeleteDiscussionTags(ctx context.Context, tx *sql.Tx, tag model.Tag) (*model.Tag, error) {
-	logrus.Debug("DeleteDiscussionTags::SQL Delete")
-	if err := d.initializeStatements(ctx); err != nil {
-		logrus.WithError(err).Error("DeleteDiscussionTags::failed to initialize statements")
-		return nil, err
-	}
-
-	if err := tx.StmtContext(ctx, d.prepStmts.deleteDiscussionTagsStmt).QueryRowContext(
-		ctx,
-		tag.ID,
-		tag.Tag,
-	).Scan(
-		&tag.ID,
-		&tag.Tag,
-		&tag.CreatedAt,
-		&tag.DeletedAt,
-	); err != nil {
-		logrus.WithError(err).Error("failed to execute deleteDiscussionTags")
-		return nil, err
-	}
-
-	return &tag, nil
 }
 
 func (d *delphisDB) DiscussionIterCollect(ctx context.Context, iter DiscussionIter) ([]*model.Discussion, error) {
@@ -328,26 +231,6 @@ func (d *delphisDB) DiscussionIterCollect(ctx context.Context, iter DiscussionIt
 	}
 
 	return discussions, nil
-}
-
-func (d *delphisDB) DiscussionAutoPostIterCollect(ctx context.Context, iter AutoPostDiscussionIter) ([]*model.DiscussionAutoPost, error) {
-	var discs []*model.DiscussionAutoPost
-	disc := model.DiscussionAutoPost{}
-
-	defer iter.Close()
-
-	for iter.Next(&disc) {
-		tempDisc := disc
-
-		discs = append(discs, &tempDisc)
-	}
-
-	if err := iter.Close(); err != nil && err != io.EOF {
-		logrus.WithError(err).Error("failed to close iter")
-		return nil, err
-	}
-
-	return discs, nil
 }
 
 type discussionIter struct {
@@ -382,9 +265,7 @@ func (iter *discussionIter) Next(discussion *model.Discussion) bool {
 		&discussion.Title,
 		&discussion.AnonymityType,
 		&discussion.ModeratorID,
-		&discussion.AutoPost,
 		&discussion.IconURL,
-		&discussion.IdleMinutes,
 		&discussion.Description,
 		&titleHistory,
 		&descriptionHistory,
@@ -405,51 +286,6 @@ func (iter *discussionIter) Next(discussion *model.Discussion) bool {
 }
 
 func (iter *discussionIter) Close() error {
-	if err := iter.err; err != nil {
-		logrus.WithError(err).Error("iter error on close")
-		return err
-	}
-	if err := iter.rows.Close(); err != nil {
-		logrus.WithError(err).Error("iter rows close on close")
-		return err
-	}
-
-	return nil
-}
-
-type autoPostDiscussionIter struct {
-	err  error
-	ctx  context.Context
-	rows *sql.Rows
-}
-
-func (iter *autoPostDiscussionIter) Next(discussion *model.DiscussionAutoPost) bool {
-	if iter.err != nil {
-		logrus.WithError(iter.err).Error("iterator error")
-		return false
-	}
-
-	if iter.err = iter.ctx.Err(); iter.err != nil {
-		logrus.WithError(iter.err).Error("iterator context error")
-		return false
-	}
-
-	if !iter.rows.Next() {
-		return false
-	}
-
-	if iter.err = iter.rows.Scan(
-		&discussion.ID,
-		&discussion.IdleMinutes,
-	); iter.err != nil {
-		logrus.WithError(iter.err).Error("iterator failed to scan row")
-		return false
-	}
-
-	return true
-}
-
-func (iter *autoPostDiscussionIter) Close() error {
 	if err := iter.err; err != nil {
 		logrus.WithError(err).Error("iter error on close")
 		return err

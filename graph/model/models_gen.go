@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io"
 	"strconv"
-	"time"
 )
 
 type DiscussionSubscriptionEntity interface {
@@ -19,7 +18,6 @@ type Entity interface {
 
 type AddDiscussionParticipantInput struct {
 	GradientColor *GradientColor `json:"gradientColor"`
-	FlairID       *string        `json:"flairID"`
 	HasJoined     *bool          `json:"hasJoined"`
 	IsAnonymous   bool           `json:"isAnonymous"`
 }
@@ -30,29 +28,8 @@ type CanJoinDiscussionResponse struct {
 	ReasonCode *int                          `json:"reasonCode"`
 }
 
-type ConciergeContent struct {
-	AppActionID *string            `json:"appActionID"`
-	MutationID  *string            `json:"mutationID"`
-	Options     []*ConciergeOption `json:"options"`
-}
-
-type ConciergeOption struct {
-	Text     string `json:"text"`
-	Value    string `json:"value"`
-	Selected bool   `json:"selected"`
-}
-
 type DiscussionCreationSettings struct {
 	DiscussionJoinability DiscussionJoinabilitySetting `json:"discussionJoinability"`
-}
-
-type DiscussionLinkAccess struct {
-	DiscussionID     string `json:"discussionID"`
-	InviteLinkURL    string `json:"inviteLinkURL"`
-	VipInviteLinkURL string `json:"vipInviteLinkURL"`
-	CreatedAt        string `json:"createdAt"`
-	UpdatedAt        string `json:"updatedAt"`
-	IsDeleted        bool   `json:"isDeleted"`
 }
 
 type DiscussionSubscriptionEvent struct {
@@ -83,41 +60,16 @@ type MediaSize struct {
 
 type ParticipantProfile struct {
 	IsAnonymous   *bool          `json:"isAnonymous"`
-	Flair         *Flair         `json:"flair"`
 	GradientColor *GradientColor `json:"gradientColor"`
 }
 
-type PollInput struct {
-	PollText string    `json:"pollText"`
-	EndTime  time.Time `json:"endTime"`
-	Option1  string    `json:"option1"`
-	Option2  string    `json:"option2"`
-	Option3  *string   `json:"option3"`
-	Option4  *string   `json:"option4"`
-}
-
 type PostContentInput struct {
-	PostText          string     `json:"postText"`
-	PostType          PostType   `json:"postType"`
-	MentionedEntities []string   `json:"mentionedEntities"`
-	QuotedPostID      *string    `json:"quotedPostID"`
-	MediaID           *string    `json:"mediaID"`
-	Poll              *PollInput `json:"poll"`
-	ImportedContentID *string    `json:"importedContentID"`
-	Preview           *string    `json:"preview"`
-}
-
-type TwitterUserInfo struct {
-	ID              string `json:"id"`
-	Name            string `json:"name"`
-	DisplayName     string `json:"displayName"`
-	ProfileImageURL string `json:"profileImageURL"`
-	Verified        bool   `json:"verified"`
-	Invited         bool   `json:"invited"`
-}
-
-type TwitterUserInput struct {
-	Name string `json:"name"`
+	PostText          string   `json:"postText"`
+	PostType          PostType `json:"postType"`
+	MentionedEntities []string `json:"mentionedEntities"`
+	QuotedPostID      *string  `json:"quotedPostID"`
+	MediaID           *string  `json:"mediaID"`
+	Preview           *string  `json:"preview"`
 }
 
 type URL struct {
@@ -134,8 +86,6 @@ func (UnknownEntity) IsEntity() {}
 type UpdateParticipantInput struct {
 	GradientColor   *GradientColor `json:"gradientColor"`
 	IsUnsetGradient *bool          `json:"isUnsetGradient"`
-	FlairID         *string        `json:"flairID"`
-	IsUnsetFlairID  *bool          `json:"isUnsetFlairID"`
 	IsAnonymous     *bool          `json:"isAnonymous"`
 	HasJoined       *bool          `json:"hasJoined"`
 }

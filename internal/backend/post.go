@@ -36,17 +36,16 @@ func (d *delphisBackend) CreatePost(ctx context.Context, discussionID string, us
 	}
 
 	post := model.Post{
-		ID:                util.UUIDv4(),
-		PostType:          input.PostType,
-		CreatedAt:         time.Now(),
-		UpdatedAt:         time.Now(),
-		DiscussionID:      &discussionID,
-		ParticipantID:     &participantID,
-		PostContentID:     &postContent.ID,
-		PostContent:       &postContent,
-		QuotedPostID:      input.QuotedPostID,
-		MediaID:           input.MediaID,
-		ImportedContentID: input.ImportedContentID,
+		ID:            util.UUIDv4(),
+		PostType:      input.PostType,
+		CreatedAt:     time.Now(),
+		UpdatedAt:     time.Now(),
+		DiscussionID:  &discussionID,
+		ParticipantID: &participantID,
+		PostContentID: &postContent.ID,
+		PostContent:   &postContent,
+		QuotedPostID:  input.QuotedPostID,
+		MediaID:       input.MediaID,
 	}
 
 	retryAttempts := 0
@@ -154,89 +153,6 @@ func (d *delphisBackend) CreateAlertPost(ctx context.Context, discussionID strin
 	}
 
 	return d.CreatePost(ctx, discussionID, model.ConciergeUser, resp.NonAnon.ID, input)
-}
-
-// PostImportedContent puts a record in the queue and posts the content
-func (d *delphisBackend) PostImportedContent(ctx context.Context, userID, participantID, discussionID, contentID string, postedAt *time.Time, matchingTags []string, dripType model.DripPostType) (*model.Post, error) {
-	// Fetch content from importedContents Table
-	// Do we want to block mods from posting the same article?
-	content, err := d.db.GetImportedContentByID(ctx, contentID)
-	if err != nil {
-		logrus.WithError(err).Error("failed to get imported content by id")
-		return nil, err
-	}
-
-	// Build post - discuss with Ned how we want this to be posted in the app
-	input := model.PostContentInput{
-		PostText:          "Check this out!!", // Make a random caption bot
-		PostType:          model.PostTypeImportedContent,
-		ImportedContentID: &content.ID,
-	}
-
-	// Call create post
-	postObj, err := d.CreatePost(ctx, discussionID, userID, participantID, input)
-	if err != nil {
-		logrus.WithError(err).Error("failed to put imported contents post")
-		return nil, err
-	}
-
-	if _, err := d.PutImportedContentQueue(ctx, discussionID, contentID, postedAt, matchingTags, dripType); err != nil {
-		logrus.WithError(err).Error("failed to put importedContentQueue")
-		return nil, err
-	}
-
-	return postObj, nil
-}
-
-// PutImportedContentQueue creates a record in the queue which is used for archiving and posting
-func (d *delphisBackend) PutImportedContentQueue(ctx context.Context, discussionID, contentID string, postedAt *time.Time, matchingTags []string, dripType model.DripPostType) (*model.ContentQueueRecord, error) {
-	// Get matching tags if none have been passed in
-	if len(matchingTags) == 0 {
-		var err error
-		matchingTags, err = d.db.GetMatchingTags(ctx, discussionID, contentID)
-		if err != nil {
-			logrus.WithError(err).Error("failed to get matching tags")
-			return nil, err
-		}
-	}
-
-	// Add post into the archive table
-	// If auto-posted, update record within queue
-	// If not, create new record. This allows mods to post an article as many times as they want
-	icObj := &model.ContentQueueRecord{}
-	switch dripType {
-	case model.ManualDrip:
-		// Set existing scheduled matching importedContents to postedAt = timeZero
-		timeZero := time.Time{}
-		if _, err := d.db.UpdateImportedContentDiscussionQueue(ctx, discussionID, contentID, &timeZero); err != nil {
-			logrus.WithError(err).Error("failed to update imported content into the queue")
-			return nil, err
-		}
-
-		// Insert new record for manual drip
-		var err error
-		icObj, err = d.db.PutImportedContentDiscussionQueue(ctx, discussionID, contentID, postedAt, matchingTags)
-		if err != nil {
-			logrus.WithError(err).Error("failed to post imported content into the queue")
-			return nil, err
-		}
-	case model.ScheduledDrip:
-		var err error
-		icObj, err = d.db.UpdateImportedContentDiscussionQueue(ctx, discussionID, contentID, postedAt)
-		if err != nil {
-			logrus.WithError(err).Error("failed to update imported content into the queue")
-			return nil, err
-		}
-	case model.AutoDrip:
-		var err error
-		icObj, err = d.db.PutImportedContentDiscussionQueue(ctx, discussionID, contentID, postedAt, matchingTags)
-		if err != nil {
-			logrus.WithError(err).Error("failed to post imported content into the queue")
-			return nil, err
-		}
-	}
-
-	return icObj, nil
 }
 
 func (d *delphisBackend) notifySubscribersOfEvent(ctx context.Context, event *model.DiscussionSubscriptionEvent, discussionID string) error {

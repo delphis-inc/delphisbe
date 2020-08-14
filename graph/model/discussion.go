@@ -34,8 +34,6 @@ type Discussion struct {
 	Posts                 []*Post                      `gorm:"foreignKey:DiscussionID;"`
 	PostConnections       *PostsConnection             `json:"posts" dynamodbav:"-" gorm:"-"`
 	Participants          []*Participant               `json:"participants" dynamodbav:"-" gorm:"foreignKey:DiscussionID;"`
-	AutoPost              bool                         `json:"auto_post"`
-	IdleMinutes           int                          `json:"idle_minutes"`
 	IconURL               *string                      `json:"icon_url"`
 	DiscussionJoinability DiscussionJoinabilitySetting `json:"discussion_joinability"`
 	LastPostID            *string                      `json:"last_post_id"`
@@ -48,8 +46,6 @@ type DiscussionInput struct {
 	AnonymityType         *AnonymityType                `json:"anonymityType"`
 	Title                 *string                       `json:"title"`
 	Description           *string                       `json:"description"`
-	AutoPost              *bool                         `json:"autoPost"`
-	IdleMinutes           *int                          `json:"idleMinutes"`
 	PublicAccess          *bool                         `json:"publicAccess"`
 	IconURL               *string                       `json:"iconURL"`
 	DiscussionJoinability *DiscussionJoinabilitySetting `json:"discussionJoinability"`
@@ -61,19 +57,6 @@ type DiscussionInput struct {
 type HistoricalString struct {
 	Value     string    `json:"value"`
 	CreatedAt time.Time `json:"createdAt"`
-}
-
-type DiscussionAutoPost struct {
-	ID          string
-	IdleMinutes int
-}
-
-type DiscussionFlairTemplateAccess struct {
-	DiscussionID    string
-	FlairTemplateID string
-	CreatedAt       time.Time
-	UpdatedAt       time.Time
-	DeletedAt       *time.Time
 }
 
 type DiscussionUserAccess struct {
@@ -95,18 +78,6 @@ type DiscussionAccessRequest struct {
 	UpdatedAt    string              `json:"updatedAt"`
 	IsDeleted    bool                `json:"isDeleted"`
 	Status       InviteRequestStatus `json:"status"`
-}
-
-type DiscussionInvite struct {
-	ID                    string `json:"id"`
-	UserID                string
-	DiscussionID          string
-	InvitingParticipantID string
-	CreatedAt             string              `json:"createdAt"`
-	UpdatedAt             string              `json:"updatedAt"`
-	IsDeleted             bool                `json:"isDeleted"`
-	Status                InviteRequestStatus `json:"status"`
-	InviteType            InviteType
 }
 
 type DiscussionAccessLink struct {
