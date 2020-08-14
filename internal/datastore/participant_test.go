@@ -359,6 +359,7 @@ func TestDelphisDB_GetModeratorParticipantsByDiscussionID(t *testing.T) {
 	viewerID := "viewerID"
 	gradientColor := model.GradientColorAzalea
 	userID := "userID"
+	inviterID := "invitedID"
 	parObj := model.Participant{
 		ID:            parID,
 		ParticipantID: 0,
@@ -371,6 +372,7 @@ func TestDelphisDB_GetModeratorParticipantsByDiscussionID(t *testing.T) {
 		CreatedAt:     now,
 		UpdatedAt:     now,
 		IsBanned:      false,
+		InviterID:     &inviterID,
 	}
 
 	Convey("GetModeratorParticipantsByDiscussionID", t, func() {
@@ -415,13 +417,13 @@ func TestDelphisDB_GetModeratorParticipantsByDiscussionID(t *testing.T) {
 
 		Convey("when query execution succeeds and returns a discussions", func() {
 			rs := sqlmock.NewRows([]string{"id", "participant_id", "created_at", "updated_at", "deleted_at", "discussion_id",
-				"viewer_id", "user_id", "is_anonymous", "gradient_color", "has_joined", "is_banned"}).
+				"viewer_id", "user_id", "is_anonymous", "gradient_color", "has_joined", "is_banned", "inviter_id"}).
 				AddRow(parObj.ID, parObj.ParticipantID, parObj.CreatedAt, parObj.UpdatedAt, parObj.DeletedAt,
 					parObj.DiscussionID, parObj.ViewerID, parObj.UserID,
-					parObj.IsAnonymous, parObj.GradientColor, parObj.HasJoined, parObj.IsBanned).
+					parObj.IsAnonymous, parObj.GradientColor, parObj.HasJoined, parObj.IsBanned, parObj.InviterID).
 				AddRow(parObj.ID, parObj.ParticipantID, parObj.CreatedAt, parObj.UpdatedAt, parObj.DeletedAt,
 					parObj.DiscussionID, parObj.ViewerID, parObj.UserID,
-					parObj.IsAnonymous, parObj.GradientColor, parObj.HasJoined, parObj.IsBanned)
+					parObj.IsAnonymous, parObj.GradientColor, parObj.HasJoined, parObj.IsBanned, parObj.InviterID)
 
 			mock.ExpectQuery(expectedQueryString).WithArgs(parObj.DiscussionID).WillReturnRows(rs)
 
@@ -473,7 +475,7 @@ func TestDelphisDB_UpsertParticipant(t *testing.T) {
 		defer db.Close()
 
 		expectedFindQueryStr := `SELECT * FROM "participants" WHERE "participants"."deleted_at" IS NULL AND (("participants"."id" = $1)) ORDER BY "participants"."id" ASC LIMIT 1`
-		createQueryStr := `INSERT INTO "participants" ("id","participant_id","created_at","updated_at","deleted_at","discussion_id","viewer_id","gradient_color","user_id","is_banned","has_joined","is_anonymous","muted_until") VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13) RETURNING "participants"."id"`
+		createQueryStr := `INSERT INTO "participants" ("id","participant_id","created_at","updated_at","deleted_at","discussion_id","viewer_id","gradient_color","user_id","inviter_id","is_banned","has_joined","is_anonymous","muted_until") VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14) RETURNING "participants"."id"`
 		expectedNewObjectRow := sqlmock.NewRows([]string{"id", "participant_id", "created_at", "updated_at", "deleted_at", "discussion_id", "viewer_id", "gradient_color", "user_id", "is_banned", "has_joined", "is_anonymous", "muted_until"}).
 			AddRow(parObj.ID, parObj.ParticipantID, parObj.CreatedAt, parObj.UpdatedAt, parObj.DeletedAt, parObj.DiscussionID, parObj.ViewerID, parObj.GradientColor, parObj.UserID, parObj.IsBanned, parObj.HasJoined, parObj.IsAnonymous, parObj.MutedUntil)
 		expectedUpdateStr := `UPDATE "participants" SET "gradient_color" = $1, "has_joined" = $2, "is_banned" = $3, "updated_at" = $4 WHERE "participants"."deleted_at" IS NULL AND "participants"."id" = $5`
@@ -499,7 +501,7 @@ func TestDelphisDB_UpsertParticipant(t *testing.T) {
 				mock.ExpectBegin()
 				mock.ExpectQuery(createQueryStr).WithArgs(
 					parObj.ID, parObj.ParticipantID, parObj.CreatedAt, parObj.UpdatedAt, parObj.DeletedAt,
-					parObj.DiscussionID, parObj.ViewerID, parObj.GradientColor, parObj.UserID, parObj.IsBanned,
+					parObj.DiscussionID, parObj.ViewerID, parObj.GradientColor, parObj.UserID, parObj.InviterID, parObj.IsBanned,
 					parObj.HasJoined, parObj.IsAnonymous, parObj.MutedUntil,
 				).WillReturnError(expectedError)
 
@@ -515,7 +517,7 @@ func TestDelphisDB_UpsertParticipant(t *testing.T) {
 				mock.ExpectBegin()
 				mock.ExpectQuery(createQueryStr).WithArgs(
 					parObj.ID, parObj.ParticipantID, parObj.CreatedAt, parObj.UpdatedAt, parObj.DeletedAt,
-					parObj.DiscussionID, parObj.ViewerID, parObj.GradientColor, parObj.UserID, parObj.IsBanned,
+					parObj.DiscussionID, parObj.ViewerID, parObj.GradientColor, parObj.UserID, parObj.InviterID, parObj.IsBanned,
 					parObj.HasJoined, parObj.IsAnonymous, parObj.MutedUntil,
 				).WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(parObj.ID))
 				mock.ExpectCommit()
