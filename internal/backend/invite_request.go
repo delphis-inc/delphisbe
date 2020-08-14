@@ -232,28 +232,6 @@ func (d *delphisBackend) RespondToRequestAccess(ctx context.Context, requestID s
 			}
 			return nil, err
 		}
-
-		// Send invite to user after they are accepted
-		invite := model.DiscussionInvite{
-			ID:                    util.UUIDv4(),
-			UserID:                requestObj.UserID,
-			DiscussionID:          requestObj.DiscussionID,
-			InvitingParticipantID: invitingParticipantID,
-			Status:                model.InviteRequestStatusPending,
-			InviteType:            model.InviteTypeAccessRequestAccepted,
-		}
-
-		// Put invite record
-		_, err := d.db.PutDiscussionInviteRecord(ctx, tx, invite)
-		if err != nil {
-			logrus.WithError(err).Error("failed to put invite record")
-			// Rollback on errors
-			if txErr := d.db.RollbackTx(ctx, tx); txErr != nil {
-				logrus.WithError(txErr).Error("failed to rollback tx")
-				return nil, multierr.Append(err, txErr)
-			}
-			return nil, err
-		}
 	}
 
 	// Commit transaction
