@@ -59,16 +59,6 @@ func (d *delphisBackend) SendNotificationsToSubscribers(ctx context.Context, use
 		usersToNotify = append(usersToNotify, mentionedUsers...)
 	}
 
-	// TODO: Delete this. This is for testing notifications
-	resp, err := d.db.GetDiscussionUserAccess(ctx, discussion.ID, userID)
-	if err != nil {
-		logrus.WithError(err).Error("failed to get my user access")
-	}
-
-	usersToNotify = append(usersToNotify, resp)
-
-	logrus.Infof("UserToNotify: %+v\n", usersToNotify)
-
 	notifChan := make(chan *SingleNotificationSendStatus, 1)
 	go func() {
 		// Track the users we have sent notifications to
