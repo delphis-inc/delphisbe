@@ -1,9 +1,0 @@
-# Defines a bookmark for a post. Built this way because I
-# assume we will have other types of bookmarks down the road
-# (e.g. discussion bookmarks, moderator bookmarks?)
-type PostBookmark {
-    id: ID!
-    discussion: Discussion
-    post: Post
-    createdAt: Time!
-}

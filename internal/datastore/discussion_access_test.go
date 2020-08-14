@@ -35,8 +35,6 @@ func TestDelphisDB_GetDiscussionsForUserAccess(t *testing.T) {
 		Title:         "test",
 		AnonymityType: "",
 		ModeratorID:   &modID,
-		AutoPost:      false,
-		IdleMinutes:   120,
 		IconURL:       &emptyString,
 	}
 
@@ -82,13 +80,13 @@ func TestDelphisDB_GetDiscussionsForUserAccess(t *testing.T) {
 		Convey("when query execution succeeds and returns discussions", func() {
 			mockPreparedStatements(mock)
 			rs := sqlmock.NewRows([]string{"id", "created_at", "updated_at", "deleted_at", "title",
-				"anonymity_type", "moderator_id", "auto_post", "icon_url", "idle_minutes", "description",
-				"title_history", "description_history", "discussion_joinability", "last_post_id", "last_post_created_at",
+				"anonymity_type", "moderator_id", "icon_url", "description", "title_history",
+				"description_history", "discussion_joinability", "last_post_id", "last_post_created_at",
 				"shuffle_count", "lock_status"}).
 				AddRow(discObj.ID, discObj.CreatedAt, discObj.UpdatedAt, discObj.DeletedAt,
-					discObj.Title, discObj.AnonymityType, discObj.ModeratorID, discObj.AutoPost,
-					discObj.IconURL, discObj.IdleMinutes, discObj.Description, discObj.TitleHistory,
-					discObj.DescriptionHistory, discObj.DiscussionJoinability, discObj.LastPostID, discObj.LastPostCreatedAt,
+					discObj.Title, discObj.AnonymityType, discObj.ModeratorID, discObj.IconURL,
+					discObj.Description, discObj.TitleHistory, discObj.DescriptionHistory,
+					discObj.DiscussionJoinability, discObj.LastPostID, discObj.LastPostCreatedAt,
 					discObj.ShuffleCount, discObj.LockStatus)
 
 			mock.ExpectQuery(getDiscussionsByUserAccessString).WithArgs(userID, state).WillReturnRows(rs)

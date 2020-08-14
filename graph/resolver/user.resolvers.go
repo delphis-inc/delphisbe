@@ -62,10 +62,6 @@ func (r *userResolver) Viewers(ctx context.Context, obj *model.User) ([]*model.V
 	return viewers, nil
 }
 
-func (r *userResolver) Bookmarks(ctx context.Context, obj *model.User) ([]*model.PostBookmark, error) {
-	panic(fmt.Errorf("not implemented"))
-}
-
 func (r *userResolver) Profile(ctx context.Context, obj *model.User) (*model.UserProfile, error) {
 	if obj.UserProfile == nil {
 		userProfile, err := r.DAOManager.GetUserProfileByUserID(ctx, obj.ID)
@@ -75,10 +71,6 @@ func (r *userResolver) Profile(ctx context.Context, obj *model.User) (*model.Use
 		obj.UserProfile = userProfile
 	}
 	return obj.UserProfile, nil
-}
-
-func (r *userResolver) Flairs(ctx context.Context, obj *model.User) ([]*model.Flair, error) {
-	return r.DAOManager.GetFlairsByUserID(ctx, obj.ID)
 }
 
 func (r *userResolver) Devices(ctx context.Context, obj *model.User) ([]*model.UserDevice, error) {
@@ -115,35 +107,6 @@ func (r *userResolver) Discussions(ctx context.Context, obj *model.User, state m
 	}
 
 	return r.DAOManager.GetDiscussionAccessesByUserID(ctx, authedUser.UserID, state)
-}
-
-func (r *userResolver) DiscussionInvites(ctx context.Context, obj *model.User, status model.InviteRequestStatus) ([]*model.DiscussionInvite, error) {
-	authedUser := auth.GetAuthedUser(ctx)
-	if authedUser == nil {
-		return nil, fmt.Errorf("Need auth")
-	}
-
-	// Do we want a mod override?
-	if authedUser.UserID != obj.ID {
-		return nil, fmt.Errorf("unauthorized")
-	}
-
-	// Do we want a different status? Made it generic for easy change
-	return r.DAOManager.GetDiscussionInvitesByUserIDAndStatus(ctx, authedUser.UserID, status)
-}
-
-func (r *userResolver) SentDiscussionInvites(ctx context.Context, obj *model.User) ([]*model.DiscussionInvite, error) {
-	authedUser := auth.GetAuthedUser(ctx)
-	if authedUser == nil {
-		return nil, fmt.Errorf("Need auth")
-	}
-
-	// Do we want a mod override?
-	if authedUser.UserID != obj.ID {
-		return nil, fmt.Errorf("unauthorized")
-	}
-
-	return r.DAOManager.GetSentDiscussionInvitesByUserID(ctx, authedUser.UserID)
 }
 
 func (r *userResolver) SentDiscussionAccessRequests(ctx context.Context, obj *model.User) ([]*model.DiscussionAccessRequest, error) {

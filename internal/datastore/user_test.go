@@ -121,7 +121,6 @@ func TestDelphisDB_GetUserByID(t *testing.T) {
 	parID := "parID"
 	discussionID := "discussionID"
 	viewerID := "viewerID"
-	flairID := "flairID"
 	gradientColor := model.GradientColorAzalea
 	postID := "post1"
 
@@ -130,7 +129,6 @@ func TestDelphisDB_GetUserByID(t *testing.T) {
 		ParticipantID: 0,
 		DiscussionID:  &discussionID,
 		ViewerID:      &viewerID,
-		FlairID:       &flairID,
 		GradientColor: &gradientColor,
 		UserID:        &userID,
 		HasJoined:     true,
@@ -218,9 +216,9 @@ func TestDelphisDB_GetUserByID(t *testing.T) {
 				AddRow(userObj.ID, userObj.CreatedAt, userObj.UpdatedAt, userObj.DeletedAt)
 
 			participantRs := sqlmock.NewRows([]string{"id", "participant_id", "created_at", "updated_at", "deleted_at", "discussion_id",
-				"viewer_id", "user_id", "flair_id", "is_anonymous", "gradient_color", "has_joined"}).
+				"viewer_id", "user_id", "is_anonymous", "gradient_color", "has_joined"}).
 				AddRow(parObj.ID, parObj.ParticipantID, parObj.CreatedAt, parObj.UpdatedAt, parObj.DeletedAt,
-					parObj.DiscussionID, parObj.ViewerID, parObj.UserID, parObj.FlairID,
+					parObj.DiscussionID, parObj.ViewerID, parObj.UserID,
 					parObj.IsAnonymous, parObj.GradientColor, parObj.HasJoined)
 
 			mock.ExpectQuery(expectedQueryString).WithArgs(userObj.ID).WillReturnRows(rs)
@@ -239,9 +237,9 @@ func TestDelphisDB_GetUserByID(t *testing.T) {
 				AddRow(userObj.ID, userObj.CreatedAt, userObj.UpdatedAt, userObj.DeletedAt)
 
 			participantRs := sqlmock.NewRows([]string{"id", "participant_id", "created_at", "updated_at", "deleted_at", "discussion_id",
-				"viewer_id", "user_id", "flair_id", "is_anonymous", "gradient_color", "has_joined"}).
+				"viewer_id", "user_id", "is_anonymous", "gradient_color", "has_joined"}).
 				AddRow(parObj.ID, parObj.ParticipantID, parObj.CreatedAt, parObj.UpdatedAt, parObj.DeletedAt,
-					parObj.DiscussionID, parObj.ViewerID, parObj.UserID, parObj.FlairID,
+					parObj.DiscussionID, parObj.ViewerID, parObj.UserID,
 					parObj.IsAnonymous, parObj.GradientColor, parObj.HasJoined)
 
 			viewerRs := sqlmock.NewRows([]string{"id", "created_at", "updated_at", "deleted_at", "last_viewed", "last_viewed_post_id",
@@ -265,9 +263,9 @@ func TestDelphisDB_GetUserByID(t *testing.T) {
 				AddRow(userObj.ID, userObj.CreatedAt, userObj.UpdatedAt, userObj.DeletedAt)
 
 			participantRs := sqlmock.NewRows([]string{"id", "participant_id", "created_at", "updated_at", "deleted_at", "discussion_id",
-				"viewer_id", "user_id", "flair_id", "is_anonymous", "gradient_color", "has_joined"}).
+				"viewer_id", "user_id", "is_anonymous", "gradient_color", "has_joined"}).
 				AddRow(parObj.ID, parObj.ParticipantID, parObj.CreatedAt, parObj.UpdatedAt, parObj.DeletedAt,
-					parObj.DiscussionID, parObj.ViewerID, parObj.UserID, parObj.FlairID,
+					parObj.DiscussionID, parObj.ViewerID, parObj.UserID,
 					parObj.IsAnonymous, parObj.GradientColor, parObj.HasJoined)
 
 			viewerRs := sqlmock.NewRows([]string{"id", "created_at", "updated_at", "deleted_at", "last_viewed", "last_viewed_post_id",

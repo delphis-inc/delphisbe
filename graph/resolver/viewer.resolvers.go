@@ -5,7 +5,6 @@ package resolver
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/delphis-inc/delphisbe/graph/generated"
 	"github.com/delphis-inc/delphisbe/graph/model"
@@ -36,10 +35,6 @@ func (r *viewerResolver) LastViewedPost(ctx context.Context, obj *model.Viewer) 
 		obj.LastViewedPost = post
 	}
 	return obj.LastViewedPost, nil
-}
-
-func (r *viewerResolver) Bookmarks(ctx context.Context, obj *model.Viewer) ([]*model.PostBookmark, error) {
-	panic(fmt.Errorf("not implemented"))
 }
 
 // Viewer returns generated.ViewerResolver implementation.

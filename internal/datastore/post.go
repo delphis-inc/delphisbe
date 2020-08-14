@@ -30,7 +30,6 @@ func (d *delphisDB) PutPost(ctx context.Context, tx *sql.Tx, post model.Post) (*
 		post.PostContent.ID,
 		post.QuotedPostID,
 		post.MediaID,
-		post.ImportedContentID,
 		post.PostType,
 	).Scan(
 		&post.ID,
@@ -41,7 +40,6 @@ func (d *delphisDB) PutPost(ctx context.Context, tx *sql.Tx, post model.Post) (*
 		&post.PostContentID,
 		&post.QuotedPostID,
 		&post.MediaID,
-		&post.ImportedContentID,
 		&post.PostType,
 	)
 	if err != nil {
@@ -186,7 +184,6 @@ func (d *delphisDB) GetLastPostByDiscussionID(ctx context.Context, discussionID 
 		&post.ParticipantID,
 		&post.QuotedPostID,
 		&post.MediaID,
-		&post.ImportedContentID,
 		&post.PostType,
 		&postContent.ID,
 		&postContent.Content,
@@ -289,7 +286,6 @@ func (d *delphisDB) GetPostByID(ctx context.Context, postID string) (*model.Post
 		&post.ParticipantID,
 		&post.QuotedPostID,
 		&post.MediaID,
-		&post.ImportedContentID,
 		&post.PostType,
 		&postContent.ID,
 		&postContent.Content,
@@ -336,7 +332,6 @@ func (iter *postIter) Next(post *model.Post) bool {
 		&post.ParticipantID,
 		&post.QuotedPostID,
 		&post.MediaID,
-		&post.ImportedContentID,
 		&post.PostType,
 		&postContent.ID,
 		&postContent.Content,

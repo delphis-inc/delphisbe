@@ -15,14 +15,10 @@ type Participant struct {
 	ViewerID      *string          `json:"viewerID" gorm:"type:varchar(36);"`
 	Viewer        *Viewer          `json:"viewer" dynamodbav:"-" gorm:"foreignKey:ViewerID;"`
 	Posts         *PostsConnection `json:"posts" dynamodbav:"-"`
-	FlairID       *string          `json:"flairID" dynamodbav:"FlairID" gorm:"type:varchar(36);"`
-	Flair         *Flair           `json:"flair" dynamodbav:"-" gorm:"foreignKey:FlairID;"`
 	GradientColor *GradientColor   `json:"gradientColor" gorm:"type:varchar(36);not null;"`
 
 	UserID *string `json:"userID" gorm:"type:varchar(36);"`
 	User   *User   `json:"user" dynamodbav:"-" gorm:"foreignKey:UserID;"`
-
-	InviterID *string `json:"inviterID" gorm:"type:varchar(36);"`
 
 	IsBanned bool `json:"isBanned" gorm:"type:boolean;"`
 

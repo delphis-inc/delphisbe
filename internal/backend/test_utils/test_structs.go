@@ -14,30 +14,17 @@ import (
 const ProfileID = "profileID"
 const DisplayName = "displayName"
 const UserID = "userID"
-const InviterID = "InviterID"
 const DiscussionID = "discussionID"
 const LinkSlug = "slug"
 const TwitterHandle = "twitterHandle"
 const Token = "token"
 const TokenSecret = "secret"
 const Limit = 10
-const ContentID = "contentID"
-const ContentName = "contentName"
-const ContentType = "contentType"
-const ContentLink = "http://content.link"
-const IdleMinutes = 120
-const Email = "test@email.com"
 const ParticipantID = "participantID"
 const ViewerID = "viewerID"
-const FlairID = "flairID"
-const FlairTemplateID = "templateID"
 const PostID = "postID"
 const PostContentID = "postContentID"
 const ModeratorID = "modID"
-const Tag = "tag"
-const Source = "source"
-const ImageURL = "http://image.url"
-const InviteID = "inviteID"
 const RequestID = "requestID"
 const InvitingParticipantID = "invite_participating_id"
 const GradientColor = model.GradientColorAzalea
@@ -64,22 +51,18 @@ func TestUserProfile() model.UserProfile {
 func TestParticipant() model.Participant {
 	discussionID := DiscussionID
 	viewerID := ViewerID
-	flairID := FlairID
 	gradientColor := GradientColor
 	userID := UserID
-	inviterID := InviterID
 
 	return model.Participant{
 		ID:            ParticipantID,
 		ParticipantID: 0,
 		DiscussionID:  &discussionID,
 		ViewerID:      &viewerID,
-		FlairID:       &flairID,
 		GradientColor: &gradientColor,
 		UserID:        &userID,
 		HasJoined:     false,
 		IsAnonymous:   false,
-		InviterID:     &inviterID,
 	}
 }
 
@@ -91,8 +74,6 @@ func TestDiscussion() model.Discussion {
 		Title:         "title",
 		AnonymityType: AnonymityType,
 		ModeratorID:   &modID,
-		AutoPost:      false,
-		IdleMinutes:   IdleMinutes,
 	}
 }
 
@@ -148,12 +129,6 @@ func TestPostContentInput() model.PostContentInput {
 	}
 }
 
-func TestContentQueueRecord() model.ContentQueueRecord {
-	return model.ContentQueueRecord{
-		DiscussionID:      DiscussionID,
-		ImportedContentID: ContentID,
-	}
-}
 func TestModerator() model.Moderator {
 	profileID := ProfileID
 
@@ -177,41 +152,6 @@ func TestViewer() model.Viewer {
 	}
 }
 
-func TestFlair() model.Flair {
-	return model.Flair{
-		ID:         FlairID,
-		TemplateID: FlairTemplateID,
-		UserID:     UserID,
-	}
-}
-
-func TestFlairTemplate() model.FlairTemplate {
-	displayName := DisplayName
-	imageURL := ImageURL
-	return model.FlairTemplate{
-		ID:          FlairTemplateID,
-		DisplayName: &displayName,
-		ImageURL:    &imageURL,
-		Source:      Source,
-	}
-}
-
-func TestDiscussionAutoPost() model.DiscussionAutoPost {
-	return model.DiscussionAutoPost{
-		ID:          DiscussionID,
-		IdleMinutes: 120,
-	}
-}
-
-func TestImportedContent() model.ImportedContent {
-	return model.ImportedContent{
-		ID:          ContentID,
-		ContentName: ContentName,
-		ContentType: ContentType,
-		Link:        ContentLink,
-	}
-}
-
 func TestSocialInfo() model.SocialInfo {
 	return model.SocialInfo{
 		Network:           util.SocialNetworkTwitter,
@@ -225,16 +165,12 @@ func TestSocialInfo() model.SocialInfo {
 func TestDiscussionInput() model.DiscussionInput {
 	anonymityType := model.AnonymityTypeStrong
 	title := "test title"
-	autoPost := true
-	idleMinutes := IdleMinutes
 	publicAccess := true
 	iconUrl := "http://test.com"
 
 	return model.DiscussionInput{
 		AnonymityType: &anonymityType,
 		Title:         &title,
-		AutoPost:      &autoPost,
-		IdleMinutes:   &idleMinutes,
 		PublicAccess:  &publicAccess,
 		IconURL:       &iconUrl,
 	}
@@ -246,49 +182,6 @@ func TestDiscussionsConnection() model.DiscussionsConnection {
 		From:  0,
 		To:    0,
 		Edges: nil,
-	}
-}
-
-func TestDiscussionTag() model.Tag {
-	return model.Tag{
-		ID:  DiscussionID,
-		Tag: Tag,
-	}
-}
-
-func TestContentTag() model.Tag {
-	return model.Tag{
-		ID:  ContentID,
-		Tag: Tag,
-	}
-}
-
-func TestDiscussionFlairTemplateAccess() model.DiscussionFlairTemplateAccess {
-	return model.DiscussionFlairTemplateAccess{
-		DiscussionID:    DiscussionID,
-		FlairTemplateID: FlairTemplateID,
-	}
-}
-
-func TestImportedContentInput() model.ImportedContentInput {
-	return model.ImportedContentInput{
-
-		ContentName: ContentName,
-		ContentType: ContentType,
-		Link:        ContentLink,
-		Overview:    "",
-		Source:      "",
-	}
-}
-
-func TestDiscussionInvite(status model.InviteRequestStatus) model.DiscussionInvite {
-	return model.DiscussionInvite{
-		ID:                    InviteID,
-		UserID:                UserID,
-		DiscussionID:          DiscussionID,
-		InvitingParticipantID: InvitingParticipantID,
-		Status:                status,
-		InviteType:            "",
 	}
 }
 
@@ -310,12 +203,10 @@ func TestDiscussionAccessLink() model.DiscussionAccessLink {
 
 func TestAddDiscussionParticipantInput() model.AddDiscussionParticipantInput {
 	gradientColor := GradientColor
-	flairID := FlairID
 	hasJoined := true
 
 	return model.AddDiscussionParticipantInput{
 		GradientColor: &gradientColor,
-		FlairID:       &flairID,
 		HasJoined:     &hasJoined,
 		IsAnonymous:   false,
 	}
@@ -323,17 +214,14 @@ func TestAddDiscussionParticipantInput() model.AddDiscussionParticipantInput {
 
 func TestUpdateParticipantInput() model.UpdateParticipantInput {
 	gradientColor := GradientColor
-	flairID := FlairID
 	hasJoined := true
 	isAnonymous := false
 
 	return model.UpdateParticipantInput{
 		GradientColor:   &gradientColor,
-		FlairID:         &flairID,
 		HasJoined:       &hasJoined,
 		IsAnonymous:     &isAnonymous,
 		IsUnsetGradient: nil,
-		IsUnsetFlairID:  nil,
 	}
 }
 

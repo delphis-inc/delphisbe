@@ -223,32 +223,6 @@ func (r *discussionResolver) MeDiscussionStatus(ctx context.Context, obj *model.
 	return &resp.State, nil
 }
 
-func (r *discussionResolver) Tags(ctx context.Context, obj *model.Discussion) ([]*model.Tag, error) {
-	return r.DAOManager.GetDiscussionTags(ctx, obj.ID)
-}
-
-func (r *discussionResolver) UpcomingContent(ctx context.Context, obj *model.Discussion) ([]*model.ImportedContent, error) {
-	// TODO: Determine UX. Should this be merged with the data that has already been scheduled?
-	// At one point is data too stale and should no longer be shown?
-	authedUser := auth.GetAuthedUser(ctx)
-	if authedUser == nil {
-		return nil, fmt.Errorf("Need auth")
-	}
-
-	// Only allow the mod to view possible imported content
-	modCheck, err := r.DAOManager.CheckIfModeratorForDiscussion(ctx, authedUser.UserID, obj.ID)
-	if err != nil || !modCheck {
-		return nil, fmt.Errorf("unauthorized")
-	}
-
-	return r.DAOManager.GetUpcomingImportedContentByDiscussionID(ctx, obj.ID)
-}
-
-func (r *discussionResolver) FlairTemplates(ctx context.Context, obj *model.Discussion) ([]*model.FlairTemplate, error) {
-	// @deprecated
-	return []*model.FlairTemplate{}, nil
-}
-
 func (r *discussionResolver) AccessRequests(ctx context.Context, obj *model.Discussion) ([]*model.DiscussionAccessRequest, error) {
 	authedUser := auth.GetAuthedUser(ctx)
 	if authedUser == nil {
@@ -262,22 +236,6 @@ func (r *discussionResolver) AccessRequests(ctx context.Context, obj *model.Disc
 	}
 
 	return r.DAOManager.GetDiscussionAccessRequestsByDiscussionID(ctx, obj.ID)
-}
-
-func (r *discussionResolver) DiscussionLinksAccess(ctx context.Context, obj *model.Discussion) (*model.DiscussionLinkAccess, error) {
-	// @deprecated
-	authedUser := auth.GetAuthedUser(ctx)
-	if authedUser == nil {
-		return nil, fmt.Errorf("Need auth")
-	}
-
-	// Only allow the mod to view invite links
-	modCheck, err := r.DAOManager.CheckIfModeratorForDiscussion(ctx, authedUser.UserID, obj.ID)
-	if err != nil || !modCheck {
-		return nil, fmt.Errorf("unauthorized")
-	}
-
-	return &model.DiscussionLinkAccess{}, nil
 }
 
 func (r *discussionResolver) DiscussionAccessLink(ctx context.Context, obj *model.Discussion) (*model.DiscussionAccessLink, error) {
@@ -358,54 +316,6 @@ func (r *discussionArchiveResolver) Archive(ctx context.Context, obj *model.Disc
 	return string(obj.Archive.RawMessage), nil
 }
 
-func (r *discussionFlairTemplateAccessResolver) ID(ctx context.Context, obj *model.DiscussionFlairTemplateAccess) (string, error) {
-	// @deprecated
-	return "", nil
-}
-
-func (r *discussionFlairTemplateAccessResolver) Discussion(ctx context.Context, obj *model.DiscussionFlairTemplateAccess) (*model.Discussion, error) {
-	// @deprecated
-	return &model.Discussion{}, nil
-}
-
-func (r *discussionFlairTemplateAccessResolver) FlairTemplate(ctx context.Context, obj *model.DiscussionFlairTemplateAccess) (*model.FlairTemplate, error) {
-	// @deprecated
-	return &model.FlairTemplate{}, nil
-}
-
-func (r *discussionFlairTemplateAccessResolver) CreatedAt(ctx context.Context, obj *model.DiscussionFlairTemplateAccess) (string, error) {
-	// @deprecated
-	return "", nil
-}
-
-func (r *discussionFlairTemplateAccessResolver) UpdatedAt(ctx context.Context, obj *model.DiscussionFlairTemplateAccess) (string, error) {
-	// @deprecated
-	return "", nil
-}
-
-func (r *discussionFlairTemplateAccessResolver) IsDeleted(ctx context.Context, obj *model.DiscussionFlairTemplateAccess) (bool, error) {
-	// @deprecated
-	return false, nil
-}
-
-func (r *discussionInviteResolver) Discussion(ctx context.Context, obj *model.DiscussionInvite) (*model.Discussion, error) {
-	return r.DAOManager.GetDiscussionByID(ctx, obj.DiscussionID)
-}
-
-func (r *discussionInviteResolver) InvitingParticipant(ctx context.Context, obj *model.DiscussionInvite) (*model.Participant, error) {
-	return r.DAOManager.GetParticipantByID(ctx, obj.InvitingParticipantID)
-}
-
-func (r *discussionLinkAccessResolver) InviteLinkURL(ctx context.Context, obj *model.DiscussionLinkAccess) (string, error) {
-	// @deprecated
-	return "", nil
-}
-
-func (r *discussionLinkAccessResolver) VipInviteLinkURL(ctx context.Context, obj *model.DiscussionLinkAccess) (string, error) {
-	// @deprecated
-	return "", nil
-}
-
 func (r *discussionUserAccessResolver) Discussion(ctx context.Context, obj *model.DiscussionUserAccess) (*model.Discussion, error) {
 	return r.DAOManager.GetDiscussionByID(ctx, obj.DiscussionID)
 }
@@ -423,14 +333,6 @@ func (r *discussionUserAccessResolver) Request(ctx context.Context, obj *model.D
 		return nil, nil
 	}
 	return r.DAOManager.GetDiscussionRequestAccessByID(ctx, *obj.RequestID)
-}
-
-func (r *tagResolver) CreatedAt(ctx context.Context, obj *model.Tag) (string, error) {
-	return obj.CreatedAt.Format(time.RFC3339), nil
-}
-
-func (r *tagResolver) IsDeleted(ctx context.Context, obj *model.Tag) (bool, error) {
-	return obj.DeletedAt != nil, nil
 }
 
 // Discussion returns generated.DiscussionResolver implementation.
@@ -451,35 +353,13 @@ func (r *Resolver) DiscussionArchive() generated.DiscussionArchiveResolver {
 	return &discussionArchiveResolver{r}
 }
 
-// DiscussionFlairTemplateAccess returns generated.DiscussionFlairTemplateAccessResolver implementation.
-func (r *Resolver) DiscussionFlairTemplateAccess() generated.DiscussionFlairTemplateAccessResolver {
-	return &discussionFlairTemplateAccessResolver{r}
-}
-
-// DiscussionInvite returns generated.DiscussionInviteResolver implementation.
-func (r *Resolver) DiscussionInvite() generated.DiscussionInviteResolver {
-	return &discussionInviteResolver{r}
-}
-
-// DiscussionLinkAccess returns generated.DiscussionLinkAccessResolver implementation.
-func (r *Resolver) DiscussionLinkAccess() generated.DiscussionLinkAccessResolver {
-	return &discussionLinkAccessResolver{r}
-}
-
 // DiscussionUserAccess returns generated.DiscussionUserAccessResolver implementation.
 func (r *Resolver) DiscussionUserAccess() generated.DiscussionUserAccessResolver {
 	return &discussionUserAccessResolver{r}
 }
 
-// Tag returns generated.TagResolver implementation.
-func (r *Resolver) Tag() generated.TagResolver { return &tagResolver{r} }
-
 type discussionResolver struct{ *Resolver }
 type discussionAccessLinkResolver struct{ *Resolver }
 type discussionAccessRequestResolver struct{ *Resolver }
 type discussionArchiveResolver struct{ *Resolver }
-type discussionFlairTemplateAccessResolver struct{ *Resolver }
-type discussionInviteResolver struct{ *Resolver }
-type discussionLinkAccessResolver struct{ *Resolver }
 type discussionUserAccessResolver struct{ *Resolver }
-type tagResolver struct{ *Resolver }

@@ -9,39 +9,23 @@ type Query {
   discussion(id: ID!): Discussion
   discussionByLinkSlug(slug: String!): Discussion
   listDiscussions(state: DiscussionUserAccessState! = ACTIVE): [Discussion!]
-  flairTemplates(query: String): [FlairTemplate!]
   # Need to add verification that the caller is the user.
   user(id: ID!): User!
   me: User!
 
-  # Twitter
-  twitterUserAutocompletes(query: ID!, discussionID: ID!, invitingParticipantID: ID!): [TwitterUserInfo!]
 }
 
 input UpdateParticipantInput {
   gradientColor: GradientColor
   isUnsetGradient: Boolean
-  flairID: ID
-  isUnsetFlairID: Boolean
   isAnonymous: Boolean
   hasJoined: Boolean
 }
 
 input AddDiscussionParticipantInput {
   gradientColor: GradientColor
-  flairID: ID
   hasJoined: Boolean
   isAnonymous: Boolean!
-}
-
-# TODO: implement
-input PollInput {
-  pollText: String!,
-  endTime: Time!,
-  option1: String!,
-  option2: String!,
-  option3: String,
-  option4: String
 }
 
 input PostContentInput {
@@ -50,8 +34,6 @@ input PostContentInput {
   mentionedEntities:[String!],
   quotedPostID: ID,
   mediaID: ID,
-  poll: PollInput,
-  importedContentID: ID,
   preview: String
 }
 
@@ -59,8 +41,6 @@ input DiscussionInput {
   anonymityType: AnonymityType
   title: String
   description: String
-  autoPost: Boolean
-  idleMinutes: Int
   publicAccess: Boolean
   iconURL: String
   discussionJoinability: DiscussionJoinabilitySetting
@@ -79,26 +59,9 @@ input DiscussionUserSettings {
 type Mutation {
   addDiscussionParticipant(discussionID: String!, userID: String!, discussionParticipantInput: AddDiscussionParticipantInput!): Participant!
   addPost(discussionID: ID!, participantID: ID!, postContent: PostContentInput!): Post!
-  postImportedContent(discussionID: ID!, participantID: ID!, contentID: ID!): Post! # TODO: Need clarity on UX for this. Keeping it simple for now
-  scheduleImportedContent(discussionID: ID!, contentID: ID!): ContentQueueRecord!
   # We need to deprecate `publicAccess` but given it's being used by existing apps let's keep it there for now.
   # A note though that we should do this very soon.
   createDiscussion(anonymityType: AnonymityType!, title: String!, description: String, publicAccess: Boolean = true, discussionSettings: DiscussionCreationSettings!): Discussion!
-
-  # Creates a User Flair from a Flair template, accessible via available flair
-  createFlair(userID: String!, templateID: String!): Flair!
-  # Removes a User Flair from a user's available flair
-  removeFlair(id: String!): Flair!
-
-  # Assigns a User Flair to a Participant
-  assignFlair(participantID: String!, flairID: String!): Participant!
-  # Removes a User Flair from a Participant
-  unassignFlair(participantID: String!): Participant!
-
-  # Creates a new flair template
-  createFlairTemplate(displayName: String, imageURL: String, source: String!): FlairTemplate!
-  # Removes a flair template
-  removeFlairTemplate(id: String!): FlairTemplate!
 
   # A slight misnomer here because this will be a copy-on-write. The participant
   # object actually is immutable.
@@ -110,23 +73,8 @@ type Mutation {
   updateDiscussion(discussionID: ID!, input: DiscussionInput!): Discussion!
   updateDiscussionUserSettings(discussionID: ID!, settings: DiscussionUserSettings!): DiscussionUserAccess!
 
-  addDiscussionTags(discussionID: ID!, tags:[String!]): [Tag!]
-  deleteDiscussionTags(discussionID: ID!, tags:[String!]): [Tag!]
-
-  conciergeMutation(discussionID: ID!, mutationID: ID!, selectedOptions:[String!]): Post! # Heterogeneous endpoint. Think about what we want to return here. Could use entities? What does that gain us?
-  # Add flair accessibility to private discussions
-  addDiscussionFlairTemplatesAccess(discussionID: ID!, flairTemplateIDs:[ID!]): Discussion! @deprecated(reason: "getting rid of flair template access")
-  deleteDiscussionFlairTemplatesAccess(discussionID: ID!, flairTemplateIDs:[ID!]): Discussion! @deprecated(reason: "getting rid of flair template access")
-
-  # Invites
-  inviteUserToDiscussion(discussionID: ID!, userID: ID!, invitingParticipantID: ID!): DiscussionInvite!
-  inviteTwitterUsersToDiscussion(discussionID: ID!, twitterUsers: [TwitterUserInput!], invitingParticipantID: ID!): [DiscussionInvite!]!
-  respondToInvite(inviteID: ID!, response: InviteRequestStatus!, discussionParticipantInput: AddDiscussionParticipantInput!): DiscussionInvite!
-
   requestAccessToDiscussion(discussionID: ID!): DiscussionAccessRequest!
   respondToRequestAccess(requestID: ID!, response: InviteRequestStatus!): DiscussionAccessRequest!
-
-  joinDiscussionWithVIPToken(discussionID: ID!, vipToken: ID!): Discussion! @deprecated(reason: "getting rid of vip links")
 
   # Posts
   deletePost(discussionID: ID!, postID: ID!): Post!

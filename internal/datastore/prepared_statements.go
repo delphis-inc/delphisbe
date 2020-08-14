@@ -60,19 +60,13 @@ type dbPrepStmts struct {
 	upsertDiscussionUserAccessStmt       *sql2.Stmt
 	deleteDiscussionUserAccessStmt       *sql2.Stmt
 
-	// InvitesRequests
-	getDiscussionInviteByIDStmt                            *sql2.Stmt
-	getDiscussionRequestAccessByIDStmt                     *sql2.Stmt
-	getDiscussionInvitesForUserStmt                        *sql2.Stmt
-	getSentDiscussionInvitesForUserStmt                    *sql2.Stmt
-	getDiscussionAccessRequestsStmt                        *sql2.Stmt
-	getDiscussionAccessRequestByUserIDStmt                 *sql2.Stmt
-	getSentDiscussionAccessRequestsForUserStmt             *sql2.Stmt
-	putDiscussionInviteRecordStmt                          *sql2.Stmt
-	putDiscussionAccessRequestStmt                         *sql2.Stmt
-	updateDiscussionInviteRecordStmt                       *sql2.Stmt
-	updateDiscussionAccessRequestStmt                      *sql2.Stmt
-	getInvitedTwitterHandlesByDiscussionIDAndInviterIDStmt *sql2.Stmt
+	// Requests
+	getDiscussionRequestAccessByIDStmt         *sql2.Stmt
+	getDiscussionAccessRequestsStmt            *sql2.Stmt
+	getDiscussionAccessRequestByUserIDStmt     *sql2.Stmt
+	getSentDiscussionAccessRequestsForUserStmt *sql2.Stmt
+	putDiscussionAccessRequestStmt             *sql2.Stmt
+	updateDiscussionAccessRequestStmt          *sql2.Stmt
 
 	// AccessLinks
 	getAccessLinkBySlugStmt           *sql2.Stmt
@@ -656,19 +650,6 @@ const deleteDiscussionUserAccessString = `
 			updated_at,
 			deleted_at;`
 
-// Invites and Requests
-const getDiscussionInviteByIDString = `
-		SELECT id,
-			user_id,
-			discussion_id,
-			invite_from_participant_id,
-			created_at,
-			updated_at,
-			status,
-			invite_type
-		FROM discussion_user_invitations
-		WHERE id = $1;`
-
 const getDiscussionRequestAccessByIDString = `
 		SELECT id,
 			user_id,
@@ -678,33 +659,6 @@ const getDiscussionRequestAccessByIDString = `
 			status
 		FROM discussion_user_requests
 		WHERE id = $1;`
-
-const getDiscussionInvitesForUserString = `
-		SELECT id,
-			user_id,
-			discussion_id,
-			invite_from_participant_id,
-			created_at,
-			updated_at,
-			status,
-			invite_type
-		FROM discussion_user_invitations
-		WHERE user_id = $1
-			AND deleted_at is null
-			AND status = $2;`
-
-const getSentDiscussionInvitesForUserString = `
-		SELECT id,
-			user_id,
-			discussion_id,
-			invite_from_participant_id,
-			created_at,
-			updated_at,
-			status,
-			invite_type
-		FROM discussion_user_invitations
-		WHERE invite_from_participant_id = $1
-			AND deleted_at is null;`
 
 const getDiscussionAccessRequestsString = `
 		SELECT id,
@@ -740,24 +694,6 @@ const getSentDiscussionAccessRequestsForUserString = `
 		WHERE user_id = $1
 			AND deleted_at is null;`
 
-const putDiscussionInviteRecordString = `
-		INSERT INTO discussion_user_invitations (
-			id,
-			user_id,
-			discussion_id,
-			invite_from_participant_id,
-			status,
-			invite_type
-		) VALUES ($1, $2, $3, $4, $5, $6)
-		RETURNING id,
-			user_id,
-			discussion_id,
-			invite_from_participant_id,
-			created_at,
-			updated_at,
-			status,
-			invite_type;`
-
 const putDiscussionAccessRequestString = `
 		INSERT INTO discussion_user_requests (
 			id,
@@ -772,19 +708,6 @@ const putDiscussionAccessRequestString = `
 			updated_at,
 			status;`
 
-const updateDiscussionInviteRecordString = `
-		UPDATE discussion_user_invitations
-		SET status = $2
-		WHERE id = $1
-		RETURNING id,
-			user_id,
-			discussion_id,
-			invite_from_participant_id,
-			created_at,
-			updated_at,
-			status,
-			invite_type;`
-
 const updateDiscussionAccessRequestString = `
 		UPDATE discussion_user_requests
 		SET status = $2
@@ -795,13 +718,6 @@ const updateDiscussionAccessRequestString = `
 			created_at,
 			updated_at,
 			status;`
-
-const getInvitedTwitterHandlesByDiscussionIDAndInviterIDString = `
-		SELECT up.twitter_handle
-		FROM discussion_user_invitations dui
-			LEFT JOIN users u ON u.id = dui.user_id
-			LEFT JOIN user_profiles up ON up.user_id = u.id
-		WHERE dui.discussion_id=$1 AND dui.invite_from_participant_id=$2;`
 
 // AccessLinks
 const getAccessLinkBySlugString = `

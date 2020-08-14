@@ -7,6 +7,4 @@ type Viewer {
     lastViewed: Time
     # The last post this viewer saw (saw may be undefined, but assume it is what you think it is).
     lastViewedPost: Post
-    # Bookmarked posts from this discussion.
-    bookmarks: [PostBookmark!]
 }

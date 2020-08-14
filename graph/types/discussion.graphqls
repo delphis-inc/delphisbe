@@ -38,13 +38,7 @@ type Discussion implements Entity {
     meNotificationSettings: DiscussionUserNotificationSetting
     meDiscussionStatus: DiscussionUserAccessState
 
-    autoPost: Boolean!
-    idleMinutes: Int!
-    tags: [Tag!]
-    upcomingContent: [ImportedContent!]
-    flairTemplates: [FlairTemplate!] @deprecated(reason: "removed flair template access")
     accessRequests: [DiscussionAccessRequest!]
-    discussionLinksAccess: DiscussionLinkAccess! @deprecated(reason: "user DiscussionAccessLink")
 
     discussionAccessLink: DiscussionAccessLink
 
@@ -74,32 +68,6 @@ type DiscussionArchive {
     createdAt: Time!
 }
 
-type Tag {
-    id: ID!
-    createdAt: String!
-    tag: String!
-    isDeleted: Boolean!
-}
-
-type DiscussionFlairTemplateAccess {
-    id: ID!
-    discussion: Discussion!
-    flairTemplate: FlairTemplate!
-    createdAt: String!
-    updatedAt: String!
-    isDeleted: Boolean!
-}
-
-type DiscussionInvite {
-    id: ID!
-    discussion: Discussion!
-    invitingParticipant: Participant!
-    createdAt: String!
-    updatedAt: String!
-    isDeleted: Boolean!
-    status: InviteRequestStatus!
-}
-
 type DiscussionAccessRequest {
     id: ID!
     userProfile: UserProfile
@@ -108,15 +76,6 @@ type DiscussionAccessRequest {
     updatedAt: String!
     isDeleted: Boolean!
     status: InviteRequestStatus!
-}
-
-type DiscussionLinkAccess {
-    discussionID: ID!
-    inviteLinkURL: String!
-    vipInviteLinkURL: String!
-    createdAt: String!
-    updatedAt: String!
-    isDeleted: Boolean!
 }
 
 type DiscussionAccessLink {

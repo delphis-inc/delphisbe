@@ -205,24 +205,9 @@ func TestDelphisDB_InitializeStatements(t *testing.T) {
 				Test: deleteDiscussionUserAccessString,
 			},
 			{
-				Name: "getDiscussionInviteByIDString",
-
-				Test: getDiscussionInviteByIDString,
-			},
-			{
 				Name: "getDiscussionRequestAccessByIDString",
 
 				Test: getDiscussionRequestAccessByIDString,
-			},
-			{
-				Name: "getDiscussionInvitesForUserString",
-
-				Test: getDiscussionInvitesForUserString,
-			},
-			{
-				Name: "getSentDiscussionInvitesForUserString",
-
-				Test: getSentDiscussionInvitesForUserString,
 			},
 			{
 				Name: "getDiscussionAccessRequestsString",
@@ -235,19 +220,9 @@ func TestDelphisDB_InitializeStatements(t *testing.T) {
 				Test: getSentDiscussionAccessRequestsForUserString,
 			},
 			{
-				Name: "putDiscussionInviteRecordString",
-
-				Test: putDiscussionInviteRecordString,
-			},
-			{
 				Name: "putDiscussionAccessRequestString",
 
 				Test: putDiscussionAccessRequestString,
-			},
-			{
-				Name: "updateDiscussionInviteRecordString",
-
-				Test: updateDiscussionInviteRecordString,
 			},
 			{
 				Name: "updateDiscussionAccessRequestString",

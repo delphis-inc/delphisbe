@@ -12,10 +12,7 @@ type Participant implements Entity & DiscussionSubscriptionEntity {
     # Whether to include a link to their user profile
     isAnonymous: Boolean!
     gradientColor: GradientColor
-    # The flair that has been assigned to this participant if any
-    flair: Flair
 
-    inviter: Participant!
     hasJoined: Boolean!
 
     userProfile: UserProfile

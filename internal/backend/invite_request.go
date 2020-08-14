@@ -10,22 +10,8 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func (d *delphisBackend) GetDiscussionInviteByID(ctx context.Context, id string) (*model.DiscussionInvite, error) {
-	return d.db.GetDiscussionInviteByID(ctx, id)
-}
-
 func (d *delphisBackend) GetDiscussionRequestAccessByID(ctx context.Context, id string) (*model.DiscussionAccessRequest, error) {
 	return d.db.GetDiscussionRequestAccessByID(ctx, id)
-}
-
-func (d *delphisBackend) GetDiscussionInvitesByUserIDAndStatus(ctx context.Context, userID string, status model.InviteRequestStatus) ([]*model.DiscussionInvite, error) {
-	iter := d.db.GetDiscussionInvitesByUserIDAndStatus(ctx, userID, status)
-	return d.db.DiscussionInviteIterCollect(ctx, iter)
-}
-
-func (d *delphisBackend) GetSentDiscussionInvitesByUserID(ctx context.Context, userID string) ([]*model.DiscussionInvite, error) {
-	iter := d.db.GetSentDiscussionInvitesByUserID(ctx, userID)
-	return d.db.DiscussionInviteIterCollect(ctx, iter)
 }
 
 func (d *delphisBackend) GetDiscussionAccessRequestsByDiscussionID(ctx context.Context, discussionID string) ([]*model.DiscussionAccessRequest, error) {
@@ -40,46 +26,6 @@ func (d *delphisBackend) GetDiscussionAccessRequestByDiscussionIDUserID(ctx cont
 func (d *delphisBackend) GetSentDiscussionAccessRequestsByUserID(ctx context.Context, userID string) ([]*model.DiscussionAccessRequest, error) {
 	iter := d.db.GetSentDiscussionAccessRequestsByUserID(ctx, userID)
 	return d.db.AccessRequestIterCollect(ctx, iter)
-}
-
-func (d *delphisBackend) InviteUserToDiscussion(ctx context.Context, userID, discussionID, invitingParticipantID string) (*model.DiscussionInvite, error) {
-	invite := model.DiscussionInvite{
-		ID:                    util.UUIDv4(),
-		UserID:                userID,
-		DiscussionID:          discussionID,
-		InvitingParticipantID: invitingParticipantID,
-		Status:                model.InviteRequestStatusPending,
-		InviteType:            model.InviteTypeInvite,
-	}
-
-	// TODO: Should block users from spamming invites?
-	// Begin tx
-	tx, err := d.db.BeginTx(ctx)
-	if err != nil {
-		logrus.WithError(err).Error("failed to begin tx")
-		return nil, err
-	}
-
-	// Put invite record
-	inviteObj, err := d.db.PutDiscussionInviteRecord(ctx, tx, invite)
-	if err != nil {
-		logrus.WithError(err).Error("failed to put invite record")
-
-		// Rollback on errors
-		if txErr := d.db.RollbackTx(ctx, tx); txErr != nil {
-			logrus.WithError(txErr).Error("failed to rollback tx")
-			return nil, multierr.Append(err, txErr)
-		}
-		return nil, err
-	}
-
-	// Commit transaction
-	if err := d.db.CommitTx(ctx, tx); err != nil {
-		logrus.WithError(err).Error("failed to commit post tx")
-		return nil, err
-	}
-
-	return inviteObj, nil
 }
 
 func (d *delphisBackend) RequestAccessToDiscussion(ctx context.Context, userID, discussionID string) (*model.DiscussionAccessRequest, error) {
@@ -98,7 +44,6 @@ func (d *delphisBackend) RequestAccessToDiscussion(ctx context.Context, userID, 
 		return nil, err
 	}
 
-	// Put invite record
 	requestObj, err := d.db.PutDiscussionAccessRequestRecord(ctx, tx, request)
 	if err != nil {
 		logrus.WithError(err).Error("failed to put request record")
@@ -120,73 +65,6 @@ func (d *delphisBackend) RequestAccessToDiscussion(ctx context.Context, userID, 
 	return requestObj, nil
 }
 
-func (d *delphisBackend) RespondToInvitation(ctx context.Context, inviteID string, response model.InviteRequestStatus, discussionParticipantInput model.AddDiscussionParticipantInput) (*model.DiscussionInvite, error) {
-	invite := model.DiscussionInvite{
-		ID:     inviteID,
-		Status: response,
-	}
-
-	// Begin tx
-	tx, err := d.db.BeginTx(ctx)
-	if err != nil {
-		logrus.WithError(err).Error("failed to begin tx")
-		return nil, err
-	}
-
-	// Update invite record
-	inviteObj, err := d.db.UpdateDiscussionInviteRecord(ctx, tx, invite)
-	if err != nil {
-		logrus.WithError(err).Error("failed to update invite record")
-
-		// Rollback on errors
-		if txErr := d.db.RollbackTx(ctx, tx); txErr != nil {
-			logrus.WithError(txErr).Error("failed to rollback tx")
-			return nil, multierr.Append(err, txErr)
-		}
-		return nil, err
-	}
-
-	// If user has accepted the request, update discussion_user_access_table and create new participant
-	if response == model.InviteRequestStatusAccepted {
-		input := model.DiscussionUserAccess{
-			DiscussionID: inviteObj.DiscussionID,
-			UserID:       inviteObj.UserID,
-			State:        model.DiscussionUserAccessStateActive,
-			NotifSetting: model.DiscussionUserNotificationSettingEverything,
-		}
-
-		if _, err := d.db.UpsertDiscussionUserAccess(ctx, tx, input); err != nil {
-			logrus.WithError(err).Error("failed to update user access")
-
-			// Rollback on errors
-			if txErr := d.db.RollbackTx(ctx, tx); txErr != nil {
-				logrus.WithError(txErr).Error("failed to rollback tx")
-				return nil, multierr.Append(err, txErr)
-			}
-			return nil, err
-		}
-
-		if _, err := d.CreateParticipantForDiscussion(ctx, inviteObj.DiscussionID, inviteObj.UserID, discussionParticipantInput); err != nil {
-			logrus.WithError(err).Error("failed to create participant for discussion")
-
-			// Rollback on errors
-			if txErr := d.db.RollbackTx(ctx, tx); txErr != nil {
-				logrus.WithError(txErr).Error("failed to rollback tx")
-				return nil, multierr.Append(err, txErr)
-			}
-			return nil, err
-		}
-	}
-
-	// Commit transaction
-	if err := d.db.CommitTx(ctx, tx); err != nil {
-		logrus.WithError(err).Error("failed to commit post tx")
-		return nil, err
-	}
-
-	return inviteObj, nil
-}
-
 func (d *delphisBackend) RespondToRequestAccess(ctx context.Context, requestID string, response model.InviteRequestStatus, invitingParticipantID string) (*model.DiscussionAccessRequest, error) {
 	request := model.DiscussionAccessRequest{
 		ID:     requestID,
@@ -200,7 +78,7 @@ func (d *delphisBackend) RespondToRequestAccess(ctx context.Context, requestID s
 		return nil, err
 	}
 
-	// Update invite record
+	// Update access request record
 	requestObj, err := d.db.UpdateDiscussionAccessRequestRecord(ctx, tx, request)
 	if err != nil {
 		logrus.WithError(err).Error("failed to update request record")
