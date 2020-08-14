@@ -67,19 +67,21 @@ func (d *delphisBackend) SendNotificationsToSubscribers(ctx context.Context, use
 			if _, ok := seenUserIDs[user.UserID]; !ok {
 				seenUserIDs[user.UserID] = true
 
+				tempUser := user
 				go func() {
 					sendStatus := &SingleNotificationSendStatus{
-						UserID:      user.UserID,
+						UserID:      tempUser.UserID,
 						Device:      nil,
 						HasSent:     false,
 						HasFinished: true,
 						Success:     false,
 					}
+
 					if user == nil {
 						sendMessageNonBlocking(notifChan, sendStatus)
 						return
 					}
-					userDevices, err := d.GetUserDevicesByUserID(ctx, user.UserID)
+					userDevices, err := d.GetUserDevicesByUserID(ctx, tempUser.UserID)
 					if err != nil {
 						sendMessageNonBlocking(notifChan, sendStatus)
 						return
@@ -89,8 +91,9 @@ func (d *delphisBackend) SendNotificationsToSubscribers(ctx context.Context, use
 						return
 					}
 					sort.Slice(userDevices, func(lhs, rhs int) bool {
-						return userDevices[lhs].LastSeen.Before(userDevices[rhs].LastSeen)
+						return userDevices[lhs].LastSeen.After(userDevices[rhs].LastSeen)
 					})
+
 					toSendTo := userDevices[0]
 					sendStatus.Device = &toSendTo
 					if toSendTo.Token == nil || len(*toSendTo.Token) == 0 {
