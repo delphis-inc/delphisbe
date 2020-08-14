@@ -89,11 +89,6 @@ func TestDelphisDB_InitializeStatements(t *testing.T) {
 				Test: getMediaRecordString,
 			},
 			{
-				Name: "getDiscussionsForAutoPostString",
-
-				Test: getDiscussionsForAutoPostString,
-			},
-			{
 				Name: "getDiscussionByLinkSlugString",
 
 				Test: getDiscussionByLinkSlugString,
@@ -119,60 +114,6 @@ func TestDelphisDB_InitializeStatements(t *testing.T) {
 			{
 				Name: "getModeratedDiscussionsByUserIDString",
 				Test: getModeratedDiscussionsByUserIDString,
-			},
-			{
-				Name: "getImportedContentByIDString",
-				Test: getImportedContentByIDString,
-			},
-			{
-				Name: "getImportedContentForDiscussionString",
-				Test: getImportedContentForDiscussionString,
-			},
-			{
-				Name: "getScheduledImportedContentByDiscussionIDString",
-				Test: getScheduledImportedContentByDiscussionIDString,
-			},
-			{
-				Name: "putImportedContentString",
-				Test: putImportedContentString,
-			},
-			{
-				Name: "putImportedContentDiscussionQueueString",
-
-				Test: putImportedContentDiscussionQueueString,
-			},
-			{
-				Name: "updateImportedContentDiscussionQueueString",
-
-				Test: updateImportedContentDiscussionQueueString,
-			},
-			{
-				Name: "getImportedContentTagsString",
-				Test: getImportedContentTagsString,
-			},
-			{
-				Name: "getDiscussionTagsString",
-				Test: getDiscussionTagsString,
-			},
-			{
-				Name: "getMatchingTagsString",
-
-				Test: getMatchingTagsString,
-			},
-			{
-				Name: "putImportedContentTagsString",
-
-				Test: putImportedContentTagsString,
-			},
-			{
-				Name: "putDiscussionTagsString",
-
-				Test: putDiscussionTagsString,
-			},
-			{
-				Name: "deleteDiscussionTagsString",
-
-				Test: deleteDiscussionTagsString,
 			},
 			{
 				Name: "getDiscussionAccessRequestByUserIDString",

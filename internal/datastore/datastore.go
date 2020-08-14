@@ -257,11 +257,6 @@ func (d *delphisDB) initializeStatements(ctx context.Context) (err error) {
 		return errors.Wrap(err, "failed to prepare getMediaRecordStmt")
 	}
 
-	// DISCUSSION
-	if d.prepStmts.getDiscussionsForAutoPostStmt, err = d.pg.PrepareContext(ctx, getDiscussionsForAutoPostString); err != nil {
-		logrus.WithError(err).Error("failed to prepare getDiscussionsForAutoPostStmt")
-		return errors.Wrap(err, "failed to prepare getDiscussionsForAutoPostStmt")
-	}
 	if d.prepStmts.getDiscussionByLinkSlugStmt, err = d.pg.PrepareContext(ctx, getDiscussionByLinkSlugString); err != nil {
 		logrus.WithError(err).Error("failed to prepare getDiscussionByLinkSlugStmt")
 		return errors.Wrap(err, "failed to prepare getDiscussionByLinkSlugStmt")
@@ -289,58 +284,6 @@ func (d *delphisDB) initializeStatements(ctx context.Context) (err error) {
 	if d.prepStmts.getModeratedDiscussionsByUserIDStmt, err = d.pg.PrepareContext(ctx, getModeratedDiscussionsByUserIDString); err != nil {
 		logrus.WithError(err).Error("failed to prepare getModeratedDiscussionsByUserIDStmt")
 		return errors.Wrap(err, "failed to prepare getModeratedDiscussionsByUserIDStmt")
-	}
-
-	// IMPORTED CONTENT
-	if d.prepStmts.getImportedContentByIDStmt, err = d.pg.PrepareContext(ctx, getImportedContentByIDString); err != nil {
-		logrus.WithError(err).Error("failed to prepare getImportedContentByIDStmt")
-		return errors.Wrap(err, "failed to prepare getImportedContentByIDStmt")
-	}
-	if d.prepStmts.getImportedContentForDiscussionStmt, err = d.pg.PrepareContext(ctx, getImportedContentForDiscussionString); err != nil {
-		logrus.WithError(err).Error("failed to prepare getImportedContentorDiscussionStmt")
-		return errors.Wrap(err, "failed to prepare getImportedContentForDiscussionStmt")
-	}
-	if d.prepStmts.getScheduledImportedContentByDiscussionIDStmt, err = d.pg.PrepareContext(ctx, getScheduledImportedContentByDiscussionIDString); err != nil {
-		logrus.WithError(err).Error("failed to prepare getScheduledImportedContentByDiscussionIDStmt")
-		return errors.Wrap(err, "failed to prepare getScheduledImportedContentByDiscussionIDStmt")
-	}
-	if d.prepStmts.putImportedContentStmt, err = d.pg.PrepareContext(ctx, putImportedContentString); err != nil {
-		logrus.WithError(err).Error("failed to prepare putImportedContentStmt")
-		return errors.Wrap(err, "failed to prepare putImportedContentStmt")
-	}
-	if d.prepStmts.putImportedContentDiscussionQueueStmt, err = d.pg.PrepareContext(ctx, putImportedContentDiscussionQueueString); err != nil {
-		logrus.WithError(err).Error("failed to prepare putImportedContentDiscussionQueueStmt")
-		return errors.Wrap(err, "failed to prepare putImportedContentDiscussionQueueStmt")
-	}
-	if d.prepStmts.updateImportedContentDiscussionQueueStmt, err = d.pg.PrepareContext(ctx, updateImportedContentDiscussionQueueString); err != nil {
-		logrus.WithError(err).Error("failed to prepare updateImportedContentDiscussionQueueStmt")
-		return errors.Wrap(err, "failed to prepare updateImportedContentDiscussionQueueStmt")
-	}
-
-	// TAGS
-	if d.prepStmts.getImportedContentTagsStmt, err = d.pg.PrepareContext(ctx, getImportedContentTagsString); err != nil {
-		logrus.WithError(err).Error("failed to prepare getImportedContentTagsStmt")
-		return errors.Wrap(err, "failed to prepare getImportedContentTagsStmt")
-	}
-	if d.prepStmts.getDiscussionTagsStmt, err = d.pg.PrepareContext(ctx, getDiscussionTagsString); err != nil {
-		logrus.WithError(err).Error("failed to prepare getDiscussionTagsStmt")
-		return errors.Wrap(err, "failed to prepare getDiscussionTagsStmt")
-	}
-	if d.prepStmts.getMatchingTagsStmt, err = d.pg.PrepareContext(ctx, getMatchingTagsString); err != nil {
-		logrus.WithError(err).Error("failed to prepare getMatchingTagsStmt")
-		return errors.Wrap(err, "failed to prepare getMatchingTagsStmt")
-	}
-	if d.prepStmts.putImportedContentTagsStmt, err = d.pg.PrepareContext(ctx, putImportedContentTagsString); err != nil {
-		logrus.WithError(err).Error("failed to prepare putImportedContentTagsStmt")
-		return errors.Wrap(err, "failed to prepare putImportedContentTagsStmt")
-	}
-	if d.prepStmts.putDiscussionTagsStmt, err = d.pg.PrepareContext(ctx, putDiscussionTagsString); err != nil {
-		logrus.WithError(err).Error("failed to prepare putDiscussionTagsStmt")
-		return errors.Wrap(err, "failed to prepare putDiscussionTagsStmt")
-	}
-	if d.prepStmts.deleteDiscussionTagsStmt, err = d.pg.PrepareContext(ctx, deleteDiscussionTagsString); err != nil {
-		logrus.WithError(err).Error("failed to prepare deleteDiscussionTagsStmt")
-		return errors.Wrap(err, "failed to prepare deleteDiscussionTagsStmt")
 	}
 
 	// DISCUSSION ACCESS
