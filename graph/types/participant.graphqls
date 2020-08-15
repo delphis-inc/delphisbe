@@ -13,6 +13,8 @@ type Participant implements Entity & DiscussionSubscriptionEntity {
     isAnonymous: Boolean!
     gradientColor: GradientColor
 
+    inviter: Participant!
+
     hasJoined: Boolean!
 
     userProfile: UserProfile
