@@ -29,6 +29,7 @@ type Datastore interface {
 	CreateModerator(ctx context.Context, moderator model.Moderator) (*model.Moderator, error)
 	GetModeratorByID(ctx context.Context, id string) (*model.Moderator, error)
 	GetModeratorByUserID(ctx context.Context, id string) (*model.Moderator, error)
+	GetModeratorByDiscussionID(ctx context.Context, discussionID string) (*model.Moderator, error)
 	GetModeratorByUserIDAndDiscussionID(ctx context.Context, userID, discussionID string) (*model.Moderator, error)
 	GetModeratedDiscussionsByUserID(ctx context.Context, userID string) DiscussionIter
 	ListDiscussions(ctx context.Context) (*model.DiscussionsConnection, error)
@@ -276,6 +277,10 @@ func (d *delphisDB) initializeStatements(ctx context.Context) (err error) {
 	if d.prepStmts.getModeratorByUserIDStmt, err = d.pg.PrepareContext(ctx, getModeratorByUserIDString); err != nil {
 		logrus.WithError(err).Error("failed to prepare getModeratorByUserProfileID")
 		return errors.Wrap(err, "failed to prepare getModeratorByUserProfileID")
+	}
+	if d.prepStmts.getModeratorByDiscussionIDStmt, err = d.pg.PrepareContext(ctx, getModeratorByDiscussionIDString); err != nil {
+		logrus.WithError(err).Error("failed to prepare getModeratorByDiscussionIDStmt")
+		return errors.Wrap(err, "failed to prepare getModeratorByDiscussionIDStmt")
 	}
 	if d.prepStmts.getModeratorByUserIDAndDiscussionIDStmt, err = d.pg.PrepareContext(ctx, getModeratorByUserIDAndDiscussionIDString); err != nil {
 		logrus.WithError(err).Error("failed to prepare getModeratorByUserIDAndDiscussionIDStmt")

@@ -100,6 +100,48 @@ func TestDelphisBackend_GetModeratorByUserID(t *testing.T) {
 	})
 }
 
+func TestDelphisBackend_GetModeratorByDiscussionID(t *testing.T) {
+	ctx := context.Background()
+	now := time.Now()
+
+	discussionID := test_utils.DiscussionID
+
+	modObj := test_utils.TestModerator()
+
+	Convey("GetModeratorByDiscussionID", t, func() {
+		cacheObj := cache.NewInMemoryCache()
+		authObj := auth.NewDelphisAuth(nil)
+		mockDB := &mocks.Datastore{}
+		backendObj := &delphisBackend{
+			db:              mockDB,
+			auth:            authObj,
+			cache:           cacheObj,
+			discussionMutex: sync.Mutex{},
+			config:          config.Config{},
+			timeProvider:    &util.FrozenTime{NowTime: now},
+		}
+
+		Convey("when GetModeratorByUserID errors out", func() {
+			expectedError := fmt.Errorf("Some Error")
+			mockDB.On("GetModeratorByDiscussionID", ctx, discussionID).Return(nil, expectedError)
+
+			resp, err := backendObj.GetModeratorByDiscussionID(ctx, discussionID)
+
+			So(err, ShouldEqual, expectedError)
+			So(resp, ShouldBeNil)
+		})
+
+		Convey("when query succeeds", func() {
+			mockDB.On("GetModeratorByDiscussionID", ctx, discussionID).Return(&modObj, nil)
+
+			resp, err := backendObj.GetModeratorByDiscussionID(ctx, discussionID)
+
+			So(err, ShouldBeNil)
+			So(resp, ShouldResemble, &modObj)
+		})
+	})
+}
+
 func TestDelphisBackend_GetModeratorByUserIDAndDiscussionID(t *testing.T) {
 	ctx := context.Background()
 	now := time.Now()

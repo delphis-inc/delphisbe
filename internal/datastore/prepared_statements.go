@@ -32,6 +32,7 @@ type dbPrepStmts struct {
 
 	// Moderator
 	getModeratorByUserIDStmt                *sql2.Stmt
+	getModeratorByDiscussionIDStmt          *sql2.Stmt
 	getModeratorByUserIDAndDiscussionIDStmt *sql2.Stmt
 	getModeratedDiscussionsByUserIDStmt     *sql2.Stmt
 
@@ -288,6 +289,18 @@ const getModeratorByUserIDString = `
 		INNER JOIN discussions d
 		ON m.id = d.moderator_id
 		WHERE u.user_id = $1 LIMIT 1;`
+
+const getModeratorByDiscussionIDString = `
+		SELECT m.id,
+			m.created_at,
+			m.updated_at,
+			m.deleted_at,
+			m.user_profile_id
+		FROM moderators m
+		INNER JOIN discussions d
+		ON m.id = d.moderator_id
+		WHERE d.id = $1;
+`
 
 const getModeratorByUserIDAndDiscussionIDString = `
 		SELECT m.id,

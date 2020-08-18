@@ -38,6 +38,7 @@ type DelphisBackend interface {
 	ListDiscussionsByUserID(ctx context.Context, userID string, state model.DiscussionUserAccessState) (*model.DiscussionsConnection, error)
 	GetModeratorByID(ctx context.Context, id string) (*model.Moderator, error)
 	GetModeratorByUserID(ctx context.Context, userID string) (*model.Moderator, error)
+	GetModeratorByDiscussionID(ctx context.Context, discussionID string) (*model.Moderator, error)
 	GetModeratedDiscussionsByUserID(ctx context.Context, userID string) ([]*model.Discussion, error)
 	CheckIfModerator(ctx context.Context, userID string) (bool, error)
 	CheckIfModeratorForDiscussion(ctx context.Context, userID string, discussionID string) (bool, error)

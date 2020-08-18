@@ -168,6 +168,15 @@ func (d *delphisBackend) GetDiscussionJoinabilityForUser(ctx context.Context, us
 
 	if discussionObj.DiscussionJoinability == model.DiscussionJoinabilitySettingAllowTwitterFriends {
 		// Now we need to know if this moderator follows the user on Twitter.
+		if discussionObj.Moderator == nil {
+			modObj, err := d.GetModeratorByDiscussionID(ctx, discussionObj.ID)
+			if err != nil {
+				logrus.WithError(err).Error("failed to get moderator by discussionID")
+				return nil, err
+			}
+
+			discussionObj.Moderator = modObj
+		}
 		moderatorSocialInfos, err := d.GetSocialInfosByUserProfileID(ctx, *discussionObj.Moderator.UserProfileID)
 		if err != nil {
 			return nil, fmt.Errorf("Error fetching moderator information")

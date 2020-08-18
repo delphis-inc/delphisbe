@@ -50,6 +50,34 @@ func (d *delphisDB) GetModeratorByUserID(ctx context.Context, id string) (*model
 	return &moderator, nil
 }
 
+func (d *delphisDB) GetModeratorByDiscussionID(ctx context.Context, discussionID string) (*model.Moderator, error) {
+	logrus.Debug("GetModeratorByDiscussionID::SQL Query")
+	if err := d.initializeStatements(ctx); err != nil {
+		logrus.WithError(err).Error("GetModeratorByDiscussionID failed to initialize statements")
+		return nil, err
+	}
+
+	moderator := model.Moderator{}
+	if err := d.prepStmts.getModeratorByDiscussionIDStmt.QueryRowContext(
+		ctx,
+		discussionID,
+	).Scan(
+		&moderator.ID,
+		&moderator.CreatedAt,
+		&moderator.UpdatedAt,
+		&moderator.DeletedAt,
+		&moderator.UserProfileID,
+	); err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		logrus.WithError(err).Error("failed to execute getModeratorByDiscussionIDStmt")
+		return nil, err
+	}
+
+	return &moderator, nil
+}
+
 func (d *delphisDB) GetModeratorByUserIDAndDiscussionID(ctx context.Context, userID, discussionID string) (*model.Moderator, error) {
 	logrus.Debug("GetModeratorByUserIDAndDiscussionID::SQL Query")
 	if err := d.initializeStatements(ctx); err != nil {

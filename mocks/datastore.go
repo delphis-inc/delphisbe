@@ -648,6 +648,29 @@ func (_m *Datastore) GetModeratedDiscussionsByUserID(ctx context.Context, userID
 	return r0
 }
 
+// GetModeratorByDiscussionID provides a mock function with given fields: ctx, discussionID
+func (_m *Datastore) GetModeratorByDiscussionID(ctx context.Context, discussionID string) (*model.Moderator, error) {
+	ret := _m.Called(ctx, discussionID)
+
+	var r0 *model.Moderator
+	if rf, ok := ret.Get(0).(func(context.Context, string) *model.Moderator); ok {
+		r0 = rf(ctx, discussionID)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*model.Moderator)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(context.Context, string) error); ok {
+		r1 = rf(ctx, discussionID)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // GetModeratorByID provides a mock function with given fields: ctx, id
 func (_m *Datastore) GetModeratorByID(ctx context.Context, id string) (*model.Moderator, error) {
 	ret := _m.Called(ctx, id)
