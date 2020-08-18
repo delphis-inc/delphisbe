@@ -451,6 +451,7 @@ const getDiscussionAccessRequestsString = `
 			status
 		FROM discussion_user_requests
 		WHERE discussion_id = $1
+			AND status = 'PENDING'
 			AND deleted_at is null;`
 
 const getDiscussionAccessRequestByUserIDString = `

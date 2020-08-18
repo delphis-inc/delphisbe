@@ -26,6 +26,14 @@ func (r *mutationResolver) AddDiscussionParticipant(ctx context.Context, discuss
 		if err != nil || !modCheck {
 			return nil, fmt.Errorf("unauthorized")
 		}
+
+		if discussionParticipantInput.IsAnonymous == true {
+			return nil, fmt.Errorf("mods cannot create anonymous participants")
+		}
+	} else {
+		if discussionParticipantInput.IsAnonymous == false {
+			return nil, fmt.Errorf("participants must be anonymous")
+		}
 	}
 
 	existingParticipants, err := r.DAOManager.GetParticipantsByDiscussionIDUserID(ctx, discussionID, userID)
