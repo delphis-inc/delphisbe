@@ -36,6 +36,18 @@ func (d *delphisBackend) RequestAccessToDiscussion(ctx context.Context, userID, 
 		Status:       model.InviteRequestStatusPending,
 	}
 
+	// Check if user already has access
+	dua, err := d.GetDiscussionUserAccess(ctx, discussionID, userID)
+	if err != nil {
+		logrus.WithError(err).Error("failed to get discussion user access")
+		return nil, err
+	}
+
+	if dua != nil && dua.State == model.DiscussionUserAccessStateActive {
+		logrus.Infof("user already has access ")
+		return nil, nil
+	}
+
 	// TODO: Should block users from spamming requests?
 	// Begin tx
 	tx, err := d.db.BeginTx(ctx)

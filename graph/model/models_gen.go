@@ -270,17 +270,19 @@ const (
 	DiscussionUserAccessStateActive   DiscussionUserAccessState = "ACTIVE"
 	DiscussionUserAccessStateArchived DiscussionUserAccessState = "ARCHIVED"
 	DiscussionUserAccessStateDeleted  DiscussionUserAccessState = "DELETED"
+	DiscussionUserAccessStateBanned   DiscussionUserAccessState = "BANNED"
 )
 
 var AllDiscussionUserAccessState = []DiscussionUserAccessState{
 	DiscussionUserAccessStateActive,
 	DiscussionUserAccessStateArchived,
 	DiscussionUserAccessStateDeleted,
+	DiscussionUserAccessStateBanned,
 }
 
 func (e DiscussionUserAccessState) IsValid() bool {
 	switch e {
-	case DiscussionUserAccessStateActive, DiscussionUserAccessStateArchived, DiscussionUserAccessStateDeleted:
+	case DiscussionUserAccessStateActive, DiscussionUserAccessStateArchived, DiscussionUserAccessStateDeleted, DiscussionUserAccessStateBanned:
 		return true
 	}
 	return false

@@ -128,7 +128,7 @@ func (r *mutationResolver) AddPost(ctx context.Context, discussionID string, par
 	}
 
 	// Verify that the posting participant belongs to the logged-in user
-	if *participant.UserID != authedUser.UserID {
+	if *participant.UserID != authedUser.UserID || *participant.DiscussionID != discussionID {
 		return nil, fmt.Errorf("Unauthorized")
 	}
 

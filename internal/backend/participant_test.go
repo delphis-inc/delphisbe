@@ -741,22 +741,42 @@ func TestDelphisBackend_BanParticipant(t *testing.T) {
 			expected.IsBanned = true
 			mockDB.On("UpsertParticipant", ctx, expected).Return(&expected, nil)
 
-			Convey("when delete posts fails", func() {
-				mockDB.On("DeleteAllParticipantPosts", ctx, discussionID, participantID, model.PostDeletedReasonParticipantRemoved).Return(0, fmt.Errorf("sth"))
+			Convey("when upsert discussion access fails", func() {
+				mockDB.On("BeginTx", ctx).Return(nil, fmt.Errorf("sth"))
 
 				resp, err := backendObj.BanParticipant(ctx, discussionID, participantID, requestingUserID)
 
-				So(err, ShouldBeNil)
-				So(resp, ShouldEqual, &expected)
+				So(err, ShouldNotBeNil)
+				So(resp, ShouldBeNil)
 			})
 
-			Convey("when delete posts succeeds", func() {
-				mockDB.On("DeleteAllParticipantPosts", ctx, discussionID, participantID, model.PostDeletedReasonParticipantRemoved).Return(1, nil)
+			Convey("when upsert discussion access happens", func() {
+				discussionUserAccess := test_utils.TestDiscussionUserAccess()
 
-				resp, err := backendObj.BanParticipant(ctx, discussionID, participantID, requestingUserID)
+				tx := sql.Tx{}
 
-				So(err, ShouldBeNil)
-				So(resp, ShouldEqual, &expected)
+				mockDB.On("BeginTx", ctx).Return(&tx, nil)
+				mockDB.On("GetDiscussionUserAccess", ctx, discussionID, participantUserID).Return(&discussionUserAccess, nil)
+				mockDB.On("UpsertDiscussionUserAccess", ctx, &tx, mock.Anything).Return(&discussionUserAccess, nil)
+				mockDB.On("CommitTx", ctx, &tx).Return(nil)
+
+				Convey("when delete posts fails", func() {
+					mockDB.On("DeleteAllParticipantPosts", ctx, discussionID, participantID, model.PostDeletedReasonParticipantRemoved).Return(0, fmt.Errorf("sth"))
+
+					resp, err := backendObj.BanParticipant(ctx, discussionID, participantID, requestingUserID)
+
+					So(err, ShouldBeNil)
+					So(resp, ShouldEqual, &expected)
+				})
+
+				Convey("when delete posts succeeds", func() {
+					mockDB.On("DeleteAllParticipantPosts", ctx, discussionID, participantID, model.PostDeletedReasonParticipantRemoved).Return(1, nil)
+
+					resp, err := backendObj.BanParticipant(ctx, discussionID, participantID, requestingUserID)
+
+					So(err, ShouldBeNil)
+					So(resp, ShouldEqual, &expected)
+				})
 			})
 		})
 	})

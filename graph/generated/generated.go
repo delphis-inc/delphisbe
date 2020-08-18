@@ -1960,7 +1960,8 @@ enum DiscussionJoinabilityResponse {
 enum DiscussionUserAccessState {
     ACTIVE,
     ARCHIVED,
-    DELETED
+    DELETED,
+    BANNED
 }
 
 enum DiscussionUserNotificationSetting {

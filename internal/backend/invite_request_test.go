@@ -182,8 +182,19 @@ func TestDelphisBackend_RequestAccessToDiscussion(t *testing.T) {
 			timeProvider:    &util.FrozenTime{NowTime: now},
 		}
 
+		Convey("when GetDiscussionUserAccess errors out and RollbackFails", func() {
+			expectedError := fmt.Errorf("Some Error")
+			mockDB.On("GetDiscussionUserAccess", ctx, mock.Anything, mock.Anything).Return(nil, expectedError)
+
+			resp, err := backendObj.RequestAccessToDiscussion(ctx, userID, discussionID)
+
+			So(err, ShouldNotBeNil)
+			So(resp, ShouldBeNil)
+		})
+
 		Convey("when BeginTx errors out", func() {
 			expectedError := fmt.Errorf("Some Error")
+			mockDB.On("GetDiscussionUserAccess", ctx, mock.Anything, mock.Anything).Return(nil, nil)
 			mockDB.On("BeginTx", ctx).Return(nil, expectedError)
 
 			resp, err := backendObj.RequestAccessToDiscussion(ctx, userID, discussionID)
@@ -194,6 +205,7 @@ func TestDelphisBackend_RequestAccessToDiscussion(t *testing.T) {
 
 		Convey("when PutDiscussionAccessRequestRecord errors out and RollbackFails", func() {
 			expectedError := fmt.Errorf("Some Error")
+			mockDB.On("GetDiscussionUserAccess", ctx, mock.Anything, mock.Anything).Return(nil, nil)
 			mockDB.On("BeginTx", ctx).Return(&tx, nil)
 			mockDB.On("PutDiscussionAccessRequestRecord", ctx, mock.Anything, mock.Anything).Return(nil, expectedError)
 			mockDB.On("RollbackTx", ctx, mock.Anything).Return(expectedError)
@@ -206,6 +218,7 @@ func TestDelphisBackend_RequestAccessToDiscussion(t *testing.T) {
 
 		Convey("when PutDiscussionAccessRequestRecord errors out", func() {
 			expectedError := fmt.Errorf("Some Error")
+			mockDB.On("GetDiscussionUserAccess", ctx, mock.Anything, mock.Anything).Return(nil, nil)
 			mockDB.On("BeginTx", ctx).Return(&tx, nil)
 			mockDB.On("PutDiscussionAccessRequestRecord", ctx, mock.Anything, mock.Anything).Return(nil, expectedError)
 			mockDB.On("RollbackTx", ctx, mock.Anything).Return(nil)
@@ -218,6 +231,7 @@ func TestDelphisBackend_RequestAccessToDiscussion(t *testing.T) {
 
 		Convey("when CommitTx errors out", func() {
 			expectedError := fmt.Errorf("Some Error")
+			mockDB.On("GetDiscussionUserAccess", ctx, mock.Anything, mock.Anything).Return(nil, nil)
 			mockDB.On("BeginTx", ctx).Return(&tx, nil)
 			mockDB.On("PutDiscussionAccessRequestRecord", ctx, mock.Anything, mock.Anything).Return(&requestObj, nil)
 			mockDB.On("CommitTx", ctx, mock.Anything).Return(expectedError)
@@ -229,6 +243,7 @@ func TestDelphisBackend_RequestAccessToDiscussion(t *testing.T) {
 		})
 
 		Convey("when invite succeeds", func() {
+			mockDB.On("GetDiscussionUserAccess", ctx, mock.Anything, mock.Anything).Return(nil, nil)
 			mockDB.On("BeginTx", ctx).Return(&tx, nil)
 			mockDB.On("PutDiscussionAccessRequestRecord", ctx, mock.Anything, mock.Anything).Return(&requestObj, nil)
 			mockDB.On("CommitTx", ctx, mock.Anything).Return(nil)

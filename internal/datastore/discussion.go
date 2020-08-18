@@ -155,8 +155,6 @@ func (d *delphisDB) ListDiscussionsByUserID(ctx context.Context, userID string, 
 	//TODO: this should take in paging params and return based on those.
 	logrus.Debugf("ListDiscussions::SQL Query")
 
-	logrus.Infof("State: %+v\n", state)
-
 	iter := d.GetDiscussionsByUserAccess(ctx, userID, state)
 	discArr, err := d.DiscussionIterCollect(ctx, iter)
 	if err != nil {
