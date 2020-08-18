@@ -179,6 +179,12 @@ func (r *mutationResolver) UpdateParticipant(ctx context.Context, discussionID s
 		return nil, fmt.Errorf("Need auth")
 	}
 
+	// Note: This is here mainly to ensure the discussion is not (soft) deleted
+	discussion, err := r.DAOManager.GetDiscussionByID(ctx, discussionID)
+	if discussion == nil || err != nil || discussion.LockStatus == true {
+		return nil, fmt.Errorf("Discussion with ID %s not found", discussionID)
+	}
+
 	participantResponse, err := r.DAOManager.GetParticipantsByDiscussionIDUserID(ctx, discussionID, authedUser.UserID)
 	if err != nil {
 		return nil, err
@@ -239,6 +245,12 @@ func (r *mutationResolver) UpdateDiscussion(ctx context.Context, discussionID st
 		return nil, fmt.Errorf("unauthorized")
 	}
 
+	// Note: This is here mainly to ensure the discussion is not (soft) deleted
+	discussion, err := r.DAOManager.GetDiscussionByID(ctx, discussionID)
+	if discussion == nil || err != nil || discussion.LockStatus == true {
+		return nil, fmt.Errorf("Discussion with ID %s not found", discussionID)
+	}
+
 	return r.DAOManager.UpdateDiscussion(ctx, discussionID, input)
 }
 
@@ -248,6 +260,12 @@ func (r *mutationResolver) UpdateDiscussionUserSettings(ctx context.Context, dis
 		return nil, fmt.Errorf("Need auth")
 	}
 
+	// Note: This is here mainly to ensure the discussion is not (soft) deleted
+	discussion, err := r.DAOManager.GetDiscussionByID(ctx, discussionID)
+	if discussion == nil || err != nil || discussion.LockStatus == true {
+		return nil, fmt.Errorf("Discussion with ID %s not found", discussionID)
+	}
+
 	return r.DAOManager.UpsertUserDiscussionAccess(ctx, authedUser.UserID, discussionID, settings)
 }
 
@@ -255,6 +273,12 @@ func (r *mutationResolver) RequestAccessToDiscussion(ctx context.Context, discus
 	authedUser := auth.GetAuthedUser(ctx)
 	if authedUser == nil {
 		return nil, fmt.Errorf("Need auth")
+	}
+
+	// Note: This is here mainly to ensure the discussion is not (soft) deleted
+	discussion, err := r.DAOManager.GetDiscussionByID(ctx, discussionID)
+	if discussion == nil || err != nil || discussion.LockStatus == true {
+		return nil, fmt.Errorf("Discussion with ID %s not found", discussionID)
 	}
 
 	return r.DAOManager.RequestAccessToDiscussion(ctx, authedUser.UserID, discussionID)
@@ -303,6 +327,12 @@ func (r *mutationResolver) DeletePost(ctx context.Context, discussionID string, 
 		return nil, fmt.Errorf("Need auth")
 	}
 
+	// Note: This is here mainly to ensure the discussion is not (soft) deleted
+	discussion, err := r.DAOManager.GetDiscussionByID(ctx, discussionID)
+	if discussion == nil || err != nil || discussion.LockStatus == true {
+		return nil, fmt.Errorf("Discussion with ID %s not found", discussionID)
+	}
+
 	deletedPost, err := r.DAOManager.DeletePostByID(ctx, discussionID, postID, authedUser.UserID)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to delete post")
@@ -323,6 +353,12 @@ func (r *mutationResolver) BanParticipant(ctx context.Context, discussionID stri
 		return nil, fmt.Errorf("Need auth")
 	}
 
+	// Note: This is here mainly to ensure the discussion is not (soft) deleted
+	discussion, err := r.DAOManager.GetDiscussionByID(ctx, discussionID)
+	if discussion == nil || err != nil || discussion.LockStatus == true {
+		return nil, fmt.Errorf("Discussion with ID %s not found", discussionID)
+	}
+
 	bannedParticipant, err := r.DAOManager.BanParticipant(ctx, discussionID, participantID, authedUser.UserID)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to ban participant")
@@ -341,6 +377,12 @@ func (r *mutationResolver) ShuffleDiscussion(ctx context.Context, discussionID s
 	authedUser := auth.GetAuthedUser(ctx)
 	if authedUser == nil {
 		return nil, fmt.Errorf("Need auth")
+	}
+
+	// Note: This is here mainly to ensure the discussion is not (soft) deleted
+	discussion, err := r.DAOManager.GetDiscussionByID(ctx, discussionID)
+	if discussion == nil || err != nil || discussion.LockStatus == true {
+		return nil, fmt.Errorf("Discussion with ID %s not found", discussionID)
 	}
 
 	modCheck, err := r.DAOManager.CheckIfModeratorForDiscussion(ctx, authedUser.UserID, discussionID)
@@ -398,6 +440,12 @@ func (r *mutationResolver) MuteParticipants(ctx context.Context, discussionID st
 		return nil, fmt.Errorf("Need auth")
 	}
 
+	// Note: This is here mainly to ensure the discussion is not (soft) deleted
+	discussion, err := r.DAOManager.GetDiscussionByID(ctx, discussionID)
+	if discussion == nil || err != nil || discussion.LockStatus == true {
+		return nil, fmt.Errorf("Discussion with ID %s not found", discussionID)
+	}
+
 	if mutedForSeconds < 0 || mutedForSeconds > 86400 {
 		return nil, fmt.Errorf("mutedForSeconds value is invalid")
 	}
@@ -415,6 +463,12 @@ func (r *mutationResolver) UnmuteParticipants(ctx context.Context, discussionID 
 	authedUser := auth.GetAuthedUser(ctx)
 	if authedUser == nil {
 		return nil, fmt.Errorf("Need auth")
+	}
+
+	// Note: This is here mainly to ensure the discussion is not (soft) deleted
+	discussion, err := r.DAOManager.GetDiscussionByID(ctx, discussionID)
+	if discussion == nil || err != nil || discussion.LockStatus == true {
+		return nil, fmt.Errorf("Discussion with ID %s not found", discussionID)
 	}
 
 	/* Only moderators can use this mutation */
