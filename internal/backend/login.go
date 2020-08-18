@@ -25,6 +25,7 @@ type LoginWithAppleInput struct {
 	Email        string
 	AccessToken  string
 	RefreshToken string
+	UserID       string
 }
 
 func (t LoginWithTwitterInput) ID() string {
@@ -32,17 +33,22 @@ func (t LoginWithTwitterInput) ID() string {
 }
 
 func (b *delphisBackend) GetOrCreateAppleUser(ctx context.Context, input LoginWithAppleInput) (*model.User, error) {
-	// The ID is the hashed email
-	hashedEmail := fmt.Sprintf("%x", sha1.Sum([]byte(input.Email)))[:36]
+	logrus.Debugf("in this function")
+	// The ID is the hashed UserID (from Apple)
+	hashedEmail := fmt.Sprintf("%x", sha1.Sum([]byte(input.UserID)))[:36]
 
 	userProfileObj := &model.UserProfile{
-		ID:            hashedEmail,
-		DisplayName:   fmt.Sprintf("%s %s", input.FirstName, input.LastName),
+		ID:            input.UserID,
 		TwitterHandle: "\nsentinel\n",
+	}
+
+	if len(input.FirstName) != 0 || len(input.LastName) != 0 {
+		userProfileObj.DisplayName = fmt.Sprintf("%s %s", input.FirstName, input.LastName)
 	}
 
 	userProfileObj, isCreated, err := b.db.CreateOrUpdateUserProfile(ctx, *userProfileObj)
 	if err != nil {
+		logrus.WithError(err).Errorf("failed here")
 		return nil, err
 	}
 
@@ -54,6 +60,7 @@ func (b *delphisBackend) GetOrCreateAppleUser(ctx context.Context, input LoginWi
 	}
 	_, err = b.db.UpsertSocialInfo(ctx, *socialInfoObj)
 	if err != nil {
+		logrus.WithError(err).Errorf("failed there")
 		return nil, err
 	}
 

@@ -254,9 +254,10 @@ func appleAuthLogin(conf *config.Config, delphisBackend backend.DelphisBackend) 
 		lastName := r.FormValue("ln")
 		email := r.FormValue("e")
 		code := r.FormValue("c")
+		userID := r.FormValue("u")
 
-		if email == "" || code == "" {
-			logrus.Errorf("Failed to retrieve email or code while authing")
+		if userID == "" {
+			logrus.Errorf("Failed to retrieve userID")
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
@@ -298,6 +299,7 @@ func appleAuthLogin(conf *config.Config, delphisBackend backend.DelphisBackend) 
 			FirstName: firstName,
 			LastName:  lastName,
 			Email:     email,
+			UserID:    userID,
 		})
 		if err != nil {
 			logrus.WithError(err).Errorf("Failed to create user for apple login")
