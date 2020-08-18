@@ -378,6 +378,7 @@ func TestDelphisBackend_CreateAlertPost(t *testing.T) {
 	ctx := context.Background()
 
 	discussionID := test_utils.DiscussionID
+	participantID := test_utils.ParticipantID
 
 	postObj := test_utils.TestPost()
 	userObj := test_utils.TestUser()
@@ -408,41 +409,45 @@ func TestDelphisBackend_CreateAlertPost(t *testing.T) {
 		Convey("when the concierge post has been added to a discussion", func() {
 			tempUserObj := userObj
 			tempUserObj.ID = model.ConciergeUser
-			resp, err := backendObj.CreateAlertPost(ctx, discussionID, &tempUserObj, false)
+			resp, err := backendObj.CreateAlertPost(ctx, discussionID, participantID, &tempUserObj, false)
 
 			So(err, ShouldBeNil)
 			So(resp, ShouldBeNil)
 		})
 
+		Convey("when GetDiscussionByID errors out", func() {
+			expectedError := fmt.Errorf("Some error")
+			mockDB.On("GetDiscussionByID", ctx, discussionID).Return(nil, expectedError)
+
+			resp, err := backendObj.CreateAlertPost(ctx, discussionID, participantID, &userObj, false)
+
+			So(err, ShouldNotBeNil)
+			So(resp, ShouldBeNil)
+		})
+
 		Convey("when GetParticipantsByDiscussionIDUserID errors out", func() {
 			expectedError := fmt.Errorf("Some error")
+			mockDB.On("GetDiscussionByID", ctx, discussionID).Return(&discObj, nil)
 			mockDB.On("GetParticipantsByDiscussionIDUserID", ctx, discussionID, mock.Anything).Return(nil, expectedError)
 
-			resp, err := backendObj.CreateAlertPost(ctx, discussionID, &userObj, false)
+			resp, err := backendObj.CreateAlertPost(ctx, discussionID, participantID, &userObj, false)
 
 			So(err, ShouldNotBeNil)
 			So(resp, ShouldBeNil)
 		})
 
 		Convey("when GetParticipantsByDiscussionIDUserID returns nil", func() {
+			mockDB.On("GetDiscussionByID", ctx, discussionID).Return(&discObj, nil)
 			mockDB.On("GetParticipantsByDiscussionIDUserID", ctx, discussionID, mock.Anything).Return(nil, nil)
 
-			resp, err := backendObj.CreateAlertPost(ctx, discussionID, &userObj, false)
-
-			So(err, ShouldNotBeNil)
-			So(resp, ShouldBeNil)
-		})
-
-		Convey("when GetParticipantsByDiscussionIDUserID for an anonymous user returns nil", func() {
-			mockDB.On("GetParticipantsByDiscussionIDUserID", ctx, discussionID, mock.Anything).Return(nil, nil)
-
-			resp, err := backendObj.CreateAlertPost(ctx, discussionID, &userObj, true)
+			resp, err := backendObj.CreateAlertPost(ctx, discussionID, participantID, &userObj, false)
 
 			So(err, ShouldNotBeNil)
 			So(resp, ShouldBeNil)
 		})
 
 		Convey("when the alert post is created successfully", func() {
+			mockDB.On("GetDiscussionByID", ctx, discussionID).Return(&discObj, nil)
 			mockDB.On("GetParticipantsByDiscussionIDUserID", ctx, discussionID, mock.Anything).Return([]model.Participant{parObj}, nil)
 
 			// Create post functions
@@ -457,7 +462,7 @@ func TestDelphisBackend_CreateAlertPost(t *testing.T) {
 			mockDB.On("DuaIterCollect", ctx, mock.Anything).Return(nil, nil)
 			mockDB.On("GetUserDevicesByUserID", ctx, mock.Anything).Return(nil, nil)
 
-			resp, err := backendObj.CreateAlertPost(ctx, discussionID, &userObj, false)
+			resp, err := backendObj.CreateAlertPost(ctx, discussionID, participantID, &userObj, false)
 
 			So(err, ShouldBeNil)
 			So(resp, ShouldNotBeNil)

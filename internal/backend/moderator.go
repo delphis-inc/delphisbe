@@ -16,6 +16,10 @@ func (d *delphisBackend) GetModeratorByUserID(ctx context.Context, userID string
 	return d.db.GetModeratorByUserID(ctx, userID)
 }
 
+func (d *delphisBackend) GetModeratorByDiscussionID(ctx context.Context, discussionID string) (*model.Moderator, error) {
+	return d.db.GetModeratorByDiscussionID(ctx, discussionID)
+}
+
 func (d *delphisBackend) GetModeratorByUserIDAndDiscussionID(ctx context.Context, userID, discussionID string) (*model.Moderator, error) {
 	return d.db.GetModeratorByUserIDAndDiscussionID(ctx, userID, discussionID)
 }

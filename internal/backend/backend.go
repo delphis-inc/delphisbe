@@ -38,6 +38,7 @@ type DelphisBackend interface {
 	ListDiscussionsByUserID(ctx context.Context, userID string, state model.DiscussionUserAccessState) (*model.DiscussionsConnection, error)
 	GetModeratorByID(ctx context.Context, id string) (*model.Moderator, error)
 	GetModeratorByUserID(ctx context.Context, userID string) (*model.Moderator, error)
+	GetModeratorByDiscussionID(ctx context.Context, discussionID string) (*model.Moderator, error)
 	GetModeratedDiscussionsByUserID(ctx context.Context, userID string) ([]*model.Discussion, error)
 	CheckIfModerator(ctx context.Context, userID string) (bool, error)
 	CheckIfModeratorForDiscussion(ctx context.Context, userID string, discussionID string) (bool, error)
@@ -53,7 +54,7 @@ type DelphisBackend interface {
 	MuteParticipants(ctx context.Context, discussionID string, participantIDs []string, muteForSeconds int) ([]*model.Participant, error)
 	UnmuteParticipants(ctx context.Context, discussionID string, participantIDs []string) ([]*model.Participant, error)
 	CreatePost(ctx context.Context, discussionID string, userID string, participantID string, input model.PostContentInput) (*model.Post, error)
-	CreateAlertPost(ctx context.Context, discussionID string, userObj *model.User, isAnonymous bool) (*model.Post, error)
+	CreateAlertPost(ctx context.Context, discussionID string, participantID string, userObj *model.User, isAnonymous bool) (*model.Post, error)
 	NotifySubscribersOfCreatedPost(ctx context.Context, post *model.Post, discussionID string) error
 	NotifySubscribersOfDeletedPost(ctx context.Context, post *model.Post, discussionID string) error
 	NotifySubscribersOfBannedParticipant(ctx context.Context, participant *model.Participant, discussionID string) error

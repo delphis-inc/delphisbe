@@ -108,6 +108,7 @@ func TestDelphisBackend_CreateParticipantForDiscussion(t *testing.T) {
 			mockDB.On("UpsertParticipant", ctx, mock.Anything).Return(&parObj, nil)
 
 			//// Create post functions
+			mockDB.On("GetDiscussionByID", ctx, discussionID).Return(&discObj, nil)
 			mockDB.On("GetParticipantsByDiscussionIDUserID", ctx, mock.Anything, mock.Anything).Return([]model.Participant{parObj}, nil)
 			mockDB.On("BeginTx", ctx).Return(nil, expectedError)
 
@@ -125,6 +126,7 @@ func TestDelphisBackend_CreateParticipantForDiscussion(t *testing.T) {
 			mockDB.On("UpsertParticipant", ctx, mock.Anything).Return(&parObj, nil)
 
 			//// Create post functions
+			mockDB.On("GetDiscussionByID", ctx, discussionID).Return(&discObj, nil)
 			mockDB.On("GetParticipantsByDiscussionIDUserID", ctx, mock.Anything, mock.Anything).Return([]model.Participant{parObj}, nil)
 			mockDB.On("BeginTx", ctx).Return(&tx, nil)
 			mockDB.On("PutPostContent", ctx, mock.Anything, mock.Anything).Return(nil)

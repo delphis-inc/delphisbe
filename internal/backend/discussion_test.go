@@ -345,6 +345,8 @@ func TestDelphisBackend_IncrementDiscussionShuffleCount(t *testing.T) {
 func TestDelphisBackend_GetDiscussionJoinabilityForUser(t *testing.T) {
 	ctx := context.Background()
 
+	discussionID := test_utils.DiscussionID
+
 	discussionObj := test_utils.TestDiscussion()
 	moderatorObj := test_utils.TestModerator()
 	moderatorUserProfileID := "someOtherID"
@@ -443,6 +445,35 @@ func TestDelphisBackend_GetDiscussionJoinabilityForUser(t *testing.T) {
 
 		Convey("when discussion joinability set to Twitter Friends", func() {
 			discussionObj.DiscussionJoinability = model.DiscussionJoinabilitySettingAllowTwitterFriends
+			Convey("when discussion.Moderator is nil and GetModeratorByDiscussionID errors out", func() {
+				someError := fmt.Errorf("some error")
+				tempDiscObj := discussionObj
+				tempDiscObj.Moderator = nil
+
+				mockDB.On("GetModeratorByDiscussionID", ctx, discussionID).Return(nil, someError)
+
+				resp, err := backendObj.GetDiscussionJoinabilityForUser(ctx, &userObj, &tempDiscObj, nil)
+
+				So(resp, ShouldBeNil)
+				So(err, ShouldNotBeNil)
+			})
+
+			Convey("when discussion.Moderator is nil and GetModeratorByDiscussionID succeeds", func() {
+				tempDiscObj := discussionObj
+				tempDiscObj.Moderator = nil
+
+				mockDB.On("GetModeratorByDiscussionID", ctx, discussionID).Return(&moderatorObj, nil)
+				mockDB.On("GetSocialInfosByUserProfileID", ctx, *discussionObj.Moderator.UserProfileID).Return([]model.SocialInfo{moderatorTwitterSocialInfo}, nil)
+				mockTwitterBackend.On("GetTwitterClientWithAccessTokens", ctx, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(mockTwitterClient, nil)
+				mockTwitterClient.On("FriendshipLookup", twitterSocialInfo.ScreenName, moderatorTwitterSocialInfo.ScreenName).Return(&twitter.Relationship{Target: twitter.RelationshipTarget{Following: false}}, nil)
+				mockDB.On("GetDiscussionAccessRequestByDiscussionIDUserID", ctx, discussionObj.ID, userObj.ID).Return(&model.DiscussionAccessRequest{Status: model.InviteRequestStatusAccepted}, nil)
+
+				resp, err := backendObj.GetDiscussionJoinabilityForUser(ctx, &userObj, &tempDiscObj, nil)
+
+				So(resp, ShouldNotBeNil)
+				So(err, ShouldBeNil)
+			})
+
 			Convey("when fetching moderator social info errors", func() {
 				mockDB.On("GetSocialInfosByUserProfileID", ctx, *discussionObj.Moderator.UserProfileID).Return(nil, fmt.Errorf("sth"))
 

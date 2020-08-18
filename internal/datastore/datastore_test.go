@@ -108,6 +108,10 @@ func TestDelphisDB_InitializeStatements(t *testing.T) {
 				Test: getModeratorByUserIDString,
 			},
 			{
+				Name: "getModeratorByDiscussionIDString",
+				Test: getModeratorByDiscussionIDString,
+			},
+			{
 				Name: "getModeratorByUserIDAndDiscussionIDString",
 				Test: getModeratorByUserIDAndDiscussionIDString,
 			},

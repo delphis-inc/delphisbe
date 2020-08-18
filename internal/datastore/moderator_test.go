@@ -7,6 +7,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/delphis-inc/delphisbe/internal/backend/test_utils"
+
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/delphis-inc/delphisbe/graph/model"
 	"github.com/delphis-inc/delphisbe/internal/config"
@@ -278,6 +280,76 @@ func TestDelphisDB_GetModeratorByUserID(t *testing.T) {
 			mock.ExpectQuery(getModeratorByUserIDString).WithArgs(userID).WillReturnRows(rs)
 
 			resp, err := mockDatastore.GetModeratorByUserID(ctx, userID)
+
+			So(err, ShouldBeNil)
+			So(resp, ShouldNotBeNil)
+			So(resp, ShouldResemble, &modObj)
+			So(mock.ExpectationsWereMet(), ShouldBeNil)
+		})
+	})
+}
+
+func TestDelphisDB_GetModeratorByDiscussionID(t *testing.T) {
+	ctx := context.Background()
+	discussionID := test_utils.DiscussionID
+	modObj := test_utils.TestModerator()
+
+	Convey("GetModeratorByDiscussionID", t, func() {
+		db, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
+
+		assert.Nil(t, err, "Failed setting up sqlmock db")
+
+		gormDB, _ := gorm.Open("postgres", db)
+		mockDatastore := &delphisDB{
+			dbConfig:  config.TablesConfig{},
+			sql:       gormDB,
+			pg:        db,
+			prepStmts: &dbPrepStmts{},
+			dynamo:    nil,
+			encoder:   nil,
+		}
+		defer db.Close()
+
+		Convey("when preparing statements returns an error", func() {
+			mockPreparedStatementsWithError(mock)
+
+			resp, err := mockDatastore.GetModeratorByDiscussionID(ctx, discussionID)
+
+			So(err, ShouldNotBeNil)
+			So(resp, ShouldBeNil)
+			So(mock.ExpectationsWereMet(), ShouldBeNil)
+		})
+
+		Convey("when query execution returns an error", func() {
+			mockPreparedStatements(mock)
+			mock.ExpectQuery(getModeratorByDiscussionIDString).WithArgs(discussionID).WillReturnError(fmt.Errorf("error"))
+
+			resp, err := mockDatastore.GetModeratorByDiscussionID(ctx, discussionID)
+
+			So(err, ShouldNotBeNil)
+			So(resp, ShouldBeNil)
+			So(mock.ExpectationsWereMet(), ShouldBeNil)
+		})
+
+		Convey("when query execution does not find a record", func() {
+			mockPreparedStatements(mock)
+			mock.ExpectQuery(getModeratorByDiscussionIDString).WithArgs(discussionID).WillReturnError(sql.ErrNoRows)
+
+			resp, err := mockDatastore.GetModeratorByDiscussionID(ctx, discussionID)
+
+			So(err, ShouldBeNil)
+			So(resp, ShouldBeNil)
+			So(mock.ExpectationsWereMet(), ShouldBeNil)
+		})
+
+		Convey("when query execution succeeds and returns a post", func() {
+			mockPreparedStatements(mock)
+			rs := sqlmock.NewRows([]string{"m.id", "m.created_at", "m.updated_at", "m.deleted_at", "m.user_profile_id"}).
+				AddRow(modObj.ID, modObj.CreatedAt, modObj.UpdatedAt, modObj.DeletedAt, modObj.UserProfileID)
+
+			mock.ExpectQuery(getModeratorByDiscussionIDString).WithArgs(discussionID).WillReturnRows(rs)
+
+			resp, err := mockDatastore.GetModeratorByDiscussionID(ctx, discussionID)
 
 			So(err, ShouldBeNil)
 			So(resp, ShouldNotBeNil)
