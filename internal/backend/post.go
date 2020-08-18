@@ -123,19 +123,31 @@ func (d *delphisBackend) CreatePost(ctx context.Context, discussionID string, us
 	return nil, errors.New("Unknown error, this code should not be reachable")
 }
 
-func (d *delphisBackend) CreateAlertPost(ctx context.Context, discussionID string, userObj *model.User, isAnonymous bool) (*model.Post, error) {
+func (d *delphisBackend) CreateAlertPost(ctx context.Context, discussionID string, participantID string, userObj *model.User, isAnonymous bool) (*model.Post, error) {
 	// Do not create an alert post when the concierge joins
 	if userObj.ID == model.ConciergeUser {
 		return nil, nil
 	}
 
-	// Create post string based on anonymity. Need proper copy from Ned/Chris
-	var welcomeStr string
-	if isAnonymous {
-		welcomeStr = "Welcome Anonymous to the Chat"
-	} else {
-		welcomeStr = fmt.Sprintf("Welcome %v to the chat", userObj.UserProfile.DisplayName)
+	discObj, err := d.GetDiscussionByID(ctx, discussionID)
+	if err != nil {
+		logrus.WithError(err).Error("failed to get discussion by ID")
+		return nil, err
 	}
+
+	// Create post string based on anonymity. Need proper copy from Ned/Chris
+	if userObj.UserProfile == nil {
+		logrus.Infof("userProfile should not be nil here")
+		return nil, fmt.Errorf("userProfile should not be nil")
+	}
+
+	displayName := userObj.UserProfile.DisplayName
+	if isAnonymous {
+		hashAsInt64 := util.GenerateParticipantSeed(discussionID, participantID, discObj.ShuffleCount)
+		displayName = util.GenerateFullDisplayName(hashAsInt64)
+	}
+
+	welcomeStr := fmt.Sprintf("Welcome %v to the chat", displayName)
 
 	// Get concierge participant
 	resp, err := d.GetParticipantsByDiscussionIDUserID(ctx, discussionID, model.ConciergeUser)

@@ -67,7 +67,7 @@ func (d *delphisBackend) CreateParticipantForDiscussion(ctx context.Context, dis
 		return nil, err
 	}
 
-	if _, err := d.CreateAlertPost(ctx, discussionID, userObj, discussionParticipantInput.IsAnonymous); err != nil {
+	if _, err := d.CreateAlertPost(ctx, discussionID, participantObj.ID, userObj, discussionParticipantInput.IsAnonymous); err != nil {
 		// Don't return err. Just log
 		logrus.WithError(err).Error("failed to create alert post")
 	}

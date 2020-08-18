@@ -53,7 +53,7 @@ type DelphisBackend interface {
 	MuteParticipants(ctx context.Context, discussionID string, participantIDs []string, muteForSeconds int) ([]*model.Participant, error)
 	UnmuteParticipants(ctx context.Context, discussionID string, participantIDs []string) ([]*model.Participant, error)
 	CreatePost(ctx context.Context, discussionID string, userID string, participantID string, input model.PostContentInput) (*model.Post, error)
-	CreateAlertPost(ctx context.Context, discussionID string, userObj *model.User, isAnonymous bool) (*model.Post, error)
+	CreateAlertPost(ctx context.Context, discussionID string, participantID string, userObj *model.User, isAnonymous bool) (*model.Post, error)
 	NotifySubscribersOfCreatedPost(ctx context.Context, post *model.Post, discussionID string) error
 	NotifySubscribersOfDeletedPost(ctx context.Context, post *model.Post, discussionID string) error
 	NotifySubscribersOfBannedParticipant(ctx context.Context, participant *model.Participant, discussionID string) error
