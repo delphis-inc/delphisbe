@@ -33,7 +33,6 @@ func (t LoginWithTwitterInput) ID() string {
 }
 
 func (b *delphisBackend) GetOrCreateAppleUser(ctx context.Context, input LoginWithAppleInput) (*model.User, error) {
-	logrus.Debugf("in this function")
 	// The ID is the hashed UserID (from Apple)
 	hashedUserID := fmt.Sprintf("%x", sha1.Sum([]byte(input.UserID)))[:36]
 
@@ -48,7 +47,6 @@ func (b *delphisBackend) GetOrCreateAppleUser(ctx context.Context, input LoginWi
 
 	userProfileObj, isCreated, err := b.db.CreateOrUpdateUserProfile(ctx, *userProfileObj)
 	if err != nil {
-		logrus.WithError(err).Errorf("failed here")
 		return nil, err
 	}
 
@@ -60,7 +58,6 @@ func (b *delphisBackend) GetOrCreateAppleUser(ctx context.Context, input LoginWi
 	}
 	_, err = b.db.UpsertSocialInfo(ctx, *socialInfoObj)
 	if err != nil {
-		logrus.WithError(err).Errorf("failed there")
 		return nil, err
 	}
 
