@@ -118,9 +118,17 @@ func (d *delphisBackend) BanParticipant(ctx context.Context, discussionID string
 
 	participantObj.IsBanned = true
 	updatedParticipant, err := d.db.UpsertParticipant(ctx, *participantObj)
-
 	if err != nil {
 		logrus.WithError(err).Error("Failed to update participant")
+		return nil, err
+	}
+
+	banned := model.DiscussionUserAccessStateBanned
+	settings := model.DiscussionUserSettings{
+		State: &banned,
+	}
+	if _, err := d.UpsertUserDiscussionAccess(ctx, *participantObj.UserID, discussionID, settings); err != nil {
+		logrus.WithError(err).Error("failed to upsert banned user discussion access")
 		return nil, err
 	}
 

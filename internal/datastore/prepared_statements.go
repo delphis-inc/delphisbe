@@ -363,7 +363,6 @@ const getDiscussionsByUserAccessString = `
 			ON dua.discussion_id = d.id
 		WHERE dua.user_id = $1
 			AND dua.state = $2
-			AND d.lock_status = false
 			AND d.deleted_at is null
 		ORDER BY d.last_post_created_at desc;`
 
