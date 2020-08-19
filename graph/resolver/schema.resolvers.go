@@ -281,7 +281,15 @@ func (r *mutationResolver) RequestAccessToDiscussion(ctx context.Context, discus
 		return nil, fmt.Errorf("Discussion with ID %s not found", discussionID)
 	}
 
-	return r.DAOManager.RequestAccessToDiscussion(ctx, authedUser.UserID, discussionID)
+	resp, err := r.DAOManager.RequestAccessToDiscussion(ctx, authedUser.UserID, discussionID)
+	if err != nil {
+		return nil, err
+	}
+	if resp == nil {
+		return nil, fmt.Errorf("user already has access to discussion")
+	}
+
+	return resp, nil
 }
 
 func (r *mutationResolver) RespondToRequestAccess(ctx context.Context, requestID string, response model.InviteRequestStatus) (*model.DiscussionAccessRequest, error) {
