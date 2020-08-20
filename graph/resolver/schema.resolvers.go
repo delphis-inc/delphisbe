@@ -247,7 +247,11 @@ func (r *mutationResolver) UpdateDiscussion(ctx context.Context, discussionID st
 
 	// Note: This is here mainly to ensure the discussion is not (soft) deleted
 	discussion, err := r.DAOManager.GetDiscussionByID(ctx, discussionID)
-	if discussion == nil || err != nil || discussion.LockStatus == true {
+	if discussion == nil || err != nil {
+		return nil, fmt.Errorf("Discussion with ID %s not found", discussionID)
+	}
+
+	if discussion.LockStatus == true && (input.LockStatus == nil || *input.LockStatus == true) {
 		return nil, fmt.Errorf("Discussion with ID %s not found", discussionID)
 	}
 
