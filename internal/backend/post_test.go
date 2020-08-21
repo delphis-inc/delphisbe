@@ -470,6 +470,79 @@ func TestDelphisBackend_CreateAlertPost(t *testing.T) {
 	})
 }
 
+func TestDelphisBackend_CreateShuffleAlertPost(t *testing.T) {
+	ctx := context.Background()
+
+	discussionID := test_utils.DiscussionID
+
+	postObj := test_utils.TestPost()
+	userObj := test_utils.TestUser()
+	modObj := test_utils.TestModerator()
+	profile := test_utils.TestUserProfile()
+	discObj := test_utils.TestDiscussion()
+	parObj := test_utils.TestParticipant()
+
+	userObj.UserProfile = &profile
+	modObj.UserProfile = &profile
+
+	tx := sql.Tx{}
+
+	Convey("CreateShuffleAlertPost", t, func() {
+		now := time.Now()
+		cacheObj := cache.NewInMemoryCache()
+		authObj := auth.NewDelphisAuth(nil)
+		mockDB := &mocks.Datastore{}
+		backendObj := &delphisBackend{
+			db:              mockDB,
+			auth:            authObj,
+			cache:           cacheObj,
+			discussionMutex: sync.Mutex{},
+			config:          config.Config{},
+			timeProvider:    &util.FrozenTime{NowTime: now},
+		}
+
+		Convey("when GetParticipantsByDiscussionIDUserID errors out", func() {
+			expectedError := fmt.Errorf("Some error")
+			mockDB.On("GetParticipantsByDiscussionIDUserID", ctx, discussionID, mock.Anything).Return(nil, expectedError)
+
+			resp, err := backendObj.CreateShuffleAlertPost(ctx, discussionID)
+
+			So(err, ShouldNotBeNil)
+			So(resp, ShouldBeNil)
+		})
+
+		Convey("when GetParticipantsByDiscussionIDUserID returns nil", func() {
+			mockDB.On("GetParticipantsByDiscussionIDUserID", ctx, discussionID, mock.Anything).Return(nil, nil)
+
+			resp, err := backendObj.CreateShuffleAlertPost(ctx, discussionID)
+
+			So(err, ShouldNotBeNil)
+			So(resp, ShouldBeNil)
+		})
+
+		Convey("when the alert post is created successfully", func() {
+			mockDB.On("GetParticipantsByDiscussionIDUserID", ctx, discussionID, mock.Anything).Return([]model.Participant{parObj}, nil)
+
+			// Create post functions
+			mockDB.On("BeginTx", ctx).Return(&tx, nil)
+			mockDB.On("PutPostContent", ctx, mock.Anything, mock.Anything).Return(nil)
+			mockDB.On("PutPost", ctx, mock.Anything, mock.Anything).Return(&postObj, nil)
+			mockDB.On("PutActivity", ctx, mock.Anything, mock.Anything).Return(nil)
+			mockDB.On("CommitTx", ctx, mock.Anything).Return(nil)
+			mockDB.On("GetDiscussionByID", ctx, discussionID).Return(&discObj, nil)
+			mockDB.On("UpsertDiscussion", ctx, mock.Anything).Return(&discObj, nil)
+			mockDB.On("GetDUAForEverythingNotifications", ctx, discussionID, mock.Anything).Return(nil)
+			mockDB.On("DuaIterCollect", ctx, mock.Anything).Return(nil, nil)
+			mockDB.On("GetUserDevicesByUserID", ctx, mock.Anything).Return(nil, nil)
+
+			resp, err := backendObj.CreateShuffleAlertPost(ctx, discussionID)
+
+			So(err, ShouldBeNil)
+			So(resp, ShouldNotBeNil)
+		})
+	})
+}
+
 func TestDelphisBackend_GetPostsByDiscussionID(t *testing.T) {
 	ctx := context.Background()
 	discussionID := test_utils.DiscussionID
