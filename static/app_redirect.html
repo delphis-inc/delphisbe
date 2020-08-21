@@ -18,7 +18,11 @@
         setTimeout(function() {
           window.location.replace('https://www.chatham.ai');
         }, 50);
-        window.location.replace('delphis-chatham://app-staging.delphishq.com/');
+        var pathName = window.location.pathname;
+        if (!pathName) {
+          pathName = '/';
+        }
+        window.location.replace('delphis-chatham://app-staging.delphishq.com' + pathName);
       }
     </script>
   </body>
