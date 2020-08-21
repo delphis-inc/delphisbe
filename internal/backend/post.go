@@ -118,6 +118,11 @@ func (d *delphisBackend) CreatePost(ctx context.Context, discussionID string, us
 			}
 		}
 
+		if err := d.NotifySubscribersOfCreatedPost(ctx, postObj, discussionID); err != nil {
+			// Silently ignore this
+			logrus.Warnf("Failed to notify subscribers of created post")
+		}
+
 		return postObj, nil
 	}
 	return nil, errors.New("Unknown error, this code should not be reachable")

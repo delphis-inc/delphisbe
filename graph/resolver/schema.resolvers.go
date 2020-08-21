@@ -137,12 +137,6 @@ func (r *mutationResolver) AddPost(ctx context.Context, discussionID string, par
 		return nil, fmt.Errorf("Failed to create post")
 	}
 
-	err = r.DAOManager.NotifySubscribersOfCreatedPost(ctx, createdPost, discussionID)
-	if err != nil {
-		// Silently ignore this
-		logrus.Warnf("Failed to notify subscribers of created post")
-	}
-
 	return createdPost, nil
 }
 
