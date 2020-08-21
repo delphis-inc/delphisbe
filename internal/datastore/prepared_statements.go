@@ -569,7 +569,8 @@ const getDiscussionsToShuffle = `
 		FROM discussion_shuffle_time s
 		JOIN discussions d ON d.id = s.discussion_id
 		WHERE shuffle_time is not NULL 
-		AND shuffle_time <= $1;`
+		AND shuffle_time <= $1
+		AND d.lock_status = false;`
 
 // This may cause multiple updates to happen to the same row but since
 // shuffling is sort of idempotent (no expected outcome) it's a good

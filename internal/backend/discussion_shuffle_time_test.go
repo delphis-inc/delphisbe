@@ -8,6 +8,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/mock"
+
 	"github.com/delphis-inc/delphisbe/graph/model"
 	"github.com/delphis-inc/delphisbe/internal/auth"
 	"github.com/delphis-inc/delphisbe/internal/backend/test_utils"
@@ -166,6 +168,10 @@ func TestDelphisBackend_PutDiscussionShuffleTime(t *testing.T) {
 // just testing the mocks.
 func TestDelphisBackend_ShuffleDiscussionsIfNecessary(t *testing.T) {
 	ctx := context.Background()
+	discussionID := test_utils.DiscussionID
+
+	parObj := test_utils.TestParticipant()
+	postObj := test_utils.TestPost()
 	discussionObj := test_utils.TestDiscussion()
 	// discussionShuffleTime := test_utils.TestDiscussionShuffleTime()
 
@@ -225,6 +231,22 @@ func TestDelphisBackend_ShuffleDiscussionsIfNecessary(t *testing.T) {
 				Convey("and all things work", func() {
 					mockDB.On("GetDiscussionsToBeShuffledBeforeTime", ctx, &tx, now).Return([]model.Discussion{discussionObj}, nil)
 					mockDB.On("IncrementDiscussionShuffleCount", ctx, &tx, discussionObj.ID).Return(nil, nil)
+
+					mockDB.On("GetDiscussionByID", ctx, discussionID).Return(&discussionObj, nil)
+					mockDB.On("GetParticipantsByDiscussionIDUserID", ctx, discussionID, mock.Anything).Return([]model.Participant{parObj}, nil)
+
+					// Create post functions
+					mockDB.On("BeginTx", ctx).Return(&tx, nil)
+					mockDB.On("PutPostContent", ctx, mock.Anything, mock.Anything).Return(nil)
+					mockDB.On("PutPost", ctx, mock.Anything, mock.Anything).Return(&postObj, nil)
+					mockDB.On("PutActivity", ctx, mock.Anything, mock.Anything).Return(nil)
+					mockDB.On("CommitTx", ctx, mock.Anything).Return(nil)
+					mockDB.On("GetDiscussionByID", ctx, discussionID).Return(&discussionObj, nil)
+					mockDB.On("UpsertDiscussion", ctx, mock.Anything).Return(&discussionObj, nil)
+					mockDB.On("GetDUAForEverythingNotifications", ctx, discussionID, mock.Anything).Return(nil)
+					mockDB.On("DuaIterCollect", ctx, mock.Anything).Return(nil, nil)
+					mockDB.On("GetUserDevicesByUserID", ctx, mock.Anything).Return(nil, nil)
+
 					mockDB.On("PutNextShuffleTimeForDiscussionID", ctx, &tx, discussionObj.ID, nilTime).Return(nil, nil)
 					mockDB.On("CommitTx", ctx, &tx).Return(nil)
 

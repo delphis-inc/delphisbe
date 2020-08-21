@@ -99,7 +99,7 @@ func TestDelphisBackend_CreateParticipantForDiscussion(t *testing.T) {
 			So(resp, ShouldBeNil)
 		})
 
-		Convey("when CreateAlertPost errors out", func() {
+		Convey("when CreateWelcomeAlertPost errors out", func() {
 			expectedError := fmt.Errorf("Some Error")
 			mockDB.On("GetUserByID", ctx, mock.Anything).Return(&userObj, nil)
 			mockDB.On("GetTotalParticipantCountByDiscussionID", ctx, discussionID).Return(count)

@@ -128,7 +128,7 @@ func (d *delphisBackend) CreatePost(ctx context.Context, discussionID string, us
 	return nil, errors.New("Unknown error, this code should not be reachable")
 }
 
-func (d *delphisBackend) CreateAlertPost(ctx context.Context, discussionID string, participantID string, userObj *model.User, isAnonymous bool) (*model.Post, error) {
+func (d *delphisBackend) CreateWelcomeAlertPost(ctx context.Context, discussionID string, participantID string, userObj *model.User, isAnonymous bool) (*model.Post, error) {
 	// Do not create an alert post when the concierge joins
 	if userObj.ID == model.ConciergeUser {
 		return nil, nil
@@ -166,6 +166,27 @@ func (d *delphisBackend) CreateAlertPost(ctx context.Context, discussionID strin
 
 	input := model.PostContentInput{
 		PostText: welcomeStr,
+		PostType: model.PostTypeAlert,
+	}
+
+	return d.CreatePost(ctx, discussionID, model.ConciergeUser, resp.NonAnon.ID, input)
+}
+
+func (d *delphisBackend) CreateShuffleAlertPost(ctx context.Context, discussionID string) (*model.Post, error) {
+	postStr := "The moderator has shuffled all aliases in the discussion"
+
+	// Get concierge participant
+	resp, err := d.GetParticipantsByDiscussionIDUserID(ctx, discussionID, model.ConciergeUser)
+	if err != nil {
+		logrus.WithError(err).Error("failed to fetch concierge participant")
+		return nil, err
+	}
+	if resp.NonAnon == nil {
+		return nil, fmt.Errorf("discussion is missing a concierge participant")
+	}
+
+	input := model.PostContentInput{
+		PostText: postStr,
 		PostType: model.PostTypeAlert,
 	}
 
