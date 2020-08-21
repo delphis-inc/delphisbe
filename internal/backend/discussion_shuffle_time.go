@@ -96,6 +96,10 @@ func (d *delphisBackend) ShuffleDiscussionsIfNecessary() {
 			// We failed partway through but let's keep going, I suppose.
 			logrus.Warnf("failed to increment shuffle ID for discussion but continuing.")
 		} else {
+			if _, err := d.CreateShuffleAlertPost(ctx, discussionID); err != nil {
+				logrus.WithError(err).Error("failed to create shuffle alert post")
+			}
+
 			_, err := d.db.PutNextShuffleTimeForDiscussionID(ctx, tx, discussionID, nil)
 			if err != nil {
 				logrus.WithError(err).Errorf("Failed to unset the next shuffle time so failing!")
